@@ -23,14 +23,8 @@ const root = process.env.BACKUP_ROOT || join("backup-artifact", new Date().toISO
 await mkdir(root, { recursive: true });
 
 function requestCloudflare(path, options = {}, authToken) {
-  const args = ["-sS", "-X", options.method || "GET"];
-  const headers = {
-    Accept: "application/json",
-    "User-Agent": "phanthuanxtra-full-system-backup/1",
-    Authorization: `Bearer ${authToken}`,
-    ...(options.headers || {}),
-  };
-  for (const [name, value] of Object.entries(headers)) args.push("-H", `${name}: ${value}`);
+  const args = ["-sS", "-X", options.method || "GET", "-H", `Authorization: Bearer ${authToken}`];
+  for (const [name, value] of Object.entries(options.headers || {})) args.push("-H", `${name}: ${value}`);
   if (options.body) args.push("--data", options.body);
   args.push("-w", "\n__CF_STATUS__%{http_code}", `https://api.cloudflare.com/client/v4${path}`);
   const output = execFileSync("curl", args, { encoding: "utf8" });
@@ -56,12 +50,12 @@ function cf(path, options = {}) {
 }
 
 function downloadR2Object(urlPath, destination, authToken) {
-  const args = ["-sS", "-L", "-o", destination, "-H", "Accept: application/octet-stream", "-H", "User-Agent: phanthuanxtra-full-system-backup/1", "-H", `Authorization: Bearer ${authToken}`, "-w", "%{http_code}", `https://api.cloudflare.com/client/v4${urlPath}`];
+  const args = ["-sS", "-L", "-o", destination, "-H", `Authorization: Bearer ${authToken}`, "-w", "%{http_code}", `https://api.cloudflare.com/client/v4${urlPath}`];
   const statusText = execFileSync("curl", args, { encoding: "utf8" }).trim();
   const status = Number(statusText);
   if (status >= 200 && status < 300) return;
   if (fallbackToken && fallbackToken !== authToken && [400, 401, 403].includes(status)) {
-    const fallbackArgs = ["-sS", "-L", "-o", destination, "-H", "Accept: application/octet-stream", "-H", "User-Agent: phanthuanxtra-full-system-backup/1", "-H", `Authorization: Bearer ${fallbackToken}`, "-w", "%{http_code}", `https://api.cloudflare.com/client/v4${urlPath}`];
+    const fallbackArgs = ["-sS", "-L", "-o", destination, "-H", `Authorization: Bearer ${fallbackToken}`, "-w", "%{http_code}", `https://api.cloudflare.com/client/v4${urlPath}`];
     const fallbackStatus = Number(execFileSync("curl", fallbackArgs, { encoding: "utf8" }).trim());
     if (fallbackStatus >= 200 && fallbackStatus < 300) return;
     throw new Error(`R2 download failed: ${fallbackStatus}`);
