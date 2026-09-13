@@ -7,6 +7,9 @@ on:
         description: 'Successful Full System Backup workflow run ID'
         required: true
         type: string
+  workflow_run:
+    workflows: ["Full System Backup"]
+    types: [completed]
 
 permissions:
   actions: read
@@ -14,13 +17,23 @@ permissions:
 
 jobs:
   restore-readability:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Resolve backup run ID
+        id: backup
+        shell: bash
+        env:
+          DISPATCH_RUN_ID: ${{ inputs.backup_run_id }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          if [ -n "$DISPATCH_RUN_ID" ]; then echo "run_id=$DISPATCH_RUN_ID" >> "$GITHUB_OUTPUT"; else echo "run_id=$EVENT_RUN_ID" >> "$GITHUB_OUTPUT"; fi
       - name: Download backup artifact from the selected successful run
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ inputs.backup_run_id }}
+          RUN_ID: ${{ steps.backup.outputs.run_id }}
         run: |
           set -euo pipefail
           mkdir -p restore
