@@ -29,7 +29,7 @@ jobs:
           node-version: 24
 
       - name: Validate gateway tests
-        run: node --test developer-gateway/test/index.test.mjs
+        run: node --test developer-gateway/test/index.test.mjs developer-gateway/test/dual-gateway.test.mjs
 
       - name: Validate Wrangler dry-run
         run: npx --yes wrangler deploy --dry-run --config developer-gateway/wrangler.jsonc
