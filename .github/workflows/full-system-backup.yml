@@ -19,6 +19,7 @@ concurrency:
 env:
   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
   CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
+  CLOUDFLARE_PRIMARY_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
   TELEGRAM_BACKUP_CHAT_ID: ${{ secrets.TELEGRAM_BACKUP_CHAT_ID }}
   WORKER_NAME: phanthuanxtra-v2
@@ -43,31 +44,55 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          test -n "$CLOUDFLARE_BACKUP_API_TOKEN"
+          test -n "$CLOUDFLARE_BACKUP_API_TOKEN" || test -n "$CLOUDFLARE_PRIMARY_API_TOKEN"
 
-      - name: Preflight Cloudflare token and D1 access
+      - name: Preflight Cloudflare token capability and D1 access
         shell: bash
         run: |
           set -euo pipefail
-          token_sha256="$(printf '%s' "$CLOUDFLARE_BACKUP_API_TOKEN" | sha256sum | cut -d' ' -f1)"
-          echo "Cloudflare backup token length: ${#CLOUDFLARE_BACKUP_API_TOKEN}"
-          echo "Cloudflare backup token SHA-256: $token_sha256"
 
-          verify_status="$(curl -sS -o /tmp/cf-token-verify.json -w '%{http_code}' \
-            -H "Authorization: Bearer $CLOUDFLARE_BACKUP_API_TOKEN" \
-            https://api.cloudflare.com/client/v4/user/tokens/verify)"
-          echo "Cloudflare token verify HTTP: $verify_status"
-          cat /tmp/cf-token-verify.json
-          test "$verify_status" = "200"
-          node -e "const b=require('/tmp/cf-token-verify.json'); if(b.success!==true || b.result?.status!=='active') throw new Error('Cloudflare backup token is not active');"
+          probe() {
+            local token="$1"
+            local path="$2"
+            curl -sS -o /dev/null -w '%{http_code}' \
+              -H "Authorization: Bearer $token" \
+              "https://api.cloudflare.com/client/v4${path}"
+          }
 
-          d1_status="$(curl -sS -o /tmp/cf-d1-preflight.json -w '%{http_code}' \
-            -H "Authorization: Bearer $CLOUDFLARE_BACKUP_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$D1_DATABASE_ID")"
-          echo "Cloudflare D1 preflight HTTP: $d1_status"
-          cat /tmp/cf-d1-preflight.json
-          test "$d1_status" = "200"
-          node -e "const b=require('/tmp/cf-d1-preflight.json'); if(b.success!==true || b.result?.uuid!=='$D1_DATABASE_ID') throw new Error('Cloudflare D1 preflight failed');"
+          token_works() {
+            local token="$1"
+            [ -n "$token" ] || return 1
+            local verify_status worker_status d1_status r2_status zone_status
+            verify_status="$(probe "$token" /user/tokens/verify)"
+            worker_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME")"
+            d1_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$D1_DATABASE_ID")"
+            r2_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET/objects?per_page=1")"
+            zone_status="$(probe "$token" "/zones?name=$ZONE_NAME&status=active&per_page=50")"
+            echo "Token capability probe: verify=$verify_status worker=$worker_status d1=$d1_status r2=$r2_status zone=$zone_status"
+            [ "$verify_status" = "200" ] && \
+              [ "$worker_status" = "200" ] && \
+              [ "$d1_status" = "200" ] && \
+              [ "$r2_status" = "200" ] && \
+              [ "$zone_status" = "200" ]
+          }
+
+          selected=""
+          selected_source=""
+          if token_works "$CLOUDFLARE_BACKUP_API_TOKEN"; then
+            selected="$CLOUDFLARE_BACKUP_API_TOKEN"
+            selected_source="backup"
+          elif token_works "$CLOUDFLARE_PRIMARY_API_TOKEN"; then
+            selected="$CLOUDFLARE_PRIMARY_API_TOKEN"
+            selected_source="primary"
+          fi
+
+          if [ -z "$selected" ]; then
+            echo "No configured Cloudflare token has all required read-only backup capabilities."
+            exit 1
+          fi
+
+          echo "Cloudflare backup token source selected: $selected_source"
+          printf 'CLOUDFLARE_BACKUP_API_TOKEN=%s\n' "$selected" >> "$GITHUB_ENV"
 
       - name: Run full-system collector
         run: node scripts/full-system-backup.mjs
