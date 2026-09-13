@@ -1,0 +1,2 @@
+ALTER TABLE vip_vehicle_sources ADD COLUMN telegram_message_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_vip_vehicle_sources_telegram_message_key ON vip_vehicle_sources(telegram_message_key) WHERE telegram_message_key IS NOT NULL;
