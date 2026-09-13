@@ -10,6 +10,12 @@ on:
       - "backup/README.md"
       - "**/*.md"
   workflow_dispatch:
+    inputs:
+      execution_id:
+        description: "Runtime evidence execution identifier"
+        required: false
+        default: "manual"
+        type: string
 
 permissions:
   contents: read
@@ -30,6 +36,14 @@ jobs:
     steps:
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      - name: Record execution path
+        shell: bash
+        run: |
+          echo "Runtime evidence execution: ${EXECUTION_ID:-manual}"
+          echo "Trigger: ${GITHUB_EVENT_NAME}"
+        env:
+          EXECUTION_ID: ${{ inputs.execution_id }}
 
       - name: Smoke website and production Worker
         shell: bash
