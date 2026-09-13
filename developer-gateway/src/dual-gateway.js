@@ -1,3 +1,4 @@
+// Gate 10 runtime evidence deploy marker: behavior intentionally unchanged.
 import baseWorker from './index.js';
 
 const DUAL_PATH = '/v1/ai/unified';
