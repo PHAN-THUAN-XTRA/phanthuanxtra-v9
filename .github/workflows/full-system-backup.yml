@@ -56,28 +56,35 @@ jobs:
             local token="$1"; local path="$2"
             curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $token" "https://api.cloudflare.com/client/v4${path}"
           }
-          probe_d1_query() {
+          probe_d1_read() {
             local token="$1"
-            curl -sS -o /dev/null -w '%{http_code}' -X POST \
-              -H "Authorization: Bearer $token" \
-              -H "Content-Type: application/json" \
-              --data '{"sql":"SELECT 1"}' \
-              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$D1_DATABASE_ID/query"
+            local query_url="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$D1_DATABASE_ID/query"
+            local schema_body table_name table_sql data_status
+            schema_body="$(curl -sS -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data '{"sql":"SELECT name FROM sqlite_master WHERE type = '\''table'\'' AND name NOT LIKE '\''sqlite_%'\'' LIMIT 1"}' "$query_url")"
+            table_name="$(printf '%s' "$schema_body" | jq -r '.result[0].results[0].name // empty')"
+            if [ -z "$table_name" ]; then
+              printf '%s' "$schema_body" | jq -e '.success == true' >/dev/null
+              echo "200"
+              return 0
+            fi
+            table_sql="${table_name//\"/\"\"}"
+            data_status="$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" -H "Content-Type: application/json" --data "{\"sql\":\"SELECT * FROM \"\"$table_sql\"\" LIMIT 1\"}" "$query_url")"
+            echo "$data_status"
           }
           token_works() {
             local token="$1"; [ -n "$token" ] || return 1
-            local verify_status worker_status deployments_status script_settings_status settings_status d1_status d1_query_status r2_status zone_status
+            local verify_status worker_status deployments_status script_settings_status settings_status d1_status d1_read_status r2_status zone_status
             verify_status="$(probe "$token" /user/tokens/verify)"
             worker_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME")"
             deployments_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME/deployments")"
             script_settings_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME/script-settings")"
             settings_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME/settings")"
             d1_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$D1_DATABASE_ID")"
-            d1_query_status="$(probe_d1_query "$token")"
+            d1_read_status="$(probe_d1_read "$token")"
             r2_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET/objects?per_page=1")"
             zone_status="$(probe "$token" "/zones?name=$ZONE_NAME&status=active&per_page=50")"
-            echo "Token capability probe: verify=$verify_status worker=$worker_status deployments=$deployments_status script_settings=$script_settings_status settings=$settings_status d1=$d1_status d1_query=$d1_query_status r2=$r2_status zone=$zone_status"
-            [ "$verify_status" = "200" ] && [ "$worker_status" = "200" ] && [ "$deployments_status" = "200" ] && [ "$script_settings_status" = "200" ] && [ "$settings_status" = "200" ] && [ "$d1_status" = "200" ] && [ "$d1_query_status" = "200" ] && [ "$r2_status" = "200" ] && [ "$zone_status" = "200" ]
+            echo "Token capability probe: verify=$verify_status worker=$worker_status deployments=$deployments_status script_settings=$script_settings_status settings=$settings_status d1=$d1_status d1_read=$d1_read_status r2=$r2_status zone=$zone_status"
+            [ "$verify_status" = "200" ] && [ "$worker_status" = "200" ] && [ "$deployments_status" = "200" ] && [ "$script_settings_status" = "200" ] && [ "$settings_status" = "200" ] && [ "$d1_status" = "200" ] && [ "$d1_read_status" = "200" ] && [ "$r2_status" = "200" ] && [ "$zone_status" = "200" ]
           }
           selected=""; selected_source=""
           if token_works "$CLOUDFLARE_BACKUP_API_TOKEN"; then selected="$CLOUDFLARE_BACKUP_API_TOKEN"; selected_source="backup"
@@ -85,7 +92,6 @@ jobs:
           fi
           if [ -z "$selected" ]; then echo "No configured Cloudflare token has all required read-only backup capabilities."; exit 1; fi
           echo "Cloudflare backup token source selected: $selected_source"
-          # Keep the original secret variables immutable; pass the validated token to the collector explicitly.
           printf 'CLOUDFLARE_EFFECTIVE_API_TOKEN=%s\n' "$selected" >> "$GITHUB_ENV"
 
       - name: Run full-system collector
