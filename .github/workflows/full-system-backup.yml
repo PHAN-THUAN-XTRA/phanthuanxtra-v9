@@ -41,6 +41,30 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           test -n "$CLOUDFLARE_BACKUP_API_TOKEN"
 
+      - name: Preflight Cloudflare token and D1 access
+        shell: bash
+        run: |
+          set -euo pipefail
+          token_sha256="$(printf '%s' "$CLOUDFLARE_BACKUP_API_TOKEN" | sha256sum | cut -d' ' -f1)"
+          echo "Cloudflare backup token length: ${#CLOUDFLARE_BACKUP_API_TOKEN}"
+          echo "Cloudflare backup token SHA-256: $token_sha256"
+
+          verify_status="$(curl -sS -o /tmp/cf-token-verify.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CLOUDFLARE_BACKUP_API_TOKEN" \
+            https://api.cloudflare.com/client/v4/user/tokens/verify)"
+          echo "Cloudflare token verify HTTP: $verify_status"
+          cat /tmp/cf-token-verify.json
+          test "$verify_status" = "200"
+          node -e "const b=require('/tmp/cf-token-verify.json'); if(b.success!==true || b.result?.status!=='active') throw new Error('Cloudflare backup token is not active');"
+
+          d1_status="$(curl -sS -o /tmp/cf-d1-preflight.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CLOUDFLARE_BACKUP_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$D1_DATABASE_ID")"
+          echo "Cloudflare D1 preflight HTTP: $d1_status"
+          cat /tmp/cf-d1-preflight.json
+          test "$d1_status" = "200"
+          node -e "const b=require('/tmp/cf-d1-preflight.json'); if(b.success!==true || b.result?.uuid!=='$D1_DATABASE_ID') throw new Error('Cloudflare D1 preflight failed');"
+
       - name: Run full-system collector
         run: node scripts/full-system-backup.mjs
 
@@ -125,6 +149,7 @@ jobs:
           if [ -f full-system-backup.tar.gz.sha256 ]; then
             curl --fail --silent --show-error \
               -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" \
+              -F "document=@full-system-backup.tar.gz.sha256" \
               -F "document=@full-system-backup.tar.gz.sha256" \
               -F "caption=Backup SHA-256 — ${{ github.sha }}" \
               "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"
