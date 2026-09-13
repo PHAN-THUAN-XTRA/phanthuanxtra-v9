@@ -128,19 +128,14 @@ const sqlLines = ["PRAGMA foreign_keys=OFF;", "BEGIN TRANSACTION;"];
 for (const row of tables) {
   if (!row.name || !row.sql) continue;
   sqlLines.push(`${row.sql};`);
-  const pragma = cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sql: `PRAGMA table_info(${sqlIdentifier(row.name)})` }),
-  });
-  const columns = (pragma.result?.[0]?.results || []).map((entry) => entry.name).filter(Boolean);
-  if (!columns.length) continue;
   const data = cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql: `SELECT * FROM ${sqlIdentifier(row.name)}` }),
   });
-  for (const record of data.result?.[0]?.results || []) {
+  const queryResult = data.result?.[0] || {};
+  const columns = queryResult.meta?.columns || Object.keys(queryResult.results?.[0] || {});
+  for (const record of queryResult.results || []) {
     const values = columns.map((column) => sqlLiteral(record[column]));
     sqlLines.push(`INSERT INTO ${sqlIdentifier(row.name)} (${columns.map(sqlIdentifier).join(", ")}) VALUES (${values.join(", ")});`);
   }
