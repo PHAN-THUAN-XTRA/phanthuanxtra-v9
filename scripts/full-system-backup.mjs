@@ -72,6 +72,18 @@ async function sha256(path) {
   return hash.digest("hex");
 }
 
+function sqlIdentifier(value) {
+  return `"${String(value).replaceAll('"', '""')}"`;
+}
+
+function sqlLiteral(value) {
+  if (value === null || value === undefined) return "NULL";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "NULL";
+  if (typeof value === "boolean") return value ? "1" : "0";
+  if (typeof value === "object") return `'${String(JSON.stringify(value)).replaceAll("'", "''")}'`;
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
 // Remove secret material while preserving binding names, types, and non-secret resource metadata.
 function redactSecretValues(value) {
   if (Array.isArray(value)) return value.map(redactSecretValues);
@@ -106,34 +118,47 @@ await saveJson("cloudflare/bindings.json", {
   bindings: redactSecretValues(workerSettings.result?.bindings || []),
 });
 
-// 3) D1 full SQL export using the supported Cloudflare export API.
-const exportPath = `/accounts/${accountId}/d1/database/${d1Id}/export`;
-let exportState = await cf(exportPath, {
+// 3) D1 read-only SQL reconstruction using the D1 Query API.
+// Cloudflare's dedicated SQL export endpoint requires a stronger write capability than
+// the least-privilege backup token. Reconstructing from read-only queries preserves the
+// backup requirement without granting or using a production mutation capability.
+const schemaQuery = await cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ output_format: "polling" }),
+  body: JSON.stringify({ sql: "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 WHEN 'trigger' THEN 2 WHEN 'view' THEN 3 ELSE 4 END, name" }),
 });
-let bookmark = exportState.result?.at_bookmark;
-if (!bookmark) throw new Error("D1 export did not return at_bookmark");
-let exportResult;
-for (let attempt = 0; attempt < 60; attempt += 1) {
-  const poll = await cf(exportPath, {
+const schemaRows = schemaQuery.result?.[0]?.results || [];
+const tables = schemaRows.filter((row) => row.type === "table");
+const sqlLines = ["PRAGMA foreign_keys=OFF;", "BEGIN TRANSACTION;"];
+
+for (const row of tables) {
+  if (!row.name || !row.sql) continue;
+  sqlLines.push(`${row.sql};`);
+  const pragma = await cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ output_format: "polling", current_bookmark: bookmark }),
+    body: JSON.stringify({ sql: `PRAGMA table_info(${sqlIdentifier(row.name)})` }),
   });
-  if (poll.result?.status === "complete" && poll.result?.result?.signed_url) {
-    exportResult = poll.result.result;
-    break;
+  const columns = (pragma.result?.[0]?.results || []).map((entry) => entry.name).filter(Boolean);
+  if (!columns.length) continue;
+  const data = await cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sql: `SELECT * FROM ${sqlIdentifier(row.name)}` }),
+  });
+  for (const record of data.result?.[0]?.results || []) {
+    const values = columns.map((column) => sqlLiteral(record[column]));
+    sqlLines.push(`INSERT INTO ${sqlIdentifier(row.name)} (${columns.map(sqlIdentifier).join(", ")}) VALUES (${values.join(", ")});`);
   }
-  if (poll.result?.at_bookmark) bookmark = poll.result.at_bookmark;
-  await new Promise((resolve) => setTimeout(resolve, 5000));
 }
-if (!exportResult?.signed_url) throw new Error("D1 export did not complete within polling window");
-const d1Response = await fetch(exportResult.signed_url);
-if (!d1Response.ok) throw new Error(`D1 signed download failed: ${d1Response.status}`);
+
+for (const row of schemaRows.filter((entry) => ["index", "trigger", "view"].includes(entry.type))) {
+  if (row.sql) sqlLines.push(`${row.sql};`);
+}
+
+sqlLines.push("COMMIT;", "PRAGMA foreign_keys=ON;");
 await mkdir(dirname(join(root, "d1/production.sql")), { recursive: true });
-await writeFile(join(root, "d1/production.sql"), Buffer.from(await d1Response.arrayBuffer()));
+await writeFile(join(root, "d1/production.sql"), `${sqlLines.join("\n")}\n`);
 
 // 4) R2 metadata + complete object export, paginated. No object is deleted or modified.
 const r2Objects = [];
