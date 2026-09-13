@@ -6,6 +6,7 @@ on:
     paths:
       - MASTER_PROJECT_STATUS.md
       - .github/workflows/full-system-backup.yml
+      - .github/workflows/gate-14-backup-restore.yml
       - scripts/full-system-backup.mjs
   schedule:
     - cron: "0 0 * * *" # 07:00 Vietnam (UTC+7)
@@ -51,18 +52,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           probe() {
-            local token="$1"
-            local path="$2"
-            curl -sS -o /dev/null -w '%{http_code}' \
-              -H "Authorization: Bearer $token" \
-              "https://api.cloudflare.com/client/v4${path}"
+            local token="$1"; local path="$2"
+            curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $token" "https://api.cloudflare.com/client/v4${path}"
           }
-
           token_works() {
-            local token="$1"
-            [ -n "$token" ] || return 1
+            local token="$1"; [ -n "$token" ] || return 1
             local verify_status worker_status deployments_status script_settings_status settings_status d1_status r2_status zone_status
             verify_status="$(probe "$token" /user/tokens/verify)"
             worker_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME")"
@@ -73,37 +68,18 @@ jobs:
             r2_status="$(probe "$token" "/accounts/$CLOUDFLARE_ACCOUNT_ID/r2/buckets/$R2_BUCKET/objects?per_page=1")"
             zone_status="$(probe "$token" "/zones?name=$ZONE_NAME&status=active&per_page=50")"
             echo "Token capability probe: verify=$verify_status worker=$worker_status deployments=$deployments_status script_settings=$script_settings_status settings=$settings_status d1=$d1_status r2=$r2_status zone=$zone_status"
-            [ "$verify_status" = "200" ] && \
-              [ "$worker_status" = "200" ] && \
-              [ "$deployments_status" = "200" ] && \
-              [ "$script_settings_status" = "200" ] && \
-              [ "$settings_status" = "200" ] && \
-              [ "$d1_status" = "200" ] && \
-              [ "$r2_status" = "200" ] && \
-              [ "$zone_status" = "200" ]
+            [ "$verify_status" = "200" ] && [ "$worker_status" = "200" ] && [ "$deployments_status" = "200" ] && [ "$script_settings_status" = "200" ] && [ "$settings_status" = "200" ] && [ "$d1_status" = "200" ] && [ "$r2_status" = "200" ] && [ "$zone_status" = "200"]
           }
-
-          selected=""
-          selected_source=""
-          if token_works "$CLOUDFLARE_BACKUP_API_TOKEN"; then
-            selected="$CLOUDFLARE_BACKUP_API_TOKEN"
-            selected_source="backup"
-          elif token_works "$CLOUDFLARE_PRIMARY_API_TOKEN"; then
-            selected="$CLOUDFLARE_PRIMARY_API_TOKEN"
-            selected_source="primary"
+          selected=""; selected_source=""
+          if token_works "$CLOUDFLARE_BACKUP_API_TOKEN"; then selected="$CLOUDFLARE_BACKUP_API_TOKEN"; selected_source="backup"
+          elif token_works "$CLOUDFLARE_PRIMARY_API_TOKEN"; then selected="$CLOUDFLARE_PRIMARY_API_TOKEN"; selected_source="primary"
           fi
-
-          if [ -z "$selected" ]; then
-            echo "No configured Cloudflare token has all required read-only backup capabilities."
-            exit 1
-          fi
-
+          if [ -z "$selected" ]; then echo "No configured Cloudflare token has all required read-only backup capabilities."; exit 1; fi
           echo "Cloudflare backup token source selected: $selected_source"
           printf 'CLOUDFLARE_BACKUP_API_TOKEN=%s\n' "$selected" >> "$GITHUB_ENV"
 
       - name: Run full-system collector
         run: node scripts/full-system-backup.mjs
-
       - name: Verify collected backup checksums
         shell: bash
         run: |
@@ -112,7 +88,6 @@ jobs:
           (cd "$BACKUP_ROOT" && sha256sum -c SHA256SUMS)
           test -s "$BACKUP_ROOT/manifest.json"
           node -e "const m=require('./$BACKUP_ROOT/manifest.json'); if(m.secret_values_included!==false) throw new Error('backup manifest claims secret values are included'); if(m.components?.d1_sql_export!==true) throw new Error('D1 export missing'); if(m.components?.r2_object_content!==true) throw new Error('R2 content missing');"
-
       - name: Create compressed archive
         shell: bash
         run: |
@@ -120,19 +95,16 @@ jobs:
           tar -C "$BACKUP_ROOT" -czf full-system-backup.tar.gz .
           sha256sum full-system-backup.tar.gz > full-system-backup.tar.gz.sha256
           ls -lh full-system-backup.tar.gz full-system-backup.tar.gz.sha256
-
       - name: Verify compressed archive integrity
         shell: bash
         run: |
           set -euo pipefail
-          verify_dir="$(mktemp -d)"
-          trap 'rm -rf "$verify_dir"' EXIT
+          verify_dir="$(mktemp -d)"; trap 'rm -rf "$verify_dir"' EXIT
           tar -xzf full-system-backup.tar.gz -C "$verify_dir"
           test -s "$verify_dir/SHA256SUMS"
           (cd "$verify_dir" && sha256sum -c SHA256SUMS)
           test -s "$verify_dir/manifest.json"
           echo "Archive integrity: PASS"
-
       - name: Upload full backup artifact
         uses: actions/upload-artifact@v4
         with:
@@ -142,50 +114,17 @@ jobs:
             full-system-backup.tar.gz.sha256
           retention-days: 30
           if-no-files-found: error
-
       - name: Send backup result and compact manifest to Telegram
         if: always()
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "$TELEGRAM_BACKUP_BOT_TOKEN" ] || [ -z "$TELEGRAM_BACKUP_CHAT_ID" ]; then
-            echo "Telegram backup notification skipped: Telegram secrets are not configured."
-            exit 0
-          fi
-
-          status="${{ job.status }}"
-          size="unknown"
-          if [ -f full-system-backup.tar.gz ]; then
-            size="$(du -h full-system-backup.tar.gz | cut -f1)"
-          fi
+          if [ -z "$TELEGRAM_BACKUP_BOT_TOKEN" ] || [ -z "$TELEGRAM_BACKUP_CHAT_ID" ]; then echo "Telegram backup notification skipped: Telegram secrets are not configured."; exit 0; fi
+          status="${{ job.status }}"; size="unknown"
+          if [ -f full-system-backup.tar.gz ]; then size="$(du -h full-system-backup.tar.gz | cut -f1)"; fi
           text=$(printf '📦 <b>Backup phanthuanxtra.com — FULL SYSTEM</b>\n⏰ 07:00 VN\n🔄 daily\n📊 status: %s\n💾 archive: %s\n🧩 GitHub + Worker + bindings + D1 + R2 + routes + manifest + SHA-256\n🔐 secret values: excluded' "$status" "$size")
-          curl --fail --silent --show-error \
-            --data-urlencode "chat_id=$TELEGRAM_BACKUP_CHAT_ID" \
-            --data-urlencode "text=$text" \
-            --data-urlencode "parse_mode=HTML" \
-            "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendMessage"
-
-          if [ -f full-system-backup.tar.gz ] && [ "$(stat -c%s full-system-backup.tar.gz)" -le 49000000 ]; then
-            curl --fail --silent --show-error \
-              -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" \
-              -F "document=@full-system-backup.tar.gz" \
-              -F "caption=Full-system backup archive — ${{ github.sha }}" \
-              "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"
-          fi
-
-          if [ -f "$BACKUP_ROOT/manifest.json" ]; then
-            curl --fail --silent --show-error \
-              -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" \
-              -F "document=@$BACKUP_ROOT/manifest.json" \
-              -F "caption=Backup manifest — ${{ github.sha }}" \
-              "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"
-          fi
-
-          if [ -f full-system-backup.tar.gz.sha256 ]; then
-            curl --fail --silent --show-error \
-              -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" \
-              -F "document=@full-system-backup.tar.gz.sha256" \
-              -F "caption=Backup SHA-256 — ${{ github.sha }}" \
-              "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"
-          fi
+          curl --fail --silent --show-error --data-urlencode "chat_id=$TELEGRAM_BACKUP_CHAT_ID" --data-urlencode "text=$text" --data-urlencode "parse_mode=HTML" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendMessage"
+          if [ -f full-system-backup.tar.gz ] && [ "$(stat -c%s full-system-backup.tar.gz)" -le 49000000 ]; then curl --fail --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz" -F "caption=Full-system backup archive — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"; fi
+          if [ -f "$BACKUP_ROOT/manifest.json" ]; then curl --fail --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@$BACKUP_ROOT/manifest.json" -F "caption=Backup manifest — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"; fi
+          if [ -f full-system-backup.tar.gz.sha256 ]; then curl --fail --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz.sha256" -F "caption=Backup SHA-256 — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"; fi
