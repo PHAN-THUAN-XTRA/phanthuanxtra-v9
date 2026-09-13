@@ -4,7 +4,6 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const required = [
-  "CLOUDFLARE_BACKUP_API_TOKEN",
   "CLOUDFLARE_ACCOUNT_ID",
 ];
 for (const name of required) {
@@ -12,8 +11,9 @@ for (const name of required) {
 }
 
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-const token = process.env.CLOUDFLARE_BACKUP_API_TOKEN;
+const token = process.env.CLOUDFLARE_EFFECTIVE_API_TOKEN || process.env.CLOUDFLARE_BACKUP_API_TOKEN || "";
 const fallbackToken = process.env.CLOUDFLARE_PRIMARY_API_TOKEN || "";
+if (!token && !fallbackToken) throw new Error("Missing required Cloudflare API token");
 const workerName = process.env.WORKER_NAME || "phanthuanxtra-v2";
 const d1Id = process.env.D1_DATABASE_ID || "8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d";
 const r2Bucket = process.env.R2_BUCKET || "phanthuanxtra-media";
@@ -22,10 +22,12 @@ const root = process.env.BACKUP_ROOT || join("backup-artifact", new Date().toISO
 
 await mkdir(root, { recursive: true });
 
-async function requestCloudflare(path, options, authToken) {
+async function requestCloudflare(path, options = {}, authToken) {
   const response = await fetch(`https://api.cloudflare.com/client/v4${path}`, {
     ...options,
     headers: {
+      Accept: "application/json",
+      "User-Agent": "phanthuanxtra-full-system-backup/1",
       Authorization: `Bearer ${authToken}`,
       ...(options.headers || {}),
     },
@@ -37,8 +39,8 @@ async function requestCloudflare(path, options, authToken) {
 }
 
 async function cf(path, options = {}) {
-  let attempt = await requestCloudflare(path, options, token);
-  if ([400, 401, 403].includes(attempt.response.status) && fallbackToken && fallbackToken !== token) {
+  let attempt = token ? await requestCloudflare(path, options, token) : null;
+  if ((!attempt || [400, 401, 403].includes(attempt.response.status)) && fallbackToken && fallbackToken !== token) {
     attempt = await requestCloudflare(path, options, fallbackToken);
   }
   const { response, text, body } = attempt;
@@ -50,11 +52,19 @@ async function cf(path, options = {}) {
 
 async function fetchR2Object(urlPath) {
   let attempt = await fetch(`https://api.cloudflare.com/client/v4${urlPath}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Accept: "application/octet-stream",
+      "User-Agent": "phanthuanxtra-full-system-backup/1",
+      Authorization: `Bearer ${token}`,
+    },
   });
   if ([400, 401, 403].includes(attempt.status) && fallbackToken && fallbackToken !== token) {
     attempt = await fetch(`https://api.cloudflare.com/client/v4${urlPath}`, {
-      headers: { Authorization: `Bearer ${fallbackToken}` },
+      headers: {
+        Accept: "application/octet-stream",
+        "User-Agent": "phanthuanxtra-full-system-backup/1",
+        Authorization: `Bearer ${fallbackToken}`,
+      },
     });
   }
   return attempt;
@@ -84,7 +94,6 @@ function sqlLiteral(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
-// Remove secret material while preserving binding names, types, and non-secret resource metadata.
 function redactSecretValues(value) {
   if (Array.isArray(value)) return value.map(redactSecretValues);
   if (!value || typeof value !== "object") return value;
@@ -99,16 +108,12 @@ function redactSecretValues(value) {
   return output;
 }
 
-// 1) Immutable Git source snapshot.
 execFileSync("git", ["archive", "--format=tar.gz", "HEAD", "-o", join(root, "github-source.tar.gz")], { stdio: "inherit" });
 
-// 2) Cloudflare Worker/deployment/settings metadata (read-only APIs).
 await saveJson("cloudflare/worker.json", await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}`));
 await saveJson("cloudflare/deployments.json", await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/deployments`));
 await saveJson("cloudflare/script-settings.json", await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/script-settings`));
 
-// 2b) Worker version settings include the authoritative binding list.
-// Keep resource identifiers/structure, but never persist secret values.
 const workerSettings = await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/settings`);
 await saveJson("cloudflare/worker-settings.json", redactSecretValues(workerSettings));
 await saveJson("cloudflare/bindings.json", {
@@ -118,10 +123,6 @@ await saveJson("cloudflare/bindings.json", {
   bindings: redactSecretValues(workerSettings.result?.bindings || []),
 });
 
-// 3) D1 read-only SQL reconstruction using the D1 Query API.
-// Cloudflare's dedicated SQL export endpoint requires a stronger write capability than
-// the least-privilege backup token. Reconstructing from read-only queries preserves the
-// backup requirement without granting or using a production mutation capability.
 const schemaQuery = await cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -160,7 +161,6 @@ sqlLines.push("COMMIT;", "PRAGMA foreign_keys=ON;");
 await mkdir(dirname(join(root, "d1/production.sql")), { recursive: true });
 await writeFile(join(root, "d1/production.sql"), `${sqlLines.join("\n")}\n`);
 
-// 4) R2 metadata + complete object export, paginated. No object is deleted or modified.
 const r2Objects = [];
 let cursor = "";
 do {
@@ -186,7 +186,6 @@ for (const object of r2Objects) {
   await writeFile(destination, Buffer.from(await response.arrayBuffer()));
 }
 
-// 5) Zone + Worker routes metadata.
 const zones = await cf(`/zones?name=${encodeURIComponent(zoneName)}&status=active&per_page=50`);
 const zone = zones.result?.find((entry) => entry.name === zoneName);
 if (!zone?.id) throw new Error(`Active zone not found: ${zoneName}`);
@@ -197,7 +196,6 @@ await saveJson("cloudflare/zone.json", {
   status: zone.status,
 });
 
-// 6) Manifest and checksums. Secret VALUES are never written.
 const files = execFileSync("find", [root, "-type", "f", "-not", "-name", "SHA256SUMS"], { encoding: "utf8" })
   .trim().split("\n").filter(Boolean).sort();
 const lines = [];
