@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - audit/gate15-runtime-evidence
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
