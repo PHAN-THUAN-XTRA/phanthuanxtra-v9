@@ -1,3 +1,4 @@
+// Gate 14 runtime trigger validation: no behavior change.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
