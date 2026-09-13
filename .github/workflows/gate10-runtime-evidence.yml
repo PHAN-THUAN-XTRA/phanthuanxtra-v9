@@ -1,0 +1,53 @@
+name: Gate 10 Runtime Evidence
+
+on:
+  workflow_run:
+    workflows: ["Deploy Developer Gateway"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  gate10:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - name: Verify dual Workers AI runtime
+        shell: bash
+        env:
+          GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${GATEWAY_READ_TOKEN:-}" || { echo 'Gateway read token missing'; exit 1; }
+          response="$(curl -fsS --max-time 60 \
+            -X POST \
+            -H "Authorization: Bearer $GATEWAY_READ_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data '{"task_id":"gate10-runtime-evidence","mode":"audit","instruction":"Return a concise Gate 10 runtime verification: identify your Deep and Wide Workers AI roles, confirm serialized isolated execution, and confirm production mutation is disabled."}' \
+            https://phanthuanxtra-developer-gateway.phanthuanmodelactor.workers.dev/v1/ai/unified)"
+          python - "$response" <<'PY'
+          import json, sys
+          body = json.loads(sys.argv[1])
+          assert body.get('ok') is True, body
+          assert body.get('dual_workers_ai') is True, body
+          assert body.get('isolated') is True, body
+          assert body.get('execution') == 'serialized', body
+          assert body.get('production_mutation') is False, body
+          models = body.get('models') or {}
+          assert models.get('deep') == '@cf/nvidia/nemotron-3-120b-a12b', body
+          assert models.get('wide') == '@cf/zai-org/glm-4.7-flash', body
+          assert body.get('peer_results', {}).get('deep'), body
+          assert body.get('peer_results', {}).get('wide'), body
+          print(json.dumps({
+              'ok': True,
+              'dual_workers_ai': True,
+              'isolated': True,
+              'execution': 'serialized',
+              'deep_model': models['deep'],
+              'wide_model': models['wide'],
+              'production_mutation': False
+          }, separators=(',', ':'))
+          PY
