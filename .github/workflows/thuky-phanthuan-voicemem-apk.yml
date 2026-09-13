@@ -5,6 +5,11 @@ on:
     paths:
       - 'voicemem-apk/**'
       - '.github/workflows/thuky-phanthuan-voicemem-apk.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'voicemem-apk/**'
+      - '.github/workflows/thuky-phanthuan-voicemem-apk.yml'
   workflow_dispatch:
 
 permissions:
