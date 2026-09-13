@@ -76,7 +76,8 @@ jobs:
           fi
           if [ -z "$selected" ]; then echo "No configured Cloudflare token has all required read-only backup capabilities."; exit 1; fi
           echo "Cloudflare backup token source selected: $selected_source"
-          printf 'CLOUDFLARE_BACKUP_API_TOKEN=%s\n' "$selected" >> "$GITHUB_ENV"
+          # Keep the original secret variables immutable; pass the validated token to the collector explicitly.
+          printf 'CLOUDFLARE_EFFECTIVE_API_TOKEN=%s\n' "$selected" >> "$GITHUB_ENV"
 
       - name: Run full-system collector
         run: node scripts/full-system-backup.mjs
