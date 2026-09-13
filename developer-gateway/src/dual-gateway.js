@@ -1,3 +1,5 @@
+// Gate 10 runtime evidence deploy marker: behavior intentionally unchanged.
+// Gate 10 evidence runner was repaired in PR #140; this source marker forces a fresh production deployment for live proof.
 import baseWorker from './index.js';
 
 const DUAL_PATH = '/v1/ai/unified';
