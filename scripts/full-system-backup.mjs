@@ -12,7 +12,7 @@ for (const name of required) {
 }
 
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-const token = process.env.CLOUDFLARE_BACKUP_API_TOKEN || process.env.CLOUDFLARE_EFFECTIVE_API_TOKEN || process.env.CLOUDFLARE_PRIMARY_API_TOKEN || "";
+const token = process.env.CLOUDFLARE_EFFECTIVE_API_TOKEN || process.env.CLOUDFLARE_BACKUP_API_TOKEN || process.env.CLOUDFLARE_PRIMARY_API_TOKEN || "";
 const fallbackToken = process.env.CLOUDFLARE_PRIMARY_API_TOKEN || "";
 if (!token && !fallbackToken) throw new Error("Missing required Cloudflare API token");
 const workerName = process.env.WORKER_NAME || "phanthuanxtra-v2";
