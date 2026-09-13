@@ -1,0 +1,17 @@
+name: XTRA Registration Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Registration probe
+        run: |
+          echo "XTRA_WORKFLOW_REGISTRATION_PROBE=PASS"
+          echo "REF=${GITHUB_REF}"
+          echo "SHA=${GITHUB_SHA}"
