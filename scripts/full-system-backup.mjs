@@ -38,7 +38,7 @@ async function requestCloudflare(path, options, authToken) {
 
 async function cf(path, options = {}) {
   let attempt = await requestCloudflare(path, options, token);
-  if ((attempt.response.status === 401 || attempt.response.status === 403) && fallbackToken && fallbackToken !== token) {
+  if ([400, 401, 403].includes(attempt.response.status) && fallbackToken && fallbackToken !== token) {
     attempt = await requestCloudflare(path, options, fallbackToken);
   }
   const { response, text, body } = attempt;
@@ -52,7 +52,7 @@ async function fetchR2Object(urlPath) {
   let attempt = await fetch(`https://api.cloudflare.com/client/v4${urlPath}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if ((attempt.status === 401 || attempt.status === 403) && fallbackToken && fallbackToken !== token) {
+  if ([400, 401, 403].includes(attempt.status) && fallbackToken && fallbackToken !== token) {
     attempt = await fetch(`https://api.cloudflare.com/client/v4${urlPath}`, {
       headers: { Authorization: `Bearer ${fallbackToken}` },
     });
