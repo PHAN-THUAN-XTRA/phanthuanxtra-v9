@@ -35,6 +35,7 @@ jobs:
           assert body.get('dual_workers_ai') is True, body
           assert body.get('isolated') is True, body
           assert body.get('execution') == 'serialized', body
+          assert body.get('runtime_order') == ['wide', 'deep'], body
           assert body.get('production_mutation') is False, body
           models = body.get('models') or {}
           assert models.get('deep') == '@cf/nvidia/nemotron-3-120b-a12b', body
@@ -46,8 +47,9 @@ jobs:
               'dual_workers_ai': True,
               'isolated': True,
               'execution': 'serialized',
+              'runtime_order': ['wide', 'deep'],
               'deep_model': models['deep'],
               'wide_model': models['wide'],
               'production_mutation': False
-          }, separators=(',', ':'))
+          }, separators=(',', ':')))
           PY
