@@ -13,6 +13,7 @@
 - After a completed status checkpoint, update only this file; Do not create competing checkpoint/status Markdown files.
 - Production remains **RED** until every required runtime/E2E release gate is evidenced.
 - No secret guessing, force-push, unreviewed destructive production change, or false GREEN claim.
+- **FREE-FIRST execution priority:** prefer a genuinely free execution path before any paid API/AI credit path. Do not add billing or consume paid API credits unless the user explicitly authorizes it. Free-first must not weaken repository security, evidence requirements, the single-queue rule, or production safety gates.
 
 ## 2. CURRENT ARCHITECTURE
 - Website: `https://phanthuanxtra.com`
@@ -173,3 +174,11 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 **Current task:** continue Gate 15 final security/UX/maintainability/testability audit and reconcile GitHub source/config with production Cloudflare evidence using the canonical four-bot map above, without relying on the unavailable S21 Wrangler CLI.  
 **Execution rule:** use the existing single queue; do not create additional checkpoint Markdown; only this file may receive the next completed status checkpoint.  
 **Final rule:** do not declare `PRODUCTION GREEN / COMPLETE` until every required runtime/E2E gate is evidenced.
+
+## 14. CHANGE LOG — 2026-09-13 FREE-FIRST EXECUTION PRIORITY
+- User requested **FREE-FIRST** as the priority for AI/execution tooling.
+- Prefer a genuinely free execution path in GitHub Actions or another approved execution environment before using paid OpenAI API credits.
+- OpenAI API credits are separate from ChatGPT usage; the current Codex Agent run was blocked by `Credit remaining $0.00` and therefore produced no completed repository/runtime evidence.
+- This preference does **not** permit weakening security controls, bypassing tests, creating a second execution queue, exposing secrets, mutating production, or declaring GREEN without runtime/E2E evidence.
+- Do not add paid billing or consume paid API credits unless the user explicitly authorizes it.
+- Any future free execution path must first be statically audited and then produce real repository/test evidence before being treated as successful.
