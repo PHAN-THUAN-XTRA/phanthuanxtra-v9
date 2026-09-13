@@ -22,26 +22,31 @@ const root = process.env.BACKUP_ROOT || join("backup-artifact", new Date().toISO
 
 await mkdir(root, { recursive: true });
 
-async function requestCloudflare(path, options = {}, authToken) {
-  const response = await fetch(`https://api.cloudflare.com/client/v4${path}`, {
-    ...options,
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "phanthuanxtra-full-system-backup/1",
-      Authorization: `Bearer ${authToken}`,
-      ...(options.headers || {}),
-    },
-  });
-  const text = await response.text();
+function requestCloudflare(path, options = {}, authToken) {
+  const args = ["-sS", "-X", options.method || "GET"];
+  const headers = {
+    Accept: "application/json",
+    "User-Agent": "phanthuanxtra-full-system-backup/1",
+    Authorization: `Bearer ${authToken}`,
+    ...(options.headers || {}),
+  };
+  for (const [name, value] of Object.entries(headers)) args.push("-H", `${name}: ${value}`);
+  if (options.body) args.push("--data", options.body);
+  args.push("-w", "\n__CF_STATUS__%{http_code}", `https://api.cloudflare.com/client/v4${path}`);
+  const output = execFileSync("curl", args, { encoding: "utf8" });
+  const marker = "\n__CF_STATUS__";
+  const markerIndex = output.lastIndexOf(marker);
+  const text = markerIndex >= 0 ? output.slice(0, markerIndex) : output;
+  const status = markerIndex >= 0 ? Number(output.slice(markerIndex + marker.length).trim()) : 0;
   let body;
   try { body = JSON.parse(text); } catch { body = text; }
-  return { response, text, body };
+  return { response: { status, ok: status >= 200 && status < 300 }, text, body };
 }
 
-async function cf(path, options = {}) {
-  let attempt = token ? await requestCloudflare(path, options, token) : null;
+function cf(path, options = {}) {
+  let attempt = token ? requestCloudflare(path, options, token) : null;
   if ((!attempt || [400, 401, 403].includes(attempt.response.status)) && fallbackToken && fallbackToken !== token) {
-    attempt = await requestCloudflare(path, options, fallbackToken);
+    attempt = requestCloudflare(path, options, fallbackToken);
   }
   const { response, text, body } = attempt;
   if (!response.ok || (body && body.success === false)) {
@@ -50,24 +55,18 @@ async function cf(path, options = {}) {
   return body;
 }
 
-async function fetchR2Object(urlPath) {
-  let attempt = await fetch(`https://api.cloudflare.com/client/v4${urlPath}`, {
-    headers: {
-      Accept: "application/octet-stream",
-      "User-Agent": "phanthuanxtra-full-system-backup/1",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if ([400, 401, 403].includes(attempt.status) && fallbackToken && fallbackToken !== token) {
-    attempt = await fetch(`https://api.cloudflare.com/client/v4${urlPath}`, {
-      headers: {
-        Accept: "application/octet-stream",
-        "User-Agent": "phanthuanxtra-full-system-backup/1",
-        Authorization: `Bearer ${fallbackToken}`,
-      },
-    });
+function downloadR2Object(urlPath, destination, authToken) {
+  const args = ["-sS", "-L", "-o", destination, "-H", "Accept: application/octet-stream", "-H", "User-Agent: phanthuanxtra-full-system-backup/1", "-H", `Authorization: Bearer ${authToken}`, "-w", "%{http_code}", `https://api.cloudflare.com/client/v4${urlPath}`];
+  const statusText = execFileSync("curl", args, { encoding: "utf8" }).trim();
+  const status = Number(statusText);
+  if (status >= 200 && status < 300) return;
+  if (fallbackToken && fallbackToken !== authToken && [400, 401, 403].includes(status)) {
+    const fallbackArgs = ["-sS", "-L", "-o", destination, "-H", "Accept: application/octet-stream", "-H", "User-Agent: phanthuanxtra-full-system-backup/1", "-H", `Authorization: Bearer ${fallbackToken}`, "-w", "%{http_code}", `https://api.cloudflare.com/client/v4${urlPath}`];
+    const fallbackStatus = Number(execFileSync("curl", fallbackArgs, { encoding: "utf8" }).trim());
+    if (fallbackStatus >= 200 && fallbackStatus < 300) return;
+    throw new Error(`R2 download failed: ${fallbackStatus}`);
   }
-  return attempt;
+  throw new Error(`R2 download failed: ${status}`);
 }
 
 async function saveJson(name, body) {
@@ -110,11 +109,11 @@ function redactSecretValues(value) {
 
 execFileSync("git", ["archive", "--format=tar.gz", "HEAD", "-o", join(root, "github-source.tar.gz")], { stdio: "inherit" });
 
-await saveJson("cloudflare/worker.json", await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}`));
-await saveJson("cloudflare/deployments.json", await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/deployments`));
-await saveJson("cloudflare/script-settings.json", await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/script-settings`));
+await saveJson("cloudflare/worker.json", cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}`));
+await saveJson("cloudflare/deployments.json", cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/deployments`));
+await saveJson("cloudflare/script-settings.json", cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/script-settings`));
 
-const workerSettings = await cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/settings`);
+const workerSettings = cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/settings`);
 await saveJson("cloudflare/worker-settings.json", redactSecretValues(workerSettings));
 await saveJson("cloudflare/bindings.json", {
   worker: workerName,
@@ -123,7 +122,7 @@ await saveJson("cloudflare/bindings.json", {
   bindings: redactSecretValues(workerSettings.result?.bindings || []),
 });
 
-const schemaQuery = await cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
+const schemaQuery = cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ sql: "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 WHEN 'trigger' THEN 2 WHEN 'view' THEN 3 ELSE 4 END, name" }),
@@ -135,14 +134,14 @@ const sqlLines = ["PRAGMA foreign_keys=OFF;", "BEGIN TRANSACTION;"];
 for (const row of tables) {
   if (!row.name || !row.sql) continue;
   sqlLines.push(`${row.sql};`);
-  const pragma = await cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
+  const pragma = cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql: `PRAGMA table_info(${sqlIdentifier(row.name)})` }),
   });
   const columns = (pragma.result?.[0]?.results || []).map((entry) => entry.name).filter(Boolean);
   if (!columns.length) continue;
-  const data = await cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
+  const data = cf(`/accounts/${accountId}/d1/database/${d1Id}/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sql: `SELECT * FROM ${sqlIdentifier(row.name)}` }),
@@ -166,7 +165,7 @@ let cursor = "";
 do {
   const query = new URLSearchParams({ per_page: "1000" });
   if (cursor) query.set("cursor", cursor);
-  const page = await cf(`/accounts/${accountId}/r2/buckets/${encodeURIComponent(r2Bucket)}/objects?${query}`);
+  const page = cf(`/accounts/${accountId}/r2/buckets/${encodeURIComponent(r2Bucket)}/objects?${query}`);
   r2Objects.push(...(page.result || []));
   cursor = page.result_info?.is_truncated ? page.result_info.cursor : "";
 } while (cursor);
@@ -179,17 +178,15 @@ await saveJson("r2/object-manifest.json", {
 for (const object of r2Objects) {
   if (!object.key) continue;
   const encodedKey = object.key.split("/").map(encodeURIComponent).join("/");
-  const response = await fetchR2Object(`/accounts/${accountId}/r2/buckets/${encodeURIComponent(r2Bucket)}/objects/${encodedKey}`);
-  if (!response.ok) throw new Error(`R2 download failed for ${object.key}: ${response.status}`);
   const destination = join(root, "r2/objects", object.key);
   await mkdir(dirname(destination), { recursive: true });
-  await writeFile(destination, Buffer.from(await response.arrayBuffer()));
+  downloadR2Object(`/accounts/${accountId}/r2/buckets/${encodeURIComponent(r2Bucket)}/objects/${encodedKey}`, destination, token);
 }
 
-const zones = await cf(`/zones?name=${encodeURIComponent(zoneName)}&status=active&per_page=50`);
+const zones = cf(`/zones?name=${encodeURIComponent(zoneName)}&status=active&per_page=50`);
 const zone = zones.result?.find((entry) => entry.name === zoneName);
 if (!zone?.id) throw new Error(`Active zone not found: ${zoneName}`);
-await saveJson("cloudflare/routes.json", await cf(`/zones/${zone.id}/workers/routes`));
+await saveJson("cloudflare/routes.json", cf(`/zones/${zone.id}/workers/routes`));
 await saveJson("cloudflare/zone.json", {
   id: zone.id,
   name: zone.name,
