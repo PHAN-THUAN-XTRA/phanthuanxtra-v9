@@ -150,7 +150,6 @@ jobs:
             curl --fail --silent --show-error \
               -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" \
               -F "document=@full-system-backup.tar.gz.sha256" \
-              -F "document=@full-system-backup.tar.gz.sha256" \
               -F "caption=Backup SHA-256 — ${{ github.sha }}" \
               "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"
           fi
