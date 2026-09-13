@@ -12,7 +12,7 @@ const env = {
   AI: { run: async () => ({ response: 'peer-result' }) }
 };
 
-test('dual Workers AI calls Deep then Wide and stays isolated', async () => {
+test('dual Workers AI calls Wide then Deep and stays isolated', async () => {
   const calls = [];
   const testEnv = { ...env, AI: { run: async (model) => { calls.push(model); return { response: model }; } } };
   const response = await worker.fetch(new Request('https://gateway.example.com/v1/ai/unified', {
@@ -26,10 +26,11 @@ test('dual Workers AI calls Deep then Wide and stays isolated', async () => {
   assert.equal(body.dual_workers_ai, true);
   assert.equal(body.isolated, true);
   assert.equal(body.execution, 'serialized');
+  assert.deepEqual(body.runtime_order, ['wide', 'deep']);
   assert.equal(body.production_mutation, false);
   assert.deepEqual(calls, [
-    '@cf/nvidia/nemotron-3-120b-a12b',
-    '@cf/zai-org/glm-4.7-flash'
+    '@cf/zai-org/glm-4.7-flash',
+    '@cf/nvidia/nemotron-3-120b-a12b'
   ]);
 });
 
