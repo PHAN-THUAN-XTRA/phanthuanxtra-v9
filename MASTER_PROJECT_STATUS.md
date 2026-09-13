@@ -1,9 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**  
-> Date: 2026-09-12 (UTC+7)  
+> Date: 2026-09-13 (UTC+7)  
 > Repository: `phanthuanxtra-v9/phanthuanxtra-v9`  
-> Main source: `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`  
+> Main source: `d834dcf760706e3bc8f945bbd468d43d85c4f4b7`  
 > Production deployment remains separately tracked below and is not implied by the current main source SHA.
 
 ## 1. SOURCE OF TRUTH
@@ -16,7 +16,7 @@ Complete `phanthuanxtra.com` and the AI PT.XTRA APK as one integrated production
 `AI agents → GitHub branch/PR → CI/audit → protected main → Cloudflare deployment → production runtime verification → production E2E → APK/device verification`
 
 ## 4. CURRENT ARCHITECTURE
-- Main source: `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`
+- Main source: `d834dcf760706e3bc8f945bbd468d43d85c4f4b7`
 - Production Worker: `phanthuanxtra-v2`
 - Entry: `src/entry.js`
 - Website: `https://phanthuanxtra.com`
@@ -86,6 +86,18 @@ The R2 read-after-delete gate initially exposed production cache behavior. PR #1
 ### 5.7 Production GREEN — QUEUE-01 RELEASE BASELINE REACHED; FINAL PROJECT GREEN NOT YET DECLARED
 The requested Admin → D1 → R2 production gate is now **GREEN**. The canonical project still keeps the overall `PRODUCTION GREEN / COMPLETE` state closed until the remaining release gates in §7 are also evidenced.
 
+### 5.8 Gate 10 — DUAL WORKERS AI RUNTIME EVIDENCE — VERIFIED GREEN
+Fresh production deployment and live runtime evidence completed:
+- PR #140 `fix(gate10): repair runtime evidence assertion` merged; evidence parser syntax error fixed.
+- PR #141 `chore(gate10): trigger fresh gateway deployment evidence` merged as `d834dcf760706e3bc8f945bbd468d43d85c4f4b7`; source change is comment-only and intentionally leaves runtime behavior unchanged.
+- Production Deploy Developer Gateway run: `34745169480` — **SUCCESS**.
+- Gate 10 Runtime Evidence run: `34745194944` — **SUCCESS**.
+- Live authenticated `/v1/ai/unified` evidence proved `dual_workers_ai=true`, `isolated=true`, `execution=serialized`, `runtime_order=['wide','deep']`, and `production_mutation=false`.
+- Live models proved: Wide `@cf/zai-org/glm-4.7-flash`; Deep `@cf/nvidia/nemotron-3-120b-a12b`.
+- Both Wide and Deep peer results were non-empty.
+- The production audit therefore proves the required Wide → Deep serialized order and isolated execution contract at runtime.
+- No production mutation was performed by the Gate 10 runtime path.
+
 ## 6. SINGLE EXECUTION QUEUE / OWNERSHIP
 ### QUEUE-01 — Admin production E2E
 **Status:** **GREEN / COMPLETED for Admin + Dashboard + D1 CRUD + R2 E2E.** The queue was executed serially, with the final rerun performed only after Cloudflare Version `2abd60b3-5301-4d01-9d59-716fdbb77cc3` was deployed.
@@ -121,6 +133,13 @@ This is now the canonical future AI operating model for XTRA and is to be used i
 - Preferred Workers AI model: `@cf/zai-org/glm-4.7-flash`
 - Responsibilities: broad dependency scan, regression risks, alternative explanations, overlooked edge cases, implementation options and cross-component impact.
 
+**RỘNG → SÂU → RỘNG — canonical reasoning pattern**
+1. **RỘNG:** scan the full problem space first — dependencies, regressions, alternative explanations, evidence gaps and cross-component impact.
+2. **SÂU:** select the strongest 1–2 directions and investigate root cause, security, architecture consistency and runtime evidence deeply.
+3. **RỘNG:** reconnect the selected solution across the surrounding system, re-check regressions and dependencies, then produce one safe execution plan.
+
+This pattern is mandatory for future AI/Work AI reasoning in XTRA: broad first, deep second, broad again before execution. It does not create a second execution queue.
+
 **Fallback**
 - `@cf/google/gemma-4-26b-a4b-it` may be used as a fallback/recovery reasoning model when appropriate.
 
@@ -131,7 +150,7 @@ This is now the canonical future AI operating model for XTRA and is to be used i
 - No quota exhaustion may be allowed to interfere with Admin/D1/R2 release verification.
 
 **Arbitration protocol**
-`Task → Deep analysis + Wide scan → evidence comparison → conflict resolution → one execution plan → test → verify → status update`
+`Task → RỘNG scan → SÂU analysis → RỘNG cross-system recheck → evidence comparison → conflict resolution → one execution plan → test → verify → status update`
 
 The two roles are reasoning peers, not two independent deployers. No AI reasoning result is itself production evidence.
 
@@ -151,7 +170,7 @@ The project records the desired 10,000-Neuron/day Workers AI budget and two-role
 7. R2 write/read/delete E2E. **VERIFIED** — HTTP 200 write, successful read, HTTP 200 delete, HTTP 404 read-after-delete.
 8. Password reset production E2E. **NOT COMPLETE**.
 9. Gateway/AI production gate. **VERIFIED**.
-10. Dual Workers AI layer isolated validation against Admin/D1/R2 non-interference. **NOT RUN / BLOCKED FROM PRODUCTION PROMOTION**.
+10. Dual Workers AI layer isolated validation against Admin/D1/R2 non-interference. **VERIFIED GREEN** — live Wide → Deep runtime evidence from run `34745194944`; deployment run `34745169480` succeeded.
 11. Fresh APK artifact/hash + S21 Ultra regression. **OPEN**.
 12. Telegram Auto Bot production E2E. **OPEN**.
 13. VIP webhook/idempotency production E2E. **OPEN**.
@@ -160,6 +179,20 @@ The project records the desired 10,000-Neuron/day Workers AI budget and two-role
 16. Only then declare **PRODUCTION GREEN / COMPLETE**.
 
 ## 8. CHANGE LOG — CANONICAL
+### 2026-09-13 — Gate 10 recovered and runtime evidence verified
+- Read `MASTER_PROJECT_STATUS.md` before execution.
+- Preserved the single-queue rule and used the required **RỘNG → SÂU → RỘNG** reasoning pattern: broad scan identified the evidence-run Python heredoc syntax error; deep analysis selected one safe repair; the final broad pass reconnected the repair to deployment/runtime/evidence ordering.
+- PR #140 repaired the Gate 10 evidence assertion and was merged before the fresh runtime proof.
+- PR #141 added only a comment deploy marker in `developer-gateway/src/dual-gateway.js` so a fresh production Developer Gateway deployment would run; no runtime behavior was changed.
+- PR #141 merged as `d834dcf760706e3bc8f945bbd468d43d85c4f4b7`.
+- Deploy Developer Gateway run `34745169480` completed successfully.
+- Gate 10 Runtime Evidence run `34745194944` completed successfully.
+- Live evidence proved: `dual_workers_ai=true`; `isolated=true`; `execution=serialized`; `runtime_order=['wide','deep']`; Wide model `@cf/zai-org/glm-4.7-flash`; Deep model `@cf/nvidia/nemotron-3-120b-a12b`; both peer results non-empty; `production_mutation=false`.
+- Gate 10 is now **GREEN** and is removed from the blocked/unfinished release-gate list.
+- Production remains **RED / NOT COMPLETE** because Gates 8 and 11–15 still require current runtime/E2E evidence.
+- Updated only `MASTER_PROJECT_STATUS.md` for this canonical status checkpoint.
+- No secret values were exposed or committed.
+
 ### 2026-09-12 — QUEUE-01 Admin/D1/R2 production gate verified
 - Read `MASTER_PROJECT_STATUS.md` before execution.
 - Executed QUEUE-01 serially; no competing execution queue was opened.
@@ -233,6 +266,6 @@ The project records the desired 10,000-Neuron/day Workers AI budget and two-role
 - The obsolete repository `phanthuanxtra-v9/phanthuanxtra` is excluded from all audit/deploy/repair/CI/E2E workflows.
 
 ## 10. NEXT CHECKPOINT
-**Current task:** QUEUE-01 / Admin production E2E is complete for its defined release baseline.  
+**Current task:** Gate 10 is complete and verified in production runtime.  
 **Immediate operating mode:** keep execution serialized through the single queue rule.  
-**Next exact action:** proceed to the remaining release gates only after explicitly opening the next queue item; do not claim final `PRODUCTION GREEN / COMPLETE` until gates 8–15 are evidenced.
+**Next exact action:** proceed to **Gate 14** (Backup + restore/readability evidence), then Gate 15, Gate 11, Gate 8, Gate 12, Gate 13, and Final Audit in the locked release order. Do not claim final `PRODUCTION GREEN / COMPLETE` until all required gates are evidenced.
