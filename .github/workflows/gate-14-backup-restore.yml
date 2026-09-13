@@ -66,9 +66,18 @@ jobs:
           set -euo pipefail
           test -s restore/extracted/r2/object-manifest.json
           count="$(node -e "const m=require('./restore/extracted/r2/object-manifest.json'); process.stdout.write(String(m.object_count||0))")"
-          files="$(find restore/extracted/r2/objects -type f 2>/dev/null | wc -l | tr -d ' ')"
+          files=0
+          if [ -d restore/extracted/r2/objects ]; then
+            files="$(find restore/extracted/r2/objects -type f 2>/dev/null | wc -l | tr -d ' ' || true)"
+          fi
           echo "manifest_objects=$count restored_files=$files"
-          test "$count" = "$files"
+          if [ "$count" = "0" ]; then
+            test "$files" = "0"
+            echo "R2 readability: PASS (production bucket is empty; manifest and extracted object set are both zero)"
+          else
+            test "$count" = "$files"
+            test "$files" -gt 0
+          fi
       - name: Restore/readability evidence summary
         run: |
           {
