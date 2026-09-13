@@ -10,7 +10,7 @@
 - `MASTER_PROJECT_STATUS.md` is the sole canonical project-status file.
 - All AI / Work AI must read this file before project work.
 - One execution queue only; no conflicting parallel mutations.
-- After a completed status checkpoint, update only this file; do not create competing checkpoint Markdown.
+- After a completed status checkpoint, update only this file; Do not create competing checkpoint/status Markdown files.
 - Production remains **RED** until every required runtime/E2E release gate is evidenced.
 - No secret guessing, force-push, unreviewed destructive production change, or false GREEN claim.
 
@@ -25,6 +25,13 @@
 - APK: `com.phanthuanxtra.app`, source version 1.2.0 / versionCode 3
 - Current main: `223a0ff05a16f8d39fadba71f5c0247dd7532e24`
 - Proven production deployment: SHA `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`, Cloudflare Version `2abd60b3-5301-4d01-9d59-716fdbb77cc3`, Wrangler `4.121.0`.
+
+### 2.1. CANONICAL TELEGRAM BOT MAP — USER CONFIRMED
+- `@phanthuanxtra2026_bot` — **backup dữ liệu**; lịch backup **07:00 sáng mỗi ngày theo giờ Việt Nam (UTC+7)**.
+- `@phanthuanxtra_auto_bot` — **Auto nhập xe lên website**; trước khi upload ảnh xe, AI tự động **che biển số** và thay vùng biển số bằng chữ **“PT Xtra”**.
+- `@phanthuanxtra_bot` — **Chat AI ở góc phải phía dưới website**; **form đăng ký lái thử xe** cũng gửi thông báo về bot này.
+- `@phanthuanxtra_vip_bot` — **VIP vehicle information check**; nhận/kiểm tra hình ảnh xe để hỗ trợ xác định thông tin xe, bao gồm phân biệt xe nguyên bản/sản xuất với xe **độ hoặc facelift**; chức năng này **hiện trên APK**.
+- Đây là bản đồ 4 bot do chủ dự án xác nhận để làm chuẩn đối chiếu khi audit GitHub/Cloudflare. Không tự suy đoán, đổi tên hoặc gộp 4 bot thành một bot nếu runtime/config không chứng minh điều đó.
 
 ## 3. VERIFIED PRODUCTION BASELINE
 - Website HTTP 200 — GREEN
@@ -140,12 +147,29 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 - Kept the single queue and RỘNG → SÂU → RỘNG reasoning pattern.
 - Diagnosed the actual D1 Query failure rather than bypassing the gate.
 - PR #168 fixed D1 capability probing, exact-commit checkout, `_cf_*` schema exclusion, checksum paths and empty-R2 readability handling.
-- PR #168 merged as `223a0ff05a16f8d39fadba71f5c0247dd7532e24`.
 - Backup run `34752032531` and Gate 14 run `34752146646` both passed.
 - Updated only `MASTER_PROJECT_STATUS.md` for this canonical status checkpoint.
 - No secret values were exposed or committed.
 
-## 11. NEXT CHECKPOINT
-**Current task:** Gate 14 is complete and runtime-verified.  
-**Next exact action:** proceed to **Gate 15** final security/UX/maintainability/testability audit, then Gate 11, Gate 8, Gate 12, Gate 13, and Final Audit in the locked release order.  
+## 11. CHANGE LOG — 2026-09-13 S21 / WRANGLER LIMITATION
+- User confirmed Wrangler cannot be executed on the S21 Ultra environment currently being used for the physical-device workflow.
+- This is an **execution-environment limitation**, not evidence that Cloudflare bindings or production are broken.
+- No Wrangler secret/token was requested or exposed.
+- Live Cloudflare CLI deployment/status commands from the S21 remain **UNVERIFIED** until an available execution environment can run Wrangler or equivalent authenticated Cloudflare tooling.
+- GitHub-side source/config audit continues immediately through repository bindings, workflows, tests and production evidence; this note does not create a second queue.
+- Production remains **RED**; no GREEN claim is made from the S21 limitation.
+
+## 12. CHANGE LOG — 2026-09-13 TELEGRAM BOT MAP CONFIRMED
+- Recorded the four canonical Telegram bot identities/functions confirmed by the project owner:
+  - `@phanthuanxtra2026_bot` — daily 07:00 VN data backup.
+  - `@phanthuanxtra_auto_bot` — vehicle ingestion to website with AI license-plate masking/replacement by `PT Xtra` before upload.
+  - `@phanthuanxtra_bot` — website bottom-right AI chat and test-drive registration notifications.
+  - `@phanthuanxtra_vip_bot` — VIP vehicle image/info checking for stock/manufacturing versus modified/facelift assessment, surfaced in the APK.
+- These four identities are now the canonical audit targets for GitHub/Cloudflare reconciliation.
+- This update records project knowledge only; it does **not** claim that all four live runtime paths have already been E2E-proven.
+- Production remains **RED** until the corresponding runtime/E2E gates are evidenced.
+
+## 13. NEXT CHECKPOINT
+**Current task:** continue Gate 15 final security/UX/maintainability/testability audit and reconcile GitHub source/config with production Cloudflare evidence using the canonical four-bot map above, without relying on the unavailable S21 Wrangler CLI.  
+**Execution rule:** use the existing single queue; do not create additional checkpoint Markdown; only this file may receive the next completed status checkpoint.  
 **Final rule:** do not declare `PRODUCTION GREEN / COMPLETE` until every required runtime/E2E gate is evidenced.
