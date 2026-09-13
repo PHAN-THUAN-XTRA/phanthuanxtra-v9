@@ -1,0 +1,90 @@
+name: Gate 15 Runtime Evidence Harness
+
+on:
+  push:
+    branches:
+      - audit/gate15-runtime-evidence
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate15-runtime-evidence
+  cancel-in-progress: false
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      GATEWAY_URL: https://phanthuanxtra-developer-gateway.phanthuanmodelactor.workers.dev
+      GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+    steps:
+      - name: Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      - name: Production D1 runtime E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+          TEST_CAR_ID="gate15-e2e-${GITHUB_RUN_ID}"
+          TEST_IMAGE_URL="https://phanthuanxtra.com/media/vehicles/gate15-${TEST_CAR_ID}.jpg"
+          trap 'curl --silent --show-error --retry 2 --max-time 20 -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" >/dev/null || true' EXIT
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          test "$status" = 200
+          ADMIN_SESSION="$(jq -r '.token // empty' /tmp/login.json)"
+          test -n "$ADMIN_SESSION"
+          export ADMIN_SESSION
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "$SITE_URL/api/admin/cars" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data "$(jq -nc --arg id "$TEST_CAR_ID" --arg image "$TEST_IMAGE_URL" '{id:$id,brand:"PT XTRA GATE15",model:"Runtime Evidence",year:2026,mileage:1,price:1,fuel:"test",category:"suv",color:"test",status:"available",description:"Gate 15 runtime evidence; automatically deleted.",features:["gate15"],images:[$image]}')" | tee /tmp/d1-create.json
+          jq -e '.ok == true and .id == env.TEST_CAR_ID' /tmp/d1-create.json >/dev/null
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars" | tee /tmp/d1-read.json
+          jq -e --arg id "$TEST_CAR_ID" '.cars | any(.[]; .id == $id and .brand == "PT XTRA GATE15")' /tmp/d1-read.json >/dev/null
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" | tee /tmp/d1-delete.json
+          jq -e '.ok == true and .deleted == env.TEST_CAR_ID' /tmp/d1-delete.json >/dev/null
+          echo 'D1 runtime E2E: PASS'
+
+      - name: Production R2 runtime E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_TOKEN"
+          printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' | base64 -d > /tmp/gate15.png
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/r2-upload.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/media" -H "X-Admin-Token: $ADMIN_TOKEN" -H 'content-type: image/png' --data-binary @/tmp/gate15.png)"
+          test "$status" = 200
+          MEDIA_KEY="$(jq -r '.key // empty' /tmp/r2-upload.json)"
+          test -n "$MEDIA_KEY"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$SITE_URL/media/$MEDIA_KEY" -o /tmp/gate15-download.png
+          cmp /tmp/gate15.png /tmp/gate15-download.png
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/r2-delete.json -w '%{http_code}' -X DELETE "$SITE_URL/api/admin/media/$MEDIA_KEY" -H "X-Admin-Token: $ADMIN_TOKEN")"
+          test "$status" = 200
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/r2-after.json -w '%{http_code}' "$SITE_URL/media/$MEDIA_KEY")"
+          test "$status" = 404
+          echo 'R2 runtime E2E: PASS'
+
+      - name: Production Gateway runtime E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GATEWAY_READ_TOKEN"
+          curl --fail-with-body --silent --show-error --retry 3 --max-time 30 "$GATEWAY_URL/health" | tee /tmp/gateway-health.json
+          jq -e '.ok == true and .service == "developer-gateway" and .unified_ai == true and .unified_ai_engine == "cloudflare-workers-ai"' /tmp/gateway-health.json >/dev/null
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/gateway-unauth.json -w '%{http_code}' -X POST "$GATEWAY_URL/v1/ai/unified" -H 'content-type: application/json' --data '{"instruction":"gate15 unauthorized boundary"}')"
+          test "$status" = 401
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 60 -X POST "$GATEWAY_URL/v1/ai/unified" -H "Authorization: Bearer $GATEWAY_READ_TOKEN" -H 'content-type: application/json' --data '{"task_id":"gate15-runtime","mode":"audit","instruction":"Return exactly: XTRA_GATE15_RUNTIME_OK"}' | tee /tmp/gateway-unified.json
+          jq -e '.ok == true and .logical_agent == "xtra-unified-ai" and .engine == "cloudflare-workers-ai" and .production_mutation == false and (.response | contains("XTRA_GATE15_RUNTIME_OK"))' /tmp/gateway-unified.json >/dev/null
+          echo 'Gateway runtime E2E: PASS'
+
+      - name: Password-reset negative boundary only
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/reset-invalid.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data '{"recoveryCode":"__invalid_gate15_recovery_code__","password":"Gate15-Temporary-Only-Do-Not-Use","confirm":"Gate15-Temporary-Only-Do-Not-Use"}')"
+          test "$status" = 401
+          jq -e '.error == "Mã khôi phục không hợp lệ"' /tmp/reset-invalid.json >/dev/null
+          echo 'Password reset invalid-code boundary: PASS; no credential mutation performed.'
