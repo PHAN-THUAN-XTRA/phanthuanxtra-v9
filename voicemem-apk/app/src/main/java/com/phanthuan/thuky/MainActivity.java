@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.View;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -16,19 +15,16 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class MainActivity extends Activity {
+    // Standalone VoiceMem client: deliberately separate from the Phan Thuần Xtra APK.
     private static final int MIC_REQUEST = 1001;
-    private static final String PREFS = "thuky_phanthuan";
     private static final String URL_KEY = "voicemem_url";
     private static final String DEFAULT_URL = "http://127.0.0.1:8787";
-
     private WebView webView;
     private EditText urlInput;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         buildUi();
         requestMicPermissionIfNeeded();
@@ -60,7 +56,6 @@ public class MainActivity extends Activity {
         open.setTextColor(Color.WHITE);
         open.setBackgroundColor(Color.rgb(122, 31, 43));
         bar.addView(open, new LinearLayout.LayoutParams(100, 52));
-
         root.addView(bar);
 
         TextView hint = new TextView(this);
@@ -81,19 +76,15 @@ public class MainActivity extends Activity {
         webView.setBackgroundColor(Color.BLACK);
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onPermissionRequest(final PermissionRequest request) {
+            @Override public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
                     if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                         request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-                    } else {
-                        request.deny();
-                    }
+                    } else request.deny();
                 });
             }
         });
         root.addView(webView, new LinearLayout.LayoutParams(-1, 0, 1f));
-
         open.setOnClickListener(v -> loadVoiceMem());
         setContentView(root);
         loadVoiceMem();
@@ -111,18 +102,12 @@ public class MainActivity extends Activity {
     }
 
     private void requestMicPermissionIfNeeded() {
-        if (android.os.Build.VERSION.SDK_INT >= 23 &&
-                checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+        if (android.os.Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_REQUEST);
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
+    @Override public void onBackPressed() {
+        if (webView != null && webView.canGoBack()) webView.goBack(); else super.onBackPressed();
     }
 }
