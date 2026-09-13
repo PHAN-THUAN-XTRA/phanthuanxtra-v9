@@ -140,12 +140,19 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 - Kept the single queue and RỘNG → SÂU → RỘNG reasoning pattern.
 - Diagnosed the actual D1 Query failure rather than bypassing the gate.
 - PR #168 fixed D1 capability probing, exact-commit checkout, `_cf_*` schema exclusion, checksum paths and empty-R2 readability handling.
-- PR #168 merged as `223a0ff05a16f8d39fadba71f5c0247dd7532e24`.
 - Backup run `34752032531` and Gate 14 run `34752146646` both passed.
 - Updated only `MASTER_PROJECT_STATUS.md` for this canonical status checkpoint.
 - No secret values were exposed or committed.
 
-## 11. NEXT CHECKPOINT
-**Current task:** Gate 14 is complete and runtime-verified.  
-**Next exact action:** proceed to **Gate 15** final security/UX/maintainability/testability audit, then Gate 11, Gate 8, Gate 12, Gate 13, and Final Audit in the locked release order.  
+## 11. CHANGE LOG — 2026-09-13 S21 / WRANGLER LIMITATION
+- User confirmed Wrangler cannot be executed on the S21 Ultra environment currently being used for the physical-device workflow.
+- This is an **execution-environment limitation**, not evidence that Cloudflare bindings or production are broken.
+- No Wrangler secret/token was requested or exposed.
+- Live Cloudflare CLI deployment/status commands from the S21 remain **UNVERIFIED** until an available execution environment can run Wrangler or equivalent authenticated Cloudflare tooling.
+- GitHub-side source/config audit continues immediately through repository bindings, workflows, tests and production evidence; this note does not create a second queue.
+- Production remains **RED**; no GREEN claim is made from the S21 limitation.
+
+## 12. NEXT CHECKPOINT
+**Current task:** continue Gate 15 final security/UX/maintainability/testability audit and reconcile GitHub source/config with production Cloudflare evidence without relying on the unavailable S21 Wrangler CLI.  
+**Execution rule:** use the existing single queue; do not create additional checkpoint Markdown; only this file may receive the next completed status checkpoint.  
 **Final rule:** do not declare `PRODUCTION GREEN / COMPLETE` until every required runtime/E2E gate is evidenced.
