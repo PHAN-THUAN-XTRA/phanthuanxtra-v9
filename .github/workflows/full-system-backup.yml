@@ -6,6 +6,7 @@ on:
     paths:
       - MASTER_PROJECT_STATUS.md
       - .github/workflows/full-system-backup.yml
+      - scripts/full-system-backup.mjs
   schedule:
     - cron: "0 0 * * *" # 07:00 Vietnam (UTC+7)
 
