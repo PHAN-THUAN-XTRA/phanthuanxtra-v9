@@ -56,7 +56,7 @@ jobs:
             --data '{"prompt":"Return exactly: XTRA_CLOUDFLARE_AI_AUTH_OK"}')"
           printf '%s' "$response" > /tmp/workers-ai.json
           jq -e '.success == true' /tmp/workers-ai.json >/dev/null
-          jq -e '.result.response | contains("XTRA_CLOUDFLARE_AI_AUTH_OK")' /tmp/workers-ai.json >/dev/null
+          jq -e '((.result.response // "") | contains("XTRA_CLOUDFLARE_AI_AUTH_OK"))' /tmp/workers-ai.json >/dev/null
           echo "Workers AI authentication + inference: PASS"
 
       - name: Safety assertion
