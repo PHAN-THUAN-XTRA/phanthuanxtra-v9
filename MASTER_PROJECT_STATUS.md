@@ -3,7 +3,7 @@
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**  
 > Date: 2026-09-14 (UTC+7)  
 > Repository: `phanthuanxtra-v9/phanthuanxtra-v9`  
-> Main source: `e948ca4d54b116882ade3983783d3ac6dddf4f40e`  
+> Main source: `e948ca4d54b116882ade3983783dac6dddf4f40e`  
 > Production deployment is tracked separately and is not implied by the current main source SHA.
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
@@ -36,7 +36,7 @@
 - R2: `phanthuanxtra-media`
 - Workers AI: website `/api/ai-chat`, Developer Gateway `/v1/ai/unified`
 - APK: `com.phanthuanxtra.app`, source version 1.2.0 / versionCode 3
-- Current main: `e948ca4d54b116882ade3983783d3ac6dddf4f40e`
+- Current main: `e948ca4d54b116882ade3983783dac6dddf4f40e`
 - Proven production deployment: SHA `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`, Cloudflare Version `2abd60b3-5301-4d01-9d59-716fdbb77cc3`, Wrangler `4.121.0`.
 
 ### 2.1. CANONICAL TELEGRAM BOT MAP — USER CONFIRMED
@@ -193,7 +193,20 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 - Canonical Gate-15 remains serialized by GitHub Actions concurrency group `xtra-production-e2e-single-queue`.
 - Production remains **RED** until all required runtime/E2E gates are evidenced.
 
-## 14. NEXT CHECKPOINT
+## 14. CHANGE LOG — 2026-09-14 CLOUDflare AUTH SMOKE / GITHUB ACTIONS LINK RULE
+- The non-deploy Cloudflare credential/Workers AI smoke workflow is `.github/workflows/cloudflare-auth-workers-ai-smoke.yml` and is restricted to the ACTIVE queue branch `fix/gate15-single-queue` plus manual dispatch.
+- Workflow page: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/workflows/cloudflare-auth-workers-ai-smoke.yml`
+- ACTIVE PR #185: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/185`
+- For every future instruction that asks the user to open, inspect, rerun, or verify a GitHub Actions run, the instruction must include the **exact clickable GitHub link** to the workflow/run/PR involved. Do not give only a workflow name or run number.
+- If a workflow run does not yet exist, explicitly say **“CHƯA CÓ RUN — KHÔNG ĐƯỢC TẠO LINK RUN GIẢ”** and provide the workflow page link instead.
+- When a run exists, record its exact run ID and direct run link in this canonical file before treating it as runtime evidence.
+- The current DeepSeek Harness run `34825197253` is **NOT** Cloudflare Auth Smoke evidence. Direct run link: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/34825197253`
+- The Cloudflare Auth Smoke must prove only: production Environment secret presence (without values), Cloudflare API authentication, Workers AI inference marker, and `Production mutation: FALSE`.
+- It must not deploy a Worker, run D1 migration, mutate R2, write Worker secrets, or otherwise mutate production.
+- If GitHub does not create the expected push-triggered run, troubleshoot registration/triggering from GitHub Actions configuration and repository state before asking the user to wait; do not repeatedly rerun unrelated workflows and do not repeat Gate-15 registration reset.
+- Production remains **RED** until the missing runtime evidence is actually produced.
+
+## 15. NEXT CHECKPOINT
 **Current task:** continue Gate 15 final security/UX/maintainability/testability audit and reconcile GitHub source/config with production Cloudflare evidence using the canonical four-bot map above, without relying on the unavailable S21 Wrangler CLI.  
 **Execution rule:** use the existing single GitHub queue; PR #185 is the only ACTIVE queue vehicle. Do not create additional PRs for this chain, do not create checkpoint Markdown files, and after the completed status checkpoint update only this file.  
 **Final rule:** do not declare `PRODUCTION GREEN / COMPLETE` until every required runtime/E2E gate is evidenced.
