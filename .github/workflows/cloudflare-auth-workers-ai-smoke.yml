@@ -1,0 +1,67 @@
+name: Cloudflare Token + Workers AI Auth Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xtra-cloudflare-auth-smoke
+  cancel-in-progress: false
+
+jobs:
+  cloudflare-auth:
+    name: Verify Cloudflare API Token + Workers AI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Verify secret presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          echo "Cloudflare API token: present"
+          echo "Cloudflare account ID: present"
+
+      - name: Verify Cloudflare token authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 20 \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")"
+          printf '%s' "$response" > /tmp/cloudflare-account.json
+          jq -e '.success == true' /tmp/cloudflare-account.json >/dev/null
+          echo "Cloudflare API authentication: PASS"
+
+      - name: Run Workers AI read-only inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 90 \
+            -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/zai-org/glm-4.7-flash" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"prompt":"Return exactly: XTRA_CLOUDFLARE_AI_AUTH_OK"}')"
+          printf '%s' "$response" > /tmp/workers-ai.json
+          jq -e '.success == true' /tmp/workers-ai.json >/dev/null
+          jq -e '.result.response | contains("XTRA_CLOUDFLARE_AI_AUTH_OK")' /tmp/workers-ai.json >/dev/null
+          echo "Workers AI authentication + inference: PASS"
+
+      - name: Safety assertion
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "No Wrangler deploy executed."
+          echo "No D1 migration executed."
+          echo "No R2 mutation executed."
+          echo "No Worker deployment executed."
+          echo "Production mutation: FALSE"
