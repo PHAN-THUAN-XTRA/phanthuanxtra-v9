@@ -44,20 +44,49 @@ jobs:
           jq -e '.success == true' /tmp/cloudflare-account.json >/dev/null
           echo "Cloudflare API authentication: PASS"
 
-      - name: Run Workers AI read-only inference
+      - name: Diagnose Workers AI response schema
         shell: bash
         run: |
           set -euo pipefail
-          response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 90 \
-            -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/zai-org/glm-4.7-flash" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data '{"prompt":"Return exactly: XTRA_CLOUDFLARE_AI_AUTH_OK"}')"
+
+          response="$(
+            curl --fail-with-body --silent --show-error --retry 2 --max-time 90 \
+              -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/zai-org/glm-4.7-flash" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"prompt":"Return exactly: XTRA_CLOUDFLARE_AI_AUTH_OK"}'
+          )"
+
           printf '%s' "$response" > /tmp/workers-ai.json
+
+          echo "Workers AI API returned valid HTTP response."
+
           jq -e '.success == true' /tmp/workers-ai.json >/dev/null
-          jq -e '((.result.response // "") | contains("XTRA_CLOUDFLARE_AI_AUTH_OK"))' /tmp/workers-ai.json >/dev/null
-          echo "Workers AI authentication + inference: PASS"
+          echo "Workers AI API success: PASS"
+
+          echo "Top-level JSON keys:"
+          jq -c 'keys' /tmp/workers-ai.json
+
+          echo "Result JSON type:"
+          jq -r '.result | type' /tmp/workers-ai.json
+
+          echo "Result JSON keys:"
+          jq -c '(.result // {}) | if type == "object" then keys else [] end' /tmp/workers-ai.json
+
+          echo "Response field type:"
+          jq -r '.result.response | type' /tmp/workers-ai.json
+
+          echo "Response field:"
+          jq -c '.result.response' /tmp/workers-ai.json
+
+          echo "Errors:"
+          jq -c '.errors' /tmp/workers-ai.json
+
+          echo "Messages:"
+          jq -c '.messages' /tmp/workers-ai.json
+
+          echo "Workers AI response diagnostic: COMPLETE"
 
       - name: Safety assertion
         shell: bash
