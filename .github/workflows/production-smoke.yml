@@ -162,10 +162,12 @@ jobs:
         run: echo 'Skipped: legacy example page car-lx600.html was intentionally removed from production.'
 
       - name: Production smoke summary
+        shell: bash
         run: |
-          echo "========================================"
-          echo "Production smoke checks passed"
+          set -euo pipefail
+          echo '========================================'
+          echo 'Production smoke checks passed'
           echo "Site: $SITE_URL"
           echo "Worker: $WORKER_URL"
-          echo "Legacy example page: removed"
-          echo "========================================"
+          echo 'Legacy example page: removed'
+          echo '========================================'
