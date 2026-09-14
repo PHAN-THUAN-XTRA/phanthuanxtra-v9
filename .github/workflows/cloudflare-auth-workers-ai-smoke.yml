@@ -44,7 +44,7 @@ jobs:
           jq -e '.success == true' /tmp/cloudflare-account.json >/dev/null
           echo "Cloudflare API authentication: PASS"
 
-      - name: Diagnose Workers AI response schema
+      - name: Verify Workers AI inference marker
         shell: bash
         run: |
           set -euo pipefail
@@ -55,47 +55,29 @@ jobs:
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/zai-org/glm-4.7-flash" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
               -H "Content-Type: application/json" \
-              --data '{"prompt":"Return exactly: XTRA_CLOUDFLARE_AI_AUTH_OK"}'
+              --data '{"messages":[{"role":"system","content":"You are a deterministic smoke-test endpoint. Output only the exact marker requested by the user. Do not explain, reason, translate, or add any other text."},{"role":"user","content":"Return exactly this marker and nothing else: XTRA_CLOUDFLARE_AI_AUTH_OK"}],"temperature":0,"max_completion_tokens":32,"seed":42}'
           )"
 
           printf '%s' "$response" > /tmp/workers-ai.json
 
           echo "Workers AI API returned valid HTTP response."
-
           jq -e '.success == true' /tmp/workers-ai.json >/dev/null
           echo "Workers AI API success: PASS"
 
-          echo "Top-level JSON keys:"
-          jq -c 'keys' /tmp/workers-ai.json
+          choices_count="$(jq -r '.result.choices | length' /tmp/workers-ai.json)"
+          echo "Choices count: ${choices_count}"
+          test "$choices_count" = "1"
 
-          echo "Result JSON type:"
-          jq -r '.result | type' /tmp/workers-ai.json
+          choice_text_type="$(jq -r '.result.choices[0].text | type' /tmp/workers-ai.json)"
+          echo "Choice text type: ${choice_text_type}"
+          test "$choice_text_type" = "string"
 
-          echo "Result JSON keys:"
-          jq -c '(.result // {}) | if type == "object" then keys else [] end' /tmp/workers-ai.json
+          choice_text="$(jq -r '.result.choices[0].text' /tmp/workers-ai.json)"
+          printf 'Workers AI choice text: %s\n' "$choice_text"
 
-          echo "Choices count:"
-          jq -r '.result.choices | length' /tmp/workers-ai.json
-
-          echo "First choice keys:"
-          jq -c '(.result.choices[0] // {}) | if type == "object" then keys else [] end' /tmp/workers-ai.json
-
-          echo "First choice:"
-          jq -c '.result.choices[0] // null' /tmp/workers-ai.json
-
-          echo "Candidate message content type:"
-          jq -r '.result.choices[0].message.content | type' /tmp/workers-ai.json
-
-          echo "Candidate message content:"
-          jq -c '.result.choices[0].message.content // null' /tmp/workers-ai.json
-
-          echo "Errors:"
-          jq -c '.errors' /tmp/workers-ai.json
-
-          echo "Messages:"
-          jq -c '.messages' /tmp/workers-ai.json
-
-          echo "Workers AI response diagnostic: COMPLETE"
+          jq -e '.errors == []' /tmp/workers-ai.json >/dev/null
+          jq -e '.result.choices[0].text | contains("XTRA_CLOUDFLARE_AI_AUTH_OK")' /tmp/workers-ai.json >/dev/null
+          echo "Workers AI inference marker: PASS"
 
       - name: Safety assertion
         shell: bash
