@@ -40,11 +40,12 @@
 - Proven production deployment: SHA `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`, Cloudflare Version `2abd60b3-5301-4d01-9d59-716fdbb77cc3`, Wrangler `4.121.0`.
 
 ### 2.1. CANONICAL TELEGRAM BOT MAP — USER CONFIRMED
-- `@phanthuanxtra2026_bot` — **backup dữ liệu**; lịch backup **07:00 sáng mỗi ngày theo giờ Việt Nam (UTC+7)**.
-- `@phanthuanxtra_auto_bot` — **Auto nhập xe lên website**; trước khi upload ảnh xe, AI tự động **che biển số** và thay vùng biển số bằng chữ **“PT Xtra”**.
-- `@phanthuanxtra_bot` — **Chat AI ở góc phải phía dưới website**; **form đăng ký lái thử xe** cũng gửi thông báo về bot này.
-- `@phanthuanxtra_vip_bot` — **VIP vehicle information check**; nhận/kiểm tra hình ảnh xe để hỗ trợ xác định thông tin xe, bao gồm phân biệt xe nguyên bản/sản xuất với xe **độ hoặc facelift**; chức năng này **hiện trên APK**.
-- Đây là bản đồ 4 bot do chủ dự án xác nhận để làm chuẩn đối chiếu khi audit GitHub/Cloudflare. Không tự suy đoán, đổi tên hoặc gộp 4 bot thành một bot nếu runtime/config không chứng minh điều đó.
+- `@phanthuanxtra2026_bot` — **Backup Bot / hạ tầng dữ liệu**. Chạy backup hệ thống lúc **07:00 sáng mỗi ngày theo giờ Việt Nam (UTC+7)**; nhận trạng thái backup và các artifact/manifest/checksum theo cấu hình backup. Bot này không phải bot nghiệp vụ nhập xe hay tư vấn khách hàng.
+- `@phanthuanxtra_auto_bot` — **Bot nhập xe / vận hành dữ liệu xe**. Có nhiệm vụ nhận thông tin xe và hình ảnh để đưa dữ liệu vào hệ thống website tương ứng với nghiệp vụ Admin. Trước khi upload ảnh xe, AI tự động **che biển số** và thay vùng biển số bằng chữ **“PT Xtra”**.
+- `@phanthuanxtra_bot` — **Bot tư vấn khách hàng / AI Chat của website**. Chat AI nằm ở **góc phải phía dưới màn hình `phanthuanxtra.com`**. Form **Trải nghiệm xe / đăng ký lái thử** trên website gửi về bot này các thông tin khách hàng như **tên, số điện thoại, thông tin khách hàng và nội dung liên quan**. Các câu hỏi về Phan Thuần phải được AI/Chat AI xử lý trước; nếu AI không hiểu rõ hoặc không đủ chắc chắn, nội dung cuộc chat phải được **chuyển về bot để Phan Thuần trực tiếp tư vấn**.
+- `@phanthuanxtra_vip_bot` — **Bot VIP kiểm tra hồ sơ/thông tin xe dành cho chủ dự án**. Nhận và hỗ trợ kiểm tra **giấy tờ xe, hình ảnh xe, xe độ/facelift, nguồn gốc xuất xứ** và các bằng chứng liên quan để giúp Phan Thuần đánh giá xe. Đây là luồng kiểm tra chuyên sâu/VIP, không phải bot nhập xe đại trà; chức năng này hiện được sử dụng trong APK.
+- Bốn bot trên là **bốn vai trò riêng biệt**: Backup hạ tầng → Auto nhập xe → Chat AI/tư vấn khách hàng → VIP kiểm tra xe. Không tự suy đoán, đổi tên, gộp hoặc chuyển trách nhiệm giữa các bot nếu runtime/config không chứng minh điều đó.
+- Đây là bản đồ 4 bot do chủ dự án xác nhận để làm chuẩn đối chiếu khi audit GitHub/Cloudflare. Ghi nhận chức năng nghiệp vụ theo xác nhận của chủ dự án không đồng nghĩa với việc mọi live runtime path đã được E2E-proven.
 
 ## 3. VERIFIED PRODUCTION BASELINE
 - Website HTTP 200 — GREEN
@@ -222,3 +223,13 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 - Safety assertion: **PASS** — `No Wrangler deploy executed`, `No D1 migration executed`, `No R2 mutation executed`, `No Worker deployment executed`, `Production mutation: FALSE`.
 - This closes the specific **Cloudflare token + Workers AI Auth Smoke evidence gap**. It does **not** close Gate 15 as a whole and does not make production GREEN.
 - Production remains **RED / LOCKED** because release gates 8, 11, 12, 13 and 15 remain open, and Gate 16 remains locked.
+
+## 17. CHANGE LOG — 2026-09-14 TELEGRAM BOT RESPONSIBILITY DETAIL CONFIRMED
+- Project owner further clarified the four canonical Telegram roles for the PHAN THUẦN XTRA system:
+  - `@phanthuanxtra2026_bot` — infrastructure **Backup Bot**, scheduled at 07:00 VN; responsible for backup status/artifact delivery, not customer consultation or vehicle intake.
+  - `@phanthuanxtra_auto_bot` — **vehicle intake bot**, used to enter vehicle information and vehicle images in a workflow corresponding to the website Admin; AI masks the license plate and replaces that region with `PT Xtra` before image upload.
+  - `@phanthuanxtra_bot` — **customer consultation / website AI Chat bot**. The chat entry is the bottom-right chat interface on `phanthuanxtra.com`. The website's vehicle-experience/test-drive form sends customer name, phone number, customer information and related inquiry content to this bot. AI should answer Phan Thuần-related questions first; when the AI does not understand clearly or lacks sufficient confidence, the conversation content is routed back to this bot so **Phan Thuần can directly advise the customer**.
+  - `@phanthuanxtra_vip_bot` — **private VIP vehicle-checking bot for Phan Thuần**, used for checking vehicle documents, vehicle images, modified/facelift evidence, and origin/source information. It is a specialized verification flow rather than the general vehicle-intake bot, and the function is used in the APK.
+- These responsibilities are distinct and must not be merged during future GitHub/Cloudflare audits without runtime/config evidence.
+- This documentation update records owner-confirmed system behavior only; it does not convert any unproven Telegram path into a GREEN runtime gate.
+- Production remains **RED** until the outstanding runtime/E2E gates are evidenced.
