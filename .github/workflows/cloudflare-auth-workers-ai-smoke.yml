@@ -55,7 +55,7 @@ jobs:
               "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/zai-org/glm-4.7-flash" \
               -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
               -H "Content-Type: application/json" \
-              --data '{"messages":[{"role":"system","content":"You are a deterministic smoke-test endpoint. Output only the exact marker requested by the user. Do not explain, reason, translate, or add any other text."},{"role":"user","content":"Return exactly this marker and nothing else: XTRA_CLOUDFLARE_AI_AUTH_OK"}],"temperature":0,"max_completion_tokens":32,"seed":42}'
+              --data '{"messages":[{"role":"system","content":"You are a deterministic smoke-test endpoint. Return only the exact marker requested by the user. Do not explain or add any other text."},{"role":"user","content":"Return exactly this marker and nothing else: XTRA_CLOUDFLARE_AI_AUTH_OK"}],"temperature":0,"reasoning_effort":"low","max_completion_tokens":256,"seed":42}'
           )"
 
           printf '%s' "$response" > /tmp/workers-ai.json
@@ -73,17 +73,21 @@ jobs:
           echo "Workers AI first choice keys:"
           jq -c '.result.choices[0] | keys' /tmp/workers-ai.json
           echo "Workers AI first choice schema (non-secret):"
-          jq -c '.result.choices[0] | with_entries(.value |= if type == "string" then .[0:200] else . end)' /tmp/workers-ai.json
+          jq -c '.result.choices[0] | {index,finish_reason,stop_reason,message: {role: .message.role, content_type: (.message.content | type), content: (.message.content // "" | .[0:200]), reasoning_present: ((.message.reasoning // null) != null), reasoning_content_present: ((.message.reasoning_content // null) != null)}}' /tmp/workers-ai.json
 
-          choice_text_type="$(jq -r '.result.choices[0].text | type' /tmp/workers-ai.json)"
-          echo "Choice text type: ${choice_text_type}"
+          finish_reason="$(jq -r '.result.choices[0].finish_reason' /tmp/workers-ai.json)"
+          echo "Finish reason: ${finish_reason}"
+          test "$finish_reason" != "length"
+
+          choice_text_type="$(jq -r '.result.choices[0].message.content | type' /tmp/workers-ai.json)"
+          echo "Choice message.content type: ${choice_text_type}"
           test "$choice_text_type" = "string"
 
-          choice_text="$(jq -r '.result.choices[0].text' /tmp/workers-ai.json)"
-          printf 'Workers AI choice text: %s\n' "$choice_text"
+          choice_text="$(jq -r '.result.choices[0].message.content' /tmp/workers-ai.json)"
+          printf 'Workers AI choice message.content: %s\n' "$choice_text"
 
           jq -e '.errors == []' /tmp/workers-ai.json >/dev/null
-          jq -e '.result.choices[0].text | contains("XTRA_CLOUDFLARE_AI_AUTH_OK")' /tmp/workers-ai.json >/dev/null
+          jq -e '.result.choices[0].message.content | contains("XTRA_CLOUDFLARE_AI_AUTH_OK")' /tmp/workers-ai.json >/dev/null
           echo "Workers AI inference marker: PASS"
 
       - name: Safety assertion
