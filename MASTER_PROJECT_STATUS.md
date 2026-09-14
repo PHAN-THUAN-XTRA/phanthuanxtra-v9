@@ -10,7 +10,7 @@
 - `MASTER_PROJECT_STATUS.md` is the sole canonical project-status file.
 - All AI / Work AI must read this file before project work.
 - One execution queue only; no conflicting parallel mutations.
-- After a completed status checkpoint, update only this file; do not create competing checkpoint/status Markdown files.
+- After a completed status checkpoint, update only this file; Do not create competing checkpoint/status Markdown files.
 - Production remains **RED** until every required runtime/E2E release gate is evidenced.
 - No secret guessing, force-push, unreviewed destructive production change, or false GREEN claim.
 
