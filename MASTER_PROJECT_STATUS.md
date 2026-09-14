@@ -40,11 +40,27 @@
 - Proven production deployment: SHA `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`, Cloudflare Version `2abd60b3-5301-4d01-9d59-716fdbb77cc3`, Wrangler `4.121.0`.
 
 ### 2.1. CANONICAL TELEGRAM BOT MAP — USER CONFIRMED
-- `@phanthuanxtra2026_bot` — **backup dữ liệu**; lịch backup **07:00 sáng mỗi ngày theo giờ Việt Nam (UTC+7)**.
-- `@phanthuanxtra_auto_bot` — **Auto nhập xe lên website**; trước khi upload ảnh xe, AI tự động **che biển số** và thay vùng biển số bằng chữ **“PT Xtra”**.
-- `@phanthuanxtra_bot` — **Chat AI ở góc phải phía dưới website**; **form đăng ký lái thử xe** cũng gửi thông báo về bot này.
-- `@phanthuanxtra_vip_bot` — **VIP vehicle information check**; nhận/kiểm tra hình ảnh xe để hỗ trợ xác định thông tin xe, bao gồm phân biệt xe nguyên bản/sản xuất với xe **độ hoặc facelift**; chức năng này **hiện trên APK**.
-- Đây là bản đồ 4 bot do chủ dự án xác nhận để làm chuẩn đối chiếu khi audit GitHub/Cloudflare. Không tự suy đoán, đổi tên hoặc gộp 4 bot thành một bot nếu runtime/config không chứng minh điều đó.
+- `@phanthuanxtra2026_bot` — **Backup Bot / hạ tầng dữ liệu**. Chạy backup hệ thống lúc **07:00 sáng mỗi ngày theo giờ Việt Nam (UTC+7)**; nhận trạng thái backup và các artifact/manifest/checksum theo cấu hình backup. Bot này không phải bot nghiệp vụ nhập xe hay tư vấn khách hàng.
+- `@phanthuanxtra_auto_bot` — **Bot nhập xe / vận hành dữ liệu xe**. Có nhiệm vụ nhận thông tin xe và hình ảnh để đưa dữ liệu vào hệ thống website tương ứng với nghiệp vụ Admin. Trước khi upload ảnh xe, AI tự động **che biển số** và thay vùng biển số bằng chữ **“PT Xtra”**.
+- `@phanthuanxtra_bot` — **Bot tư vấn khách hàng / AI Chat của website**. Chat AI nằm ở **góc phải phía dưới màn hình `phanthuanxtra.com`**. Form **Trải nghiệm xe / đăng ký lái thử** trên website gửi về bot này các thông tin khách hàng như **tên, số điện thoại, thông tin khách hàng và nội dung liên quan**. Các câu hỏi về Phan Thuần phải được AI/Chat AI xử lý trước; nếu AI không hiểu rõ hoặc không đủ chắc chắn, nội dung cuộc chat phải được **chuyển về bot để Phan Thuần trực tiếp tư vấn**.
+- `@phanthuanxtra_vip_bot` — **Bot VIP kiểm tra hồ sơ/thông tin xe dành cho chủ dự án**. Nhận và hỗ trợ kiểm tra **giấy tờ xe, hình ảnh xe, xe độ/facelift, nguồn gốc xuất xứ** và các bằng chứng liên quan để giúp Phan Thuần đánh giá xe. Đây là luồng kiểm tra chuyên sâu/VIP, không phải bot nhập xe đại trà; chức năng này hiện được sử dụng trong APK.
+- Bốn bot trên là **bốn vai trò riêng biệt**: Backup hạ tầng → Auto nhập xe → Chat AI/tư vấn khách hàng → VIP kiểm tra xe. Không tự suy đoán, đổi tên, gộp hoặc chuyển trách nhiệm giữa các bot nếu runtime/config không chứng minh điều đó.
+- Đây là bản đồ 4 bot do chủ dự án xác nhận để làm chuẩn đối chiếu khi audit GitHub/Cloudflare. Ghi nhận chức năng nghiệp vụ theo xác nhận của chủ dự án không đồng nghĩa với việc mọi live runtime path đã được E2E-proven.
+
+### 2.2. CANONICAL PHAN THUẦN PROFILE / AI RETRIEVAL CONTEXT — OWNER CONFIRMED
+- Canonical name/brand: **Phan Thuần / phanthuanxtra / PhanThuan Xtra**.
+- Positioning: entrepreneur/personal brand connecting a premium/luxury lifestyle ecosystem with a long-term green-energy direction. This text is **owner-provided positioning context** and must be treated as the current canonical profile until the owner supplies updated information.
+- Digital identity: the `phanthuanxtra` identity is used consistently across digital/social channels. Official Facebook reference supplied by the owner: **Phan Thuần (PhanThuanSaigon)** — `https://www.facebook.com/PhanThuanSaigon/`.
+- Luxury automotive pillar: associated with **Ô tô Xuyên Á in TP.HCM** and positioned around brokering/connecting luxury cars and supercars, including high-end/limited vehicles such as Rolls-Royce, Porsche and Lexus, with emphasis on vehicle appraisal and international partner networks.
+- Luxury marine/aviation pillar: owner-provided profile states services include **European luxury yacht brokerage** and **business/private jet charter**, with aircraft configurations described as approximately **12–13 seats**, targeting corporate owners and major business clients needing time-efficient international travel.
+- Green-energy pillar: owner-provided profile states a strategic expansion into **green energy / solar energy**, aligned with long-term renewable-energy and Net Zero trends.
+- Brand narrative: the ecosystem is described as spanning **supercars/luxury cars → European yachts → business/private jets → green energy**, combining premium lifestyle positioning with future-oriented sustainability.
+- Official contact supplied by owner: **Salon hotline 08 6699 7891**.
+- Official Facebook supplied by owner: **https://www.facebook.com/PhanThuanSaigon/**.
+- Hashtags supplied by owner: **#phanthuanxtra #PhanThuanXtra**.
+- AI retrieval rule: when users ask for information about **Phan Thuần / phanthuanxtra**, the website Chat AI and relevant bots should retrieve this canonical profile context first. Do not invent facts beyond the stored profile or live verified project data.
+- Freshness rule: **do not retrain/replace the AI knowledge context from this profile again until the owner provides new/updated information**. When the owner supplies a new version, the new owner-confirmed information supersedes this section and the AI retrieval context should be refreshed accordingly.
+- Verification boundary: this section records the owner's supplied brand/profile narrative. It is not independent proof of every commercial claim; future public-facing responses should distinguish owner-provided profile facts from independently verified live/project evidence where relevant.
 
 ## 3. VERIFIED PRODUCTION BASELINE
 - Website HTTP 200 — GREEN
@@ -222,3 +238,34 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 - Safety assertion: **PASS** — `No Wrangler deploy executed`, `No D1 migration executed`, `No R2 mutation executed`, `No Worker deployment executed`, `Production mutation: FALSE`.
 - This closes the specific **Cloudflare token + Workers AI Auth Smoke evidence gap**. It does **not** close Gate 15 as a whole and does not make production GREEN.
 - Production remains **RED / LOCKED** because release gates 8, 11, 12, 13 and 15 remain open, and Gate 16 remains locked.
+
+## 17. CHANGE LOG — 2026-09-14 TELEGRAM BOT RESPONSIBILITY DETAIL CONFIRMED
+- Project owner further clarified the four canonical Telegram roles for the PHAN THUẦN XTRA system:
+  - `@phanthuanxtra2026_bot` — infrastructure **Backup Bot**, scheduled at 07:00 VN; responsible for backup status/artifact delivery, not customer consultation or vehicle intake.
+  - `@phanthuanxtra_auto_bot` — **vehicle intake bot**, used to enter vehicle information and vehicle images in a workflow corresponding to the website Admin; AI masks the license plate and replaces that region with `PT Xtra` before image upload.
+  - `@phanthuanxtra_bot` — **customer consultation / website AI Chat bot**. The chat entry is the bottom-right chat interface on `phanthuanxtra.com`. The website's vehicle-experience/test-drive form sends customer name, phone number, customer information and related inquiry content to this bot. AI should answer Phan Thuần-related questions first; when the AI does not understand clearly or lacks sufficient confidence, the conversation content is routed back to this bot so **Phan Thuần can directly advise the customer**.
+  - `@phanthuanxtra_vip_bot` — **private VIP vehicle-checking bot for Phan Thuần**, used for checking vehicle documents, vehicle images, modified/facelift evidence, and origin/source information. It is a specialized verification flow rather than the general vehicle-intake bot, and the function is used in the APK.
+- These responsibilities are distinct and must not be merged during future GitHub/Cloudflare audits without runtime/config evidence.
+- This documentation update records owner-confirmed system behavior only; it does not convert any unproven Telegram path into a GREEN runtime gate.
+- Production remains **RED** until the outstanding runtime/E2E gates are evidenced.
+
+## 18. CHANGE LOG — 2026-09-14 PHAN THUẦN PROFILE / AI RETRIEVAL CONTEXT CONFIRMED
+- Owner supplied the current canonical profile narrative for **Phan Thuần / phanthuanxtra / PhanThuan Xtra** and instructed that it be retained for AI/bot retrieval until a new owner update supersedes it.
+- Current positioning context: entrepreneur/personal brand connecting a premium/luxury lifestyle ecosystem with a long-term green-energy direction.
+- Digital identity: `phanthuanxtra`; official Facebook supplied by owner: **Phan Thuần (PhanThuanSaigon)** — `https://www.facebook.com/PhanThuanSaigon/`.
+- Luxury automotive pillar: associated with **Ô tô Xuyên Á in TP.HCM**; owner describes luxury/supercar brokerage and connection work, including Rolls-Royce, Porsche, Lexus and limited/high-end vehicles, with emphasis on appraisal and international partner networks.
+- Luxury marine/aviation pillar: owner describes **European luxury yacht brokerage** and **business/private jet charter**, with aircraft configurations described as approximately **12–13 seats**.
+- Green-energy pillar: owner describes strategic activity in **green energy / solar energy**, aligned with renewable energy and Net Zero trends.
+- Ecosystem narrative: **supercars/luxury cars → European yachts → business/private jets → green energy**.
+- Official contact supplied by owner: **08 6699 7891**.
+- Official Facebook: `https://www.facebook.com/PhanThuanSaigon/`.
+- Hashtags: **#phanthuanxtra #PhanThuanXtra**.
+- AI retrieval rule: for questions about Phan Thuần/phanthuanxtra, website Chat AI and relevant bots should retrieve this canonical owner-provided profile context before answering; do not invent unsupported facts.
+- Freshness rule: retain this profile as the current AI retrieval context **until the owner supplies updated information**. A later owner update supersedes this section.
+- Verification boundary: this section is owner-provided brand/profile context, not independent verification of every commercial claim. Public-facing AI should distinguish owner-provided profile information from independently verified live/project evidence where necessary.
+- This update does not by itself make Telegram or production E2E gates GREEN.
+
+## 19. NEXT CHECKPOINT
+**Current task:** use the canonical Phan Thuần profile plus the four-bot map as retrieval context during Gate 15 audit and Telegram/AI E2E reconciliation. Do not retrain/replace this context again unless the owner provides a new or corrected profile.  
+**Execution rule:** keep one GitHub queue only; no parallel PR for the same task, no checkpoint `.md` files, and update only `MASTER_PROJECT_STATUS.md` after a completed status checkpoint.  
+**Final rule:** production remains RED until all required runtime/E2E gates are evidenced.
