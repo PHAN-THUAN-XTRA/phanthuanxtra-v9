@@ -1,4 +1,4 @@
-const ITERATIONS = 120000;
+const ITERATIONS = 100000;
 const KEY_LEN = 256;
 const encoder = new TextEncoder();
 
