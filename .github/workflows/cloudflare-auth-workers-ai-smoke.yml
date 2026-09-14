@@ -2,6 +2,9 @@ name: Cloudflare Token + Workers AI Auth Smoke
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - fix/gate15-single-queue
 
 permissions:
   contents: read
