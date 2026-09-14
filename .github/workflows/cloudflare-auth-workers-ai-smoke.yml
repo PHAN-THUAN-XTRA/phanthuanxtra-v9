@@ -1,0 +1,102 @@
+name: Cloudflare Token + Workers AI Auth Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/gate15-single-queue
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xtra-cloudflare-auth-smoke
+  cancel-in-progress: false
+
+jobs:
+  cloudflare-auth:
+    name: Verify Cloudflare API Token + Workers AI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Verify secret presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          echo "Cloudflare API token: present"
+          echo "Cloudflare account ID: present"
+
+      - name: Verify Cloudflare token authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 20 \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")"
+          printf '%s' "$response" > /tmp/cloudflare-account.json
+          jq -e '.success == true' /tmp/cloudflare-account.json >/dev/null
+          echo "Cloudflare API authentication: PASS"
+
+      - name: Verify Workers AI inference marker
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          response="$(
+            curl --fail-with-body --silent --show-error --retry 2 --max-time 90 \
+              -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/zai-org/glm-4.7-flash" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"messages":[{"role":"system","content":"You are a deterministic smoke-test endpoint. Return only the exact marker requested by the user. Do not explain or add any other text."},{"role":"user","content":"Return exactly this marker and nothing else: XTRA_CLOUDFLARE_AI_AUTH_OK"}],"temperature":0,"reasoning_effort":"low","max_completion_tokens":256,"seed":42}'
+          )"
+
+          printf '%s' "$response" > /tmp/workers-ai.json
+
+          echo "Workers AI API returned valid HTTP response."
+          jq -e '.success == true' /tmp/workers-ai.json >/dev/null
+          echo "Workers AI API success: PASS"
+
+          choices_count="$(jq -r '.result.choices | length' /tmp/workers-ai.json)"
+          echo "Choices count: ${choices_count}"
+          test "$choices_count" = "1"
+
+          echo "Workers AI result keys:"
+          jq -c '.result | keys' /tmp/workers-ai.json
+          echo "Workers AI first choice keys:"
+          jq -c '.result.choices[0] | keys' /tmp/workers-ai.json
+          echo "Workers AI first choice schema (non-secret):"
+          jq -c '.result.choices[0] | {index,finish_reason,stop_reason,message: {role: .message.role, content_type: (.message.content | type), content: (.message.content // "" | .[0:200]), reasoning_present: ((.message.reasoning // null) != null), reasoning_content_present: ((.message.reasoning_content // null) != null)}}' /tmp/workers-ai.json
+
+          finish_reason="$(jq -r '.result.choices[0].finish_reason' /tmp/workers-ai.json)"
+          echo "Finish reason: ${finish_reason}"
+          test "$finish_reason" != "length"
+
+          choice_text_type="$(jq -r '.result.choices[0].message.content | type' /tmp/workers-ai.json)"
+          echo "Choice message.content type: ${choice_text_type}"
+          test "$choice_text_type" = "string"
+
+          choice_text="$(jq -r '.result.choices[0].message.content' /tmp/workers-ai.json)"
+          printf 'Workers AI choice message.content: %s\n' "$choice_text"
+
+          jq -e '.errors == []' /tmp/workers-ai.json >/dev/null
+          jq -e '.result.choices[0].message.content | contains("XTRA_CLOUDFLARE_AI_AUTH_OK")' /tmp/workers-ai.json >/dev/null
+          echo "Workers AI inference marker: PASS"
+
+      - name: Safety assertion
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "No Wrangler deploy executed."
+          echo "No D1 migration executed."
+          echo "No R2 mutation executed."
+          echo "No Worker deployment executed."
+          echo "Production mutation: FALSE"

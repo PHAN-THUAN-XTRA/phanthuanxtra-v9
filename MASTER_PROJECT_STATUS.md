@@ -1,9 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**  
-> Date: 2026-09-13 (UTC+7)  
+> Date: 2026-09-14 (UTC+7)  
 > Repository: `phanthuanxtra-v9/phanthuanxtra-v9`  
-> Main source: `223a0ff05a16f8d39fadba71f5c0247dd7532e24`  
+> Main source: `e948ca4d54b116882ade3983783dac6dddf4f40e`  
 > Production deployment is tracked separately and is not implied by the current main source SHA.
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
@@ -14,6 +14,19 @@
 - Production remains **RED** until every required runtime/E2E release gate is evidenced.
 - No secret guessing, force-push, unreviewed destructive production change, or false GREEN claim.
 
+### 1.1. GITHUB SINGLE-QUEUE ENFORCEMENT — USER CONFIRMED
+- At GitHub level, maintain **one ACTIVE PR for the current chain of changes**.
+- That ACTIVE PR has **one head branch only**; all commits for the current queue go through that branch and PR.
+- iPhone 16 / S21 Ultra / Win10 are only control terminals for the same GitHub queue; they are not independent work queues.
+- Before any machine continues work: sync `main`, inspect the ACTIVE PR, and continue only when that machine is allowed to act on the current queue.
+- Do not create parallel PRs for the same task or chain of changes.
+- Do not use `.md` lock files, checkpoint `.md` files, or other file-based locks.
+- Git is the practical synchronization lock: one branch → one commit chain → one PR → merge → queue closes.
+- Never use `git reset --hard` or force-push as a queue mechanism.
+- If two machines attempt to push the same branch concurrently, the later push must first synchronize/reconcile with GitHub; no silent overwrite is allowed.
+- GitHub Actions runtime execution must also use the canonical serialized queue; the canonical Gate-15 workflow uses concurrency group `xtra-production-e2e-single-queue` with `cancel-in-progress: false`.
+- Closing stale/non-active PRs does not delete their branches or commits; it removes them from the ACTIVE queue so work can be explicitly reconciled into the current queue later.
+
 ## 2. CURRENT ARCHITECTURE
 - Website: `https://phanthuanxtra.com`
 - Admin: `https://phanthuanxtra.com/admin`
@@ -23,7 +36,7 @@
 - R2: `phanthuanxtra-media`
 - Workers AI: website `/api/ai-chat`, Developer Gateway `/v1/ai/unified`
 - APK: `com.phanthuanxtra.app`, source version 1.2.0 / versionCode 3
-- Current main: `223a0ff05a16f8d39fadba71f5c0247dd7532e24`
+- Current main: `e948ca4d54b116882ade3983783dac6dddf4f40e`
 - Proven production deployment: SHA `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`, Cloudflare Version `2abd60b3-5301-4d01-9d59-716fdbb77cc3`, Wrangler `4.121.0`.
 
 ### 2.1. CANONICAL TELEGRAM BOT MAP — USER CONFIRMED
@@ -90,19 +103,19 @@ Runtime evidence is now complete through GitHub Actions:
 **BASELINE VERIFIED.**
 
 ### QUEUE-03 — PR #66 VIP hardening
-**OPEN.** Reconcile against current main before merge.
+**OPEN / STAGED.** Reconcile against current main only through the ACTIVE queue; do not execute as a parallel PR.
 
 ### QUEUE-04 — APK production readiness
-**OPEN.** Fresh artifact/hash + S21 Ultra regression required.
+**OPEN / STAGED.** Fresh artifact/hash + S21 Ultra regression required; execute only through the ACTIVE queue.
 
 ### QUEUE-05 — Telegram/VIP production E2E
-**OPEN.**
+**OPEN / STAGED.** Execute only through the ACTIVE queue.
 
 ### QUEUE-06 — Backup/restore
 **GREEN / COMPLETED.** Gate 14 runtime evidence proven by runs `34752032531` and `34752146646`.
 
 ### QUEUE-07 — Final cleanup + GREEN gate
-**OPEN / LAST.**
+**OPEN / ACTIVE.** Current ACTIVE PR is **#185**, head branch `fix/gate15-single-queue`.
 
 ## 7. RELEASE GATES
 1. Current main deployed to production — **VERIFIED** (production deployment tracked separately at SHA `d9ee29ede4a9592e8b988c2bad8f6b5738f7604e`).
@@ -138,6 +151,7 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 ## 9. SAFETY / CONTINUITY
 - Never put secrets in chat, Markdown, GitHub issues, source or logs.
 - Never force-push.
+- Never use `git reset --hard` as a queue or synchronization shortcut.
 - Never delete production infrastructure without current dependency evidence.
 - Never convert skipped tests or missing runtime evidence into GREEN.
 - The obsolete repository `phanthuanxtra-v9/phanthuanxtra` is excluded from audit/deploy/repair/CI/E2E workflows.
@@ -169,7 +183,42 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 - This update records project knowledge only; it does **not** claim that all four live runtime paths have already been E2E-proven.
 - Production remains **RED** until the corresponding runtime/E2E gates are evidenced.
 
-## 13. NEXT CHECKPOINT
+## 13. CHANGE LOG — 2026-09-14 GITHUB SINGLE-QUEUE RULE
+- User explicitly confirmed the GitHub-level execution model: one ACTIVE PR for the current chain of changes, one head branch, and one queue across iPhone 16 / S21 Ultra / Win10.
+- Machines must sync `main`, inspect the ACTIVE PR, and continue only through the authorized queue; no parallel PR for the same task.
+- No `.md` lock/checkpoint files are permitted; Git branch/commit/PR sequencing is the practical lock.
+- No `git reset --hard` or force-push is permitted as synchronization mechanisms.
+- Current ACTIVE queue is PR #185, branch `fix/gate15-single-queue`.
+- Stale/non-active PRs are to be closed from the ACTIVE queue without deleting their branches/commits; any needed work must later be reconciled sequentially into the ACTIVE queue.
+- Canonical Gate-15 remains serialized by GitHub Actions concurrency group `xtra-production-e2e-single-queue`.
+- Production remains **RED** until all required runtime/E2E gates are evidenced.
+
+## 14. CHANGE LOG — 2026-09-14 CLOUDflare AUTH SMOKE / GITHUB ACTIONS LINK RULE
+- The non-deploy Cloudflare credential/Workers AI smoke workflow is `.github/workflows/cloudflare-auth-workers-ai-smoke.yml` and is restricted to the ACTIVE queue branch `fix/gate15-single-queue` plus manual dispatch.
+- Workflow page: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/workflows/cloudflare-auth-workers-ai-smoke.yml`
+- ACTIVE PR #185: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/185`
+- For every future instruction that asks the user to open, inspect, rerun, or verify a GitHub Actions run, the instruction must include the **exact clickable GitHub link** to the workflow/run/PR involved. Do not give only a workflow name or run number.
+- If a workflow run does not yet exist, explicitly say **“CHƯA CÓ RUN — KHÔNG ĐƯỢC TẠO LINK RUN GIẢ”** and provide the workflow page link instead.
+- When a run exists, record its exact run ID and direct run link in this canonical file before treating it as runtime evidence.
+- The current DeepSeek Harness run `34825197253` is **NOT** Cloudflare Auth Smoke evidence. Direct run link: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/34825197253`
+- The Cloudflare Auth Smoke must prove only: production Environment secret presence (without values), Cloudflare API authentication, Workers AI inference marker, and `Production mutation: FALSE`.
+- It must not deploy a Worker, run D1 migration, mutate R2, write Worker secrets, or otherwise mutate production.
+- If GitHub does not create the expected push-triggered run, troubleshoot registration/triggering from GitHub Actions configuration and repository state before asking the user to wait; do not repeatedly rerun unrelated workflows and do not repeat Gate-15 registration reset.
+- Production remains **RED** until the missing runtime evidence is actually produced.
+
+## 15. NEXT CHECKPOINT
 **Current task:** continue Gate 15 final security/UX/maintainability/testability audit and reconcile GitHub source/config with production Cloudflare evidence using the canonical four-bot map above, without relying on the unavailable S21 Wrangler CLI.  
-**Execution rule:** use the existing single queue; do not create additional checkpoint Markdown; only this file may receive the next completed status checkpoint.  
+**Execution rule:** use the existing single GitHub queue; PR #185 is the only ACTIVE queue vehicle. Do not create additional PRs for this chain, do not create checkpoint Markdown files, and after the completed status checkpoint update only this file.  
 **Final rule:** do not declare `PRODUCTION GREEN / COMPLETE` until every required runtime/E2E gate is evidenced.
+
+## 16. CHANGE LOG — 2026-09-14 CLOUDFLARE AUTH SMOKE #8 — GREEN
+- Cloudflare Auth Smoke run **`34840455815`** — **SUCCESS** on commit `d5e708c3833f0087dc7696f84b709b8625081cb4` (`fix/gate15-single-queue`).
+- Direct run: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/34840455815`
+- Job `103963964494` — **SUCCESS**; all workflow steps completed successfully.
+- Production Environment secret presence: **PASS**; both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` were present, with values masked and not exposed.
+- Cloudflare API authentication: **PASS**; authenticated account API request returned `.success == true`.
+- Workers AI inference: **PASS**; `@cf/zai-org/glm-4.7-flash` returned HTTP-success JSON with one choice, `finish_reason=stop`, string `message.content`, and exact marker `XTRA_CLOUDFLARE_AI_AUTH_OK`.
+- Previous reasoning-budget/schema failure is resolved by the current smoke parameters (`reasoning_effort=low`, `max_completion_tokens=256`); this is runtime evidence, not an inference from configuration alone.
+- Safety assertion: **PASS** — `No Wrangler deploy executed`, `No D1 migration executed`, `No R2 mutation executed`, `No Worker deployment executed`, `Production mutation: FALSE`.
+- This closes the specific **Cloudflare token + Workers AI Auth Smoke evidence gap**. It does **not** close Gate 15 as a whole and does not make production GREEN.
+- Production remains **RED / LOCKED** because release gates 8, 11, 12, 13 and 15 remain open, and Gate 16 remains locked.

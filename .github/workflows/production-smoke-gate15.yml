@@ -17,13 +17,17 @@ on:
         default: "manual"
         type: string
 
+concurrency:
+  group: xtra-production-e2e-single-queue
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     environment: production
     env:
       SITE_URL: https://phanthuanxtra.com
@@ -32,8 +36,12 @@ jobs:
       GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+      ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
 
     steps:
+      - name: Checkout exact triggering commit
+        uses: actions/checkout@v4
+
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
 
@@ -136,6 +144,45 @@ jobs:
           echo 'BLOCKED: ADMIN_PASSWORD is not available in GitHub Actions.'
           exit 1
 
+      - name: E2E Password reset production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+          test -n "$ADMIN_RECOVERY_ROTATE_TOKEN"
+          TEST_PASSWORD="Xtra-Gate8-${GITHUB_RUN_ID}-Reset!"
+          ROTATE_STATUS="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/recovery-rotate.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/recovery/rotate" -H 'content-type: application/json' --data "$(jq -nc --arg token "$ADMIN_RECOVERY_ROTATE_TOKEN" '{rotateToken:$token}')")"
+          echo "Recovery rotate HTTP $ROTATE_STATUS"
+          test "$ROTATE_STATUS" = "200"
+          RECOVERY_CODE="$(jq -r '.recoveryCode // empty' /tmp/recovery-rotate.json)"
+          test -n "$RECOVERY_CODE"
+          export RECOVERY_CODE TEST_PASSWORD
+
+          reset_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$TEST_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')")"
+          echo "Password reset HTTP $reset_status"
+          test "$reset_status" = "200"
+          jq -e '.ok == true' /tmp/password-reset.json >/dev/null
+
+          login_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$TEST_PASSWORD" '{password:$password}')")"
+          echo "Login with reset password HTTP $login_status"
+          test "$login_status" = "200"
+          NEW_SESSION="$(jq -r '.token // empty' /tmp/password-reset-login.json)"
+          test -n "$NEW_SESSION"
+          export NEW_SESSION
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset-dashboard.json -w '%{http_code}' "$SITE_URL/api/admin/dashboard" -H "Authorization: Bearer $NEW_SESSION")"
+          echo "Dashboard with reset-password session HTTP $status"
+          test "$status" = "200"
+
+          restore_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-restore.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$ADMIN_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')")"
+          echo "Password restore HTTP $restore_status"
+          test "$restore_status" = "200"
+          jq -e '.ok == true' /tmp/password-restore.json >/dev/null
+
+          final_login_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-restore-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "Login with restored password HTTP $final_login_status"
+          test "$final_login_status" = "200"
+          echo 'Gate 8 password reset E2E: PASS'
+
       - name: E2E R2 media write/read/delete through Admin binding
         if: ${{ env.ADMIN_TOKEN != '' }}
         shell: bash
@@ -162,10 +209,12 @@ jobs:
         run: echo 'Skipped: legacy example page car-lx600.html was intentionally removed from production.'
 
       - name: Production smoke summary
+        shell: bash
         run: |
-          echo "========================================"
-          echo "Production smoke checks passed"
+          set -euo pipefail
+          echo '========================================'
+          echo 'Production smoke checks passed'
           echo "Site: $SITE_URL"
           echo "Worker: $WORKER_URL"
-          echo "Legacy example page: removed"
-          echo "========================================"
+          echo 'Legacy example page: removed'
+          echo '========================================'
