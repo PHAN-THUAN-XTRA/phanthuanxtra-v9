@@ -1,0 +1,52 @@
+name: Production Smoke Gate-15 V3
+on:
+  workflow_dispatch:
+    inputs:
+      execution_id:
+        description: Runtime evidence execution identifier
+        required: false
+        default: manual
+        type: string
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      WORKER_URL: https://phanthuanxtra-v2.phanthuanmodelactor.workers.dev
+      GATEWAY_URL: https://phanthuanxtra-developer-gateway.phanthuanmodelactor.workers.dev
+      GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate-15 runtime evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "$SITE_URL/")" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "$SITE_URL/api/health")" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "$SITE_URL/api/cars")" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "$SITE_URL/admin.html")" = 200
+          test "$(curl -sS -o /dev/null -w '%{http_code}' "$WORKER_URL/")" = 200
+          status="$(curl -sS -o /tmp/admin.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data '{"password":"__invalid_smoke_password__"}')"
+          echo "Admin invalid login HTTP $status"
+          test "$status" = 401
+          status="$(curl -sS -o /tmp/dashboard.json -w '%{http_code}' "$SITE_URL/api/admin/dashboard")"
+          echo "Admin dashboard unauth HTTP $status"
+          test "$status" = 401
+          curl -fsS "$GATEWAY_URL/health" | tee /tmp/gateway-health.json
+          jq -e '.ok == true and .service == "developer-gateway" and .unified_ai == true and .unified_ai_engine == "cloudflare-workers-ai"' /tmp/gateway-health.json >/dev/null
+          status="$(curl -sS -o /tmp/gateway-unauth.json -w '%{http_code}' -X POST "$GATEWAY_URL/v1/ai/unified" -H 'content-type: application/json' --data '{"instruction":"smoke unauthorized test"}')"
+          echo "Gateway unauth HTTP $status"
+          test "$status" = 401
+          jq -e '.ok == false and .error == "unauthorized"' /tmp/gateway-unauth.json >/dev/null
+          test -n "$GATEWAY_READ_TOKEN"
+          curl -fsS -X POST "$GATEWAY_URL/v1/ai/unified" -H "Authorization: Bearer $GATEWAY_READ_TOKEN" -H 'content-type: application/json' --data '{"task_id":"production-smoke","mode":"audit","instruction":"Return exactly: XTRA_UNIFIED_AI_OK"}' | tee /tmp/unified-ai.json
+          jq -e '.ok == true and .logical_agent == "xtra-unified-ai" and .engine == "cloudflare-workers-ai" and .production_mutation == false and (.response | contains("XTRA_UNIFIED_AI_OK"))' /tmp/unified-ai.json >/dev/null
+          echo "GATE15_RUNTIME_EVIDENCE=PASS"
