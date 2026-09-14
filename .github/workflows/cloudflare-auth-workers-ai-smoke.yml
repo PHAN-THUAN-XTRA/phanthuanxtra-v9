@@ -74,11 +74,20 @@ jobs:
           echo "Result JSON keys:"
           jq -c '(.result // {}) | if type == "object" then keys else [] end' /tmp/workers-ai.json
 
-          echo "Response field type:"
-          jq -r '.result.response | type' /tmp/workers-ai.json
+          echo "Choices count:"
+          jq -r '.result.choices | length' /tmp/workers-ai.json
 
-          echo "Response field:"
-          jq -c '.result.response' /tmp/workers-ai.json
+          echo "First choice keys:"
+          jq -c '(.result.choices[0] // {}) | if type == "object" then keys else [] end' /tmp/workers-ai.json
+
+          echo "First choice:"
+          jq -c '.result.choices[0] // null' /tmp/workers-ai.json
+
+          echo "Candidate message content type:"
+          jq -r '.result.choices[0].message.content | type' /tmp/workers-ai.json
+
+          echo "Candidate message content:"
+          jq -c '.result.choices[0].message.content // null' /tmp/workers-ai.json
 
           echo "Errors:"
           jq -c '.errors' /tmp/workers-ai.json
