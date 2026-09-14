@@ -210,3 +210,15 @@ Deep/Wide are reasoning peers, not independent deployers. They never create a se
 **Current task:** continue Gate 15 final security/UX/maintainability/testability audit and reconcile GitHub source/config with production Cloudflare evidence using the canonical four-bot map above, without relying on the unavailable S21 Wrangler CLI.  
 **Execution rule:** use the existing single GitHub queue; PR #185 is the only ACTIVE queue vehicle. Do not create additional PRs for this chain, do not create checkpoint Markdown files, and after the completed status checkpoint update only this file.  
 **Final rule:** do not declare `PRODUCTION GREEN / COMPLETE` until every required runtime/E2E gate is evidenced.
+
+## 16. CHANGE LOG — 2026-09-14 CLOUDFLARE AUTH SMOKE #8 — GREEN
+- Cloudflare Auth Smoke run **`34840455815`** — **SUCCESS** on commit `d5e708c3833f0087dc7696f84b709b8625081cb4` (`fix/gate15-single-queue`).
+- Direct run: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/34840455815`
+- Job `103963964494` — **SUCCESS**; all workflow steps completed successfully.
+- Production Environment secret presence: **PASS**; both `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` were present, with values masked and not exposed.
+- Cloudflare API authentication: **PASS**; authenticated account API request returned `.success == true`.
+- Workers AI inference: **PASS**; `@cf/zai-org/glm-4.7-flash` returned HTTP-success JSON with one choice, `finish_reason=stop`, string `message.content`, and exact marker `XTRA_CLOUDFLARE_AI_AUTH_OK`.
+- Previous reasoning-budget/schema failure is resolved by the current smoke parameters (`reasoning_effort=low`, `max_completion_tokens=256`); this is runtime evidence, not an inference from configuration alone.
+- Safety assertion: **PASS** — `No Wrangler deploy executed`, `No D1 migration executed`, `No R2 mutation executed`, `No Worker deployment executed`, `Production mutation: FALSE`.
+- This closes the specific **Cloudflare token + Workers AI Auth Smoke evidence gap**. It does **not** close Gate 15 as a whole and does not make production GREEN.
+- Production remains **RED / LOCKED** because release gates 8, 11, 12, 13 and 15 remain open, and Gate 16 remains locked.
