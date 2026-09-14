@@ -68,6 +68,13 @@ jobs:
           echo "Choices count: ${choices_count}"
           test "$choices_count" = "1"
 
+          echo "Workers AI result keys:"
+          jq -c '.result | keys' /tmp/workers-ai.json
+          echo "Workers AI first choice keys:"
+          jq -c '.result.choices[0] | keys' /tmp/workers-ai.json
+          echo "Workers AI first choice schema (non-secret):"
+          jq -c '.result.choices[0] | with_entries(.value |= if type == "string" then .[0:200] else . end)' /tmp/workers-ai.json
+
           choice_text_type="$(jq -r '.result.choices[0].text | type' /tmp/workers-ai.json)"
           echo "Choice text type: ${choice_text_type}"
           test "$choice_text_type" = "string"
@@ -80,6 +87,7 @@ jobs:
           echo "Workers AI inference marker: PASS"
 
       - name: Safety assertion
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
