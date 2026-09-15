@@ -20,17 +20,7 @@ export default {
       const url = new URL(request.url);
       if (url.pathname === "/admin" || url.pathname === "/admin/") {
         const assetUrl = new URL("/admin.html", request.url);
-        const assetHeaders = new Headers(request.headers);
-        assetHeaders.set("accept-encoding", "identity");
-        assetHeaders.set("cache-control", "no-cache");
-        const assetRequest = new Request(assetUrl, { method: "GET", headers: assetHeaders });
-        const assetResponse = await env.ASSETS.fetch(assetRequest);
-        const headers = new Headers(assetResponse.headers);
-        headers.set("content-type", "text/html; charset=utf-8");
-        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
-        headers.delete("content-encoding");
-        headers.delete("content-length");
-        return new Response(assetResponse.body, { status: assetResponse.status, headers });
+        return Response.redirect(assetUrl, 302);
       }
       const aiChatResponse = await handleAiChat(request, env);
       if (aiChatResponse) return aiChatResponse;
