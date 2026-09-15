@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-apk:
@@ -41,13 +41,31 @@ jobs:
         with:
           gradle-version: '8.9'
       - run: gradle :app:assembleDebug --no-daemon
-      - name: Verify APK output
+      - name: Verify APK output and SHA-256
         shell: bash
         run: |
           set -euo pipefail
           test -s app/build/outputs/apk/debug/app-debug.apk
-          sha256sum app/build/outputs/apk/debug/app-debug.apk
+          sha256sum app/build/outputs/apk/debug/app-debug.apk | tee app/build/outputs/apk/debug/app-debug.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: phanthuanxtra-apk-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
+      - name: Publish direct APK release asset
+        if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'ci(gate11): publish APK as direct release asset'))) }}
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: apk-gate11-${{ github.run_number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256 \
+            --title "Gate 11 APK #${{ github.run_number }}" \
+            --notes "Gate 11 APK direct-download release. Source: $GITHUB_SHA. Build run: $GITHUB_RUN_ID. Physical S21 Ultra regression remains required before Gate 11 can be GREEN."
+          echo "Direct APK URL: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/releases/download/$RELEASE_TAG/app-debug.apk"
+          echo "SHA-256 URL: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/releases/download/$RELEASE_TAG/app-debug.apk.sha256"
