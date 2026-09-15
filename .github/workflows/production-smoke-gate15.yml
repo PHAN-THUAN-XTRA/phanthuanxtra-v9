@@ -159,36 +159,56 @@ jobs:
           set -euo pipefail
           test -n "$ADMIN_PASSWORD"
           TEST_PASSWORD="Xtra-Gate8-${GITHUB_RUN_ID}-Reset!"
-          AUTH_STATUS="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/recovery-admin-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
-          echo "Recovery rotation admin login HTTP $AUTH_STATUS"
-          test "$AUTH_STATUS" = "200"
+          retry_admin() {
+            local output="$1"; shift
+            local attempt=1 status retry_after
+            while [ "$attempt" -le 4 ]; do
+              : > "$output"
+              status="$(curl --silent --show-error --max-time 30 -D /tmp/password-response.headers -o "$output" -w '%{http_code}' "$@")"
+              echo "Password E2E API HTTP $status (attempt $attempt)"
+              if [ "$status" != "429" ]; then
+                RETRY_ADMIN_STATUS="$status"
+                return 0
+              fi
+              retry_after="$(awk 'tolower($1)=="retry-after:" {gsub("\r", "", $2); print $2; exit}' /tmp/password-response.headers)"
+              if ! [[ "$retry_after" =~ ^[0-9]+$ ]]; then retry_after=30; fi
+              echo "Cloudflare rate limit (1015/429); waiting ${retry_after}s before retry"
+              sleep "$retry_after"
+              attempt=$((attempt + 1))
+            done
+            RETRY_ADMIN_STATUS="429"
+            return 1
+          }
+          retry_admin /tmp/recovery-admin-login.json -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
+          echo "Recovery rotation admin login HTTP $RETRY_ADMIN_STATUS"
+          test "$RETRY_ADMIN_STATUS" = "200"
           ROTATE_SESSION="$(jq -r '.token // empty' /tmp/recovery-admin-login.json)"
           test -n "$ROTATE_SESSION"
-          ROTATE_STATUS="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/recovery-rotate.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/recovery/rotate" -H "Authorization: Bearer $ROTATE_SESSION" -H 'content-type: application/json' --data '{}')"
-          echo "Recovery rotate HTTP $ROTATE_STATUS"
-          test "$ROTATE_STATUS" = "200"
+          retry_admin /tmp/recovery-rotate.json -X POST "$SITE_URL/api/admin/recovery/rotate" -H "Authorization: Bearer $ROTATE_SESSION" -H 'content-type: application/json' --data '{}'
+          echo "Recovery rotate HTTP $RETRY_ADMIN_STATUS"
+          test "$RETRY_ADMIN_STATUS" = "200"
           RECOVERY_CODE="$(jq -r '.recoveryCode // empty' /tmp/recovery-rotate.json)"
           test -n "$RECOVERY_CODE"
           export RECOVERY_CODE TEST_PASSWORD
-          reset_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$TEST_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')")"
-          echo "Password reset HTTP $reset_status"
-          test "$reset_status" = "200"
+          retry_admin /tmp/password-reset.json -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$TEST_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')"
+          echo "Password reset HTTP $RETRY_ADMIN_STATUS"
+          test "$RETRY_ADMIN_STATUS" = "200"
           jq -e '.ok == true' /tmp/password-reset.json >/dev/null
-          login_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$TEST_PASSWORD" '{password:$password}')")"
-          echo "Login with reset password HTTP $login_status"
-          test "$login_status" = "200"
+          retry_admin /tmp/password-reset-login.json -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$TEST_PASSWORD" '{password:$password}')"
+          echo "Login with reset password HTTP $RETRY_ADMIN_STATUS"
+          test "$RETRY_ADMIN_STATUS" = "200"
           NEW_SESSION="$(jq -r '.token // empty' /tmp/password-reset-login.json)"
           test -n "$NEW_SESSION"
-          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset-dashboard.json -w '%{http_code}' "$SITE_URL/api/admin/dashboard" -H "Authorization: Bearer $NEW_SESSION")"
-          echo "Dashboard with reset-password session HTTP $status"
-          test "$status" = "200"
-          restore_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-restore.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$ADMIN_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')")"
-          echo "Password restore HTTP $restore_status"
-          test "$restore_status" = "200"
+          retry_admin /tmp/password-reset-dashboard.json "$SITE_URL/api/admin/dashboard" -H "Authorization: Bearer $NEW_SESSION"
+          echo "Dashboard with reset-password session HTTP $RETRY_ADMIN_STATUS"
+          test "$RETRY_ADMIN_STATUS" = "200"
+          retry_admin /tmp/password-restore.json -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$ADMIN_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')"
+          echo "Password restore HTTP $RETRY_ADMIN_STATUS"
+          test "$RETRY_ADMIN_STATUS" = "200"
           jq -e '.ok == true' /tmp/password-restore.json >/dev/null
-          final_login_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-restore-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
-          echo "Login with restored password HTTP $final_login_status"
-          test "$final_login_status" = "200"
+          retry_admin /tmp/password-restore-login.json -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
+          echo "Login with restored password HTTP $RETRY_ADMIN_STATUS"
+          test "$RETRY_ADMIN_STATUS" = "200"
           echo 'Gate 8 password reset E2E: PASS'
       - name: E2E R2 media write/read/delete through Admin binding
         if: ${{ env.ADMIN_TOKEN != '' }}
