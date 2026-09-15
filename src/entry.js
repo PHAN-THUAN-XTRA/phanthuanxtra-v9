@@ -20,7 +20,12 @@ export default {
       const url = new URL(request.url);
       if (url.pathname === "/admin" || url.pathname === "/admin/") {
         const assetUrl = new URL("/admin.html", request.url);
-        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, request));
+        const assetRequest = new Request(assetUrl, new Request(request, {
+          headers: new Headers(request.headers),
+        }));
+        assetRequest.headers.set("accept-encoding", "identity");
+        assetRequest.headers.set("cache-control", "no-cache");
+        const assetResponse = await env.ASSETS.fetch(assetRequest);
         const headers = new Headers(assetResponse.headers);
         headers.set("content-type", "text/html; charset=utf-8");
         headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
