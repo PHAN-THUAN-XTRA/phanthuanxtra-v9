@@ -54,7 +54,7 @@ jobs:
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/app-debug.apk.sha256
       - name: Publish direct APK release asset
-        if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'ci(gate11): publish APK as direct release asset'))) }}
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
