@@ -168,26 +168,24 @@ jobs:
           npx --no-install wrangler --version
           npx --no-install wrangler deploy --dry-run
 
-          if git diff --name-only HEAD^ HEAD | grep -q '^migrations/'; then
-            echo "D1 migrations changed in this commit; checking for pre-existing remote schema drift."
-            migration_0012_pending="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS migration_count FROM d1_migrations WHERE name='0012_leads_management.sql';" | jq -er '.[0].results[0].migration_count')"
-            lead_columns="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS column_count FROM pragma_table_info('leads') WHERE name IN ('status','note','updated_at');" | jq -er '.[0].results[0].column_count')"
-            lead_index="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS index_count FROM sqlite_master WHERE type='index' AND name='idx_leads_status_created';" | jq -er '.[0].results[0].index_count')"
-            echo "D1 migration drift check: 0012_recorded=${migration_0012_pending}, lead_columns=${lead_columns}, lead_index=${lead_index}"
-            if [ "$migration_0012_pending" = "0" ] && [ "$lead_columns" = "3" ] && [ "$lead_index" = "1" ]; then
-              echo "Detected an already-applied 0012 schema whose migration record is missing; preserving schema and reconciling migration history."
-              backup_file="$(mktemp /tmp/phanthuanxtra-d1-backup-XXXXXX.sql)"
-              npx --no-install wrangler d1 export phanthuanxtra-db --remote --output="$backup_file"
-              test -s "$backup_file"
-              echo "Remote D1 backup captured before migration-history reconciliation."
-              rm -f "$backup_file"
-              npx --no-install wrangler d1 execute phanthuanxtra-db --remote --command="UPDATE leads SET updated_at=created_at WHERE updated_at=''; INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0012_leads_management.sql');"
-              echo "Reconciled 0012 migration history without re-running destructive ALTER TABLE statements."
-            elif [ "$migration_0012_pending" = "0" ]; then
-              echo "0012 is already recorded as applied; no migration-history reconciliation required."
-            else
-              echo "0012 is not recorded as applied and the expected pre-existing schema drift is not fully detected; normal migration apply will proceed."
-            fi
+          echo "Checking production D1 migration history and reconciling known 0012 drift."
+          migration_0012_pending="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS migration_count FROM d1_migrations WHERE name='0012_leads_management.sql';" | jq -er '.[0].results[0].migration_count')"
+          lead_columns="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS column_count FROM pragma_table_info('leads') WHERE name IN ('status','note','updated_at');" | jq -er '.[0].results[0].column_count')"
+          lead_index="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS index_count FROM sqlite_master WHERE type='index' AND name='idx_leads_status_created';" | jq -er '.[0].results[0].index_count')"
+          echo "D1 migration drift check: 0012_recorded=${migration_0012_pending}, lead_columns=${lead_columns}, lead_index=${lead_index}"
+          if [ "$migration_0012_pending" = "0" ] && [ "$lead_columns" = "3" ] && [ "$lead_index" = "1" ]; then
+            echo "Detected an already-applied 0012 schema whose migration record is missing; preserving schema and reconciling migration history."
+            backup_file="$(mktemp /tmp/phanthuanxtra-d1-backup-XXXXXX.sql)"
+            npx --no-install wrangler d1 export phanthuanxtra-db --remote --output="$backup_file"
+            test -s "$backup_file"
+            echo "Remote D1 backup captured before migration-history reconciliation."
+            rm -f "$backup_file"
+            npx --no-install wrangler d1 execute phanthuanxtra-db --remote --command="INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0012_leads_management.sql');"
+            echo "Reconciled 0012 migration history without re-running destructive ALTER TABLE statements."
+          elif [ "$migration_0012_pending" = "0" ]; then
+            echo "0012 is already recorded as applied; no migration-history reconciliation required."
+          else
+            echo "0012 is not recorded as applied; normal migration apply will proceed."
           fi
 
           echo "Applying all pending production D1 migrations."
