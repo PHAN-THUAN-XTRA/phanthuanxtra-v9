@@ -23,7 +23,7 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     environment: production
     env:
       SITE_URL: https://phanthuanxtra.com
@@ -136,13 +136,50 @@ jobs:
           echo 'BLOCKED: ADMIN_PASSWORD is not available in GitHub Actions.'
           exit 1
 
-      - name: E2E R2 media write/read/delete through Admin binding
-        if: ${{ env.ADMIN_TOKEN != '' }}
+      - name: E2E Password reset production boundary
         shell: bash
         run: |
           set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+          test -n "$ADMIN_TOKEN"
+          TEST_PASSWORD="Xtra-Gate15-${GITHUB_RUN_ID}-Reset!"
+          ROTATE_STATUS="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/recovery-rotate.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/recovery/rotate" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data '{}')"
+          echo "Recovery rotate HTTP $ROTATE_STATUS"
+          test "$ROTATE_STATUS" = "200"
+          RECOVERY_CODE="$(jq -r '.recoveryCode // empty' /tmp/recovery-rotate.json)"
+          test -n "$RECOVERY_CODE"
+          export RECOVERY_CODE TEST_PASSWORD
+          reset_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$TEST_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')")"
+          echo "Password reset HTTP $reset_status"
+          if [ "$reset_status" != "200" ]; then
+            echo 'Password reset response (bounded):'
+            head -c 500 /tmp/password-reset.json; echo
+          fi
+          test "$reset_status" = "200"
+          jq -e '.ok == true' /tmp/password-reset.json >/dev/null
+          login_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$TEST_PASSWORD" '{password:$password}')")"
+          echo "Login with reset password HTTP $login_status"
+          test "$login_status" = "200"
+          NEW_SESSION="$(jq -r '.token // empty' /tmp/password-reset-login.json)"
+          test -n "$NEW_SESSION"
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-reset-dashboard.json -w '%{http_code}' "$SITE_URL/api/admin/dashboard" -H "Authorization: Bearer $NEW_SESSION")"
+          echo "Dashboard with reset-password session HTTP $status"
+          test "$status" = "200"
+          restore_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-restore.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$ADMIN_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')")"
+          echo "Password restore HTTP $restore_status"
+          test "$restore_status" = "200"
+          final_login_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/password-restore-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "Login with restored password HTTP $final_login_status"
+          test "$final_login_status" = "200"
+          echo 'Gate password reset E2E: PASS'
+
+      - name: E2E R2 media write/read/delete through Admin binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_SESSION"
           printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' | base64 -d > /tmp/xtra-e2e.png
-          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-upload.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/media" -H "X-Admin-Token: $ADMIN_TOKEN" -H 'content-type: image/png' --data-binary @/tmp/xtra-e2e.png)"
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-upload.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/media" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: image/png' --data-binary @/tmp/xtra-e2e.png)"
           echo "R2 write/upload HTTP $status"
           test "$status" = "200"
           MEDIA_KEY="$(jq -r '.key // empty' /tmp/media-upload.json)"
@@ -150,12 +187,13 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$SITE_URL/media/$MEDIA_KEY" -o /tmp/xtra-e2e-download.png
           cmp /tmp/xtra-e2e.png /tmp/xtra-e2e-download.png
           echo 'R2 write/read: OK'
-          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-delete.json -w '%{http_code}' -X DELETE "$SITE_URL/api/admin/media/$MEDIA_KEY" -H "X-Admin-Token: $ADMIN_TOKEN")"
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-delete.json -w '%{http_code}' -X DELETE "$SITE_URL/api/admin/media/$MEDIA_KEY" -H "Authorization: Bearer $ADMIN_SESSION")"
           echo "R2 delete HTTP $status"
           test "$status" = "200"
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-after.json -w '%{http_code}' "$SITE_URL/media/$MEDIA_KEY")"
           echo "R2 read after delete HTTP $status"
           test "$status" = "404"
+          echo 'Gate R2 E2E: PASS'
 
       - name: Production detail-page smoke
         shell: bash
@@ -169,5 +207,9 @@ jobs:
           echo 'Production smoke checks passed'
           echo "Site: $SITE_URL"
           echo "Worker: $WORKER_URL"
+          echo 'Gateway / AI: PASS'
+          echo 'D1: PASS'
+          echo 'Password Reset: PASS'
+          echo 'R2 E2E: PASS'
           echo 'Legacy example page: removed'
           echo '========================================'
