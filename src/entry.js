@@ -19,31 +19,7 @@ export default {
     try {
       const url = new URL(request.url);
       if (url.pathname === "/admin" || url.pathname === "/admin/") {
-        const adminUrl = new URL("/admin.html", request.url);
-        const adminResponse = await env.ASSETS.fetch(new Request(adminUrl, {
-          method: "GET",
-          headers: request.headers
-        }));
-        if (adminResponse.ok) {
-          const adminBody = await adminResponse.arrayBuffer();
-          const headers = new Headers(adminResponse.headers);
-          headers.set("content-type", "text/html; charset=utf-8");
-          headers.delete("content-encoding");
-          headers.set("cache-control", "no-store, max-age=0");
-          headers.delete("content-length");
-          return new Response(adminBody, {
-            status: adminResponse.status,
-            statusText: adminResponse.statusText,
-            headers
-          });
-        }
-        return new Response("Admin page unavailable", {
-          status: 503,
-          headers: {
-            "content-type": "text/plain; charset=utf-8",
-            "cache-control": "no-store, max-age=0"
-          }
-        });
+        return Response.redirect(new URL("/admin.html", request.url).toString(), 302);
       }
       const aiChatResponse = await handleAiChat(request, env);
       if (aiChatResponse) return aiChatResponse;
