@@ -82,7 +82,7 @@ jobs:
             tests/vip-vehicle-intelligence.test.mjs
 
       # Pull-request validation must not consume or depend on production Cloudflare credentials.
-      # The production push job performs the authoritative credential/deploy gate after merge.
+      # The production push/manual job performs the authoritative credential/deploy gate.
       - name: Resolve credentials and Wrangler dry-run
         if: github.event_name != 'pull_request'
         shell: bash
@@ -143,7 +143,7 @@ jobs:
 
   deploy:
     name: Deploy production Worker (Production)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: validate
     environment: production
     runs-on: ubuntu-latest
