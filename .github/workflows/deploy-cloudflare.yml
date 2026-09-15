@@ -28,29 +28,24 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 2
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
       - name: Verify locked Wrangler toolchain
         run: |
           set -euo pipefail
           wrangler_version="$(npx --no-install wrangler --version)"
           echo "Locked Wrangler toolchain: ${wrangler_version}"
           test "${wrangler_version}" = "4.121.0"
-
       - name: Validate JavaScript syntax and tests
         run: |
           node --check src/entry.js
@@ -68,21 +63,7 @@ jobs:
           node --check src/ai-chat.js
           node --check src/plate-branding.js
           node --check public/script.js
-
-          node --test \
-            tests/admin-auth.test.mjs \
-            tests/admin-password.test.mjs \
-            tests/app-admin-contract.test.mjs \
-            tests/telegram.test.mjs \
-            tests/ai-chat.test.mjs \
-            tests/pt-xtra-media.test.mjs \
-            tests/pt-xtra-plate.test.mjs \
-            tests/plate-branding.test.mjs \
-            tests/production-gates.test.mjs \
-            tests/vip-vehicle-intelligence.test.mjs
-
-      # Pull-request validation must not consume or depend on production Cloudflare credentials.
-      # The production push/manual job performs the authoritative credential/deploy gate.
+          node --test tests/admin-auth.test.mjs tests/admin-password.test.mjs tests/app-admin-contract.test.mjs tests/telegram.test.mjs tests/ai-chat.test.mjs tests/pt-xtra-media.test.mjs tests/pt-xtra-plate.test.mjs tests/plate-branding.test.mjs tests/production-gates.test.mjs tests/vip-vehicle-intelligence.test.mjs
       - name: Resolve credentials and Wrangler dry-run
         if: github.event_name != 'pull_request'
         shell: bash
@@ -99,44 +80,27 @@ jobs:
           [ -n "${CF_BACKUP_TOKEN:-}" ] && backup_present=true
           [ -n "${CF_CONFIGURED_ACCOUNT_ID:-}" ] && configured_account_present=true
           echo "Secret presence: primary_token=${primary_present}, backup_token=${backup_present}, account_id=${configured_account_present}"
-
           select_cloudflare_token() {
             if [ -n "${CF_PRIMARY_TOKEN:-}" ]; then
               export CLOUDFLARE_API_TOKEN="${CF_PRIMARY_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then
-                echo "Cloudflare token source selected: primary"
-                return 0
-              fi
+              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: primary"; return 0; fi
               echo "Primary Cloudflare token failed authentication; testing backup token."
             fi
-
             if [ -n "${CF_BACKUP_TOKEN:-}" ]; then
               export CLOUDFLARE_API_TOKEN="${CF_BACKUP_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then
-                echo "Cloudflare token source selected: backup"
-                return 0
-              fi
+              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: backup"; return 0; fi
             fi
-
             echo "Neither configured Cloudflare token authenticated successfully."
             return 1
           }
-
           select_cloudflare_token
-
           account_id="${CF_CONFIGURED_ACCOUNT_ID:-}"
           if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then
             echo "Configured account ID is absent or invalid; resolving account from authenticated Wrangler identity."
-            whoami_output="$(npx --no-install wrangler whoami 2>&1)" || {
-              echo "Wrangler identity check failed; Cloudflare token authentication/permissions must be fixed."
-              exit 1
-            }
+            whoami_output="$(npx --no-install wrangler whoami 2>&1)" || { echo "Wrangler identity check failed; Cloudflare token authentication/permissions must be fixed."; exit 1; }
             account_id="$(printf '%s\n' "$whoami_output" | grep -Eo '[0-9a-fA-F]{32}' | head -1 || true)"
           fi
-          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then
-            echo "A valid Cloudflare account ID could not be resolved from the authenticated Wrangler identity."
-            exit 1
-          fi
+          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then echo "A valid Cloudflare account ID could not be resolved from the authenticated Wrangler identity."; exit 1; fi
           export CLOUDFLARE_ACCOUNT_ID="$account_id"
           echo "Cloudflare credentials resolved without exposing secret values."
           npx --no-install wrangler deploy --dry-run
@@ -148,22 +112,18 @@ jobs:
     environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 2
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
       - name: Resolve credentials, verify Wrangler, migrate and deploy
         shell: bash
         env:
@@ -182,59 +142,38 @@ jobs:
           [ -n "${CF_CONFIGURED_ACCOUNT_ID:-}" ] && configured_account_present=true
           [ -n "${ADMIN_PASSWORD:-}" ] && admin_password_present=true
           echo "Secret presence: primary_token=${primary_present}, backup_token=${backup_present}, account_id=${configured_account_present}, admin_password=${admin_password_present}"
-
           select_cloudflare_token() {
             if [ -n "${CF_PRIMARY_TOKEN:-}" ]; then
               export CLOUDFLARE_API_TOKEN="${CF_PRIMARY_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then
-                echo "Cloudflare token source selected: primary"
-                return 0
-              fi
+              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: primary"; return 0; fi
               echo "Primary Cloudflare token failed authentication; testing backup token."
             fi
-
             if [ -n "${CF_BACKUP_TOKEN:-}" ]; then
               export CLOUDFLARE_API_TOKEN="${CF_BACKUP_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then
-                echo "Cloudflare token source selected: backup"
-                return 0
-              fi
+              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: backup"; return 0; fi
             fi
-
             echo "Neither configured Cloudflare token authenticated successfully."
             return 1
           }
-
           select_cloudflare_token
-
           account_id="${CF_CONFIGURED_ACCOUNT_ID:-}"
           if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then
             echo "Configured account ID is absent or invalid; resolving account from authenticated Wrangler identity."
-            whoami_output="$(npx --no-install wrangler whoami 2>&1)" || {
-              echo "Wrangler identity check failed; Cloudflare token authentication/permissions must be fixed."
-              exit 1
-            }
+            whoami_output="$(npx --no-install wrangler whoami 2>&1)" || { echo "Wrangler identity check failed; Cloudflare token authentication/permissions must be fixed."; exit 1; }
             account_id="$(printf '%s\n' "$whoami_output" | grep -Eo '[0-9a-fA-F]{32}' | head -1 || true)"
           fi
-          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then
-            echo "A valid Cloudflare account ID could not be resolved from the authenticated Wrangler identity."
-            exit 1
-          fi
+          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then echo "A valid Cloudflare account ID could not be resolved from the authenticated Wrangler identity."; exit 1; fi
           export CLOUDFLARE_ACCOUNT_ID="$account_id"
           echo "Cloudflare credentials resolved without exposing secret values."
-
           npx --no-install wrangler --version
           npx --no-install wrangler deploy --dry-run
 
           if git diff --name-only HEAD^ HEAD | grep -q '^migrations/'; then
             echo "D1 migrations changed in this commit; checking for pre-existing remote schema drift."
-
             migration_0012_pending="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS migration_count FROM d1_migrations WHERE name='0012_leads_management.sql';" | jq -er '.[0].results[0].migration_count')"
             lead_columns="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS column_count FROM pragma_table_info('leads') WHERE name IN ('status','note','updated_at');" | jq -er '.[0].results[0].column_count')"
             lead_index="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS index_count FROM sqlite_master WHERE type='index' AND name='idx_leads_status_created';" | jq -er '.[0].results[0].index_count')"
-
             echo "D1 migration drift check: 0012_recorded=${migration_0012_pending}, lead_columns=${lead_columns}, lead_index=${lead_index}"
-
             if [ "$migration_0012_pending" = "0" ] && [ "$lead_columns" = "3" ] && [ "$lead_index" = "1" ]; then
               echo "Detected an already-applied 0012 schema whose migration record is missing; preserving schema and reconciling migration history."
               backup_file="$(mktemp /tmp/phanthuanxtra-d1-backup-XXXXXX.sql)"
@@ -242,7 +181,6 @@ jobs:
               test -s "$backup_file"
               echo "Remote D1 backup captured before migration-history reconciliation."
               rm -f "$backup_file"
-
               npx --no-install wrangler d1 execute phanthuanxtra-db --remote --command="UPDATE leads SET updated_at=created_at WHERE updated_at=''; INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0012_leads_management.sql');"
               echo "Reconciled 0012 migration history without re-running destructive ALTER TABLE statements."
             elif [ "$migration_0012_pending" = "0" ]; then
@@ -250,21 +188,15 @@ jobs:
             else
               echo "0012 is not recorded as applied and the expected pre-existing schema drift is not fully detected; normal migration apply will proceed."
             fi
-
-            npx --no-install wrangler d1 migrations apply phanthuanxtra-db --remote
-          else
-            echo "No D1 migration changes in this commit; skipping remote migration step."
           fi
 
-          if [ -z "${ADMIN_PASSWORD:-}" ]; then
-            echo "ADMIN_PASSWORD secret is absent; refusing production deploy because Admin credential synchronization is required."
-            exit 1
-          fi
+          echo "Applying all pending production D1 migrations."
+          npx --no-install wrangler d1 migrations apply phanthuanxtra-db --remote
+
+          if [ -z "${ADMIN_PASSWORD:-}" ]; then echo "ADMIN_PASSWORD secret is absent; refusing production deploy because Admin credential synchronization is required."; exit 1; fi
           printf '%s' "$ADMIN_PASSWORD" | npx --no-install wrangler secret put ADMIN_PASSWORD
           echo "ADMIN_PASSWORD synchronized to the production Worker without exposing its value."
-
           npx --no-install wrangler deploy
-
       - name: Deployment completed
         run: |
           echo "========================================"
