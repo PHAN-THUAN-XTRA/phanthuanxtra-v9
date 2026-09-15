@@ -25,13 +25,13 @@ export default {
           headers: request.headers
         }));
         if (adminResponse.ok) {
-          const adminHtml = await adminResponse.text();
+          const adminBody = await adminResponse.arrayBuffer();
           const headers = new Headers(adminResponse.headers);
           headers.set("content-type", "text/html; charset=utf-8");
-          headers.set("content-encoding", "identity");
+          headers.delete("content-encoding");
           headers.set("cache-control", "no-store, max-age=0");
           headers.delete("content-length");
-          return new Response(adminHtml, {
+          return new Response(adminBody, {
             status: adminResponse.status,
             statusText: adminResponse.statusText,
             headers
