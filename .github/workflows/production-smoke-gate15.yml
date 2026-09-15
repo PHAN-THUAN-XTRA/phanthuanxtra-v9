@@ -168,6 +168,11 @@ jobs:
               echo "Password E2E API HTTP $status (attempt $attempt)"
               if [ "$status" != "429" ]; then
                 RETRY_ADMIN_STATUS="$status"
+                if [ "$status" != "200" ]; then
+                  echo "Password E2E response body (bounded diagnostic):"
+                  head -c 500 "$output" || true
+                  echo
+                fi
                 return 0
               fi
               retry_after="$(awk 'tolower($1)=="retry-after:" {gsub("\r", "", $2); print $2; exit}' /tmp/password-response.headers)"
