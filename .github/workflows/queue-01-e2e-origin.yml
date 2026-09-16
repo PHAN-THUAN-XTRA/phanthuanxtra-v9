@@ -16,6 +16,8 @@ jobs:
     env:
       BASE_URL: https://phanthuanxtra-v2.phanthuanmodelactor.workers.dev
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
@@ -24,6 +26,8 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$ADMIN_PASSWORD"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
           TEST_CAR_ID="ci-origin-e2e-${GITHUB_RUN_ID}"
           export TEST_CAR_ID
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' -X POST "$BASE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
@@ -63,9 +67,12 @@ jobs:
           MEDIA_KEY="$(jq -r '.key // empty' /tmp/media-upload.json)"
           test -n "$MEDIA_KEY"
           export MEDIA_KEY
+          npx --no-install wrangler r2 object get "phanthuanxtra-media/$MEDIA_KEY" --remote --file=/tmp/r2-direct.png >/tmp/r2-direct.log
+          cmp /tmp/xtra-e2e.png /tmp/r2-direct.png
+          echo 'R2 direct bucket read-after-write: OK'
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$BASE_URL/media/$MEDIA_KEY" -o /tmp/read.png
           cmp /tmp/xtra-e2e.png /tmp/read.png
-          echo 'R2 write/read: OK'
+          echo 'R2 Worker route write/read: OK'
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-delete.json -w '%{http_code}' -X DELETE "$BASE_URL/api/admin/media/$MEDIA_KEY" -H "Authorization: Bearer $SESSION")"
           echo "R2 delete HTTP $status"
           test "$status" = "200"
