@@ -25,6 +25,12 @@ test('app admin accepts the configured ADMIN_PASSWORD as a bootstrap session cre
   assert.doesNotMatch(source,/D1 chưa kết nối để đồng bộ credential/);
 });
 
+test('password reset and login preserve exact password bytes instead of trimming one side',()=>{
+  assert.match(source,/const password=String\(body\.password\?\?\"\"\)/);
+  assert.match(source,/const confirm=String\(body\.confirm\?\?\"\"\)/);
+  assert.doesNotMatch(source,/const password=String\(body\.password\|\|\"\"\)\.trim\(\)/);
+});
+
 test('app admin exposes authenticated R2 media delete with key allowlist',()=>{
   assert.match(source,/handleMediaDelete/);
   assert.match(source,/MEDIA_KEY_RE/);
