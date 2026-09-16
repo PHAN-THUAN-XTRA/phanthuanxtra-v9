@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve } from "node:path";
+import { uploadAssetsWithRest, uploadAssetsWithSdk, validateSession } from "./cloudflare-assets-upload.mjs";
 
 const API_BASE = "https://api.cloudflare.com/client/v4";
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -66,6 +67,15 @@ async function buildAssetManifest() {
   return { manifest, contentByHash };
 }
 
+async function loadCloudflareSdk() {
+  try {
+    const module = await import("cloudflare");
+    return module.default || module.Cloudflare || module;
+  } catch (error) {
+    throw new Error(`Cloudflare SDK transport selected but package cloudflare is unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 async function uploadAssets() {
   const { manifest, contentByHash } = await buildAssetManifest();
   const session = await api(accountPath(`/workers/scripts/${WORKER}/assets-upload-session`), {
@@ -73,32 +83,25 @@ async function uploadAssets() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ manifest }),
   });
-  const buckets = session?.buckets || [];
-  let completionJwt = buckets.length === 0 ? session?.jwt : null;
-  for (let index = 0; index < buckets.length; index += 1) {
-    const form = new FormData();
-    for (const hash of buckets[index]) {
-      const content = contentByHash.get(hash);
-      if (!content) throw new Error(`Cloudflare requested unknown asset hash ${hash}.`);
-      form.append(hash, content.toString("base64"));
-    }
-    const response = await fetch(`${API_BASE}/accounts/${ACCOUNT_ID}/workers/assets/upload?base64=true`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${session.jwt}` },
-      body: form,
-    });
-    const text = await response.text();
-    let body;
-    try { body = text ? JSON.parse(text) : {}; } catch { body = { raw: text }; }
-    if (!response.ok || body.success === false || !body.result?.jwt) {
-      const detail = Array.isArray(body.errors) ? body.errors.map((e) => `${e.code ?? "unknown"}: ${e.message ?? "unknown"}`).join("; ") : body.raw || `HTTP ${response.status}`;
-      throw new Error(`Asset payload ${index + 1}/${buckets.length} failed: ${detail}`);
-    }
-    completionJwt = body.result.jwt;
-    console.log(`Assets: uploaded payload ${index + 1}/${buckets.length}.`);
+  validateSession(session);
+
+  const transport = process.env.CLOUDFLARE_ASSET_TRANSPORT || "sdk";
+  if (process.env.CLOUDFLARE_ASSET_SIMULATION === "1") {
+    throw new Error("CLOUDFLARE_ASSET_SIMULATION is test-only and cannot be enabled for production deployment.");
   }
-  if (!completionJwt) throw new Error("Cloudflare did not return an asset completion JWT.");
-  return completionJwt;
+
+  if (transport === "sdk") {
+    const Cloudflare = await loadCloudflareSdk();
+    console.log(`Assets: using Cloudflare SDK transport; buckets=${session.buckets.length}.`);
+    return uploadAssetsWithSdk({ Cloudflare, accountId: ACCOUNT_ID, session, contentByHash, log: console.log });
+  }
+
+  if (transport === "rest") {
+    console.log(`Assets: using direct REST transport; buckets=${session.buckets.length}.`);
+    return uploadAssetsWithRest({ apiBase: API_BASE, accountId: ACCOUNT_ID, session, contentByHash, log: console.log });
+  }
+
+  throw new Error(`Unsupported CLOUDFLARE_ASSET_TRANSPORT: ${transport}. Use sdk or rest.`);
 }
 
 async function queryD1(sql, params = []) {
@@ -205,11 +208,11 @@ async function verifyApiLineage() {
   console.log(`Cloudflare lineage: deployment=${latest.id}, version=${versionId}, source=${source || "api"}.`);
 }
 
-console.log("=== PHAN THUẦN XTRA — Cloudflare API/REST production controller ===");
+console.log("=== PHAN THUẦN XTRA — Cloudflare API/SDK production controller ===");
 console.log("Wrangler is intentionally not invoked by this controller.");
 await applyMigrations();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
 await verifyApiLineage();
-console.log("API deployment controller completed successfully.");
+console.log("API/SDK deployment controller completed successfully.");
