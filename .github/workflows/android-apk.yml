@@ -12,6 +12,7 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: android
@@ -40,7 +41,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - run: gradle :app:assembleDebug --no-daemon
+      - name: Verify Gradle toolchain
+        run: gradle --version
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace --console=plain
       - name: Verify APK output and SHA-256
         shell: bash
         run: |
