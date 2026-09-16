@@ -1,5 +1,7 @@
 name: QUEUE-01 Production E2E Origin
 
+# Keep the merged-main push path active so deployment and Queue-01 execute from the same main source.
+
 on:
   push:
     branches: [main]
