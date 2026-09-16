@@ -1,6 +1,6 @@
 name: Deploy Cloudflare Worker
 
-# Production deployment is GitHub Actions -> Cloudflare API/REST only.
+# Production deployment is GitHub Actions -> Cloudflare API/SDK.
 # Wrangler must not be used as a production deployment mechanism.
 
 on:
@@ -24,6 +24,7 @@ concurrency:
 
 env:
   NODE_VERSION: 24
+  CLOUDFLARE_SDK_VERSION: 7.1.0
 
 jobs:
   validate:
@@ -44,7 +45,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Validate deployment controller syntax
-        run: node --check scripts/deploy-cloudflare-api.mjs
+        run: |
+          node --check scripts/deploy-cloudflare-api.mjs
+          node --check scripts/cloudflare-assets-upload.mjs
+          node --check tests/cloudflare-assets-upload.test.mjs
+      - name: Simulate Cloudflare Assets protocol
+        run: node --test tests/cloudflare-assets-upload.test.mjs
       - name: Validate JavaScript syntax and tests
         run: |
           set -euo pipefail
@@ -66,7 +72,7 @@ jobs:
           node --test tests/admin-auth.test.mjs tests/admin-password.test.mjs tests/app-admin-contract.test.mjs tests/telegram.test.mjs tests/ai-chat.test.mjs tests/pt-xtra-media.test.mjs tests/pt-xtra-plate.test.mjs tests/plate-branding.test.mjs tests/production-gates.test.mjs tests/vip-vehicle-intelligence.test.mjs
 
   deploy:
-    name: Deploy production Worker (Cloudflare API)
+    name: Deploy production Worker (Cloudflare API/SDK)
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: validate
     environment: production
@@ -84,6 +90,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Install pinned Cloudflare TypeScript SDK transport
+        run: npm install --no-save --ignore-scripts cloudflare@${{ env.CLOUDFLARE_SDK_VERSION }}
       - name: Resolve Cloudflare API credentials
         shell: bash
         env:
@@ -116,9 +124,10 @@ jobs:
             printf '%s\n' "$selected"
             echo "EOF"
             echo "CLOUDFLARE_ACCOUNT_ID=${CF_ACCOUNT_ID}"
+            echo "CLOUDFLARE_ASSET_TRANSPORT=sdk"
           } >> "$GITHUB_ENV"
           echo "Cloudflare API credential source authenticated without exposing token values."
-      - name: Deploy and migrate through Cloudflare API
+      - name: Deploy and migrate through Cloudflare API/SDK
         env:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
@@ -134,6 +143,6 @@ jobs:
       - name: Deployment completed
         run: |
           echo "========================================"
-          echo "Cloudflare API deployment completed"
+          echo "Cloudflare API/SDK deployment completed"
           echo "Wrangler production deployment path: NOT USED"
           echo "========================================"
