@@ -5,7 +5,7 @@ on:
       - main
       - feature/apk-mvp
       - refactor/apk-architecture-v1
-      - 'queue/**'
+      - queue/gate11-13-finalize
   pull_request:
     branches: [main]
   workflow_dispatch:
