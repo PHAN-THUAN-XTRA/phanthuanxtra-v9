@@ -48,7 +48,7 @@ export async function uploadAssetsWithRest({ apiBase, accountId, session, conten
       body: form,
     });
     const { body } = await readResponse(response);
-    if (!response.ok || body.success === false || !body.result?.jwt) {
+    if (response.status !== 201 || body.success === false || !body.result?.jwt) {
       throw new Error(`Asset payload ${index + 1}/${buckets.length} failed: ${formatApiErrors(body, response.status, response.statusText)}.`);
     }
     completionJwt = body.result.jwt;
