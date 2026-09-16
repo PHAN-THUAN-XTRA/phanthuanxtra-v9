@@ -66,6 +66,31 @@ test('SDK adapter accepts the runtime response wrapper and passes API token plus
   assert.equal(uploads[0].options.headers.Authorization, 'Bearer SHORT_LIVED_UPLOAD_JWT');
 });
 
+test('SDK adapter recovers with documented REST protocol when SDK exposes no completion JWT', async () => {
+  const calls = [];
+  const Cloudflare = class {
+    constructor(options) { calls.push({ type: 'constructor', options }); }
+    workers = { assets: { upload: { create: async (params, options) => {
+      calls.push({ type: 'upload', params, options });
+      return { success: true, result: {} };
+    } } } };
+  };
+  const fetchImpl = async (url, options) => {
+    calls.push({ type: 'rest', url, options });
+    return new Response(JSON.stringify({ success: true, result: { jwt: 'REST_COMPLETION_JWT' } }), {
+      status: 201,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+  const session = { jwt: 'SHORT_LIVED_UPLOAD_JWT', buckets: [['0123456789abcdef0123456789abcdef']] };
+  const content = new Map([['0123456789abcdef0123456789abcdef', Buffer.from('hello')]]);
+  const jwt = await uploadAssetsWithSdk({ Cloudflare, apiToken: 'LONG_LIVED_API_TOKEN', accountId: 'a'.repeat(32), session, contentByHash: content, apiBase: 'https://api.cloudflare.test/client/v4', fetchImpl, log: () => {} });
+  assert.equal(jwt, 'REST_COMPLETION_JWT');
+  const rest = calls.find((call) => call.type === 'rest');
+  assert.ok(rest);
+  assert.equal(rest.options.headers.Authorization, 'Bearer SHORT_LIVED_UPLOAD_JWT');
+});
+
 test('REST protocol rejects a non-201 asset response with sanitized error details', async () => {
   const fetchImpl = async () => new Response(JSON.stringify({ success: false, errors: [{ code: 1000, message: 'invalid upload payload' }] }), { status: 400 });
   const session = { jwt: 'UPLOAD_JWT', buckets: [['0123456789abcdef0123456789abcdef']] };

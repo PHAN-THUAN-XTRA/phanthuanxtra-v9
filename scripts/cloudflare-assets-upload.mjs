@@ -33,38 +33,42 @@ export function createBucketBody(bucket, contentByHash) {
   return Object.fromEntries(bucket.map((hash) => [hash, contentByHash.get(hash).toString('base64')]));
 }
 
+async function uploadBucketWithRest({ apiBase, accountId, uploadJwt, bucket, contentByHash, fetchImpl = fetch }) {
+  const form = new FormData();
+  for (const [hash, base64] of Object.entries(createBucketBody(bucket, contentByHash))) form.append(hash, base64);
+  const response = await fetchImpl(`${apiBase}/accounts/${accountId}${ASSET_UPLOAD_ENDPOINT}?base64=true`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${uploadJwt}` },
+    body: form,
+  });
+  const { body } = await readResponse(response);
+  if (response.status !== 201 || body.success === false || !body.result?.jwt) {
+    throw new Error(formatApiErrors(body, response.status, response.statusText));
+  }
+  return body.result.jwt;
+}
+
 export async function uploadAssetsWithRest({ apiBase, accountId, session, contentByHash, fetchImpl = fetch, log = console.log }) {
   validateSession(session);
   const buckets = session.buckets;
   if (buckets.length === 0) return session.jwt;
   let completionJwt = null;
   for (let index = 0; index < buckets.length; index += 1) {
-    const bucket = buckets[index];
-    const form = new FormData();
-    for (const [hash, base64] of Object.entries(createBucketBody(bucket, contentByHash))) form.append(hash, base64);
-    const response = await fetchImpl(`${apiBase}/accounts/${accountId}${ASSET_UPLOAD_ENDPOINT}?base64=true`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${session.jwt}` },
-      body: form,
-    });
-    const { body } = await readResponse(response);
-    if (response.status !== 201 || body.success === false || !body.result?.jwt) {
-      throw new Error(`Asset payload ${index + 1}/${buckets.length} failed: ${formatApiErrors(body, response.status, response.statusText)}.`);
-    }
-    completionJwt = body.result.jwt;
+    completionJwt = await uploadBucketWithRest({ apiBase, accountId, uploadJwt: session.jwt, bucket: buckets[index], contentByHash, fetchImpl });
     log(`Assets REST: uploaded bucket ${index + 1}/${buckets.length}.`);
   }
   return completionJwt;
 }
 
-export async function uploadAssetsWithSdk({ Cloudflare, apiToken, accountId, session, contentByHash, log = console.log }) {
+export async function uploadAssetsWithSdk({ Cloudflare, apiToken, accountId, session, contentByHash, apiBase = 'https://api.cloudflare.com/client/v4', fetchImpl = fetch, log = console.log }) {
   validateSession(session);
   if (!apiToken || typeof apiToken !== 'string') throw new Error('Cloudflare SDK API token is required.');
   const buckets = session.buckets;
   if (buckets.length === 0) return session.jwt;
   let completionJwt = null;
   for (let index = 0; index < buckets.length; index += 1) {
-    const body = createBucketBody(buckets[index], contentByHash);
+    const bucket = buckets[index];
+    const body = createBucketBody(bucket, contentByHash);
     const client = new Cloudflare({ apiToken });
     try {
       const response = await client.workers.assets.upload.create(
@@ -72,8 +76,14 @@ export async function uploadAssetsWithSdk({ Cloudflare, apiToken, accountId, ses
         { headers: { Authorization: `Bearer ${session.jwt}` } },
       );
       const resultJwt = response?.jwt ?? response?.result?.jwt;
-      if (!resultJwt) throw new Error('Cloudflare SDK returned no completion JWT.');
-      completionJwt = resultJwt;
+      if (resultJwt) {
+        completionJwt = resultJwt;
+      } else {
+        // Keep SDK as the primary transport, but recover from SDK response-shape drift
+        // with the documented raw API protocol using the same short-lived upload JWT.
+        completionJwt = await uploadBucketWithRest({ apiBase, accountId, uploadJwt: session.jwt, bucket, contentByHash, fetchImpl });
+        log(`Assets SDK: response had no completion JWT; raw API recovery succeeded for bucket ${index + 1}/${buckets.length}.`);
+      }
     } catch (error) {
       throw new Error(`Asset payload ${index + 1}/${buckets.length} failed through SDK: ${error instanceof Error ? error.message : String(error)}`);
     }
