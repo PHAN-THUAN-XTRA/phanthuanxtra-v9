@@ -19,10 +19,11 @@ test('app admin exposes authenticated lead CRUD contract',()=>{
   assert.match(source,/Unauthorized/);
 });
 
-test('app admin accepts the configured ADMIN_PASSWORD as a bootstrap session credential',()=>{
-  assert.match(source,/!valid&&password===String\(env\.ADMIN_PASSWORD\)/);
-  assert.match(source,/valid=true/);
-  assert.doesNotMatch(source,/D1 chưa kết nối để đồng bộ credential/);
+test('app admin does not keep a stale ADMIN_PASSWORD fallback after D1 reset',()=>{
+  assert.doesNotMatch(source,/!valid&&password===String\(env\.ADMIN_PASSWORD\)/);
+  assert.doesNotMatch(source,/if\(!valid\).*password===String\(env\.ADMIN_PASSWORD\)/);
+  assert.match(source,/const valid=await verifyAdminPassword\(env,password\)/);
+  assert.match(source,/if\(!valid\)return json\(\{error:\"Sai mật khẩu\"\},401\)/);
 });
 
 test('password reset and login preserve exact password bytes instead of trimming one side',()=>{
