@@ -43,7 +43,7 @@ test('SDK adapter passes each bucket through the documented Workers Assets SDK m
     constructor(options) { calls.push({ type: 'constructor', options }); }
     workers = { assets: { upload: { create: async (params) => {
       calls.push({ type: 'upload', params });
-      return { jwt: `COMPLETION_${calls.length}` };
+      return { jwt: `COMPLETION_${calls.filter((call) => call.type === 'upload').length}` };
     } } } };
   };
   const session = {
@@ -55,7 +55,7 @@ test('SDK adapter passes each bucket through the documented Workers Assets SDK m
     ['fedcba9876543210fedcba9876543210', Buffer.from('world')],
   ]);
   const jwt = await uploadAssetsWithSdk({ Cloudflare, accountId: 'a'.repeat(32), session, contentByHash: content, log: () => {} });
-  assert.equal(jwt, 'COMPLETION_3');
+  assert.equal(jwt, 'COMPLETION_2');
   assert.equal(calls.filter((call) => call.type === 'constructor').length, 2);
   const uploads = calls.filter((call) => call.type === 'upload');
   assert.equal(uploads.length, 2);
