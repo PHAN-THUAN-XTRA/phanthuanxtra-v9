@@ -1,7 +1,7 @@
 name: Deploy Cloudflare Worker
 
-# Production verification remains GitHub Actions based;
-# do not run Wrangler on Android/Termux.
+# Production deployment is GitHub Actions -> Cloudflare API/REST only.
+# Wrangler must not be used as a production deployment mechanism.
 
 on:
   workflow_dispatch:
@@ -22,6 +22,9 @@ concurrency:
   group: cloudflare-production-deploy
   cancel-in-progress: false
 
+env:
+  NODE_VERSION: 24
+
 jobs:
   validate:
     name: CI / Validate
@@ -36,18 +39,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Verify locked Wrangler toolchain
-        run: |
-          set -euo pipefail
-          wrangler_version="$(npx --no-install wrangler --version)"
-          echo "Locked Wrangler toolchain: ${wrangler_version}"
-          test "${wrangler_version}" = "4.121.0"
+      - name: Validate deployment controller syntax
+        run: node --check scripts/deploy-cloudflare-api.mjs
       - name: Validate JavaScript syntax and tests
         run: |
+          set -euo pipefail
           node --check src/entry.js
           node --check src/cms.js
           node --check src/index.js
@@ -64,54 +64,14 @@ jobs:
           node --check src/plate-branding.js
           node --check public/script.js
           node --test tests/admin-auth.test.mjs tests/admin-password.test.mjs tests/app-admin-contract.test.mjs tests/telegram.test.mjs tests/ai-chat.test.mjs tests/pt-xtra-media.test.mjs tests/pt-xtra-plate.test.mjs tests/plate-branding.test.mjs tests/production-gates.test.mjs tests/vip-vehicle-intelligence.test.mjs
-      - name: Resolve credentials and Wrangler dry-run
-        if: github.event_name != 'pull_request'
-        shell: bash
-        env:
-          CF_PRIMARY_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_BACKUP_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
-          CF_CONFIGURED_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          primary_present=false
-          backup_present=false
-          configured_account_present=false
-          [ -n "${CF_PRIMARY_TOKEN:-}" ] && primary_present=true
-          [ -n "${CF_BACKUP_TOKEN:-}" ] && backup_present=true
-          [ -n "${CF_CONFIGURED_ACCOUNT_ID:-}" ] && configured_account_present=true
-          echo "Secret presence: primary_token=${primary_present}, backup_token=${backup_present}, account_id=${configured_account_present}"
-          select_cloudflare_token() {
-            if [ -n "${CF_PRIMARY_TOKEN:-}" ]; then
-              export CLOUDFLARE_API_TOKEN="${CF_PRIMARY_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: primary"; return 0; fi
-              echo "Primary Cloudflare token failed authentication; testing backup token."
-            fi
-            if [ -n "${CF_BACKUP_TOKEN:-}" ]; then
-              export CLOUDFLARE_API_TOKEN="${CF_BACKUP_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: backup"; return 0; fi
-            fi
-            echo "Neither configured Cloudflare token authenticated successfully."
-            return 1
-          }
-          select_cloudflare_token
-          account_id="${CF_CONFIGURED_ACCOUNT_ID:-}"
-          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then
-            echo "Configured account ID is absent or invalid; resolving account from authenticated Wrangler identity."
-            whoami_output="$(npx --no-install wrangler whoami 2>&1)" || { echo "Wrangler identity check failed; Cloudflare token authentication/permissions must be fixed."; exit 1; }
-            account_id="$(printf '%s\n' "$whoami_output" | grep -Eo '[0-9a-fA-F]{32}' | head -1 || true)"
-          fi
-          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then echo "A valid Cloudflare account ID could not be resolved from the authenticated Wrangler identity."; exit 1; fi
-          export CLOUDFLARE_ACCOUNT_ID="$account_id"
-          echo "Cloudflare credentials resolved without exposing secret values."
-          npx --no-install wrangler deploy --dry-run
 
   deploy:
-    name: Deploy production Worker (Production)
+    name: Deploy production Worker (Cloudflare API)
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: validate
     environment: production
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -120,91 +80,60 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Resolve credentials, verify Wrangler, migrate and deploy
+      - name: Resolve Cloudflare API credentials
         shell: bash
         env:
           CF_PRIMARY_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_BACKUP_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
-          CF_CONFIGURED_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          primary_present=false
-          backup_present=false
-          configured_account_present=false
-          admin_password_present=false
-          recovery_rotate_token_present=false
-          [ -n "${CF_PRIMARY_TOKEN:-}" ] && primary_present=true
-          [ -n "${CF_BACKUP_TOKEN:-}" ] && backup_present=true
-          [ -n "${CF_CONFIGURED_ACCOUNT_ID:-}" ] && configured_account_present=true
-          [ -n "${ADMIN_PASSWORD:-}" ] && admin_password_present=true
-          [ -n "${ADMIN_RECOVERY_ROTATE_TOKEN:-}" ] && recovery_rotate_token_present=true
-          echo "Secret presence: primary_token=${primary_present}, backup_token=${backup_present}, account_id=${configured_account_present}, admin_password=${admin_password_present}, recovery_rotate_token=${recovery_rotate_token_present}"
-          select_cloudflare_token() {
-            if [ -n "${CF_PRIMARY_TOKEN:-}" ]; then
-              export CLOUDFLARE_API_TOKEN="${CF_PRIMARY_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: primary"; return 0; fi
-              echo "Primary Cloudflare token failed authentication; testing backup token."
-            fi
-            if [ -n "${CF_BACKUP_TOKEN:-}" ]; then
-              export CLOUDFLARE_API_TOKEN="${CF_BACKUP_TOKEN}"
-              if npx --no-install wrangler whoami >/dev/null 2>&1; then echo "Cloudflare token source selected: backup"; return 0; fi
-            fi
-            echo "Neither configured Cloudflare token authenticated successfully."
-            return 1
-          }
-          select_cloudflare_token
-          account_id="${CF_CONFIGURED_ACCOUNT_ID:-}"
-          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then
-            echo "Configured account ID is absent or invalid; resolving account from authenticated Wrangler identity."
-            whoami_output="$(npx --no-install wrangler whoami 2>&1)" || { echo "Wrangler identity check failed; Cloudflare token authentication/permissions must be fixed."; exit 1; }
-            account_id="$(printf '%s\n' "$whoami_output" | grep -Eo '[0-9a-fA-F]{32}' | head -1 || true)"
+          if ! printf '%s' "${CF_ACCOUNT_ID:-}" | grep -Eq '^[0-9a-fA-F]{32}$'; then
+            echo "CLOUDFLARE_ACCOUNT_ID is absent or invalid; refusing API deployment."
+            exit 1
           fi
-          if ! printf '%s' "$account_id" | grep -Eq '^[0-9a-fA-F]{32}$'; then echo "A valid Cloudflare account ID could not be resolved from the authenticated Wrangler identity."; exit 1; fi
-          export CLOUDFLARE_ACCOUNT_ID="$account_id"
-          echo "Cloudflare credentials resolved without exposing secret values."
-          npx --no-install wrangler --version
-          npx --no-install wrangler deploy --dry-run
-
-          echo "Checking production D1 migration history and reconciling known 0012 drift."
-          migration_0012_pending="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS migration_count FROM d1_migrations WHERE name='0012_leads_management.sql';" | jq -er '.[0].results[0].migration_count')"
-          lead_columns="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS column_count FROM pragma_table_info('leads') WHERE name IN ('status','note','updated_at');" | jq -er '.[0].results[0].column_count')"
-          lead_index="$(npx --no-install wrangler d1 execute phanthuanxtra-db --remote --json --command="SELECT COUNT(*) AS index_count FROM sqlite_master WHERE type='index' AND name='idx_leads_status_created';" | jq -er '.[0].results[0].index_count')"
-          echo "D1 migration drift check: 0012_recorded=${migration_0012_pending}, lead_columns=${lead_columns}, lead_index=${lead_index}"
-          if [ "$migration_0012_pending" = "0" ] && [ "$lead_columns" = "3" ]; then
-            backup_file="$(mktemp /tmp/phanthuanxtra-d1-backup-XXXXXX.sql)"
-            npx --no-install wrangler d1 export phanthuanxtra-db --remote --output="$backup_file"
-            test -s "$backup_file"
-            echo "Remote D1 backup captured before 0012 migration-history reconciliation."
-            rm -f "$backup_file"
-            if [ "$lead_index" = "0" ]; then
-              echo "0012 schema is partially applied; creating the missing index before recording the migration."
-              npx --no-install wrangler d1 execute phanthuanxtra-db --remote --command="CREATE INDEX IF NOT EXISTS idx_leads_status_created ON leads(status, created_at DESC);"
+          selected=""
+          for candidate in "${CF_PRIMARY_TOKEN:-}" "${CF_BACKUP_TOKEN:-}"; do
+            if [ -z "$candidate" ]; then continue; fi
+            if curl --fail --silent --show-error \
+              -H "Authorization: Bearer ${candidate}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/phanthuanxtra-v2" \
+              >/dev/null; then
+              selected="$candidate"
+              break
             fi
-            npx --no-install wrangler d1 execute phanthuanxtra-db --remote --command="INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0012_leads_management.sql');"
-            echo "Reconciled 0012 migration history safely without replaying ALTER TABLE statements."
-          elif [ "$migration_0012_pending" = "0" ]; then
-            echo "0012 is recorded as applied; no migration-history reconciliation required."
-          else
-            echo "0012 is not recorded as applied; normal migration apply will proceed."
+          done
+          if [ -z "$selected" ]; then
+            echo "No configured Cloudflare API token authenticated successfully."
+            exit 1
           fi
-
-          echo "Applying all pending production D1 migrations."
-          npx --no-install wrangler d1 migrations apply phanthuanxtra-db --remote
-          if [ -z "${ADMIN_PASSWORD:-}" ]; then echo "ADMIN_PASSWORD secret is absent; refusing production deploy because Admin credential synchronization is required."; exit 1; fi
-          if [ -z "${ADMIN_RECOVERY_ROTATE_TOKEN:-}" ]; then echo "ADMIN_RECOVERY_ROTATE_TOKEN secret is absent; refusing production deploy because Admin recovery synchronization is required."; exit 1; fi
-          printf '%s' "$ADMIN_PASSWORD" | npx --no-install wrangler secret put ADMIN_PASSWORD
-          echo "ADMIN_PASSWORD synchronized to the production Worker without exposing its value."
-          printf '%s' "$ADMIN_RECOVERY_ROTATE_TOKEN" | npx --no-install wrangler secret put ADMIN_RECOVERY_ROTATE_TOKEN
-          echo "ADMIN_RECOVERY_ROTATE_TOKEN synchronized to the production Worker without exposing its value."
-          npx --no-install wrangler deploy
+          {
+            echo "CLOUDFLARE_API_TOKEN<<EOF"
+            printf '%s\n' "$selected"
+            echo "EOF"
+            echo "CLOUDFLARE_ACCOUNT_ID=${CF_ACCOUNT_ID}"
+          } >> "$GITHUB_ENV"
+          echo "Cloudflare API credential source authenticated without exposing token values."
+      - name: Deploy and migrate through Cloudflare API
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
+        run: node scripts/deploy-cloudflare-api.mjs
+      - name: Verify public production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/)" = "200"
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
+          echo "Public smoke: /, /api/health, /admin.html => HTTP 200."
       - name: Deployment completed
         run: |
           echo "========================================"
-          echo "Cloudflare deployment completed"
+          echo "Cloudflare API deployment completed"
+          echo "Wrangler production deployment path: NOT USED"
           echo "========================================"
