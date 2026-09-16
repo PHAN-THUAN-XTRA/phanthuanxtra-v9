@@ -11,103 +11,58 @@
 - One ACTIVE PR, one head branch, one commit chain; merge closes the queue.
 - Never force-push, never guess secrets, never use checkpoint `.md` files, never claim GREEN without runtime/E2E evidence.
 - Production remains **RED** until all required release gates are actually evidenced.
-- After a completed status checkpoint, update only this file; Do not create competing checkpoint/status Markdown files.
+- After a completed status checkpoint, update only this file; do not create competing checkpoint/status Markdown files.
 
-## 2. CURRENT ARCHITECTURE
+## 2. CURRENT QUEUE — R2 ROOT-CAUSE REMEDIATION
+- Current production source: `705434005cf777b7261e05d0632d71b9f8b616e8`.
+- Queue-01 run `35068382874` failed at the R2 stage.
+- Targeted rerun job `104704356849` also failed, but its logs prove the direct-R2 diagnostic itself never executed against R2.
+- Exact failure: after `R2 write/upload HTTP 200`, `npx --no-install wrangler ...` aborted because `wrangler@4.132.0` was not installed on the GitHub runner and `--no-install` forbids fetching it.
+- `package.json` declares Wrangler as a devDependency (`^4.121.0`), but the Queue-01 workflow previously did not checkout the repository or run `npm ci` before invoking Wrangler.
+- Therefore the previous rerun proved a **diagnostic runner/tooling defect**, not yet an R2 bucket-vs-Worker root cause.
+- Remediation branch: `queue/r2-diagnostic-wrangler-install`.
+- Remediation commit: `ea61c9e8bbbb46ce609f420cc59bb0ac88197f63`.
+- Remediation adds repository checkout, Node 20 setup, and `npm ci` before the existing direct R2 bucket read/byte comparison.
+- No production application code, secrets, or R2 data were changed by this remediation.
+- After PR validation/merge/deploy, Queue-01 must rerun. The resulting evidence will distinguish direct R2 storage/binding failure from Worker `/media/*` route failure.
+
+## 3. ARCHITECTURE
 - Website: `https://phanthuanxtra.com`
 - Admin: `https://phanthuanxtra.com/admin`
 - Worker: `phanthuanxtra-v2`
 - Entry: `src/entry.js`
 - D1: `phanthuanxtra-db`
 - R2: `phanthuanxtra-media`
-- Workers AI: `/api/ai-chat`; Developer Gateway `/v1/ai/unified`
-- APK: `com.phanthuanxtra.app`, source version 1.2.0 / versionCode 3
-- Wrangler: `4.121.0`
+- Media route: `src/media.js` uses `env.MEDIA.put()` for upload and `env.MEDIA.get()` for `/media/*` reads.
+- `src/entry.js` routes `/media/*` through `handleMediaApi()` before falling through to legacy handling.
 
-## 3. VERIFIED BASELINE / HISTORICAL EVIDENCE
-- Website, `/api/health`, `/api/cars`, `/admin.html`, Production Worker — historically GREEN.
-- Admin invalid-login 401, valid login + signed session, unauth dashboard 401, authenticated dashboard — historically GREEN.
-- D1 CRUD — GREEN historically and passed the latest Queue-01 run before its R2 portion failed.
-- Gateway/AI — GREEN historically.
-- Dual Workers AI isolation — GREEN.
-- Gate 14 backup/restore/readability — GREEN: runs `34752032531` and `34752146646`.
-- Password Reset E2E #3 — GREEN: run `35063840082`.
-- Gate-15 historical smoke — GREEN: run `34955049927`; historical evidence does not override newer current-source failures.
+## 4. RELEASE GATES
+1. Current main deployed — VERIFIED on `705434005cf777b7261e05d0632d71b9f8b616e8`.
+2. Invalid Admin login 401 — VERIFIED.
+3. Valid Admin login + signed session — VERIFIED.
+4. Unauthenticated dashboard 401 — VERIFIED.
+5. Authenticated dashboard — VERIFIED.
+6. D1 CRUD — VERIFIED in Queue-01 before R2 stage.
+7. **R2 write/read/delete — RED / ACTIVE REMEDIATION.**
+8. Password reset — GREEN historically by `35063840082`.
+9. Gateway/AI — VERIFIED historically.
+10. Dual Workers AI — GREEN.
+11. APK artifact/hash + S21 Ultra regression — OPEN.
+12. Telegram Auto Bot production E2E — OPEN / blocked by R2.
+13. VIP webhook/idempotency E2E — OPEN / blocked by R2.
+14. Backup/restore/readability — GREEN.
+15. Gate-15 smoke/security boundary — GREEN historically.
+16. **PRODUCTION GREEN — LOCKED** until all required gates are GREEN.
 
-## 4. SINGLE EXECUTION QUEUE
-### QUEUE-01 — Admin / D1 / R2 production E2E
-**R2 CURRENTLY RED / ACTIVE DIAGNOSTIC.** Current main source `705434005cf777b7261e05d0632d71b9f8b616e8` produced Queue-01 run `35068382874`, job `104703835957`, with the combined D1/R2 step failing. Targeted rerun job `104704356849` (attempt 2) failed again. This confirms the current-source R2 failure is repeatable; do not claim GREEN.
+## 5. SINGLE QUEUE CONTINUITY
+- Telegram/VIP diagnostic remains deferred until R2 is closed.
+- Do not test Admin manually yet.
+- No second PR for this R2 task.
+- No secret rotation or secret exposure.
+- No force-push.
 
-### QUEUE-02 — Gateway/AI
-**BASELINE VERIFIED.**
-
-### QUEUE-03 — VIP hardening
-**OPEN / STAGED.** Execute only through the single active queue.
-
-### QUEUE-04 — APK production readiness
-**OPEN / STAGED.** Fresh artifact/hash + S21 Ultra physical regression required.
-
-### QUEUE-05 — Telegram/VIP production E2E
-**OPEN / STAGED / BLOCKED BY R2.** Telegram diagnostic is manual-only via GitHub Actions → Run workflow. Execute after R2 closes.
-
-### QUEUE-06 — Backup/restore
-**GREEN / COMPLETED.**
-
-### QUEUE-07 — Gate 15
-**GREEN / COMPLETED HISTORICALLY.** Current-source evidence takes precedence.
-
-### QUEUE-08 — Final cleanup / overall GREEN
-**OPEN / ACTIVE NEXT.** PR #219 is merged. Current next task is R2 root-cause/diagnostic remediation; Telegram/VIP follows only after R2 is closed.
-
-## 5. RELEASE GATES
-1. Current main deployed — **VERIFIED** by Deploy Cloudflare Worker `35068382888`, source `705434005cf777b7261e05d0632d71b9f8b616e8`.
-2. Invalid Admin login 401 — **VERIFIED**.
-3. Valid Admin login + signed session — **VERIFIED**.
-4. Unauthenticated dashboard 401 — **VERIFIED**.
-5. Authenticated dashboard — **VERIFIED**.
-6. D1 CRUD — **VERIFIED** by current Queue-01 run before R2 failure.
-7. **R2 write/read/delete — RED / OPEN.** Latest run `35068382874` failed and targeted rerun `104704356849` failed again.
-8. Password reset — **GREEN / VERIFIED** by `35063840082`; current-source regression remains subject to evidence.
-9. Gateway/AI — **VERIFIED HISTORICALLY**.
-10. Dual Workers AI — **GREEN**.
-11. APK artifact/hash + S21 Ultra regression — **OPEN**.
-12. Telegram Auto Bot production E2E — **OPEN**.
-13. VIP webhook/idempotency E2E — **OPEN**.
-14. Backup/restore/readability — **GREEN**.
-15. Gate-15 smoke/security boundary — **GREEN HISTORICALLY**.
-16. **PRODUCTION GREEN / COMPLETE — LOCKED** until every remaining required gate is GREEN.
-
-## 6. PR #219 — COMPLETED
-- PR `#219`: `fix(ci): repair legacy Android APK workflow YAML`.
-- Merge commit: `705434005cf777b7261e05d0632d71b9f8b616e8`.
-- Legacy APK `if` expression was fully quoted so embedded `ci(gate11): ...` cannot trigger YAML `: ` parsing.
-- PR checks passed before merge.
-- Post-merge Android APK MVP #732, Android APK Gate 11 #20, CI #56, Release Gate Static Audit #217, and Deploy Cloudflare Worker #653 completed **SUCCESS**.
-- No production application code or secrets were changed; no force-push was used.
-
-## 7. CURRENT PRODUCTION DEPLOYMENT
-- Deploy Cloudflare Worker #653 / run `35068382888` — **SUCCESS**.
-- Current production source: `705434005cf777b7261e05d0632d71b9f8b616e8`.
-- Cloudflare Worker Version is not independently recorded in this checkpoint; do not infer it from deployment success.
-
-## 8. TELEGRAM BOT MAP — OWNER CONFIRMED
-- `@phanthuanxtra2026_bot` — backup/infrastructure, daily 07:00 VN.
-- `@phanthuanxtra_auto_bot` — vehicle ingestion/data operations; AI masks plates and replaces them with `PT Xtra` before upload.
-- `@phanthuanxtra_bot` — website AI/customer consultation and test-drive notifications.
-- `@phanthuanxtra_vip_bot` — VIP vehicle/document/image checking; used in APK.
-- These are four separate roles; runtime E2E proof is still required for production claims.
-
-## 9. SAFETY / CONTINUITY
-- Never expose secrets, recovery codes or passwords.
-- Never force-push or `git reset --hard` as synchronization.
-- Never create competing checkpoint Markdown files.
-- Never treat historical evidence, skipped tests, missing secrets, or static checks as current runtime GREEN.
-- Protect production; root-cause first; verify before claiming.
-
-## 10. CHANGE LOG — 2026-09-16
-- Read this MASTER file before execution and kept the single queue.
-- Reconciled PR #219 with latest `main`, without force-push, then merged it successfully.
-- Current main/production source is `705434005cf777b7261e05d0632d71b9f8b616e8`.
-- Fresh Queue-01 #100 exposed a current-source R2 failure; targeted rerun attempt 2 also failed, confirming a repeatable defect.
-- Telegram/VIP remains deferred until R2 is closed.
-- **Production remains RED.**
+## 6. CHANGE LOG — 2026-09-16 R2 ROOT-CAUSE
+- Read the canonical MASTER status before execution.
+- Confirmed the R2 failure was repeatable but discovered the existing direct-R2 diagnostic could not run because Wrangler was absent from the runner.
+- Added deterministic repository checkout + Node 20 + `npm ci` before the existing direct-R2 probe.
+- Production remains **RED** pending a genuine direct-R2 and Worker-route runtime result.
