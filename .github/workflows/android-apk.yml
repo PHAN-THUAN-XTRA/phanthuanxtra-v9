@@ -1,7 +1,11 @@
 name: Android APK MVP
 on:
   push:
-    branches: [main, feature/apk-mvp, refactor/apk-architecture-v1]
+    branches:
+      - main
+      - feature/apk-mvp
+      - refactor/apk-architecture-v1
+      - 'queue/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
