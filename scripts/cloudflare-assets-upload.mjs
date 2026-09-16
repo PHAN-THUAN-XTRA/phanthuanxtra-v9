@@ -57,16 +57,20 @@ export async function uploadAssetsWithRest({ apiBase, accountId, session, conten
   return completionJwt;
 }
 
-export async function uploadAssetsWithSdk({ Cloudflare, accountId, session, contentByHash, log = console.log }) {
+export async function uploadAssetsWithSdk({ Cloudflare, apiToken, accountId, session, contentByHash, log = console.log }) {
   validateSession(session);
+  if (!apiToken || typeof apiToken !== 'string') throw new Error('Cloudflare SDK API token is required.');
   const buckets = session.buckets;
   if (buckets.length === 0) return session.jwt;
   let completionJwt = null;
   for (let index = 0; index < buckets.length; index += 1) {
     const body = createBucketBody(buckets[index], contentByHash);
-    const client = new Cloudflare({ apiToken: session.jwt });
+    const client = new Cloudflare({ apiToken });
     try {
-      const result = await client.workers.assets.upload.create({ account_id: accountId, base64: true, body });
+      const result = await client.workers.assets.upload.create(
+        { account_id: accountId, base64: true, body },
+        { headers: { Authorization: `Bearer ${session.jwt}` } },
+      );
       if (!result?.jwt) throw new Error('Cloudflare SDK returned no completion JWT.');
       completionJwt = result.jwt;
     } catch (error) {

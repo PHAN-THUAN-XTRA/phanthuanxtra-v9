@@ -37,12 +37,12 @@ test('REST protocol accepts the documented 201 completion response', async () =>
   assert.equal(calls[0].options.headers.Authorization, 'Bearer UPLOAD_JWT');
 });
 
-test('SDK adapter passes each bucket through the documented Workers Assets SDK method', async () => {
+test('SDK adapter passes API token and upload JWT through documented request options', async () => {
   const calls = [];
   const Cloudflare = class {
     constructor(options) { calls.push({ type: 'constructor', options }); }
-    workers = { assets: { upload: { create: async (params) => {
-      calls.push({ type: 'upload', params });
+    workers = { assets: { upload: { create: async (params, options) => {
+      calls.push({ type: 'upload', params, options });
       return { jwt: `COMPLETION_${calls.filter((call) => call.type === 'upload').length}` };
     } } } };
   };
@@ -54,15 +54,16 @@ test('SDK adapter passes each bucket through the documented Workers Assets SDK m
     ['0123456789abcdef0123456789abcdef', Buffer.from('hello')],
     ['fedcba9876543210fedcba9876543210', Buffer.from('world')],
   ]);
-  const jwt = await uploadAssetsWithSdk({ Cloudflare, accountId: 'a'.repeat(32), session, contentByHash: content, log: () => {} });
+  const jwt = await uploadAssetsWithSdk({ Cloudflare, apiToken: 'LONG_LIVED_API_TOKEN', accountId: 'a'.repeat(32), session, contentByHash: content, log: () => {} });
   assert.equal(jwt, 'COMPLETION_2');
   assert.equal(calls.filter((call) => call.type === 'constructor').length, 2);
   const uploads = calls.filter((call) => call.type === 'upload');
   assert.equal(uploads.length, 2);
+  assert.equal(calls[0].options.apiToken, 'LONG_LIVED_API_TOKEN');
   assert.equal(uploads[0].params.account_id, 'a'.repeat(32));
   assert.equal(uploads[0].params.base64, true);
   assert.deepEqual(uploads[0].params.body, { '0123456789abcdef0123456789abcdef': Buffer.from('hello').toString('base64') });
-  assert.equal(calls[0].options.apiToken, 'SHORT_LIVED_UPLOAD_JWT');
+  assert.equal(uploads[0].options.headers.Authorization, 'Bearer SHORT_LIVED_UPLOAD_JWT');
 });
 
 test('REST protocol rejects a non-201 asset response with sanitized error details', async () => {

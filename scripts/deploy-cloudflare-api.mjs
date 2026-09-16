@@ -93,7 +93,7 @@ async function uploadAssets() {
   if (transport === "sdk") {
     const Cloudflare = await loadCloudflareSdk();
     console.log(`Assets: using Cloudflare SDK transport; buckets=${session.buckets.length}.`);
-    return uploadAssetsWithSdk({ Cloudflare, accountId: ACCOUNT_ID, session, contentByHash, log: console.log });
+    return uploadAssetsWithSdk({ Cloudflare, apiToken: TOKEN, accountId: ACCOUNT_ID, session, contentByHash, log: console.log });
   }
 
   if (transport === "rest") {
