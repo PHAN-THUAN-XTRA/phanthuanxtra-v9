@@ -1,0 +1,61 @@
+name: Android APK Gate 11
+on:
+  push:
+    branches:
+      - main
+      - queue/gate11-13-finalize
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production App API smoke test
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail-with-body --silent --show-error --retry 3 --retry-delay 2 --max-time 20 https://phanthuanxtra.com/api/app/v1/health)"
+          echo "$response"
+          echo "$response" | jq -e '.ok == true and .service == "app-api"' >/dev/null
+          echo "Production App API health: PASS"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: AI contract regression tests
+        working-directory: .
+        shell: bash
+        run: node --test tests/ai-chat-contract.test.mjs
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify Gradle toolchain
+        run: gradle --version
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace --console=plain
+      - name: Verify APK output and SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          sha256sum app/build/outputs/apk/debug/app-debug.apk | tee app/build/outputs/apk/debug/app-debug.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phanthuanxtra-apk-gate11-debug
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
