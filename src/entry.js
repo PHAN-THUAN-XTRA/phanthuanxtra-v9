@@ -5,7 +5,7 @@ import { handleTelegramIngest, setTelegramWebhook, getTelegramWebhookStatus } fr
 import { handleMediaApi } from "./media.js";
 import { handleAiChat } from "./ai-chat.js";
 import { handleTelegramRouter } from "./telegram-router.js";
-import { handleVipTelegram } from "./vip-telegram.js";
+import { handleVipTelegram, getVipTelegramWebhookStatus, setVipTelegramWebhook } from "./vip-telegram.js";
 import { handleTelegramLookup } from "./telegram-lookup.js";
 import { handleAppApi } from "./app-api.js";
 import { handleAppAdmin } from "./app-admin.js";
@@ -13,6 +13,7 @@ import { handleAdminVehiclePipeline } from "./admin-vehicle-pipeline.js";
 import { reconcileTelegramNotifications } from "./telegram-notifications.js";
 
 const TELEGRAM_WEBHOOK_URL="https://phanthuanxtra.com/api/telegram/webhook";
+const TELEGRAM_VIP_WEBHOOK_URL="https://phanthuanxtra.com/api/telegram/vip-webhook";
 
 export default {
   async fetch(request, env, ctx) {
@@ -62,6 +63,16 @@ export default {
         console.log("telegram_webhook_post_heal_status",JSON.stringify(verified));
       }
     } catch (error) { console.error("telegram_webhook_self_heal_failed",String(error?.message||error)); }
+    try {
+      const vipStatus=await getVipTelegramWebhookStatus(env,TELEGRAM_VIP_WEBHOOK_URL);
+      console.log("telegram_vip_webhook_status",JSON.stringify(vipStatus));
+      if(!vipStatus.ok||!vipStatus.url_matches_expected){
+        const result=await setVipTelegramWebhook(env,TELEGRAM_VIP_WEBHOOK_URL);
+        console.log("telegram_vip_webhook_self_heal_ok",JSON.stringify({url:TELEGRAM_VIP_WEBHOOK_URL,result,reason:vipStatus.ok?"url_mismatch":"status_unavailable"}));
+        const verified=await getVipTelegramWebhookStatus(env,TELEGRAM_VIP_WEBHOOK_URL);
+        console.log("telegram_vip_webhook_post_heal_status",JSON.stringify(verified));
+      }
+    } catch (error) { console.error("telegram_vip_webhook_self_heal_failed",String(error?.message||error)); }
     try {
       const result=await reconcileTelegramNotifications(env);
       console.log("telegram_notifications_reconcile",JSON.stringify(result));
