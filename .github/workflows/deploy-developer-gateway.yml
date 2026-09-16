@@ -1,11 +1,15 @@
 name: Deploy Developer Gateway
 
+# Production deployment is GitHub Actions -> Cloudflare API/REST only.
+# Wrangler must not be used for this production Worker.
+
 on:
   push:
     branches:
       - main
     paths:
       - 'developer-gateway/**'
+      - 'scripts/deploy-developer-gateway-api.mjs'
       - '.github/workflows/deploy-developer-gateway.yml'
   workflow_dispatch:
 
@@ -16,39 +20,96 @@ concurrency:
   group: developer-gateway-production-deploy
   cancel-in-progress: false
 
+env:
+  NODE_VERSION: 24
+
 jobs:
+  validate:
+    name: Validate Developer Gateway
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate gateway and API controller
+        run: |
+          set -euo pipefail
+          node --check scripts/deploy-developer-gateway-api.mjs
+          node --check developer-gateway/src/index.js
+          node --check developer-gateway/src/dual-gateway.js
+          node --test developer-gateway/test/index.test.mjs
+
   deploy:
-    name: Deploy Developer Gateway (Production)
+    name: Deploy Developer Gateway (Cloudflare API)
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Validate gateway
-        run: node --test developer-gateway/test/index.test.mjs
-
-      - name: Resolve Cloudflare credentials, synchronize gateway secret, and deploy
+      - name: Resolve Cloudflare API credentials
         shell: bash
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
+          CF_PRIMARY_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_BACKUP_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo 'Cloudflare API token missing'; exit 1; }
-          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo 'Cloudflare account ID missing'; exit 1; }
-          test -n "${GATEWAY_READ_TOKEN:-}" || { echo 'Gateway read token missing from GitHub Actions'; exit 1; }
-          npx wrangler@4.129.0 whoami
-          printf '%s' "$GATEWAY_READ_TOKEN" | npx wrangler@4.129.0 secret put GATEWAY_READ_TOKEN --config developer-gateway/wrangler.jsonc
-          npx wrangler@4.129.0 deploy --config developer-gateway/wrangler.jsonc
+          if ! printf '%s' "${CF_ACCOUNT_ID:-}" | grep -Eq '^[0-9a-fA-F]{32}$'; then
+            echo "CLOUDFLARE_ACCOUNT_ID is absent or invalid; refusing API deployment."
+            exit 1
+          fi
+          selected=""
+          for candidate in "${CF_PRIMARY_TOKEN:-}" "${CF_BACKUP_TOKEN:-}"; do
+            if [ -z "$candidate" ]; then continue; fi
+            if curl --fail --silent --show-error \
+              -H "Authorization: Bearer ${candidate}" \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/scripts/phanthuanxtra-developer-gateway" \
+              >/dev/null; then
+              selected="$candidate"
+              break
+            fi
+          done
+          if [ -z "$selected" ]; then
+            echo "No configured Cloudflare API token authenticated successfully."
+            exit 1
+          fi
+          {
+            echo "CLOUDFLARE_API_TOKEN<<EOF"
+            printf '%s\n' "$selected"
+            echo "EOF"
+            echo "CLOUDFLARE_ACCOUNT_ID=${CF_ACCOUNT_ID}"
+          } >> "$GITHUB_ENV"
+          echo "Cloudflare API credential source authenticated without exposing token values."
+      - name: Deploy gateway through Cloudflare API
+        env:
+          GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
+        run: node scripts/deploy-developer-gateway-api.mjs
+      - name: Verify gateway public health
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/developer-gateway/health || true)"
+          echo "Gateway health boundary HTTP status: ${status}"
+          echo "A non-200 status here is recorded as runtime evidence for follow-up; deployment success alone does not declare Gate 10 GREEN."
+      - name: Deployment completed
+        run: |
+          echo "========================================"
+          echo "Developer Gateway Cloudflare API deployment completed"
+          echo "Wrangler production deployment path: NOT USED"
+          echo "========================================"
