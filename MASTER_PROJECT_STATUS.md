@@ -1,253 +1,113 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
-> **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**  
-> Date: 2026-09-15 (UTC+7)  
-> Repository: `phanthuanxtra-v9/phanthuanxtra-v9`  
-> Main source: `a122d35a590a5ec14b2e1d5e73dc3ca777b50fd2`  
-> Production deployment is tracked separately and is not implied by the current main source SHA.
+> **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
+> Date: 2026-09-16 (UTC+7)
+> Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
+> Main source: `705434005cf777b7261e05d0632d71b9f8b616e8`
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
-- `MASTER_PROJECT_STATUS.md` is the sole canonical project-status file.
-- All AI / Work AI must read this file before project work.
+- This file is the sole canonical project-status file; all AI / Work AI must read it before work.
 - One execution queue only; no conflicting parallel mutations.
+- One ACTIVE PR, one head branch, one commit chain; merge closes the queue.
+- Never force-push, never guess secrets, never use checkpoint `.md` files, never claim GREEN without runtime/E2E evidence.
+- Production remains **RED** until all required release gates are actually evidenced.
 - After a completed status checkpoint, update only this file; Do not create competing checkpoint/status Markdown files.
-- Production remains **RED** until every required runtime/E2E release gate is evidenced.
-- No secret guessing, force-push, unreviewed destructive production change, or false GREEN claim.
-
-### 1.1. GITHUB SINGLE-QUEUE ENFORCEMENT — USER CONFIRMED
-- At GitHub level, maintain **one ACTIVE PR for the current chain of changes**.
-- That ACTIVE PR has **one head branch only**; all commits for the current queue go through that branch and PR.
-- iPhone 16 / S21 Ultra / Win10 are only control terminals for the same GitHub queue; they are not independent work queues.
-- Before any machine continues work: sync `main`, inspect the ACTIVE PR, and continue only when that machine is allowed to act on the current queue.
-- Do not create parallel PRs for the same task or chain of changes.
-- Do not use `.md` lock files, checkpoint `.md` files, or other file-based locks.
-- Git is the practical synchronization lock: one branch → one commit chain → one PR → merge → queue closes.
-- Never use `git reset --hard` or force-push as a queue mechanism.
-- If two machines attempt to push the same branch concurrently, the later push must first synchronize/reconcile with GitHub; no silent overwrite is allowed.
-- GitHub Actions runtime execution must also use the canonical serialized queue; the canonical Gate-15 workflow uses concurrency group `xtra-production-e2e-single-queue` with `cancel-in-progress: false`.
-- Closing stale/non-active PRs does not delete their branches or commits; it removes them from the ACTIVE queue so work can be explicitly reconciled into the current queue later.
 
 ## 2. CURRENT ARCHITECTURE
 - Website: `https://phanthuanxtra.com`
 - Admin: `https://phanthuanxtra.com/admin`
-- Production Worker: `phanthuanxtra-v2`
+- Worker: `phanthuanxtra-v2`
 - Entry: `src/entry.js`
 - D1: `phanthuanxtra-db`
 - R2: `phanthuanxtra-media`
-- Workers AI: website `/api/ai-chat`, Developer Gateway `/v1/ai/unified`
+- Workers AI: `/api/ai-chat`; Developer Gateway `/v1/ai/unified`
 - APK: `com.phanthuanxtra.app`, source version 1.2.0 / versionCode 3
-- Current main: `a122d35a590a5ec14b2e1d5e73dc3ca777b50fd2`
-- Current proven production deployment source: `f6ef5f54d6aa4ce6662902fbc3a466a42a4e582a`.
-- Current production Cloudflare Worker Version: `29092e97-b395-4fea-9d98-54c4714bee7f`.
-- Wrangler: `4.121.0`.
+- Wrangler: `4.121.0`
 
-### 2.1. CANONICAL TELEGRAM BOT MAP — USER CONFIRMED
-- `@phanthuanxtra2026_bot` — **Backup Bot / hạ tầng dữ liệu**. Chạy backup hệ thống lúc **07:00 sáng mỗi ngày theo giờ Việt Nam (UTC+7)**; nhận trạng thái backup và các artifact/manifest/checksum theo cấu hình backup. Bot này không phải bot nghiệp vụ nhập xe hay tư vấn khách hàng.
-- `@phanthuanxtra_auto_bot` — **Bot nhập xe / vận hành dữ liệu xe**. Có nhiệm vụ nhận thông tin xe và hình ảnh để đưa dữ liệu vào hệ thống website tương ứng với nghiệp vụ Admin. Trước khi upload ảnh xe, AI tự động **che biển số** và thay vùng biển số bằng chữ **“PT Xtra”**.
-- `@phanthuanxtra_bot` — **Bot tư vấn khách hàng / AI Chat của website**. Chat AI nằm ở **góc phải phía dưới màn hình `phanthuanxtra.com`**. Form **Trải nghiệm xe / đăng ký lái thử** trên website gửi về bot này các thông tin khách hàng như **tên, số điện thoại, thông tin khách hàng và nội dung liên quan**. Các câu hỏi về Phan Thuần phải được AI/Chat AI xử lý trước; nếu AI không hiểu rõ hoặc không đủ chắc chắn, nội dung cuộc chat phải được **chuyển về bot để Phan Thuần trực tiếp tư vấn**.
-- `@phanthuanxtra_vip_bot` — **Bot VIP kiểm tra hồ sơ/thông tin xe dành cho chủ dự án**. Nhận và hỗ trợ kiểm tra **giấy tờ xe, hình ảnh xe, xe độ/facelift, nguồn gốc xuất xứ** và các bằng chứng liên quan để giúp Phan Thuần đánh giá xe. Đây là luồng kiểm tra chuyên sâu/VIP, không phải bot nhập xe đại trà; chức năng này hiện được sử dụng trong APK.
-- Bốn bot trên là **bốn vai trò riêng biệt**: Backup hạ tầng → Auto nhập xe → Chat AI/tư vấn khách hàng → VIP kiểm tra xe. Không tự suy đoán, đổi tên, gộp hoặc chuyển trách nhiệm giữa các bot nếu runtime/config không chứng minh điều đó.
-- Đây là bản đồ 4 bot do chủ dự án xác nhận để làm chuẩn đối chiếu khi audit GitHub/Cloudflare. Ghi nhận chức năng nghiệp vụ theo xác nhận của chủ dự án không đồng nghĩa với việc mọi live runtime path đã được E2E-proven.
+## 3. VERIFIED BASELINE / HISTORICAL EVIDENCE
+- Website, `/api/health`, `/api/cars`, `/admin.html`, Production Worker — historically GREEN.
+- Admin invalid-login 401, valid login + signed session, unauth dashboard 401, authenticated dashboard — historically GREEN.
+- D1 CRUD — GREEN historically and passed the latest Queue-01 run before its R2 portion failed.
+- Gateway/AI — GREEN historically.
+- Dual Workers AI isolation — GREEN.
+- Gate 14 backup/restore/readability — GREEN: runs `34752032531` and `34752146646`.
+- Password Reset E2E #3 — GREEN: run `35063840082`.
+- Gate-15 historical smoke — GREEN: run `34955049927`; historical evidence does not override newer current-source failures.
 
-### 2.2. CANONICAL PHAN THUẦN PROFILE / AI RETRIEVAL CONTEXT — OWNER CONFIRMED
-- Canonical name/brand: **Phan Thuần / phanthuanxtra / PhanThuan Xtra**.
-- Positioning: entrepreneur/personal brand connecting a premium/luxury lifestyle ecosystem with a long-term green-energy direction. This text is **owner-provided positioning context** and must be treated as the current canonical profile until the owner supplies updated information.
-- Digital identity: the `phanthuanxtra` identity is used consistently across digital/social channels. Official Facebook reference supplied by the owner: **Phan Thuần (PhanThuanSaigon)** — `https://www.facebook.com/PhanThuanSaigon/`.
-- Luxury automotive pillar: associated with **Ô tô Xuyên Á in TP.HCM** and positioned around brokering/connecting luxury cars and supercars, including high-end/limited vehicles such as Rolls-Royce, Porsche and Lexus, with emphasis on vehicle appraisal and international partner networks.
-- Luxury marine/aviation pillar: owner-provided profile states services include **European luxury yacht brokerage** and **business/private jet charter**, with aircraft configurations described as approximately **12–13 seats**, targeting corporate owners and major business clients needing time-efficient international travel.
-- Green-energy pillar: owner-provided profile states a strategic expansion into **green energy / solar energy**, aligned with long-term renewable-energy and Net Zero trends.
-- Brand narrative: the ecosystem is described as spanning **supercars/luxury cars → European yachts → business/private jets → green energy**, combining premium lifestyle positioning with future-oriented sustainability.
-- Official contact supplied by owner: **Salon hotline 08 6699 7891**.
-- Official Facebook supplied by owner: **https://www.facebook.com/PhanThuanSaigon/**.
-- Hashtags supplied by owner: **#phanthuanxtra #PhanThuanXtra**.
-- AI retrieval rule: when users ask for information about **Phan Thuần / phanthuanxtra**, the website Chat AI and relevant bots should retrieve this canonical profile context first. Do not invent facts beyond the stored profile or live verified project data.
-- Freshness rule: **do not retrain/replace the AI knowledge context from this profile again until the owner provides new/updated information**. When the owner supplies a new version, the new owner-confirmed information supersedes this section and the AI retrieval context should be refreshed accordingly.
-- Verification boundary: this section records the owner's supplied brand/profile narrative. It is not independent proof of every commercial claim; future public-facing responses should distinguish owner-provided profile facts from independently verified live/project evidence where relevant.
+## 4. SINGLE EXECUTION QUEUE
+### QUEUE-01 — Admin / D1 / R2 production E2E
+**R2 CURRENTLY RED / ACTIVE DIAGNOSTIC.** Current main source `705434005cf777b7261e05d0632d71b9f8b616e8` produced Queue-01 run `35068382874`, job `104703835957`, with the combined D1/R2 step failing. Targeted rerun job `104704356849` (attempt 2) failed again. This confirms the current-source R2 failure is repeatable; do not claim GREEN.
 
-## 3. VERIFIED PRODUCTION BASELINE
-- Website HTTP 200 — GREEN
-- `/api/health` HTTP 200 — GREEN
-- `/api/cars` HTTP 200 — GREEN
-- `/admin.html` HTTP 200 — GREEN
-- Production Worker HTTP 200 — GREEN
-- Invalid Admin login HTTP 401 — GREEN
-- Unauthenticated dashboard HTTP 401 — GREEN
-- Valid Admin login HTTP 200 + signed session — GREEN
-- Authenticated dashboard — GREEN
-- D1 create/read/delete + read-after-delete 404 — GREEN
-- R2 write/read/delete + read-after-delete 404 — GREEN
-- Gateway `/health` 200 + authenticated `/v1/ai/unified` — GREEN
-
-## 4. GATE 10 — DUAL WORKERS AI — GREEN
-- Deploy Developer Gateway run `34745169480` — SUCCESS.
-- Gate 10 Runtime Evidence run `34745194944` — SUCCESS.
-- Live evidence proved `dual_workers_ai=true`, `isolated=true`, `execution=serialized`, `runtime_order=['wide','deep']`, `production_mutation=false`.
-- Wide: `@cf/zai-org/glm-4.7-flash`.
-- Deep: `@cf/nvidia/nemotron-3-120b-a12b`.
-- Both peer results non-empty.
-
-## 5. GATE 14 — FULL BACKUP + RESTORE/READABILITY — GREEN
-Runtime evidence is now complete through GitHub Actions:
-- Full System Backup run `34752032531` — **SUCCESS**.
-- Worker/R2 capability preflight — HTTP 200.
-- D1 Query capability preflight (`SELECT 1`) — HTTP 200 with backup token.
-- D1 collector completed successfully after excluding Cloudflare-reserved `_cf_*` system tables from the schema walk.
-- Backup checksum verification — **PASS**.
-- Compressed archive creation — **PASS**.
-- Archive integrity/extraction verification — **PASS**.
-- Artifact uploaded: `phanthuanxtra-full-system-backup-34752032531`.
-- Gate 14 restore/readability run `34752146646` — **SUCCESS**.
-- Artifact checksum + internal SHA-256 manifest — **PASS**.
-- D1 SQL restore into clean SQLite — **PASS**.
-- SQLite `PRAGMA integrity_check` — **PASS**.
-- R2 manifest/readability — **PASS**; production R2 was genuinely empty (`object_count=0`) and the restored object set was also zero. No artificial production object was created.
-- Restore path caused no production infrastructure mutation.
-- PR #168 merged as `223a0ff05a16f8d39fadba71f5c0247dd7532e24`.
-
-### Gate 14 diagnosis/fixes
-1. Initial preflight tested D1 metadata GET instead of the collector's real D1 Query capability.
-2. Capability probe was reduced to minimal read-only `SELECT 1`.
-3. Backup workflow now checks out the exact triggering commit, not stale `main`.
-4. Collector excludes Cloudflare-reserved `_cf_*` system tables.
-5. SHA-256 manifest uses artifact-relative paths.
-6. Empty R2 is accepted only when manifest and restored object count are both exactly zero.
-7. No gate was bypassed and no fake runtime evidence was created.
-
-## 6. SINGLE EXECUTION QUEUE
-### QUEUE-01 — Admin production E2E
-**GREEN / COMPLETED.** Admin + dashboard + D1 CRUD + R2 E2E proven after production deployment.
-
-### QUEUE-02 — Gateway/AI production E2E
+### QUEUE-02 — Gateway/AI
 **BASELINE VERIFIED.**
 
-### QUEUE-03 — PR #66 VIP hardening
-**OPEN / STAGED.** Reconcile against current main only through the ACTIVE queue; do not execute as a parallel PR.
+### QUEUE-03 — VIP hardening
+**OPEN / STAGED.** Execute only through the single active queue.
 
 ### QUEUE-04 — APK production readiness
-**OPEN / STAGED.** Fresh artifact/hash + S21 Ultra regression required; execute only through the ACTIVE queue.
+**OPEN / STAGED.** Fresh artifact/hash + S21 Ultra physical regression required.
 
 ### QUEUE-05 — Telegram/VIP production E2E
-**OPEN / STAGED.** Execute only through the ACTIVE queue.
+**OPEN / STAGED / BLOCKED BY R2.** Telegram diagnostic is manual-only via GitHub Actions → Run workflow. Execute after R2 closes.
 
 ### QUEUE-06 — Backup/restore
-**GREEN / COMPLETED.** Gate 14 runtime evidence proven by runs `34752032531` and `34752146646`.
+**GREEN / COMPLETED.**
 
-### QUEUE-07 — Gate 15 production smoke
-**GREEN / COMPLETED.** Fresh Gate-15 runtime completed on main after sequential remediation; R2 evidence was supplied by the same production E2E queue on the identical deployed production source.
+### QUEUE-07 — Gate 15
+**GREEN / COMPLETED HISTORICALLY.** Current-source evidence takes precedence.
 
-### QUEUE-08 — Final cleanup + overall GREEN gate
-**OPEN / ACTIVE NEXT.** No open PR remains after the Gate-15 remediation chain. Continue sequentially with the next required release gate; do not create a parallel PR.
+### QUEUE-08 — Final cleanup / overall GREEN
+**OPEN / ACTIVE NEXT.** PR #219 is merged. Current next task is R2 root-cause/diagnostic remediation; Telegram/VIP follows only after R2 is closed.
 
-## 7. RELEASE GATES
-1. Current main deployed to production — **VERIFIED**. Current proven production deployment source `f6ef5f54d6aa4ce6662902fbc3a466a42a4e582a`; Worker Version `29092e97-b395-4fea-9d98-54c4714bee7f`.
+## 5. RELEASE GATES
+1. Current main deployed — **VERIFIED** by Deploy Cloudflare Worker `35068382888`, source `705434005cf777b7261e05d0632d71b9f8b616e8`.
 2. Invalid Admin login 401 — **VERIFIED**.
-3. Valid Admin login 200 + signed session — **VERIFIED**.
+3. Valid Admin login + signed session — **VERIFIED**.
 4. Unauthenticated dashboard 401 — **VERIFIED**.
 5. Authenticated dashboard — **VERIFIED**.
-6. D1 CRUD E2E — **VERIFIED**.
-7. R2 write/read/delete E2E — **VERIFIED** by Queue-01 runtime `34954768747`.
-8. Password reset production E2E — **GREEN / VERIFIED** by Gate-15 run `34955049927`.
-9. Gateway/AI production gate — **VERIFIED** by Gate-15 run `34955049927`.
-10. Dual Workers AI isolation/non-interference runtime evidence — **GREEN**.
-11. Fresh APK artifact/hash + S21 Ultra regression — **OPEN**.
+6. D1 CRUD — **VERIFIED** by current Queue-01 run before R2 failure.
+7. **R2 write/read/delete — RED / OPEN.** Latest run `35068382874` failed and targeted rerun `104704356849` failed again.
+8. Password reset — **GREEN / VERIFIED** by `35063840082`; current-source regression remains subject to evidence.
+9. Gateway/AI — **VERIFIED HISTORICALLY**.
+10. Dual Workers AI — **GREEN**.
+11. APK artifact/hash + S21 Ultra regression — **OPEN**.
 12. Telegram Auto Bot production E2E — **OPEN**.
-13. VIP webhook/idempotency production E2E — **OPEN**.
-14. Backup + restore/readability — **GREEN** (`34752032531` + `34752146646`).
-15. Gate-15 production smoke/security boundary — **GREEN / VERIFIED** by run `34955049927`, with R2 evidence cross-checked by `34954768747` on the same production deployment source.
-16. Final `PRODUCTION GREEN / COMPLETE` — **LOCKED until all remaining required gates are GREEN**.
+13. VIP webhook/idempotency E2E — **OPEN**.
+14. Backup/restore/readability — **GREEN**.
+15. Gate-15 smoke/security boundary — **GREEN HISTORICALLY**.
+16. **PRODUCTION GREEN / COMPLETE — LOCKED** until every remaining required gate is GREEN.
 
-## 8. GATE 15 — PRODUCTION SMOKE RUNTIME — GREEN
-- Gate-15 run **#68**, run ID `34955049927` — **SUCCESS**.
-- Direct run: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/34955049927`
-- Triggering main commit: `a122d35a590a5ec14b2e1d5e73dc3ca777b50fd2`.
-- Production source used by the runtime: `f6ef5f54d6aa4ce6662902fbc3a466a42a4e582a`.
-- Website + `/api/health` + `/api/cars` + `/admin.html` + Production Worker — **PASS**.
-- Admin invalid-login boundary 401 + unauthenticated dashboard 401 — **PASS**.
-- Developer Gateway public health + unauthenticated boundary — **PASS**.
-- Unified AI authenticated production runtime — **PASS**; Cloudflare Workers AI marker verified and production mutation remained false.
-- Admin login + D1 create/read/delete/read-after-delete — **PASS**.
-- Password Reset production E2E — **PASS**, including recovery rotation, password reset, login with reset password, authenticated dashboard, password restore, and final login.
-- R2 production E2E — **PASS** via Queue-01 run `34954768747`, which executed Admin session + D1 CRUD + R2 write/read/delete on the same deployed production source.
-- Queue-01 R2 runtime direct run: `https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/34954768747`
-- Gate-15 run itself marked the R2 step skipped because the GitHub `ADMIN_TOKEN` secret is not configured; this was **not converted to PASS by assumption**. The required R2 evidence was instead independently proven by the same production E2E queue on the same deployed production source and explicitly cross-checked here.
-- Production remains **RED overall** because APK, Telegram Auto E2E, VIP webhook/idempotency E2E, and the final overall release gate remain open.
+## 6. PR #219 — COMPLETED
+- PR `#219`: `fix(ci): repair legacy Android APK workflow YAML`.
+- Merge commit: `705434005cf777b7261e05d0632d71b9f8b616e8`.
+- Legacy APK `if` expression was fully quoted so embedded `ci(gate11): ...` cannot trigger YAML `: ` parsing.
+- PR checks passed before merge.
+- Post-merge Android APK MVP #732, Android APK Gate 11 #20, CI #56, Release Gate Static Audit #217, and Deploy Cloudflare Worker #653 completed **SUCCESS**.
+- No production application code or secrets were changed; no force-push was used.
 
-### Gate 15 remediation chain — sequential, no parallel queue
-1. PR #189 — fixed invalid YAML scalar in the Gate-15 workflow; merged.
-2. Gate-15 runtime then exposed Cloudflare 1015/429 during Admin D1 E2E; PR #190 added bounded Retry-After-aware backoff.
-3. Runtime exposed Admin create HTTP 201; PR #191 corrected the successful-create assertion.
-4. Runtime exposed stale/mismatched recovery bootstrap credential; PR #192 changed recovery rotation to use an authenticated Admin session.
-5. Runtime exposed production 429 on the password-reset sequence; PR #193 added bounded 429 backoff for the Gate-8 Admin calls.
-6. Runtime exposed production D1 migration drift; PR #194 made pending migrations part of the production deploy path.
-7. Deployment exposed a partially applied 0012 schema; PR #195 reconciled the legacy migration record safely and applied `0013_admin_credentials.sql`.
-8. Deployment then confirmed 0013 applied successfully; the following Gate-15 runtime proved Password Reset.
-9. PR #197 added a bounded password-reset error-body diagnostic for runtime diagnosis; it was merged after CI/Validate passed.
-10. No secret values were guessed, committed, or exposed; no force-push was used; no checkpoint Markdown files were created.
+## 7. CURRENT PRODUCTION DEPLOYMENT
+- Deploy Cloudflare Worker #653 / run `35068382888` — **SUCCESS**.
+- Current production source: `705434005cf777b7261e05d0632d71b9f8b616e8`.
+- Cloudflare Worker Version is not independently recorded in this checkpoint; do not infer it from deployment success.
 
-## 9. CANONICAL AI REASONING MODEL
-**RỘNG → SÂU → RỘNG** is mandatory before execution:
-1. RỘNG: scan dependencies, regressions, evidence gaps and alternatives.
-2. SÂU: root-cause/security/architecture/runtime-evidence analysis.
-3. RỘNG: reconnect the fix across the system and re-check regressions before one execution plan.
+## 8. TELEGRAM BOT MAP — OWNER CONFIRMED
+- `@phanthuanxtra2026_bot` — backup/infrastructure, daily 07:00 VN.
+- `@phanthuanxtra_auto_bot` — vehicle ingestion/data operations; AI masks plates and replaces them with `PT Xtra` before upload.
+- `@phanthuanxtra_bot` — website AI/customer consultation and test-drive notifications.
+- `@phanthuanxtra_vip_bot` — VIP vehicle/document/image checking; used in APK.
+- These are four separate roles; runtime E2E proof is still required for production claims.
 
-Preferred roles:
-- DEEP: `@cf/nvidia/nemotron-3-120b-a12b` — root cause, security, evidence validation.
-- WIDE: `@cf/zai-org/glm-4.7-flash` — broad scan, alternatives, cross-component impact.
-- Fallback: `@cf/google/gemma-4-26b-a4b-it`.
+## 9. SAFETY / CONTINUITY
+- Never expose secrets, recovery codes or passwords.
+- Never force-push or `git reset --hard` as synchronization.
+- Never create competing checkpoint Markdown files.
+- Never treat historical evidence, skipped tests, missing secrets, or static checks as current runtime GREEN.
+- Protect production; root-cause first; verify before claiming.
 
-Deep/Wide are reasoning peers, not independent deployers. They never create a second execution queue and no AI reasoning output is itself production evidence.
-
-## 10. SAFETY / CONTINUITY
-- Never put secrets in chat, Markdown, GitHub issues, source or logs.
-- Never force-push.
-- Never use `git reset --hard` as a queue or synchronization shortcut.
-- Never delete production infrastructure without current dependency evidence.
-- Never convert skipped tests or missing runtime evidence into GREEN.
-- The obsolete repository `phanthuanxtra-v9/phanthuanxtra` is excluded from audit/deploy/repair/CI/E2E workflows.
-
-## 11. CHANGE LOG — 2026-09-13 GATE 14
-- Read `MASTER_PROJECT_STATUS.md` before execution.
-- Kept the single queue and RỘNG → SÂU → RỘNG reasoning pattern.
-- Diagnosed the actual D1 Query failure rather than bypassing the gate.
-- PR #168 fixed D1 capability probing, exact-commit checkout, `_cf_*` schema exclusion, checksum paths and empty-R2 readability handling.
-- Backup run `34752032531` and Gate 14 run `34752146646` both passed.
-- Updated only `MASTER_PROJECT_STATUS.md` for this canonical status checkpoint.
-- No secret values were exposed or committed.
-
-## 12. CHANGE LOG — 2026-09-13 S21 / WRANGLER LIMITATION
-- User confirmed Wrangler cannot be executed on the S21 Ultra environment currently being used for the physical-device workflow.
-- This is an **execution-environment limitation**, not evidence that Cloudflare bindings or production are broken.
-- No Wrangler secret/token was requested or exposed.
-- Live Cloudflare CLI deployment/status commands from the S21 remain **UNVERIFIED** until an available execution environment can run Wrangler or equivalent authenticated Cloudflare tooling.
-- GitHub-side source/config audit continues immediately through repository bindings, workflows, tests and production evidence; this note does not create a second queue.
-- Production remains **RED**; no GREEN claim is made from the S21 limitation.
-
-## 13. CHANGE LOG — 2026-09-13 TELEGRAM BOT MAP CONFIRMED
-- Recorded the four canonical Telegram bot identities/functions confirmed by the project owner:
-  - `@phanthuanxtra2026_bot` — daily 07:00 VN data backup.
-  - `@phanthuanxtra_auto_bot` — vehicle ingestion to website with AI license-plate masking/replacement by `PT Xtra` before upload.
-  - `@phanthuanxtra_bot` — website bottom-right AI chat and test-drive registration notifications.
-  - `@phanthuanxtra_vip_bot` — VIP vehicle image/info checking for stock/manufacturing versus modified/facelift assessment, surfaced in the APK.
-- These four identities are now the canonical audit targets for GitHub/Cloudflare reconciliation.
-- This update records project knowledge only; it does **not** claim that all four live runtime paths have already been E2E-proven.
-- Production remains **RED** until the corresponding runtime/E2E gates are evidenced.
-
-## 14. CHANGE LOG — 2026-09-14 GITHUB SINGLE-QUEUE RULE
-- User explicitly confirmed the GitHub-level execution model: one ACTIVE PR for the current chain of changes, one head branch, and one queue across iPhone 16 / S21 Ultra / Win10.
-- Machines must sync `main`, inspect the ACTIVE PR, and continue only through the authorized queue; no parallel PR for the same task.
-- No `.md` lock/checkpoint files are permitted; Git branch/commit/PR sequencing is the practical lock.
-- No `git reset --hard` or force-push is permitted as synchronization mechanisms.
-- The stale ACTIVE PR reference #185 is now closed from the active queue; the Gate-15 remediation chain was reconciled sequentially through PRs #189–#197, and no PR remains open.
-- Canonical Gate-15 remains serialized by GitHub Actions concurrency group `xtra-production-e2e-single-queue`.
-- Production remains **RED** until all required runtime/E2E gates are evidenced.
-
-## 15. CHANGE LOG — 2026-09-15 GATE 15 COMPLETED
-- Read `MASTER_PROJECT_STATUS.md` before execution and kept one serialized execution queue.
-- Gate-15 runtime #68 / `34955049927` completed **SUCCESS**.
-- Password Reset E2E is now **GREEN / VERIFIED**.
-- D1 CRUD, Gateway/AI, website/Worker and Admin authentication boundaries are **GREEN / VERIFIED** in the same Gate-15 runtime.
-- R2 write/read/delete is **GREEN / VERIFIED** by Queue-01 runtime `34954768747` on the same production deployment source; the Gate-15 R2 step was skipped only because `ADMIN_TOKEN` is not configured in GitHub Actions, and that skip was not treated as PASS.
-- Production deployment run `34954768723` reconciled the partial 0012 D1 schema and successfully applied `0013_admin_credentials.sql` before deploying Worker Version `29092e97-b395-4fea-9d98-54c4714bee7f`.
-- The Gate-15 remediation chain completed without force-push, secret guessing, or checkpoint Markdown files.
-- **Gate 15 production smoke is GREEN / COMPLETE.**
-- **Overall production remains RED** because Gates 11, 12, 13 and the final overall release gate remain open.
+## 10. CHANGE LOG — 2026-09-16
+- Read this MASTER file before execution and kept the single queue.
+- Reconciled PR #219 with latest `main`, without force-push, then merged it successfully.
+- Current main/production source is `705434005cf777b7261e05d0632d71b9f8b616e8`.
+- Fresh Queue-01 #100 exposed a current-source R2 failure; targeted rerun attempt 2 also failed, confirming a repeatable defect.
+- Telegram/VIP remains deferred until R2 is closed.
+- **Production remains RED.**
