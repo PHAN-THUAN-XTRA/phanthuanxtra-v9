@@ -37,13 +37,13 @@ test('REST protocol accepts the documented 201 completion response', async () =>
   assert.equal(calls[0].options.headers.Authorization, 'Bearer UPLOAD_JWT');
 });
 
-test('SDK adapter passes API token and upload JWT through documented request options', async () => {
+test('SDK adapter accepts the runtime response wrapper and passes API token plus upload JWT', async () => {
   const calls = [];
   const Cloudflare = class {
     constructor(options) { calls.push({ type: 'constructor', options }); }
     workers = { assets: { upload: { create: async (params, options) => {
       calls.push({ type: 'upload', params, options });
-      return { jwt: `COMPLETION_${calls.filter((call) => call.type === 'upload').length}` };
+      return { success: true, result: { jwt: `COMPLETION_${calls.filter((call) => call.type === 'upload').length}` } };
     } } } };
   };
   const session = {
