@@ -79,13 +79,17 @@ export async function uploadAssetsWithSdk({ Cloudflare, apiToken, accountId, ses
       if (resultJwt) {
         completionJwt = resultJwt;
       } else {
-        // Keep SDK as the primary transport, but recover from SDK response-shape drift
-        // with the documented raw API protocol using the same short-lived upload JWT.
         completionJwt = await uploadBucketWithRest({ apiBase, accountId, uploadJwt: session.jwt, bucket, contentByHash, fetchImpl });
         log(`Assets SDK: response had no completion JWT; raw API recovery succeeded for bucket ${index + 1}/${buckets.length}.`);
       }
     } catch (error) {
-      throw new Error(`Asset payload ${index + 1}/${buckets.length} failed through SDK: ${error instanceof Error ? error.message : String(error)}`);
+      const message = error instanceof Error ? error.message : String(error);
+      if (/^HTTP 202(?:\s|$)/.test(message)) {
+        completionJwt = await uploadBucketWithRest({ apiBase, accountId, uploadJwt: session.jwt, bucket, contentByHash, fetchImpl });
+        log(`Assets SDK: HTTP 202 treated as incomplete SDK response; raw API recovery succeeded for bucket ${index + 1}/${buckets.length}.`);
+      } else {
+        throw new Error(`Asset payload ${index + 1}/${buckets.length} failed through SDK: ${message}`);
+      }
     }
     log(`Assets SDK: uploaded bucket ${index + 1}/${buckets.length}.`);
   }
