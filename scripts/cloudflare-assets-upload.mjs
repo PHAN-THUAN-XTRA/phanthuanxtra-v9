@@ -67,12 +67,13 @@ export async function uploadAssetsWithSdk({ Cloudflare, apiToken, accountId, ses
     const body = createBucketBody(buckets[index], contentByHash);
     const client = new Cloudflare({ apiToken });
     try {
-      const result = await client.workers.assets.upload.create(
+      const response = await client.workers.assets.upload.create(
         { account_id: accountId, base64: true, body },
         { headers: { Authorization: `Bearer ${session.jwt}` } },
       );
-      if (!result?.jwt) throw new Error('Cloudflare SDK returned no completion JWT.');
-      completionJwt = result.jwt;
+      const resultJwt = response?.jwt ?? response?.result?.jwt;
+      if (!resultJwt) throw new Error('Cloudflare SDK returned no completion JWT.');
+      completionJwt = resultJwt;
     } catch (error) {
       throw new Error(`Asset payload ${index + 1}/${buckets.length} failed through SDK: ${error instanceof Error ? error.message : String(error)}`);
     }
