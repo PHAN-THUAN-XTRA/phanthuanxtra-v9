@@ -11,7 +11,7 @@
 - One ACTIVE PR, one head branch, one commit chain; merge closes the queue.
 - Never force-push, never guess secrets, never use checkpoint `.md` files, never claim GREEN without runtime/E2E evidence.
 - Production remains **RED** until all required release gates are actually evidenced.
-- After each completed status checkpoint, update **only this file**.
+- After a completed status checkpoint, update only this file; Do not create competing checkpoint/status Markdown files.
 
 ## 2. CURRENT ARCHITECTURE
 - Website: `https://phanthuanxtra.com`
