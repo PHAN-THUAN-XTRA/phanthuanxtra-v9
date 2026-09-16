@@ -27,33 +27,43 @@ The project is now operated as a continuous evidence chain:
 - **Security:** never print, guess, rotate, or expose secrets; only verify secret presence/authentication without revealing values.
 - **Knowledge principle:** use established engineering practices such as fail-fast, least privilege, deterministic toolchains, single-writer state, boundary testing, and evidence-driven rollback/fix decisions. No unverifiable claim of expertise is used as evidence.
 
-## 3. CURRENT QUEUE — R2 ROOT-CAUSE REMEDIATION
-- Current main source: `bd25669f07692a8faed1927e140dedcea8be2ad5`.
-- Queue-01 run `35078505834` reached Admin login 200, signed session PASS, dashboard PASS, D1 CRUD PASS, R2 upload HTTP 200, and **direct R2 bucket read PASS**.
-- The same run then failed at Worker media GET: `/media/$MEDIA_KEY` returned HTTP 404.
-- This is a materially new root-cause boundary: **R2 storage/binding is working; the Worker media route is not receiving `/media/*` requests on the deployed asset routing path.**
-- `src/media.js` correctly handles `/media/*` and calls `env.MEDIA.get(key)`; `src/entry.js` correctly invokes `handleMediaApi()`.
-- `wrangler.json` had `assets.not_found_handling=404-page` but `run_worker_first` did not include `/media/*`. The evidence is consistent with Static Assets handling `/media/*` before the Worker, producing the observed 404.
-- Remediation in this queue adds `/media/*` to `assets.run_worker_first` so the Worker media handler gets the request before Static Assets fallback.
-- No secret rotation or secret exposure.
-- No R2 data mutation beyond the existing disposable E2E object lifecycle.
+## 3. DEPLOYMENT OPERATING MODEL — CLOUDFLARE API/SDK
+The target deployment model is explicitly:
+`GitHub Actions (single CI/CD orchestrator) → Cloudflare API/SDK → Cloudflare Worker runtime`.
 
-## 4. CHAIN AUDIT STATUS
+- **Runtime remains Cloudflare:** Worker `phanthuanxtra-v2`, D1 `phanthuanxtra-db`, R2 `phanthuanxtra-media`, Workers AI and existing production routes remain in place.
+- **CI/CD remains GitHub Actions:** GitHub Actions is the sole deployment orchestrator and release gate coordinator.
+- **Deploy path:** migrate production deployment away from direct Wrangler CLI invocation toward a Cloudflare API/SDK based deployment controller, with Terraform/IaC considered only where it materially improves deterministic infrastructure reconciliation.
+- **Wrangler migration:** do not remove Wrangler blindly. First inventory every production/CI use, establish an API/SDK equivalent, run both paths only as a controlled migration comparison, then remove Wrangler from the production path after runtime evidence proves equivalence.
+- **Migration boundary:** this is a deployment-tooling migration, not a Cloudflare platform migration. Do not move the Worker, D1, R2, or Workers AI off Cloudflare.
+- **Safety:** no secret rotation, no secret exposure, no destructive infrastructure recreation, and no production cutover without CI + deployment + runtime/E2E evidence.
+- **Least privilege:** the Cloudflare credential used by GitHub Actions must be scoped only to the required account/resources and operations; never substitute a global credential merely to obtain broader access.
+- **Rollback:** retain the last known-good deployment/version reference until the replacement path has passed the complete required runtime gate.
+
+## 4. CURRENT QUEUE — R2 ROOT-CAUSE REMEDIATION + DEPLOYMENT PATH PREPARATION
+- Current main source before this queue: `bd25669f07692a8faed1927e140dedcea8be2ad5`.
+- Queue-01 reached Admin login 200, signed session PASS, dashboard PASS, D1 CRUD PASS, R2 upload HTTP 200, and direct R2 bucket read PASS.
+- The same run failed at Worker media GET: `/media/$MEDIA_KEY` returned HTTP 404.
+- `src/media.js` correctly handles `/media/*`; `src/entry.js` invokes `handleMediaApi()`; `wrangler.json` omitted `/media/*` from `assets.run_worker_first`.
+- This queue adds `/media/*` to `assets.run_worker_first` so the Worker media handler receives the request before Static Assets fallback.
+- The deployment-model migration is documented now, but the actual production deploy mechanism must not be switched until the R2 routing remediation is validated and the replacement API/SDK path is implemented and tested.
+
+## 5. CHAIN AUDIT STATUS
 - GitHub repository access: repository-level admin permission confirmed for the connected GitHub integration; this is not a claim of account/org-wide ownership.
-- GitHub Actions: push-to-main workflows execute from the same main SHA; CI/static/admin/APK workflows were green on `bd25669f...`; Queue-01 is red at the Worker media boundary.
-- Cloudflare deploy: deployment workflow is configured to validate credentials without exposing values and to deploy only from merged `main`/manual main dispatch.
+- GitHub Actions: push-to-main workflows execute from the same main SHA; CI/static/admin/APK workflows were green on the previous main lineage; Queue-01 is red at the Worker media boundary.
+- Cloudflare deploy: deployment workflow currently uses Cloudflare tooling and must be audited/migrated deliberately; workflow success alone is not deployment proof.
 - Cloudflare Worker: source/config declares Worker `phanthuanxtra-v2`, D1, R2, Workers AI, AI Search, Images, and assets bindings.
 - Workers AI: source has primary `@cf/zai-org/glm-4.7-flash`, fallback `@cf/meta/llama-3.2-3b-instruct`, and explicit AI binding guard; runtime verification remains a separate evidence gate.
-- D1: production CRUD verified in Queue-01 before the R2 boundary.
-- R2: direct bucket write/read is now verified; Worker route read is RED until the routing fix is deployed and retested.
+- D1: production CRUD verified before the R2 boundary.
+- R2: direct bucket write/read is verified; Worker route read is RED until the routing fix is deployed and retested.
 
-## 5. RELEASE GATES
+## 6. RELEASE GATES
 1. Current main deployed — source lineage must be re-verified after this remediation.
 2. Invalid Admin login 401 — VERIFIED historically.
-3. Valid Admin login + signed session — VERIFIED in Queue-01 on `bd25669f...`.
+3. Valid Admin login + signed session — VERIFIED in Queue-01 on the previous lineage.
 4. Unauthenticated dashboard 401 — VERIFIED historically.
-5. Authenticated dashboard — VERIFIED in Queue-01 on `bd25669f...`.
-6. D1 CRUD — VERIFIED in Queue-01 on `bd25669f...`.
+5. Authenticated dashboard — VERIFIED in Queue-01 on the previous lineage.
+6. D1 CRUD — VERIFIED in Queue-01 on the previous lineage.
 7. **R2 write/read/delete — RED / ACTIVE REMEDIATION: direct R2 PASS, Worker `/media/*` GET 404.**
 8. Password reset — GREEN historically by `35063840082`.
 9. Gateway/AI — VERIFIED historically; fresh runtime evidence still required where release gate demands it.
@@ -65,18 +75,19 @@ The project is now operated as a continuous evidence chain:
 15. Gate-15 smoke/security boundary — GREEN historically.
 16. **PRODUCTION GREEN — LOCKED** until all required gates are GREEN.
 
-## 6. SINGLE QUEUE CONTINUITY
+## 7. SINGLE QUEUE CONTINUITY
 - Exactly one remediation PR for the current R2 root cause.
 - Telegram/VIP diagnostic remains deferred until R2 is closed.
 - Do not test Admin manually yet.
 - No second competing PR for this R2 task.
 - No force-push.
 
-## 7. CHANGE LOG — 2026-09-16
+## 8. CHANGE LOG — 2026-09-16
 - Read canonical MASTER before execution.
 - Deep audit established the actual chain failure: direct R2 read succeeds, but Worker `/media/*` GET returns 404.
-- Root-cause hypothesis is now narrowed to Cloudflare Static Assets routing precedence because `run_worker_first` omitted `/media/*`, while the Worker source already contains the correct media handler.
-- Immediate remediation: add `/media/*` to `assets.run_worker_first`, then deploy and rerun Queue-01 against the same main lineage.
+- Root-cause hypothesis is narrowed to Cloudflare Static Assets routing precedence because `run_worker_first` omitted `/media/*`.
+- Immediate remediation: add `/media/*` to `assets.run_worker_first`, then deploy and rerun Queue-01.
+- New operating direction recorded: GitHub Actions remains the sole CI/CD orchestrator; production deployment is to migrate from direct Wrangler CLI invocation to a controlled Cloudflare API/SDK deployment path, while Worker/D1/R2/Workers AI remain on Cloudflare.
 
-## 8. NEXT CHECKPOINT
-`Fix wrangler asset routing → CI/Deploy → fresh Queue-01 → verify R2 direct + Worker GET/DELETE/404 → then unblock Telegram/VIP → then remaining release gates.`
+## 9. NEXT CHECKPOINT
+`Fix R2 asset routing → CI/Deploy → fresh Queue-01 → verify R2 direct + Worker GET/DELETE/404 → inventory Wrangler production uses → implement/test Cloudflare API/SDK deployment controller → compare runtime evidence → cut over only after equivalence → remove Wrangler from production path.`
