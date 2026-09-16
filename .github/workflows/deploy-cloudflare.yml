@@ -123,11 +123,6 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install dependencies
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-      - name: Install dependencies
         run: npm ci
       - name: Resolve credentials, verify Wrangler, migrate and deploy
         shell: bash
