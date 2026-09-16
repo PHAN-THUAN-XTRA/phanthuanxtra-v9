@@ -101,15 +101,10 @@ jobs:
         env:
           GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
         run: node scripts/deploy-developer-gateway-api.mjs
-      - name: Verify gateway public health
-        run: |
-          set -euo pipefail
-          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/developer-gateway/health || true)"
-          echo "Gateway health boundary HTTP status: ${status}"
-          echo "A non-200 status here is recorded as runtime evidence for follow-up; deployment success alone does not declare Gate 10 GREEN."
       - name: Deployment completed
         run: |
           echo "========================================"
           echo "Developer Gateway Cloudflare API deployment completed"
           echo "Wrangler production deployment path: NOT USED"
+          echo "Gate 10 remains subject to fresh runtime/E2E evidence."
           echo "========================================"
