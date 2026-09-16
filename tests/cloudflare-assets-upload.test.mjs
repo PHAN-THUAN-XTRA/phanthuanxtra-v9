@@ -17,7 +17,7 @@ test('asset body uses hash fields and base64 raw bytes', () => {
   assert.equal(body['0123456789abcdef0123456789abcdef'], Buffer.from('hello').toString('base64'));
 });
 
-test('REST protocol accepts a 201 completion response', async () => {
+test('REST protocol accepts the documented 201 completion response', async () => {
   const calls = [];
   const fetchImpl = async (url, options) => {
     calls.push({ url, options });
@@ -35,7 +35,7 @@ test('REST protocol accepts a 201 completion response', async () => {
   assert.equal(calls[0].options.headers.Authorization, 'Bearer UPLOAD_JWT');
 });
 
-test('REST protocol exposes sanitized Cloudflare error details', async () => {
+test('REST protocol rejects a non-201 asset response with sanitized error details', async () => {
   const fetchImpl = async () => new Response(JSON.stringify({ success: false, errors: [{ code: 1000, message: 'invalid upload payload' }] }), { status: 400 });
   const session = { jwt: 'UPLOAD_JWT', buckets: [['0123456789abcdef0123456789abcdef']] };
   const content = new Map([['0123456789abcdef0123456789abcdef', Buffer.from('hello')]]);
