@@ -53,7 +53,7 @@ jobs:
             echo "Username: ${username:-unknown}"
             echo "First name: ${first_name:-unknown}"
 
-            if [[ "$username" == "$expected_username" ]]; then
+            if [[ "${username,,}" == "${expected_username,,}" ]]; then
               echo "✅ Identity matches expected bot: $expected_username"
             else
               echo "❌ Identity mismatch. Expected: $expected_username"
