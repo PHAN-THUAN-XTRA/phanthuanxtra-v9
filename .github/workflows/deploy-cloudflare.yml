@@ -131,17 +131,20 @@ jobs:
           CF_BACKUP_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
           CF_CONFIGURED_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
         run: |
           set -euo pipefail
           primary_present=false
           backup_present=false
           configured_account_present=false
           admin_password_present=false
+          recovery_rotate_token_present=false
           [ -n "${CF_PRIMARY_TOKEN:-}" ] && primary_present=true
           [ -n "${CF_BACKUP_TOKEN:-}" ] && backup_present=true
           [ -n "${CF_CONFIGURED_ACCOUNT_ID:-}" ] && configured_account_present=true
           [ -n "${ADMIN_PASSWORD:-}" ] && admin_password_present=true
-          echo "Secret presence: primary_token=${primary_present}, backup_token=${backup_present}, account_id=${configured_account_present}, admin_password=${admin_password_present}"
+          [ -n "${ADMIN_RECOVERY_ROTATE_TOKEN:-}" ] && recovery_rotate_token_present=true
+          echo "Secret presence: primary_token=${primary_present}, backup_token=${backup_present}, account_id=${configured_account_present}, admin_password=${admin_password_present}, recovery_rotate_token=${recovery_rotate_token_present}"
           select_cloudflare_token() {
             if [ -n "${CF_PRIMARY_TOKEN:-}" ]; then
               export CLOUDFLARE_API_TOKEN="${CF_PRIMARY_TOKEN}"
@@ -194,8 +197,11 @@ jobs:
           echo "Applying all pending production D1 migrations."
           npx --no-install wrangler d1 migrations apply phanthuanxtra-db --remote
           if [ -z "${ADMIN_PASSWORD:-}" ]; then echo "ADMIN_PASSWORD secret is absent; refusing production deploy because Admin credential synchronization is required."; exit 1; fi
+          if [ -z "${ADMIN_RECOVERY_ROTATE_TOKEN:-}" ]; then echo "ADMIN_RECOVERY_ROTATE_TOKEN secret is absent; refusing production deploy because Admin recovery synchronization is required."; exit 1; fi
           printf '%s' "$ADMIN_PASSWORD" | npx --no-install wrangler secret put ADMIN_PASSWORD
           echo "ADMIN_PASSWORD synchronized to the production Worker without exposing its value."
+          printf '%s' "$ADMIN_RECOVERY_ROTATE_TOKEN" | npx --no-install wrangler secret put ADMIN_RECOVERY_ROTATE_TOKEN
+          echo "ADMIN_RECOVERY_ROTATE_TOKEN synchronized to the production Worker without exposing its value."
           npx --no-install wrangler deploy
       - name: Deployment completed
         run: |
