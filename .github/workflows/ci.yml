@@ -33,25 +33,16 @@ jobs:
 
       - name: Publish required CI / Validate status
         if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if [ "${{ job.status }}" = "success" ]; then
-            state=success
-            description="CI / Validate passed"
-          else
-            state=failure
-            description="CI / Validate failed"
-          fi
-          curl --fail-with-body --silent --show-error \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d "$(python -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"context":"CI / Validate","description":os.environ["DESCRIPTION"]}))')"
-        env:
-          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
-          DESCRIPTION: ${{ job.status == 'success' && 'CI / Validate passed' || 'CI / Validate failed' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state,
+              context: 'CI / Validate',
+              description: state === 'success' ? 'CI / Validate passed' : 'CI / Validate failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
