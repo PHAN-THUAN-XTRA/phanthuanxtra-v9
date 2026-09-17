@@ -174,9 +174,27 @@ jobs:
           upload="$(curl --fail --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/media" -H "Authorization: Bearer ${token}" -H 'content-type: image/png' --data-binary 'STAGE3-R2')"
           key="$(printf '%s' "$upload" | jq -r '.key // empty')"
           test -n "$key"
-          test "$(curl --silent --show-error --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' "${SITE_URL}/media/${key}")" = "200"
-          test "$(curl --silent --show-error --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -X DELETE "${SITE_URL}/media/${key}" -H "Authorization: Bearer ${token}")" = "200"
-          test "$(curl --silent --show-error --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' "${SITE_URL}/media/${key}")" = "404"
+          encoded_key="$(printf '%s' "$key" | jq -sRr @uri)"
+          r2_request() {
+            local method="$1" url="$2" out="$3" attempt=1 status
+            while [ "$attempt" -le 4 ]; do
+              if [ "$method" = "DELETE" ]; then
+                status="$(curl --silent --show-error --max-time 30 -o "$out" -w '%{http_code}' -X DELETE "$url" -H "Authorization: Bearer ${token}")" || true
+              else
+                status="$(curl --silent --show-error --max-time 30 -o "$out" -w '%{http_code}' "$url")" || true
+              fi
+              echo "R2 ${method} attempt ${attempt} HTTP ${status}"
+              if [ "$status" != "429" ]; then R2_LAST_STATUS="$status"; return 0; fi
+              sleep $((attempt * 5)); attempt=$((attempt + 1))
+            done
+            R2_LAST_STATUS="429"; return 1
+          }
+          r2_request GET "${SITE_URL}/media/${encoded_key}" /tmp/r2-get-before-delete
+          test "$R2_LAST_STATUS" = "200"
+          r2_request DELETE "${SITE_URL}/media/${encoded_key}" /tmp/r2-delete
+          test "$R2_LAST_STATUS" = "200"
+          r2_request GET "${SITE_URL}/media/${encoded_key}" /tmp/r2-get-after-delete
+          test "$R2_LAST_STATUS" = "404"
           echo "R2: PASS"
 
       - name: Stage 3 core reconciliation summary
