@@ -49,5 +49,5 @@ test('backup workflow verifies checksums and archive readability without secret 
 test('canonical status is the only project status markdown file', () => {
   const status = read('MASTER_PROJECT_STATUS.md');
   assert.match(status, /DUY NHẤT — CANONICAL PROJECT STATUS/);
-  assert.match(status, /Do not create competing checkpoint\/status Markdown files|do not create competing checkpoint\/status Markdown files/i);
+  assert.match(status, /(?:Do not create competing checkpoint\/status Markdown files|never create competing checkpoint `?\.md` files|do not create competing checkpoint\/status Markdown files)/i);
 });
