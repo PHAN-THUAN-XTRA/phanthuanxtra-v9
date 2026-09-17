@@ -147,9 +147,10 @@ jobs:
         run: |
           set -euo pipefail
           base="https://phanthuanxtra.com"
+          login_payload="$(node -e 'process.stdout.write(JSON.stringify({password:process.env.ADMIN_PASSWORD}))')"
           login="$(curl --fail --silent --show-error \
             -H 'content-type: application/json' \
-            --data "{\"password\":${ADMIN_PASSWORD@Q}}" \
+            --data "$login_payload" \
             "${base}/api/admin/login")"
           token="$(printf '%s' "$login" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);if(!j.ok||!j.token)process.exit(1);process.stdout.write(j.token)})')"
           test -n "$token"
