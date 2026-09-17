@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: stage3-production-reconciliation
+  group: xtra-production-e2e-single-queue
   cancel-in-progress: false
 
 env:
