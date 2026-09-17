@@ -23,13 +23,24 @@ function decodeMediaKey(pathname){
   try{return decodeURIComponent(raw)}catch{return null}
 }
 
+function isAuthorized(request,env){
+  const token=env.ADMIN_TOKEN;
+  const authorization=request.headers.get("Authorization")||"";
+  return !!token&&authorization.startsWith("Bearer ")&&authorization.slice(7)===token;
+}
+
 export async function handleMediaApi(request,env){
   const url=new URL(request.url);
   if(!url.pathname.startsWith("/media/"))return null;
-  if(request.method!=="GET"&&request.method!=="HEAD")return json({error:"Method Not Allowed"},405,{Allow:"GET, HEAD"});
+  if(request.method!=="GET"&&request.method!=="HEAD"&&request.method!=="DELETE")return json({error:"Method Not Allowed"},405,{Allow:"GET, HEAD, DELETE"});
   if(!env.MEDIA)return json({ok:false,error:"MEDIA binding is not configured"},503);
   const key=decodeMediaKey(url.pathname);
   if(key===null||!key||key.includes(".."))return json({ok:false,error:"Invalid media key"},400);
+  if(request.method==="DELETE"){
+    if(!isAuthorized(request,env))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
+    await env.MEDIA.delete(key);
+    return json({ok:true,key},200);
+  }
   const object=await env.MEDIA.get(key);
   if(!object)return json({ok:false,error:"Not Found"},404);
   if(url.searchParams.get("branding")==="pt-xtra"&&request.method==="GET")return brandedVehicleResponse(request,env,object);

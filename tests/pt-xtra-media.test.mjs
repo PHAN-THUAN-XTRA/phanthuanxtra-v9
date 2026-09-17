@@ -4,15 +4,17 @@ import { handleMediaApi } from "../src/media.js";
 
 function mockEnv() {
   const calls = [];
+  const objects = new Map([["vehicles/test.jpg", { body: new ReadableStream({ start(c) { c.enqueue(new Uint8Array([1, 2, 3])); c.close(); } }), httpEtag: "etag-test", writeHttpMetadata(headers) { headers.set("content-type", "image/jpeg"); } }]]);
   const env = {
+    ADMIN_TOKEN: "test-admin-token",
     MEDIA: {
       async get(key) {
-        assert.equal(key, "vehicles/test.jpg");
-        return {
-          body: new ReadableStream({ start(c) { c.enqueue(new Uint8Array([1, 2, 3])); c.close(); } }),
-          httpEtag: "etag-test",
-          writeHttpMetadata(headers) { headers.set("content-type", "image/jpeg"); }
-        };
+        const object = objects.get(key);
+        return object || null;
+      },
+      async delete(key) {
+        calls.push(["delete", key]);
+        objects.delete(key);
       }
     },
     ASSETS: {
@@ -52,4 +54,17 @@ test("normal media delivery remains unchanged without branding query", async () 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-type"), "image/jpeg");
   assert.equal(calls.length, 0);
+});
+
+test("media delete requires the existing admin bearer token", async () => {
+  const { env, calls } = mockEnv();
+  const unauthorized = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg", { method: "DELETE" }), env);
+  assert.equal(unauthorized.status, 401);
+  assert.equal(calls.length, 0);
+  const deleted = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg", { method: "DELETE", headers: { Authorization: "Bearer test-admin-token" } }), env);
+  assert.equal(deleted.status, 200);
+  assert.deepEqual(calls, [["delete", "vehicles/test.jpg"]]);
+  const missing = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg"), env);
+  assert.equal(missing.status, 404);
+  assert.deepEqual(await missing.json(), { ok: false, error: "Not Found" });
 });
