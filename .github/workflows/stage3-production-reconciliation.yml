@@ -70,8 +70,9 @@ jobs:
           token="$(jq -r '.token // empty' /tmp/login.json)"
           test -n "$token"
           trap 'curl --silent --show-error --retry 2 --max-time 20 -X DELETE "${SITE_URL}/api/admin/cars/${id}" -H "Authorization: Bearer ${token}" >/dev/null || true' EXIT
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/cars" -H "Authorization: Bearer ${token}" -H 'content-type: application/json' --data "$(jq -nc --arg id "$id" '{id:$id,brand:"PT XTRA STAGE3",model:"Runtime E2E",year:2026,mileage:1,price:1,fuel:"test",category:"suv",color:"test",status:"available",description:"temporary Stage 3 runtime evidence",features:["e2e"],images:[] }')" | tee /tmp/create.json
-          jq -e '.ok == true and .id == env.id' /tmp/create.json >/dev/null
+          create_payload="$(jq -nc --arg id "$id" --arg image "https://phanthuanxtra.com/media/vehicles/publish-admin-${id}.jpg" '{id:$id,brand:"PT XTRA STAGE3",model:"Runtime E2E",year:2026,mileage:1,price:1,fuel:"test",category:"suv",color:"test",status:"available",description:"temporary Stage 3 runtime evidence",features:["e2e"],images:[{url:$image}]}')"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/cars" -H "Authorization: Bearer ${token}" -H 'content-type: application/json' --data "$create_payload" | tee /tmp/create.json
+          jq -e --arg id "$id" '.ok == true and .id == $id' /tmp/create.json >/dev/null
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer ${token}" "${SITE_URL}/api/admin/cars" | tee /tmp/read.json
           jq -e --arg id "$id" '.cars | any(.[]; .id == $id)' /tmp/read.json >/dev/null
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X DELETE "${SITE_URL}/api/admin/cars/${id}" -H "Authorization: Bearer ${token}" | tee /tmp/delete.json
