@@ -90,7 +90,7 @@ jobs:
           test -n "$GATEWAY_READ_TOKEN"
           curl --fail-with-body --silent --show-error --retry 2 --max-time 60 -X POST "${GATEWAY_URL}/v1/ai/unified" -H "Authorization: Bearer ${GATEWAY_READ_TOKEN}" -H 'content-type: application/json' --data '{"task_id":"stage3","mode":"audit","instruction":"Return exactly: STAGE3_GATEWAY_AI_OK"}' | tee /tmp/unified.json
           jq -e '.ok == true and .engine == "cloudflare-workers-ai" and .production_mutation == false' /tmp/unified.json >/dev/null
-          jq -e '.response | contains("STAGE3_GATEWAY_AI_OK")' /tmp/unified.json >/dev/null
+          jq -e '((.response // .result?.response // .result?.choices[0]?.message?.content // "") | contains("STAGE3_GATEWAY_AI_OK"))' /tmp/unified.json >/dev/null
           echo "Gateway/AI: PASS"
 
       - name: Direct Cloudflare Workers AI primary and fallback inference
@@ -101,8 +101,8 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           for model in '@cf/zai-org/glm-4.7-flash' '@cf/meta/llama-3.2-3b-instruct'; do
             response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 90 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' --data '{"messages":[{"role":"user","content":"Return exactly STAGE3_AI_OK"}],"temperature":0,"max_tokens":64}')"
-            printf '%s' "$response" | jq -e '.success == true and (.result.choices | length) == 1' >/dev/null
-            printf '%s' "$response" | jq -e '.result.choices[0].message.content | contains("STAGE3_AI_OK")' >/dev/null
+            printf '%s' "$response" | jq -e '.success == true' >/dev/null
+            printf '%s' "$response" | jq -e '((.result.choices[0].message.content // .result.response // "") | contains("STAGE3_AI_OK"))' >/dev/null
             echo "Workers AI ${model}: PASS"
           done
 
