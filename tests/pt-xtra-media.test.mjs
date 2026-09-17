@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { handleMediaApi } from "../src/media.js";
+import { issueAdminToken } from "../src/admin-auth.js";
 
 function mockEnv() {
   const calls = [];
@@ -56,15 +57,26 @@ test("normal media delivery remains unchanged without branding query", async () 
   assert.equal(calls.length, 0);
 });
 
-test("media delete requires the existing admin bearer token", async () => {
+test("media delete accepts the signed admin session and rejects unauthenticated requests", async () => {
   const { env, calls } = mockEnv();
   const unauthorized = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg", { method: "DELETE" }), env);
   assert.equal(unauthorized.status, 401);
   assert.equal(calls.length, 0);
-  const deleted = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg", { method: "DELETE", headers: { Authorization: "Bearer test-admin-token" } }), env);
+
+  const token = await issueAdminToken(env);
+  assert.match(token, /^ptx1\./);
+  const deleted = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg", { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }), env);
   assert.equal(deleted.status, 200);
   assert.deepEqual(calls, [["delete", "vehicles/test.jpg"]]);
+
   const missing = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg"), env);
   assert.equal(missing.status, 404);
   assert.deepEqual(await missing.json(), { ok: false, error: "Not Found" });
+});
+
+test("media delete retains direct admin token compatibility", async () => {
+  const { env, calls } = mockEnv();
+  const deleted = await handleMediaApi(new Request("https://phanthuanxtra.com/media/vehicles/test.jpg", { method: "DELETE", headers: { Authorization: "Bearer test-admin-token" } }), env);
+  assert.equal(deleted.status, 200);
+  assert.deepEqual(calls, [["delete", "vehicles/test.jpg"]]);
 });
