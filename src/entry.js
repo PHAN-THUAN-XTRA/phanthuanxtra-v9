@@ -23,6 +23,18 @@ export default {
         const assetUrl = new URL("/admin.html", request.url);
         return Response.redirect(assetUrl, 302);
       }
+      if (url.pathname === "/admin.html") {
+        const assetHeaders = new Headers(request.headers);
+        assetHeaders.set("accept-encoding", "identity");
+        assetHeaders.set("cache-control", "no-cache");
+        const assetResponse = await env.ASSETS.fetch(new Request(url, { method: "GET", headers: assetHeaders }));
+        const headers = new Headers(assetResponse.headers);
+        headers.set("content-type", "text/html; charset=utf-8");
+        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
+        headers.delete("content-encoding");
+        headers.delete("content-length");
+        return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
+      }
       const aiChatResponse = await handleAiChat(request, env);
       if (aiChatResponse) return aiChatResponse;
       const adminPipeline = await handleAdminVehiclePipeline(request, env);
