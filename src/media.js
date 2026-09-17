@@ -1,3 +1,5 @@
+import { verifyAdminToken } from "./admin-auth.js";
+
 const json=(data,status=200,extra={})=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...extra}});
 
 export async function storeMedia(env,key,body,contentType="application/octet-stream"){
@@ -23,7 +25,8 @@ function decodeMediaKey(pathname){
   try{return decodeURIComponent(raw)}catch{return null}
 }
 
-function isAuthorized(request,env){
+async function isAuthorized(request,env){
+  if((await verifyAdminToken(request,env)).ok)return true;
   const token=env.ADMIN_TOKEN;
   const authorization=request.headers.get("Authorization")||"";
   return !!token&&authorization.startsWith("Bearer ")&&authorization.slice(7)===token;
@@ -37,7 +40,7 @@ export async function handleMediaApi(request,env){
   const key=decodeMediaKey(url.pathname);
   if(key===null||!key||key.includes(".."))return json({ok:false,error:"Invalid media key"},400);
   if(request.method==="DELETE"){
-    if(!isAuthorized(request,env))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
+    if(!(await isAuthorized(request,env)))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
     await env.MEDIA.delete(key);
     return json({ok:true,key},200);
   }
