@@ -24,6 +24,6 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           for model in '@cf/zai-org/glm-4.7-flash' '@cf/meta/llama-3.2-3b-instruct'; do
             echo "=== MODEL ${model} ==="
-            response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 90 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' --data '{"messages":[{"role":"user","content":"Return exactly STAGE3_AI_OK"}],"temperature":0,"max_tokens":64}')"
+            response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 90 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H 'content-type: application/json' --data '{"messages":[{"role":"user","content":"Return exactly STAGE3_AI_OK"}],"temperature":0,"max_tokens":500}')"
             printf '%s\n' "$response" | jq -c '{success, result_type:(.result|type), result_keys:(if (.result|type)=="object" then (.result|keys) else [] end), response:(.result.response // null), content:(.result.choices[0].message.content // null)}'
           done
