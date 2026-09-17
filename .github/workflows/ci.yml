@@ -8,10 +8,11 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   Validate:
-    name: Validate
+    name: CI / Validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -29,3 +30,22 @@ jobs:
           test -s .github/workflows/android-apk.yml
           grep -q "Publish direct APK release asset" .github/workflows/android-apk.yml
           echo "CI / Validate: PASS"
+
+      - name: Publish required CI / Validate status
+        if: always()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            const sha = context.eventName === 'pull_request'
+              ? context.payload.pull_request.head.sha
+              : context.sha;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha,
+              state,
+              context: 'CI / Validate',
+              description: state === 'success' ? 'CI / Validate passed' : 'CI / Validate failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
