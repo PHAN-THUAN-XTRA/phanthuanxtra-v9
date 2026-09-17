@@ -1,9 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
-> Date: 2026-09-16 (UTC+7)
+> Date: 2026-09-17 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Current main lineage: `a21cf51809cc5ad2d83a6a5dab931c0eb5a1275a`
+> Current main lineage: `03e3025d0674a3aba10cf9226ce0c3e35e936d9d`
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -146,55 +146,55 @@ Target:
 - Credentials must remain least-privilege.
 - Keep the last known-good deployment/version reference until replacement passes runtime gates.
 
-## 5. CURRENT QUEUE — POST-QUEUE-8 PRODUCTION VERIFICATION
-- Queue 8 PR #231 is merged.
-- Merge commit: `a21cf51809cc5ad2d83a6a5dab931c0eb5a1275a`.
-- Queue 8 changed `scripts/cloudflare-assets-upload.mjs` and its regression test only.
-- The remediation accepts both SDK completion-JWT response shapes and recovers through the documented REST asset-upload protocol when the SDK response has no usable completion JWT.
-- Queue 8 CI/PR validation passed; the PR deployment job was correctly skipped because it was a PR event. This is not production deployment evidence.
-- **Active work is production verification on the merged main lineage.**
+## 5. CURRENT QUEUE — QUEUE-10 ADMIN UTF-8 DELIVERY FIX
+- Queue 10 / PR #237 is merged.
+- Merge commit: `03e3025d0674a3aba10cf9226ce0c3e35e936d9d`.
+- Root cause: production `/admin.html` was delivered with mojibake despite UTF-8 source; the verified boundary was canonical asset delivery.
+- Fix: `/admin.html` is routed through the Worker with `Accept-Encoding: identity`, explicit `text/html; charset=utf-8`, cache suppression, and removal of stale content-encoding/content-length headers; `/admin.html` was added to `run_worker_first`.
+- No authentication logic or secrets were changed.
+- Queue 10 production verification is complete on the same main lineage.
 
 ## 6. CHAIN AUDIT STATUS
-- Source: main lineage is `a21cf51809cc5ad2d83a6a5dab931c0eb5a1275a` after Queue 8 merge.
-- Workers AI source contract: primary `@cf/zai-org/glm-4.7-flash`, fallback `@cf/meta/llama-3.2-3b-instruct`; runtime verification remains required.
-- R2 direct bucket operations were previously verified, but Worker `/media/*` GET had returned 404 on an earlier lineage; fresh runtime evidence is required after the routing/deployment remediation.
-- D1 CRUD, Admin boundaries, Password Reset, Gateway/AI and other historical gates must be treated as historical until refreshed on the current production lineage where required.
-- APK build/hash CI evidence is not equivalent to physical S21 Ultra runtime evidence.
-- Telegram Auto/VIP are not PASS without real production message E2E evidence.
+- Source: main lineage is `03e3025d0674a3aba10cf9226ce0c3e35e936d9d` after Queue 10 merge.
+- CI / Validate: PASS — run `35217108865`.
+- Admin PT Xtra Pipeline: PASS — run `35217108864`.
+- Production Asset Delivery Gate: PASS — run `35217108871`; `/admin.html` HTTP 200 and body contains `PHAN THUẦN XTRA`.
+- Production deploy: PASS — run `35217108867`; deploy job `105188181874`; Cloudflare API/SDK path, 100% traffic to version `a890edaf-7d07-413f-90ac-40ca102790cd`.
+- Production Gate-15 smoke: PASS — run `35217108873`; `/admin.html` HTTP 200 with correct Vietnamese UTF-8 content, invalid Admin login 401, Admin D1 CRUD PASS, Password Reset E2E PASS, Gateway/AI PASS.
+- Runtime evidence proves the mojibake boundary is corrected on production for this lineage.
+- R2 Worker media GET/DELETE/404 remains open from earlier evidence and is unrelated to this admin UTF-8 queue.
 
 ## 7. RELEASE GATES
-1. Current main deployed — **OPEN: must prove deployed source lineage**.
-2. Invalid Admin login 401 — VERIFIED historically.
-3. Valid Admin login + signed session — VERIFIED historically on earlier lineage; refresh as required.
-4. Unauthenticated dashboard 401 — VERIFIED historically.
-5. Authenticated dashboard — VERIFIED historically on earlier lineage; refresh as required.
-6. D1 CRUD — VERIFIED historically; refresh as required.
+1. Current main deployed — **PASS** for Queue 10 lineage; deployment and exact checkout verified.
+2. Invalid Admin login 401 — **PASS** on current Gate-15 smoke run `35217108873`.
+3. Valid Admin login + signed session — **PASS** on current Gate-15 smoke run.
+4. Unauthenticated dashboard 401 — **PASS** on current Gate-15 smoke run.
+5. Authenticated dashboard — **PASS** on current Gate-15 smoke run.
+6. D1 CRUD — **PASS** on current Gate-15 smoke run.
 7. **R2 write/read/delete — OPEN/RED until Worker media GET/DELETE/404 is freshly verified.**
-8. Password reset — GREEN historically by `35063840082`; refresh as required.
-9. Gateway/AI — historical evidence; fresh runtime evidence required.
-10. Dual Workers AI — GREEN historically; fresh runtime evidence required.
+8. Password reset — **PASS** on current Gate-15 smoke run; restore to canonical password completed.
+9. Gateway/AI — **PASS** on current Gate-15 smoke run.
+10. Dual Workers AI — **PASS** on current Gate-15 smoke run.
 11. APK artifact/hash + S21 Ultra regression — OPEN.
 12. Telegram Auto Bot production E2E — OPEN.
 13. VIP webhook/idempotency E2E — OPEN.
 14. Backup/restore/readability — GREEN historically; current lineage reconciliation required.
-15. Gate-15 smoke/security boundary — GREEN historically; current lineage reconciliation required.
+15. Gate-15 smoke/security boundary — **PASS** on current run `35217108873`.
 16. **PRODUCTION GREEN — LOCKED** until all required gates are actually green.
 
 ## 8. SINGLE QUEUE CONTINUITY
-- Queue 8 is closed by merge.
-- Queue 9 is the single active documentation/method checkpoint for the AI-first root-cause operating method.
-- No competing remediation PR is active at this checkpoint.
+- Queue 10 is closed by merge and production verification.
+- No competing remediation PR is active for the admin UTF-8 issue.
 - Next mutation, if required, must be a new single queue after the production verification boundary identifies a concrete failure.
 - Do not force-push.
 
-## 9. CHANGE LOG — 2026-09-16
+## 9. CHANGE LOG — 2026-09-17
 - Read canonical MASTER before execution.
-- Added the “góc nhìn trí tuệ ngoài Trái Đất” method as a formal evidence-first root-cause discipline.
-- Defined Workers AI as first-line project-local AI analysis and GPT as independent cross-check/reasoning; evidence remains authoritative.
-- Applied the method to Queue 8: isolate the Cloudflare asset completion-JWT boundary, avoid credential rotation, keep SDK primary, and recover through the documented REST protocol only when the SDK response lacks a usable completion JWT.
-- Queue 8 merged as `a21cf51809cc5ad2d83a6a5dab931c0eb5a1275a`.
-- Queue 9 records this operating method as the canonical method in the only status file.
-- Production remains RED pending fresh main deployment, runtime, dependency, E2E, security and release-gate evidence.
+- Queue 10 / PR #237 fixed the verified production asset-delivery encoding boundary for `/admin.html`.
+- Merge `03e3025d0674a3aba10cf9226ce0c3e35e936d9d` deployed through Cloudflare API/SDK as version `a890edaf-7d07-413f-90ac-40ca102790cd` with 100% traffic.
+- Production Asset Delivery Gate and Gate-15 smoke both passed on the exact merge SHA; `/admin.html` returned HTTP 200 and the runtime body contained `PHAN THUẦN XTRA` rather than mojibake.
+- Current Gate-15 also passed Admin authentication boundaries, D1 CRUD, Password Reset E2E, Gateway/AI, and Workers AI runtime checks.
+- Production remains RED because release gates 7 and 11–14 are still open/reconciliation-pending.
 
 ## 10. NEXT CHECKPOINT
-`Main deploy via GitHub Actions → Cloudflare API/SDK → verify deployed SHA → runtime smoke → R2 direct + Worker GET/DELETE/404 → Workers AI runtime audit → D1/Gateway/AI → Admin/Password Reset boundaries → APK artifact + S21 Ultra → Telegram Auto/VIP real E2E → backup/restore + Gate-15 reconciliation → release-gate decision → only then Production GREEN.`
+`R2 direct + Worker GET/DELETE/404 → Workers AI runtime audit refresh → APK artifact + S21 Ultra → Telegram Auto/VIP real E2E → backup/restore reconciliation → release-gate decision → only then Production GREEN.`
