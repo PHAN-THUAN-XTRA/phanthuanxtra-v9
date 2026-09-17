@@ -3,7 +3,7 @@
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
 > Date: 2026-09-17 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Current main lineage: `c5630188ab8a7021160b999b91d968fe836ae898`
+> Current main lineage: `5bd7510e005e37496b87a02fe9e5195456f9d917`
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -41,20 +41,41 @@ Target production path:
 - Wrangler is **not** the production deployment path.
 - No secret exposure/rotation and no destructive infrastructure recreation.
 
-## 4. CURRENT QUEUE — RELEASE CLOSURE RECONCILIATION
-- Previous Queue 8 merged as `a21cf51809cc5ad2d83a6a5dab931c0eb5a1275a`.
-- PR #238 subsequently merged as `c5630188ab8a7021160b999b91d968fe836ae898`, repairing malformed newline regex literals in `public/admin-control.html`.
-- PR #238 changed only one file with 2 additions / 2 deletions; no auth, secret, API-contract or infrastructure change.
-- CI validation for `c5630188...` passed in run `35219113670`.
-- No open PR was present before this documentation reconciliation.
-- **Current release-closure blocker:** production deployment of `c5630188...` and corresponding Worker runtime SHA/version have not yet been directly evidenced.
+## 4. CURRENT QUEUE — STAGE 1 DEEP ROOT-CAUSE AUDIT
+- PR #240 merged as `c14f3b929675ea86b6136039caf6a24315fea2ad` and introduced the production R2 Worker GET/DELETE/404 E2E boundary.
+- Fresh production deployment of PR #240 passed deployment/public smoke but failed at R2 DELETE.
+- **Stage 1 root cause established:** `/api/admin/login` issues a signed Admin session token, while `src/media.js` DELETE compared the bearer value directly with `ADMIN_TOKEN`. The valid login session therefore reached the DELETE boundary as 401; R2 storage/delete semantics were not the failing boundary.
+- Cloudflare R2 API audit confirmed `R2Bucket.delete(key)` is the correct Worker binding operation and R2 provides strong consistency; no evidence supports an R2 storage consistency defect.
+- GitHub source audit, CI evidence and GPT deep root-cause cross-check converged on the authentication boundary as the smallest failing boundary.
+- PR #241 applied the narrow fix: `verifyAdminToken()` is accepted for `/media/*` DELETE while direct `ADMIN_TOKEN` compatibility is retained; unit tests cover signed-session delete, unauthenticated rejection, post-delete 404 and direct-token compatibility.
+- PR #241 merged successfully as `5bd7510e005e37496b87a02fe9e5195456f9d917`.
+- Required `CI / Validate` on the merge commit is **SUCCESS** (`35229775343`).
+
+## 4.1 STAGE 1 PROGRESS REPORT — CLOUDFLARE AUDIT + GITHUB EVIDENCE + GPT DEEP ROOT-CAUSE
+**Stage:** 1 — completed root-cause isolation and narrow remediation.
+
+**Method executed after reading this MASTER:**
+1. **Observed failure:** production R2 E2E failed after login/upload/GET when executing authenticated DELETE.
+2. **GitHub source trace:** inspected `/api/admin/login`, `issueAdminToken()`, `verifyAdminToken()`, `src/media.js`, R2 E2E workflow and media tests.
+3. **Cloudflare audit:** checked current R2 Worker API/binding semantics; `delete()` is the expected operation and R2 is strongly consistent.
+4. **GPT deep challenge:** rejected hypotheses involving R2 eventual consistency, missing R2 binding, or destructive infrastructure changes because the failure occurred at the application authorization boundary before the delete operation could be accepted.
+5. **Smallest boundary isolated:** authorization mismatch between signed Admin session token and direct `ADMIN_TOKEN` comparison.
+6. **Narrow repair:** authorize DELETE through the existing `verifyAdminToken()` path; retain legacy direct-token compatibility; add regression tests.
+7. **GitHub evidence:** PR #241 CI passed and merge commit `5bd7510e...` has `CI / Validate = success`.
+
+**Evidence conclusion:**
+- Source root cause: **CONFIRMED**.
+- Fix scope: **NARROW / AUTH BOUNDARY ONLY**.
+- Secrets/infrastructure: **UNCHANGED**.
+- Production release status: **STILL RED** until the post-merge Cloudflare deployment and fresh real R2 E2E prove `login → upload → GET 200 → DELETE 200 → GET 404` on the same lineage.
+- CI success is not treated as runtime proof.
 
 ## 5. CHAIN AUDIT STATUS
-- Source: **VERIFIED** — main lineage `c5630188ab8a7021160b999b91d968fe836ae898`.
-- CI: **VERIFIED** — `CI / Validate` passed for the current SHA.
-- Production deployment: **OPEN/RED** — deployed SHA not yet directly verified.
-- Runtime smoke: **OPEN/RED** until verified against the current deployed lineage.
-- R2 Worker GET/DELETE/404: **OPEN/RED** pending fresh runtime evidence.
+- Source: **VERIFIED** — main lineage `5bd7510e005e37496b87a02fe9e5195456f9d917`.
+- CI: **VERIFIED** — `CI / Validate` success on merge commit (`35229775343`).
+- Production deployment: **OPEN/RED** — post-merge deployed Worker version/source lineage must still be directly evidenced.
+- Runtime smoke: **OPEN/RED** until verified against the post-merge deployed lineage.
+- R2 Worker GET/DELETE/404: **OPEN/RED** — fix is merged, but fresh post-merge runtime E2E evidence is still required.
 - D1 CRUD: historical evidence only until refreshed on the current production lineage.
 - Gateway/Workers AI: historical evidence only until refreshed on the current production lineage.
 - Admin/Password Reset: historical evidence only until refreshed on the current production lineage where required.
@@ -65,13 +86,13 @@ Target production path:
 - Gate-15: historical evidence only until current-lineage reconciliation.
 
 ## 6. RELEASE GATES
-1. Current main deployed — **OPEN: prove deployed source lineage = `c5630188...`**.
+1. Current main deployed — **OPEN: prove deployed source lineage = `5bd7510e...`**.
 2. Invalid Admin login 401 — VERIFIED historically; refresh as required.
 3. Valid Admin login + signed session — VERIFIED historically; refresh as required.
 4. Unauthenticated dashboard 401 — VERIFIED historically; refresh as required.
 5. Authenticated dashboard — VERIFIED historically; refresh as required.
 6. D1 CRUD — VERIFIED historically; refresh as required.
-7. **R2 write/read/delete — OPEN/RED until Worker media GET/DELETE/404 is freshly verified.**
+7. **R2 write/read/delete — OPEN/RED until post-merge Worker media GET/DELETE/404 is freshly verified.**
 8. Password reset — GREEN historically by `35063840082`; refresh as required.
 9. Gateway/AI — historical evidence; fresh runtime evidence required.
 10. Dual Workers AI — GREEN historically; fresh runtime evidence required.
@@ -83,19 +104,21 @@ Target production path:
 16. **PRODUCTION GREEN — LOCKED** until all required gates are actually green.
 
 ## 7. SINGLE QUEUE CONTINUITY
-- Queue 8 is closed by merge.
-- PR #238 is closed/merged.
-- This checkpoint is the single release-closure reconciliation queue.
+- PR #240 is closed/merged.
+- PR #241 is closed/merged; its narrow R2 authentication fix is now on `main`.
+- Stage 1 root-cause checkpoint is recorded in this canonical file only.
 - No competing remediation queue or checkpoint file is permitted.
-- Next mutation is authorized only after the first concrete failing production boundary is observed.
+- Next mutation is authorized only after the post-merge deployment/runtime boundary is observed and the next concrete failing boundary is isolated.
 - Never force-push.
 
 ## 8. CHANGE LOG — 2026-09-17
 - Read canonical MASTER before execution.
-- Reconciled canonical source lineage from `a21cf518...` to current main `c5630188...`.
-- Recorded PR #238 Admin Control JavaScript syntax repair and its successful CI validation.
-- Kept production RED because deployment/runtime evidence for the current lineage is not yet proven.
-- No unrelated feature/refactor/UI work introduced.
+- Executed Stage 1 using Cloudflare audit + GitHub evidence + GPT deep root-cause cross-check.
+- Confirmed R2 E2E failure was caused by the media DELETE authentication mismatch, not by R2 storage consistency.
+- PR #241 merged as `5bd7510e005e37496b87a02fe9e5195456f9d917`.
+- `CI / Validate` on the merge commit is successful.
+- Updated this file only for the Stage 1 status checkpoint; no competing checkpoint Markdown was created.
+- Production remains RED pending fresh post-merge Cloudflare deployment/runtime R2 E2E evidence.
 
 ## 9. NEXT CHECKPOINT
-`Deploy current main via GitHub Actions → Cloudflare API/SDK → verify deployed SHA/version → runtime smoke → R2 Worker GET/DELETE/404 → Workers AI runtime audit → D1/Gateway/AI → Admin/Password Reset → APK artifact + S21 Ultra → Telegram Auto/VIP E2E → backup/restore + Gate-15 reconciliation → release-gate decision → only then Production GREEN.`
+`Verify post-merge GitHub Actions deployment → Cloudflare API/SDK → verify deployed SHA/version → public smoke → R2 Worker GET/DELETE/404 → Workers AI runtime audit → D1/Gateway/AI → Admin/Password Reset → APK artifact + S21 Ultra → Telegram Auto/VIP E2E → backup/restore + Gate-15 reconciliation → release-gate decision → only then Production GREEN.`
