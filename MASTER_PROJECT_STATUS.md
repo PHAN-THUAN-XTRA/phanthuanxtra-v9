@@ -3,7 +3,7 @@
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
 > Date: 2026-09-18 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Current main lineage: `9ffeb796eb6347c63bc0ef142e246ba12bdd0b4e` (PR #251 merged; fresh Cloudflare runtime deployment evidence still required)
+> Current main lineage: `f1b61fb7883ccc81c9363b2e4652951d267a2327` (PR #253 merged; fresh Cloudflare runtime deployment and R2 E2E now verified).
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -67,7 +67,18 @@ The deployment job emitted: `R2 Worker E2E: upload -> GET 200 -> DELETE 200 -> G
 **Stage 2 result: 🟢 COMPLETE.**
 
 ## 5. STAGE 3 — CURRENT QUEUE: CURRENT-LINEAGE GATE RECONCILIATION + DEEP AUDIT
-Stage 3 starts from the proven main/runtime lineage above. Do not assume historical green evidence remains valid after lineage changes.
+Stage 3 starts from the current main/runtime lineage above. Do not assume historical green evidence remains valid after lineage changes.
+
+### Current-lineage R2 incident and closure
+- Deploy Cloudflare Worker #740 attempt 1 deployed successfully but failed only at the R2 post-delete verification boundary.
+- The rerun (attempt 2) completed successfully on main SHA `f1b61fb7883ccc81c9363b2e4652951d267a2327`.
+- Cloudflare API/SDK upload: **PASS**, 22 modules.
+- Current Worker version: `014b85bd-8c50-4eec-a273-f244644652ae`.
+- Current Cloudflare deployment: `72534bab-bf58-41e0-8bd9-c9cce44255df`.
+- Traffic: **100%** to the current Worker version.
+- Public `/`, `/api/health`, `/admin.html`: **HTTP 200**.
+- Fresh authenticated R2 E2E: upload **PASS** → GET **200** → DELETE **200** → cache-busted GET **404**.
+- Therefore the R2 runtime boundary is now **🟢 PASS for the current `f1b61fb` lineage**. This closes the specific #740 failure; no Termux/browser action is required for this boundary.
 
 ### Stage 3 execution order
 1. Read this MASTER and freeze the single queue.
@@ -87,13 +98,13 @@ Stage 3 starts from the proven main/runtime lineage above. Do not assume histori
 - Telegram Auto and VIP production E2E remains OPEN.
 
 ## 6. RELEASE GATES — CURRENT STATUS
-1. Current main deployed lineage — **🟢 Stage 2 proven** (`a6c894ef...` → Worker `bb078a3a...`, 100% traffic).
+1. Current main deployed lineage — **🟢 PASS** (`f1b61fb...` → Worker `014b85bd-8c50-4eec-a273-f244644652ae`, deployment `72534bab-bf58-41e0-8bd9-c9cce44255df`, 100% traffic).
 2. Invalid Admin login 401 — **OPEN: refresh current lineage as required**.
 3. Valid Admin login + signed session — **🟢 proven in Stage 2 login boundary; broader admin flow still open**.
 4. Unauthenticated dashboard 401 — **OPEN: refresh current lineage as required**.
 5. Authenticated dashboard — **OPEN: refresh current lineage as required**.
 6. D1 CRUD — **🔴/OPEN: current-lineage runtime proof required**.
-7. R2 write/read/delete — **🟢 PASS in Stage 2**.
+7. R2 write/read/delete — **🟢 PASS current-lineage**, fresh runtime evidence on Worker `014b85bd-8c50-4eec-a273-f244644652ae`.
 8. Password reset — **OPEN: refresh current lineage as required**.
 9. Gateway/AI — **🔴/OPEN: current-lineage runtime proof required**.
 10. Dual Workers AI — **🔴/OPEN: primary + fallback runtime proof required**.
@@ -114,6 +125,7 @@ Stage 3 starts from the proven main/runtime lineage above. Do not assume histori
 
 ## 8. CHANGE LOG — 2026-09-18
 - PR #251 (`fix(backup): make Telegram notification HTTP errors nonfatal`) merged as `9ffeb796eb6347c63bc0ef142e246ba12bdd0b4e` after GitHub `CI / Validate` passed on head SHA `91dfdfc3bb09089d2be4e233cfce4c811feb27e6` (run #138).
+- PR #253 (`test(r2): make delete verification cache-independent`) merged as `f1b61fb7883ccc81c9363b2e4652951d267a2327`. Deploy Cloudflare Worker #740 attempt 2 then completed successfully with fresh current-lineage R2 GET 200 → DELETE 200 → cache-busted GET 404 evidence.
 - Telegram HTTP 403 is isolated from backup integrity by removing `curl --fail` from notification delivery; backup artifact/checksum/restore evidence remains authoritative. This is source/CI evidence, not Telegram delivery PASS evidence.
 - Android APK workflow run #814 completed successfully on the PR head; `phanthuanxtra-apk-debug` artifact exists with SHA-256 digest `65254e6239f8beceba3830418f4de61f32139fc6aa397d380d9d7a6f5a2c281e`. This is artifact evidence; S21 Ultra physical regression remains OPEN.
 - GitHub connector can now read PR #251 CI evidence directly: run #138 `CI / Validate = success`. The previously requested APK run #813 is superseded by fresh run #814 for artifact evidence.
@@ -129,3 +141,9 @@ Stage 3 starts from the proven main/runtime lineage above. Do not assume histori
 
 ## 9. NEXT CHECKPOINT
 `Current-lineage D1 CRUD → Gateway → Workers AI primary/fallback → Admin/Password Reset → Telegram Auto/VIP → backup/restore → APK artifact/hash + S21 Ultra → Gate-15 reconciliation → release-gate decision.`
+
+## 9.1 CURRENT-LINEAGE R2 CLOSURE — 2026-09-18
+- Deploy Cloudflare Worker #740 attempt 2 completed **successfully** after the first attempt failed only at R2 post-delete verification.
+- Verified lineage: main `f1b61fb7883ccc81c9363b2e4652951d267a2327` → Worker `014b85bd-8c50-4eec-a273-f244644652ae` → deployment `72534bab-bf58-41e0-8bd9-c9cce44255df` → 100% traffic.
+- Fresh production evidence: public smoke HTTP 200; authenticated R2 upload/GET 200/DELETE 200/cache-busted GET 404.
+- R2 gate is closed for this lineage; Production GREEN remains locked by the other open gates.
