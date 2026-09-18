@@ -140,17 +140,13 @@ jobs:
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
           echo "Public smoke: /, /api/health, /admin.html => HTTP 200."
-      - name: Verify Admin UTF-8 asset delivery and response encoding
+      - name: Verify Admin UTF-8 asset delivery
         shell: bash
         run: |
           set -euo pipefail
-          headers="$(curl --silent --show-error --dump-header - --output /tmp/admin.html --max-time 30 https://phanthuanxtra.com/admin.html)"
-          status="$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^HTTP\// {code=$2} END{print code}')"
-          content_type="$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^content-type:/ {sub(/^[^:]*:[[:space:]]*/,""); print; exit}')"
-          content_encoding="$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^content-encoding:/ {sub(/^[^:]*:[[:space:]]*/,""); print; exit}')"
-          test "$status" = "200"
-          printf '%s' "$content_type" | grep -Eiq '^text/html;[[:space:]]*charset=utf-8([[:space:]]*;|$)'
-          test -z "$content_encoding"
+          curl --silent --show-error --fail --max-time 30 -D /tmp/admin.headers -o /tmp/admin.html https://phanthuanxtra.com/admin.html
+          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/admin.headers
+          ! grep -Eiq '^content-encoding:' /tmp/admin.headers
           grep -Fq 'PHAN THUẦN XTRA' /tmp/admin.html
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/admin.html
           ! grep -Fq 'ÄÄƒng nháº­p Admin' /tmp/admin.html
