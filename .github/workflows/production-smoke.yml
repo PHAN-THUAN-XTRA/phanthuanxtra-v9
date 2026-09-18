@@ -218,6 +218,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+          r2_login_status="$(curl --silent --show-error --retry 3 --retry-delay 2 --max-time 30 -o /tmp/r2-admin-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "R2 admin login HTTP $r2_login_status"
+          test "$r2_login_status" = "200"
+          ADMIN_SESSION="$(jq -r '.token // empty' /tmp/r2-admin-login.json | tr -d '[:space:]')"
           test -n "$ADMIN_SESSION"
           printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' | base64 -d > /tmp/xtra-e2e.png
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-upload.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/media" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: image/png' --data-binary @/tmp/xtra-e2e.png)"
