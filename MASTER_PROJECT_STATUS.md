@@ -1,9 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
-> Date: 2026-09-17 (UTC+7)
+> Date: 2026-09-18 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Current main lineage: `a6c894ef45906931919bac214efa37d991e46c6d`
+> Current main lineage: `9ffeb796eb6347c63bc0ef142e246ba12bdd0b4e` (PR #251 merged; fresh Cloudflare runtime deployment evidence still required)
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -112,7 +112,14 @@ Stage 3 starts from the proven main/runtime lineage above. Do not assume histori
 - Any mutation must occur on the active Stage 3 branch/PR, then merge before the next mutation.
 - Never force-push.
 
-## 8. CHANGE LOG — 2026-09-17
+## 8. CHANGE LOG — 2026-09-18
+- PR #251 (`fix(backup): make Telegram notification HTTP errors nonfatal`) merged as `9ffeb796eb6347c63bc0ef142e246ba12bdd0b4e` after GitHub `CI / Validate` passed on head SHA `91dfdfc3bb09089d2be4e233cfce4c811feb27e6` (run #138).
+- Telegram HTTP 403 is isolated from backup integrity by removing `curl --fail` from notification delivery; backup artifact/checksum/restore evidence remains authoritative. This is source/CI evidence, not Telegram delivery PASS evidence.
+- Android APK workflow run #814 completed successfully on the PR head; `phanthuanxtra-apk-debug` artifact exists with SHA-256 digest `65254e6239f8beceba3830418f4de61f32139fc6aa397d380d9d7a6f5a2c281e`. This is artifact evidence; S21 Ultra physical regression remains OPEN.
+- GitHub connector can now read PR #251 CI evidence directly: run #138 `CI / Validate = success`. The previously requested APK run #813 is superseded by fresh run #814 for artifact evidence.
+- PR #251 merge completed; fresh Cloudflare deployment/Worker lineage verification and affected backup/restore runtime evidence are still required before closing the corresponding gate.
+
+## 8.1 CHANGE LOG — 2026-09-17
 - Read canonical MASTER before Stage 3 work.
 - Persisted the mandatory method: **Cloudflare audit → GitHub source/CI/deploy evidence → GPT deep root-cause challenge**.
 - Recorded Stage 1 completion and confirmed R2 authentication root cause/fix.
