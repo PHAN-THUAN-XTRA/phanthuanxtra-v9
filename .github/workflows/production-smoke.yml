@@ -114,20 +114,47 @@ jobs:
           TEST_CAR_ID="ci-e2e-${GITHUB_RUN_ID}"
           TEST_IMAGE_URL="https://phanthuanxtra.com/media/vehicles/publish-admin-${TEST_CAR_ID}.jpg"
           export TEST_CAR_ID TEST_IMAGE_URL
+          admin_request() {
+            local output="$1"; shift
+            local attempt=1 status retry_after
+            while [ "$attempt" -le 4 ]; do
+              : > "$output"
+              status="$(curl --silent --show-error --max-time 30 -D /tmp/admin-response.headers -o "$output" -w '%{http_code}' "$@")"
+              echo "Admin API HTTP $status (attempt $attempt)"
+              if [ "$status" != "429" ]; then ADMIN_LAST_STATUS="$status"; return 0; fi
+              retry_after="$(awk 'tolower($1)=="retry-after:" {gsub("\r", "", $2); print $2; exit}' /tmp/admin-response.headers)"
+              if ! [[ "$retry_after" =~ ^[0-9]+$ ]]; then retry_after=10; fi
+              echo "Cloudflare rate limit (1015/429); waiting ${retry_after}s before retry"
+              sleep "$retry_after"
+              attempt=$((attempt + 1))
+            done
+            ADMIN_LAST_STATUS="429"; return 1
+          }
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/admin-login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
           echo "Admin login HTTP $status"
           test "$status" = "200"
           ADMIN_SESSION="$(jq -r '.token // empty' /tmp/admin-login.json)"
           test -n "$ADMIN_SESSION"
           export ADMIN_SESSION
-          trap 'curl --silent --show-error --retry 2 --max-time 20 -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" >/dev/null || true' EXIT
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "$SITE_URL/api/admin/cars" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Vehicle\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"available\",\"description\":\"CI production E2E test record; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}" | tee /tmp/admin-create.json
+          trap 'admin_request /tmp/admin-cleanup.json -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" >/dev/null 2>&1 || true' EXIT
+          admin_request /tmp/admin-create.json -X POST "$SITE_URL/api/admin/cars" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Vehicle\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"available\",\"description\":\"CI production E2E test record; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}"
+          test "$ADMIN_LAST_STATUS" = "201"
           jq -e '.ok == true and .id == env.TEST_CAR_ID' /tmp/admin-create.json >/dev/null
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars" | tee /tmp/admin-cars.json
+          admin_request /tmp/admin-cars.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars"
+          test "$ADMIN_LAST_STATUS" = "200"
+          for attempt in 1 2 3 4; do
+            if jq -e --arg id "$TEST_CAR_ID" '.cars | any(.[]; .id == $id and .brand == "PT XTRA TEST")' /tmp/admin-cars.json >/dev/null; then break; fi
+            echo "D1 list visibility not observed yet; retrying read (attempt $attempt)."
+            admin_request /tmp/admin-cars.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars"
+            test "$ADMIN_LAST_STATUS" = "200"
+            sleep 2
+          done
           jq -e --arg id "$TEST_CAR_ID" '.cars | any(.[]; .id == $id and .brand == "PT XTRA TEST")' /tmp/admin-cars.json >/dev/null
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" | tee /tmp/admin-delete.json
+          admin_request /tmp/admin-delete.json -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION"
+          test "$ADMIN_LAST_STATUS" = "200"
           jq -e '.ok == true and .deleted == env.TEST_CAR_ID' /tmp/admin-delete.json >/dev/null
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars" | tee /tmp/admin-cars-after-delete.json
+          admin_request /tmp/admin-cars-after-delete.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars"
+          test "$ADMIN_LAST_STATUS" = "200"
           jq -e --arg id "$TEST_CAR_ID" '(.cars | any(.[]; .id == $id)) | not' /tmp/admin-cars-after-delete.json >/dev/null
 
       - name: Require Admin credential for production E2E gate
