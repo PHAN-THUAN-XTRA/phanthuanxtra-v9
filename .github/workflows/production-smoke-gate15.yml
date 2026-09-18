@@ -141,6 +141,13 @@ jobs:
           jq -e '.ok == true and .id == env.TEST_CAR_ID' /tmp/admin-create.json >/dev/null
           admin_request /tmp/admin-cars.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars"
           test "$ADMIN_LAST_STATUS" = "200"
+          for attempt in 1 2 3 4; do
+            if jq -e --arg id "$TEST_CAR_ID" '.cars | any(.[]; .id == $id and .brand == "PT XTRA TEST")' /tmp/admin-cars.json >/dev/null; then break; fi
+            echo "D1 list visibility not observed yet; retrying read (attempt $attempt)."
+            admin_request /tmp/admin-cars.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars"
+            test "$ADMIN_LAST_STATUS" = "200"
+            sleep 2
+          done
           jq -e --arg id "$TEST_CAR_ID" '.cars | any(.[]; .id == $id and .brand == "PT XTRA TEST")' /tmp/admin-cars.json >/dev/null
           admin_request /tmp/admin-delete.json -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION"
           test "$ADMIN_LAST_STATUS" = "200"
