@@ -174,7 +174,7 @@ jobs:
             local attempt=1 status retry_after
             while [ "$attempt" -le 6 ]; do
               : > "$output"
-              status="$(curl --silent --show-error --max-time 30 -D /tmp/password-response.headers -o "$output" -w '%{http_code}' "$@")"
+              status="$(curl --silent --show-error --max-time 30 -D /tmp/password-response.headers -o "$output" -w '%{http_code}' "$@")" || true
               echo "Password E2E HTTP $status (attempt $attempt)"
               if [ "$status" != "429" ]; then RETRY_ADMIN_STATUS="$status"; return 0; fi
               retry_after="$(awk 'tolower($1)=="retry-after:" {gsub("\r", "", $2); print $2; exit}' /tmp/password-response.headers)"
