@@ -25,6 +25,7 @@ concurrency:
 env:
   NODE_VERSION: 24
   CLOUDFLARE_SDK_VERSION: 7.1.0
+  CLOUDFLARE_ZONE_ID: 7b2653821ef0d8052bfc91c4cf5008ca
 
 jobs:
   validate:
@@ -151,6 +152,26 @@ jobs:
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/admin.html
           ! grep -Fq 'ÄÄƒng nháº­p Admin' /tmp/admin.html
           echo "Admin asset delivery: HTTP 200; UTF-8 content-type; no content-encoding; mojibake markers absent."
+      - name: Purge changed Admin HTML cache
+        shell: bash
+        env:
+          CF_PURGE_TOKEN: ${{ env.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ env.CLOUDFLARE_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          payload='{"files":["https://phanthuanxtra.com/admin.html"]}'
+          response="$(curl --fail-with-body --silent --show-error --max-time 30 \
+            -X POST \
+            -H "Authorization: Bearer ${CF_PURGE_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache")"
+          echo "$response" | jq -e '.success == true' >/dev/null
+          echo "Cloudflare targeted purge: /admin.html => API success."
+          curl --silent --show-error --fail --max-time 30 -D /tmp/admin-purge.headers -o /tmp/admin-purge.html "https://phanthuanxtra.com/admin.html?purge_verify=${GITHUB_SHA}"
+          grep -Fq 'PHAN THUẦN XTRA' /tmp/admin-purge.html
+          echo "Post-purge Admin asset verification: PASS."
+
       - name: R2 Worker E2E GET DELETE 404
         shell: bash
         env:
