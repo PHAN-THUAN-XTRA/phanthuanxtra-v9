@@ -171,23 +171,22 @@ jobs:
           TEST_PASSWORD="Xtra-Gate15-${GITHUB_RUN_ID}-Reset!"
           retry_admin() {
             local output="$1"; shift
-            local attempt=1 status retry_after
-            while [ "$attempt" -le 6 ]; do
+            local attempt status
+            for attempt in 1 2 3 4 5 6 7 8; do
               : > "$output"
-              status="$(curl --silent --show-error --max-time 30 -D /tmp/password-response.headers -o "$output" -w '%{http_code}' "$@")" || true
-              echo "Password E2E HTTP $status (attempt $attempt)"
+              set +e
+              curl --silent --show-error --max-time 30 -D /tmp/password-response.headers -o "$output" -w '%{http_code}' "$@" > /tmp/password-http-code.txt
+              curl_rc=$?
+              set -e
+              status="$(cat /tmp/password-http-code.txt 2>/dev/null || true)"
+              if [ -z "$status" ]; then status=000; fi
+              echo "Password E2E HTTP ${status} (attempt ${attempt}, curl_rc ${curl_rc})"
+              if [ "$status" = "200" ]; then RETRY_ADMIN_STATUS=200; return 0; fi
               if [ "$status" != "429" ] && [ "$status" != "000" ]; then RETRY_ADMIN_STATUS="$status"; return 0; fi
-              if [ "$status" = "000" ]; then
-                retry_after=5
-              else
-                retry_after="$(awk 'tolower($1)=="retry-after:" {gsub("\r", "", $2); print $2; exit}' /tmp/password-response.headers)"
-              fi
-              if ! [[ "$retry_after" =~ ^[0-9]+$ ]] || [ "$retry_after" -gt 30 ]; then retry_after=10; fi
-              echo "Cloudflare rate limit (1015/429); waiting ${retry_after}s before retry"
-              sleep "$retry_after"
-              attempt=$((attempt + 1))
+              echo "Transient Cloudflare/transport boundary; waiting 10s before retry"
+              sleep 10
             done
-            RETRY_ADMIN_STATUS="429"; return 1
+            RETRY_ADMIN_STATUS="${status:-000}"; return 0
           }
           export TEST_PASSWORD
           retry_admin /tmp/recovery-rotate.json -X POST "$SITE_URL/api/admin/recovery/rotate" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data '{}'
