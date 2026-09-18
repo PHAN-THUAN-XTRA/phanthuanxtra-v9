@@ -197,7 +197,8 @@ jobs:
 
       - name: Production detail-page smoke
         shell: bash
-        run: echo 'Skipped: legacy example page car-lx600.html was intentionally removed from production.'
+        run: |
+          echo 'Skipped: legacy example page car-lx600.html was intentionally removed from production.'
 
       - name: Production smoke summary
         shell: bash
