@@ -188,6 +188,10 @@ jobs:
             done
             RETRY_ADMIN_STATUS="${status:-000}"; return 0
           }
+          retry_admin /tmp/admin-login-password.json -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
+          test "$RETRY_ADMIN_STATUS" = "200"
+          ADMIN_SESSION="$(jq -r '.token // empty' /tmp/admin-login-password.json | tr -d '[:space:]')"
+          test -n "$ADMIN_SESSION"
           export TEST_PASSWORD
           retry_admin /tmp/recovery-rotate.json -X POST "$SITE_URL/api/admin/recovery/rotate" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data '{}'
           test "$RETRY_ADMIN_STATUS" = "200"
