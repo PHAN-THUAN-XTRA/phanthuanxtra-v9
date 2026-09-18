@@ -90,9 +90,12 @@ jobs:
             status="$(curl --silent --show-error --max-time 20 -o /tmp/read.json -w '%{http_code}' -H "Authorization: Bearer ${token}" "${SITE_URL}/api/admin/cars")" || true
             echo "D1 READ attempt delay=${delay}s HTTP ${status}"
             if [ "$status" = "200" ]; then
-              jq -e --arg id "$id" '.cars | any(.[]; .id == $id)' /tmp/read.json >/dev/null
-              read_ok=1
-              break
+              if jq -e --arg id "$id" '.cars | any(.[]; .id == $id)' /tmp/read.json >/dev/null; then
+                read_ok=1
+                break
+              fi
+              echo "D1 READ HTTP 200 but test record not visible yet; continuing reconciliation loop."
+              continue
             fi
             if [ "$status" != "429" ]; then
               cat /tmp/read.json >&2 || true
