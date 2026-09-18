@@ -3,7 +3,7 @@
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
 > Date: 2026-09-18 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Current main lineage: `f1b61fb7883ccc81c9363b2e4652951d267a2327` (PR #253 merged; fresh Cloudflare runtime deployment and R2 E2E now verified).
+> Current main lineage: `987368c27ccb3ddf349173a52d4cc87dd2ce0f47` (PR #254 merged; current-lineage Stage 3 reconciliation run #13 completed successfully; deployed Worker remains the verified `f1b61fb` lineage).
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -93,21 +93,22 @@ Stage 3 starts from the current main/runtime lineage above. Do not assume histor
 - Deployment workflow currently contains real R2 Worker E2E after Cloudflare deployment and therefore Stage 2 is directly reproducible in CI/runtime. `.github/workflows/deploy-cloudflare.yml` preserves the API/SDK production path.
 - `tests/production-gates.test.mjs` contains unit/contract guards for Telegram auto-publish confidence, AI unknown-question handoff, malformed API/media boundaries, and hidden vehicles, but these are **not substitutes for current production E2E**.
 - `src/ai-chat.js` currently declares primary Workers AI `@cf/zai-org/glm-4.7-flash` and fallback `@cf/meta/llama-3.2-3b-instruct`; runtime verification of both paths remains OPEN until fresh production evidence exists.
-- D1/Gateway/AI current-lineage runtime evidence remains OPEN until independently refreshed.
+- D1/Gateway/AI current-lineage runtime evidence: **🟢 refreshed by Stage 3 run #13** on main `987368c`; job `Current-lineage D1 Gateway AI Admin R2` completed successfully in 59s.
+- Admin authentication boundaries and Password Reset were also exercised successfully by Stage 3 run #13.
 - APK physical-device evidence remains OPEN.
 - Telegram Auto and VIP production E2E remains OPEN.
 
 ## 6. RELEASE GATES — CURRENT STATUS
 1. Current main deployed lineage — **🟢 PASS** (`f1b61fb...` → Worker `014b85bd-8c50-4eec-a273-f244644652ae`, deployment `72534bab-bf58-41e0-8bd9-c9cce44255df`, 100% traffic).
-2. Invalid Admin login 401 — **OPEN: refresh current lineage as required**.
-3. Valid Admin login + signed session — **🟢 proven in Stage 2 login boundary; broader admin flow still open**.
-4. Unauthenticated dashboard 401 — **OPEN: refresh current lineage as required**.
-5. Authenticated dashboard — **OPEN: refresh current lineage as required**.
-6. D1 CRUD — **🔴/OPEN: current-lineage runtime proof required**.
-7. R2 write/read/delete — **🟢 PASS current-lineage**, fresh runtime evidence on Worker `014b85bd-8c50-4eec-a273-f244644652ae`.
-8. Password reset — **OPEN: refresh current lineage as required**.
-9. Gateway/AI — **🔴/OPEN: current-lineage runtime proof required**.
-10. Dual Workers AI — **🔴/OPEN: primary + fallback runtime proof required**.
+2. Invalid Admin login 401 — **🟢 PASS current-lineage**, Stage 3 run #13.
+3. Valid Admin login + signed session — **🟢 PASS current-lineage**, Stage 3 run #13.
+4. Unauthenticated dashboard 401 — **🟢 PASS current-lineage**, Stage 3 run #13.
+5. Authenticated dashboard — **🟢 PASS within Password Reset E2E current-lineage**, Stage 3 run #13; full dashboard regression remains separately open if required.
+6. D1 CRUD — **🟢 PASS current-lineage**, Stage 3 run #13.
+7. R2 write/read/delete — **🟢 PASS current-lineage**, fresh runtime evidence on Worker `014b85bd-8c50-4eec-a273-f244644652ae` and Stage 3 run #13.
+8. Password reset — **🟢 PASS current-lineage**, Stage 3 run #13.
+9. Gateway/AI — **🟢 PASS current-lineage**, Stage 3 run #13.
+10. Dual Workers AI — **🟢 PASS for Stage 3 primary/fallback models current-lineage**, Stage 3 run #13; Gate-10 serialized dual-role contract remains separately open until its own workflow evidence is refreshed.
 11. APK artifact/hash + S21 Ultra regression — **OPEN**.
 12. Telegram Auto Bot production E2E — **OPEN**.
 13. VIP webhook/idempotency E2E — **OPEN**.
@@ -131,6 +132,9 @@ Stage 3 starts from the current main/runtime lineage above. Do not assume histor
 - GitHub connector can now read PR #251 CI evidence directly: run #138 `CI / Validate = success`. The previously requested APK run #813 is superseded by fresh run #814 for artifact evidence.
 - PR #251 merge completed; fresh Cloudflare deployment/Worker lineage verification and affected backup/restore runtime evidence are still required before closing the corresponding gate.
 
+- Stage 3 run #13 (manual, main `987368c`) completed successfully in 59s for `Current-lineage D1 Gateway AI Admin R2`. Its workflow enforces and passed public smoke, Admin 401 boundaries, D1 CRUD, Gateway health/auth + AI, Workers AI primary/fallback, Password Reset, and R2 lifecycle checks.
+- This Stage 3 run closes the corresponding current-lineage runtime evidence gaps without changing production code or secrets.
+
 ## 8.1 CHANGE LOG — 2026-09-17
 - Read canonical MASTER before Stage 3 work.
 - Persisted the mandatory method: **Cloudflare audit → GitHub source/CI/deploy evidence → GPT deep root-cause challenge**.
@@ -141,6 +145,15 @@ Stage 3 starts from the current main/runtime lineage above. Do not assume histor
 
 ## 9. NEXT CHECKPOINT
 `Current-lineage D1 CRUD → Gateway → Workers AI primary/fallback → Admin/Password Reset → Telegram Auto/VIP → backup/restore → APK artifact/hash + S21 Ultra → Gate-15 reconciliation → release-gate decision.`
+
+## 9.2 STAGE 3 CURRENT-LINEAGE RUNTIME RECONCILIATION — 2026-09-18
+- Run: **Stage 3 Production Reconciliation #13**.
+- Source: main commit `987368c27ccb3ddf349173a52d4cc87dd2ce0f47`.
+- Job: `Current-lineage D1 Gateway AI Admin R2`.
+- Result: **Success**, duration 59s, manually triggered.
+- Evidence enforced by the workflow: public smoke; invalid Admin login 401; unauthenticated dashboard 401; D1 create/read/delete; Developer Gateway health + unauthenticated 401 + authenticated AI response; Cloudflare Workers AI primary `@cf/zai-org/glm-4.7-flash` and fallback `@cf/meta/llama-3.2-3b-instruct`; Password Reset rotate → reset → login → restore; R2 upload → GET 200 → DELETE 200 → GET 404.
+- No artifact was produced and the only annotation was the Ubuntu runner migration notice; no test failure was reported.
+- Production remains **RED/LOCKED** because Telegram Auto/VIP E2E, backup/restore current-lineage evidence, APK physical S21 Ultra regression, Gate-15 reconciliation, and any separately required Gate-10 dual-role runtime evidence remain open.
 
 ## 9.1 CURRENT-LINEAGE R2 CLOSURE — 2026-09-18
 - Deploy Cloudflare Worker #740 attempt 2 completed **successfully** after the first attempt failed only at R2 post-delete verification.
