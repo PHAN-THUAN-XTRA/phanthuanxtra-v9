@@ -126,6 +126,7 @@ jobs:
             echo "EOF"
             echo "CLOUDFLARE_ACCOUNT_ID=${CF_ACCOUNT_ID}"
             echo "CLOUDFLARE_ASSET_TRANSPORT=sdk"
+            echo "CLOUDFLARE_BACKUP_API_TOKEN=${CF_BACKUP_TOKEN}"
           } >> "$GITHUB_ENV"
           echo "Cloudflare API credential source authenticated without exposing token values."
       - name: Deploy and migrate through Cloudflare API/SDK
@@ -145,19 +146,28 @@ jobs:
         shell: bash
         env:
           CF_PURGE_TOKEN: ${{ env.CLOUDFLARE_API_TOKEN }}
+          CF_PURGE_BACKUP_TOKEN: ${{ env.CLOUDFLARE_BACKUP_API_TOKEN }}
           CF_ZONE_ID: ${{ env.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
           payload='{"files":["https://phanthuanxtra.com/admin.html"]}'
-          response="$(curl --fail-with-body --silent --show-error --max-time 30 \
-            -X POST \
-            -H "Authorization: Bearer ${CF_PURGE_TOKEN}" \
-            -H 'Content-Type: application/json' \
-            --data "$payload" \
-            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache")"
-          echo "$response" | jq -e '.success == true' >/dev/null
+          purged=0
+          for candidate in "${CF_PURGE_TOKEN:-}" "${CF_PURGE_BACKUP_TOKEN:-}"; do
+            if [ -z "$candidate" ]; then continue; fi
+            status="$(curl --silent --show-error --max-time 30 -o /tmp/purge-response.json -w '%{http_code}' \
+              -X POST \
+              -H "Authorization: Bearer $candidate" \
+              -H 'Content-Type: application/json' \
+              --data "$payload" \
+              "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache")"
+            if [ "$status" = "200" ] && jq -e '.success == true' /tmp/purge-response.json >/dev/null; then
+              purged=1
+              break
+            fi
+          done
+          test "$purged" = "1"
           echo "Cloudflare targeted purge: /admin.html => API success."
-          curl --silent --show-error --fail --max-time 30 -D /tmp/admin-purge.headers -o /tmp/admin-purge.html "https://phanthuanxtra.com/admin.html?purge_verify=${GITHUB_SHA}"
+          curl --silent --show-error --fail --max-time 30 -D /tmp/admin-purge.headers -o /tmp/admin-purge.html "https://phanthuanxtra.com/admin.html?purge_verify=$GITHUB_SHA"
           grep -Fq 'PHAN THUẦN XTRA' /tmp/admin-purge.html
           echo "Post-purge Admin asset verification: PASS."
 
