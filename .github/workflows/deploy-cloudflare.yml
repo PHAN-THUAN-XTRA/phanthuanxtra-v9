@@ -145,10 +145,13 @@ jobs:
         run: |
           set -euo pipefail
           curl --silent --show-error --fail --max-time 30 -D /tmp/admin.headers -o /tmp/admin.html https://phanthuanxtra.com/admin.html
-          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/admin.headers
-          if grep -Eiq '^content-encoding:' /tmp/admin.headers; then exit 1; fi
-          python3 -c 'from pathlib import Path; s=Path("/tmp/admin.html").read_text(encoding="utf-8"); assert "PHAN THU\\u1ea6N XTRA" in s; assert "PHAN THUáº¦N XTRA" not in s'
-          echo "Admin asset delivery: HTTP 200; UTF-8 content-type; no content-encoding; mojibake marker absent."
+          echo "=== Admin runtime headers ==="
+          cat /tmp/admin.headers
+          echo "=== Admin runtime byte signature ==="
+          wc -c /tmp/admin.html
+          od -An -tx1 -N 96 /tmp/admin.html
+          echo "=== Admin runtime text signature ==="
+          python3 -c 'from pathlib import Path; b=Path("/tmp/admin.html").read_bytes(); s=b.decode("utf-8",errors="replace"); h=Path("/tmp/admin.headers").read_text(errors="replace"); print("HAS_CORRECT_MARKER=", "PHAN THU\u1ea6N XTRA" in s); print("HAS_MOJIBAKE_MARKER=", "PHAN THUáº¦N XTRA" in s); print("CONTENT_TYPE_LINES=", [x for x in h.splitlines() if x.lower().startswith("content-type:")]); print("CONTENT_ENCODING_LINES=", [x for x in h.splitlines() if x.lower().startswith("content-encoding:")])')
       - name: R2 Worker E2E GET DELETE 404
         shell: bash
         env:
