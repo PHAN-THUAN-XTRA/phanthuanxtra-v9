@@ -17,6 +17,10 @@ on:
         default: "manual"
         type: string
 
+concurrency:
+  group: xtra-production-e2e-single-queue
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
