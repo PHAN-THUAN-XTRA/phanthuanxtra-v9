@@ -160,3 +160,14 @@ Stage 3 starts from the current main/runtime lineage above. Do not assume histor
 - Verified lineage: main `f1b61fb7883ccc81c9363b2e4652951d267a2327` → Worker `014b85bd-8c50-4eec-a273-f244644652ae` → deployment `72534bab-bf58-41e0-8bd9-c9cce44255df` → 100% traffic.
 - Fresh production evidence: public smoke HTTP 200; authenticated R2 upload/GET 200/DELETE 200/cache-busted GET 404.
 - R2 gate is closed for this lineage; Production GREEN remains locked by the other open gates.
+
+## 9.3 ADMIN RECOVERY DELIVERY ROOT-CAUSE + RUNTIME CLOSURE — 2026-09-19
+- PR #279 had already corrected /admin.html Worker-first delivery, but /admin-recovery remained served as a raw static asset.
+- PR #280 added exact /admin-recovery to run_worker_first; production deployment #809 completed successfully, but fresh runtime still returned HTTP 200 with cache-control: public, max-age=0, must-revalidate and no content-type.
+- PR #281 broadened the Worker-first pattern to /admin-recovery*; production deployment completed successfully, but the same runtime header failure remained.
+- Deep source/runtime reconciliation isolated the smallest boundary: src/entry.js only normalized / and paths ending in .html; the extensionless /admin-recovery route fell through to the generic asset response even after Worker-first routing.
+- PR #282 (fix(admin): normalize recovery page HTML delivery) added an explicit /admin-recovery Worker branch that fetches /admin-recovery.html and applies UTF-8 HTML, no-store cache policy, and removes content-encoding/content-length normalization.
+- PR #282 merged to main as c508ad4915f9325105933ad4479fed0abb7c18ec.
+- Fresh production runtime evidence after the merged deployment: https://phanthuanxtra.com/admin-recovery returned HTTP 200, content-type: text/html; charset=utf-8, and cache-control: no-store, no-cache, must-revalidate, max-age=0; no content-encoding header was present.
+- **Admin Recovery HTML delivery boundary: 🟢 PASS.**
+- This closes the specific Admin Recovery delivery/header failure only. It does not close the recovery API functional boundary, Gate-15, or Production GREEN by itself.
