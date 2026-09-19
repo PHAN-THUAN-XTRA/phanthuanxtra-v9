@@ -145,8 +145,14 @@ jobs:
           test -n "$CLOUDFLARE_AI_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           for model in '@cf/zai-org/glm-4.7-flash' '@cf/meta/llama-3.2-3b-instruct'; do
-            response="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 90 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}" -H "Authorization: Bearer ${CLOUDFLARE_AI_API_TOKEN}" -H 'content-type: application/json' --data '{"messages":[{"role":"user","content":"Return exactly STAGE3_AI_OK"}],"temperature":0,"max_tokens":500}')"
-            printf '%s' "$response" | jq -e '.success == true' >/dev/null
+            response="$(curl --silent --show-error --retry 2 --max-time 90 -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}" -H "Authorization: Bearer ${CLOUDFLARE_AI_API_TOKEN}" -H 'content-type: application/json' --data '{"messages":[{"role":"user","content":"Return exactly STAGE3_AI_OK"}],"temperature":0,"max_tokens":500}')"
+            success="$(printf '%s' "$response" | jq -r '.success // false')"
+            echo "Workers AI ${model}: API success=${success}"
+            if [ "$success" != "true" ]; then
+              echo "Workers AI ${model}: API response:"
+              printf '%s\n' "$response"
+              exit 1
+            fi
             printf '%s' "$response" | jq -e '((.result.choices[0].message.content // .result.response // "") | contains("STAGE3_AI_OK"))' >/dev/null
             echo "Workers AI ${model}: PASS"
           done
