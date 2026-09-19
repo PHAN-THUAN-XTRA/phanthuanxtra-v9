@@ -164,6 +164,8 @@ jobs:
               purged=1
               break
             fi
+            echo "Cloudflare targeted purge attempt failed: HTTP ${status}."
+            jq -c '{success,errors, messages}' /tmp/purge-response.json 2>/dev/null || true
           done
           test "$purged" = "1"
           echo "Cloudflare targeted purge: /admin.html => API success."
