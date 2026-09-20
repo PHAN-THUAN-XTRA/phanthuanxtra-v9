@@ -11,7 +11,7 @@ function isTrusted(url) { return /^https:\/\/phanthuanxtra\.com\/media\/vehicles
 async function fetchImage(url) {
   if (!/^https?:\/\//i.test(url)) throw new Error("Ảnh Admin phải là URL HTTP(S) để đưa qua AI.");
   const u = new URL(url); if (!/^https?:$/.test(u.protocol)) throw new Error("URL ảnh không hợp lệ.");
-  const response = await fetch(u.toString(), { redirect: "error" }); if (!response.ok) throw new Error(`Không tải được ảnh Admin: HTTP ${response.status}`);
+  const response = await fetch(u.toString(), { redirect: "manual" }); if (response.status >= 300 && response.status < 400) throw new Error("Ảnh Admin không được phép redirect."); if (!response.ok) throw new Error(`Không tải được ảnh Admin: HTTP ${response.status}`);
   const contentType = (response.headers.get("content-type") || "").split(";")[0].toLowerCase(); if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) throw new Error("URL không trỏ tới JPEG/PNG/WebP.");
   const declared = Number(response.headers.get("content-length") || 0); if (declared > MAX_BYTES) throw new Error("Ảnh Admin vượt quá 12MB.");
   const bytes = await response.arrayBuffer(); if (!bytes.byteLength || bytes.byteLength > MAX_BYTES) throw new Error("Ảnh Admin vượt quá 12MB."); return { bytes, contentType };
