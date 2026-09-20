@@ -98,7 +98,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          payload="$(jq -nc --arg id \"ci-ai-chat-${GITHUB_RUN_ID}\" '{conversation_id:$id,visitor_id:$id,message:\"Tôi muốn tìm Lexus\"}')"
+          payload="$(jq -nc --arg id "ci-ai-chat-${GITHUB_RUN_ID}" '{conversation_id:$id,visitor_id:$id,message:"Tôi muốn tìm Lexus"}')"
           last_status=000
           for attempt in 1 2 3 4; do
             : > /tmp/ai-chat.json
