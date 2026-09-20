@@ -101,30 +101,48 @@ function getCached(key){
   const hit=aiResponseCache.get(key);
   if(!hit)return null;
   if(Date.now()-hit.at>AI_CACHE_TTL_MS){aiResponseCache.delete(key);return null;}
-  return hit.text;
+  return hit;
 }
-function setCached(key,text){
+function setCached(key,text,model){
   if(!key)return;
-  aiResponseCache.set(key,{at:Date.now(),text});
+  aiResponseCache.set(key,{at:Date.now(),text,model});
   while(aiResponseCache.size>AI_CACHE_MAX)aiResponseCache.delete(aiResponseCache.keys().next().value);
 }
-
+function aiText(response){
+  const text=typeof response==="string"
+    ? response
+    : response?.response ?? response?.result?.response ?? response?.result?.choices?.[0]?.message?.content;
+  return typeof text==="string" ? text.trim() : "";
+}
 async function runAI(env,messages,cars,knowledge){
   if(!env.AI)throw new Error("Workers AI binding AI is not configured");
-  const key=cacheKey(messages,cars,knowledge); const cached=getCached(key); if(cached)return cached;
+  const key=cacheKey(messages,cars,knowledge);
+  const cached=getCached(key);
+  if(cached)return cached;
   const request={messages:[{role:"system",content:systemPrompt(cars,knowledge)},...messages],max_tokens:MAX_OUTPUT_TOKENS,temperature:0.15};
-  let response;
+  const runModel=async model=>{
+    const response=await env.AI.run(model,request);
+    const text=aiText(response);
+    if(!text)throw new Error(`Workers AI ${model} returned no response`);
+    return clean(text,8000);
+  };
   try {
-    response=await env.AI.run(MODEL_PRIMARY,request);
+    const output=await runModel(MODEL_PRIMARY);
     console.log("workers_ai_model",MODEL_PRIMARY);
+    setCached(key,output,MODEL_PRIMARY);
+    return {text:output,model:MODEL_PRIMARY};
   } catch(error) {
     console.warn("workers_ai_primary_failed",String(error?.message||error));
-    response=await env.AI.run(MODEL_FALLBACK,request);
-    console.log("workers_ai_model",MODEL_FALLBACK);
+    try {
+      const output=await runModel(MODEL_FALLBACK);
+      console.log("workers_ai_model",MODEL_FALLBACK);
+      setCached(key,output,MODEL_FALLBACK);
+      return {text:output,model:MODEL_FALLBACK};
+    } catch(fallbackError) {
+      console.error("workers_ai_fallback_failed",String(fallbackError?.message||fallbackError));
+      throw new Error("Workers AI primary and fallback failed");
+    }
   }
-  const text=typeof response==="string"?response:response?.response;
-  if(!text)throw new Error("Workers AI returned no response");
-  const output=clean(text,8000); setCached(key,output); return output;
 }
 function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
 async function saveLead(env,conversationId,phone,name,message){if(!phone||!env.DB)return false;const normalized=phone.replace(/\D/g,"");if(normalized.length<9)return false;await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message) VALUES (?,?,?,?)").bind(clean(name,120),clean(phone,30),"",`[AI CHAT ${conversationId}] ${clean(message,1800)}`).run();await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(name,120)||null,clean(phone,30),conversationId).run();return true;}
@@ -152,11 +170,11 @@ export async function handleAiChat(request,env){
     if(unknown.created || contact.name || contact.phone){await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:contact.name,phone:contact.phone,message,reply:"Cần Phan Thuần/nhân viên bổ sung thông tin xác thực."});}
     reply="Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA. Tôi không muốn đoán sai. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu đến Phan Thuần/nhân viên để được tư vấn chính xác.";
   } else {
-    try{reply=await runAI(env,[...history,{role:"user",content:message}],cars,knowledge.text)}catch(error){console.error("ai_chat",String(error?.message||error));reply="Tôi đã nhận được tin nhắn của anh/chị. Hiện trợ lý AI đang bận xử lý, anh/chị có thể để lại số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
+    try{const result=await runAI(env,[...history,{role:"user",content:message}],cars,knowledge.text);reply=result.text}catch(error){console.error("ai_chat",String(error?.message||error));reply="Tôi đã nhận được tin nhắn của anh/chị. Hiện trợ lý AI đang bận xử lý, anh/chị có thể để lại số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
   }
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();
   const phone=clean(body?.phone,30)||contact.phone; const name=clean(body?.name,120)||contact.name;
   if(phone)await saveLead(env,conversationId,phone,name,message); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,conversationId).run();
   if(!needsHuman)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
-  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:MODEL_PRIMARY});
+  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:MODEL_PRIMARY});
 }
