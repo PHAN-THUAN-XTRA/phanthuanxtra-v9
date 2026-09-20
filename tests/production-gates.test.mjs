@@ -91,3 +91,28 @@ test('production gate: hidden vehicles are excluded from public catalog query', 
   const src = fs.readFileSync(new URL('../src/index.js', import.meta.url),'utf8');
   assert.match(src,/SELECT \* FROM cars WHERE status <> 'hidden'/);
 });
+
+
+test('production gate: Workers AI falls back when primary returns empty output', async () => {
+  const DB = mockDb();
+  const calls = [];
+  const env = {
+    DB,
+    AI_SEARCH: { async search() { return { chunks:[] }; } },
+    AI: {
+      async run(model) {
+        calls.push(model);
+        return model === '@cf/zai-org/glm-4.7-flash' ? { response:'' } : { response:'FALLBACK_OK' };
+      }
+    }
+  };
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({ conversation_id:'production-ai-fallback', visitor_id:'production-ai-fallback', message:'Lexus LX 600 giá bao nhiêu?' })
+  }), env);
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.ok, true);
+  assert.equal(data.reply, 'FALLBACK_OK');
+  assert.deepEqual(calls, ['@cf/zai-org/glm-4.7-flash', '@cf/meta/llama-3.2-3b-instruct']);
+});
