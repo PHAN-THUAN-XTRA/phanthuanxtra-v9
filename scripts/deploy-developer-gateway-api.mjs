@@ -136,7 +136,6 @@ async function syncSecretAndDeploy() {
       versions: [{ percentage: 100, version_id: versionId }],
       annotations: {
         "workers/message": `API gateway production deployment ${process.env.GITHUB_SHA || "unknown"}`,
-        "workers/triggered_by": "github-actions-api",
       },
     }),
   });
