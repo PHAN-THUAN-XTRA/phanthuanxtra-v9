@@ -37,7 +37,8 @@ jobs:
           set -euo pipefail
           test -n "$ADMIN_PASSWORD"
           TEST_CAR_ID="gate15-e2e-${GITHUB_RUN_ID}"
-          TEST_IMAGE_URL="https://phanthuanxtra.com/media/vehicles/gate15-${TEST_CAR_ID}.jpg"
+          TEST_IMAGE_URL="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$SITE_URL/api/cars" | jq -r '[.cars[]?.images[]?.url // empty] | map(select(type == "string" and startswith("http"))) | map(select(test("^https://phanthuanxtra\\.com/media/vehicles/publish-(admin-)?[A-Za-z0-9._-]+\\.jpg$"))) | .[0] // empty')"
+          test -n "$TEST_IMAGE_URL"
           trap 'curl --silent --show-error --retry 2 --max-time 20 -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" >/dev/null || true' EXIT
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
           test "$status" = 200
@@ -45,11 +46,11 @@ jobs:
           test -n "$ADMIN_SESSION"
           export ADMIN_SESSION
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "$SITE_URL/api/admin/cars" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data "$(jq -nc --arg id "$TEST_CAR_ID" --arg image "$TEST_IMAGE_URL" '{id:$id,brand:"PT XTRA GATE15",model:"Runtime Evidence",year:2026,mileage:1,price:1,fuel:"test",category:"suv",color:"test",status:"available",description:"Gate 15 runtime evidence; automatically deleted.",features:["gate15"],images:[$image]}')" | tee /tmp/d1-create.json
-          jq -e '.ok == true and .id == env.TEST_CAR_ID' /tmp/d1-create.json >/dev/null
+          jq -e --arg id "$TEST_CAR_ID" '.ok == true and .id == $id' /tmp/d1-create.json >/dev/null
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars" | tee /tmp/d1-read.json
           jq -e --arg id "$TEST_CAR_ID" '.cars | any(.[]; .id == $id and .brand == "PT XTRA GATE15")' /tmp/d1-read.json >/dev/null
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" | tee /tmp/d1-delete.json
-          jq -e '.ok == true and .deleted == env.TEST_CAR_ID' /tmp/d1-delete.json >/dev/null
+          jq -e --arg id "$TEST_CAR_ID" '.ok == true and .deleted == $id' /tmp/d1-delete.json >/dev/null
           echo 'D1 runtime E2E: PASS'
 
       - name: Production R2 runtime E2E
