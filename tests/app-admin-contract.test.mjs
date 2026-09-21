@@ -46,3 +46,12 @@ test('lead management migration adds operational fields without dropping data',(
   assert.match(migration,/ALTER TABLE leads ADD COLUMN updated_at/);
   assert.doesNotMatch(migration,/DROP TABLE|DROP COLUMN/);
 });
+
+test('admin control reuses the authenticated session instead of asking for ADMIN_TOKEN',()=>{
+  const control=fs.readFileSync(new URL('../public/admin-control.html',import.meta.url),'utf8');
+  assert.doesNotMatch(control,/<label>ADMIN_TOKEN<\/label>/);
+  assert.doesNotMatch(control,/id="token"/);
+  assert.match(control,/let token=sessionStorage\.getItem\('ptx_admin_token'\)\|\|''/);
+  assert.match(control,/if\(!token\)\{location\.replace\('\/admin\.html'\);return\}/);
+  assert.match(control,/login\(\);/);
+});
