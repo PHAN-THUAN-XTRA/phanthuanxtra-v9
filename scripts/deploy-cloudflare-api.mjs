@@ -176,7 +176,7 @@ async function uploadWorker(assetJwt) {
 
 async function syncSecretsAndDeploy() {
   const secrets = {};
-  const currentBindingNames = new Set((await api(accountPath(`/workers/scripts/${WORKER}/settings`))?.bindings?.map((binding) => binding?.name).filter(Boolean) || []);
+  const currentBindingNames = new Set((await api(accountPath(`/workers/scripts/${WORKER}/settings`)))?.bindings?.map((binding) => binding?.name).filter(Boolean) || []);
   for (const name of ["ADMIN_PASSWORD", "ADMIN_RECOVERY_ROTATE_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_VIP_BOT_TOKEN"]) {
     const value = process.env[name];
     if (!value) throw new Error(`${name} GitHub secret is absent; refusing production deploy.`);
