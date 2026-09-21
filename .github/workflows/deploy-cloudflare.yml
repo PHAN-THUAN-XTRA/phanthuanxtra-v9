@@ -138,19 +138,6 @@ jobs:
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
           TELEGRAM_VIP_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_VIP_WEBHOOK_SECRET }}
         run: node scripts/deploy-cloudflare-api.mjs
-      - name: Verify public production boundary
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --silent --show-error --fail --max-time 30 -D /tmp/home.headers -o /tmp/home.html "https://phanthuanxtra.com/?audit=$GITHUB_SHA"
-          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/home.headers
-          if grep -Eiq '^content-encoding:' /tmp/home.headers; then exit 1; fi
-          grep -Fq 'PHAN THUẦN XTRA' /tmp/home.html
-          ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home.html
-          ! grep -Fq 'há»‡ sinh thĂ¡i' /tmp/home.html
-          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
-          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
-          echo "Public smoke: /, /api/health, /admin.html => HTTP 200."
       - name: Purge changed Admin HTML cache
         shell: bash
         env:
@@ -185,6 +172,20 @@ jobs:
           grep -Fq 'PHAN THUẦN XTRA' /tmp/admin-purge.html
           echo "Post-purge Homepage + Admin asset verification: PASS."
 
+
+      - name: Verify public production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail --max-time 30 -D /tmp/home.headers -o /tmp/home.html "https://phanthuanxtra.com/?audit=$GITHUB_SHA"
+          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/home.headers
+          if grep -Eiq '^content-encoding:' /tmp/home.headers; then exit 1; fi
+          grep -Fq 'PHAN THUẦN XTRA' /tmp/home.html
+          ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home.html
+          ! grep -Fq 'há»‡ sinh thĂ¡i' /tmp/home.html
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
+          echo "Public smoke: /, /api/health, /admin.html => HTTP 200."
       - name: Verify Admin UTF-8 asset delivery
         shell: bash
         run: |
