@@ -178,7 +178,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/home.headers -o /tmp/home.html "https://phanthuanxtra.com/?audit=$GITHUB_SHA"
-          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/home.headers
+          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/home.headers
           grep -Fq 'PHAN THUẦN XTRA' /tmp/home.html
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home.html
           ! grep -Fq 'há»‡ sinh thĂ¡i' /tmp/home.html
@@ -190,7 +190,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/admin.headers -o /tmp/admin.html https://phanthuanxtra.com/admin.html
-          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/admin.headers
+          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/admin.headers
           grep -Fq 'PHAN THUẦN XTRA' /tmp/admin.html
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/admin.html
           ! grep -Fq 'ÄÄƒng nháº­p Admin' /tmp/admin.html
