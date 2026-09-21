@@ -176,10 +176,14 @@ async function uploadWorker(assetJwt) {
 
 async function syncSecretsAndDeploy() {
   const secrets = {};
-  for (const name of ["ADMIN_PASSWORD", "ADMIN_RECOVERY_ROTATE_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_VIP_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET"]) {
+  for (const name of ["ADMIN_PASSWORD", "ADMIN_RECOVERY_ROTATE_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_VIP_BOT_TOKEN"]) {
     const value = process.env[name];
     if (!value) throw new Error(`${name} GitHub secret is absent; refusing production deploy.`);
     secrets[name] = { name, text: value, type: "secret_text" };
+  }
+  for (const name of ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET"]) {
+    const value = process.env[name];
+    if (value) secrets[name] = { name, text: value, type: "secret_text" };
   }
   await api(accountPath(`/workers/scripts/${WORKER}/secrets-bulk`), {
     method: "PATCH",
