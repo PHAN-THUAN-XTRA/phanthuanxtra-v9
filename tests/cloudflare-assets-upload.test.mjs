@@ -126,3 +126,12 @@ test('REST protocol rejects a non-201 asset response with sanitized error detail
     /1000: invalid upload payload/,
   );
 });
+
+
+test('REST protocol accepts Cloudflare 202 Accepted without a completion JWT', async () => {
+  const fetchImpl = async () => new Response('', { status: 202, statusText: 'Accepted' });
+  const session = { jwt: 'UPLOAD_JWT', buckets: [['0123456789abcdef0123456789abcdef']] };
+  const content = new Map([['0123456789abcdef0123456789abcdef', Buffer.from('hello')]]);
+  const jwt = await uploadAssetsWithRest({ apiBase: 'https://api.cloudflare.test/client/v4', accountId: 'a'.repeat(32), session, contentByHash: content, fetchImpl, log: () => {} });
+  assert.equal(jwt, 'UPLOAD_JWT');
+});

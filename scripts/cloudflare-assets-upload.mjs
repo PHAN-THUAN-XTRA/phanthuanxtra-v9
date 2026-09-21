@@ -42,10 +42,13 @@ async function uploadBucketWithRest({ apiBase, accountId, uploadJwt, bucket, con
     body: form,
   });
   const { body } = await readResponse(response);
-  if (response.status !== 201 || body.success === false || !body.result?.jwt) {
+  if (![201, 202].includes(response.status) || body.success === false) {
     throw new Error(formatApiErrors(body, response.status, response.statusText));
   }
-  return body.result.jwt;
+  const completionJwt = body.result?.jwt ?? body.jwt;
+  if (completionJwt) return completionJwt;
+  if (response.status === 202) return uploadJwt;
+  throw new Error(formatApiErrors(body, response.status, response.statusText));
 }
 
 export async function uploadAssetsWithRest({ apiBase, accountId, session, contentByHash, fetchImpl = fetch, log = console.log }) {
