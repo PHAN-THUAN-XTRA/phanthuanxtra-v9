@@ -12,6 +12,8 @@ import { handleAppAdmin } from "./app-admin.js";
 import { handleAdminVehiclePipeline } from "./admin-vehicle-pipeline.js";
 import { reconcileTelegramNotifications } from "./telegram-notifications.js";
 
+// Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
+
 const TELEGRAM_WEBHOOK_URL="https://phanthuanxtra.com/api/telegram/webhook";
 const TELEGRAM_VIP_WEBHOOK_URL="https://phanthuanxtra.com/api/telegram/vip-webhook";
 
