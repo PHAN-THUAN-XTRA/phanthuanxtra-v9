@@ -135,6 +135,8 @@ jobs:
           ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || secrets.TELEGRAM_AUTO_BOT_TOKEN }}
           TELEGRAM_VIP_BOT_TOKEN: ${{ secrets.TELEGRAM_VIP_BOT_TOKEN }}
+          TELEGRAM_CRM_BOT_TOKEN: ${{ secrets.TELEGRAM_CRM_BOT_TOKEN }}
+          TELEGRAM_CRM_CHAT_ID: ${{ secrets.TELEGRAM_CRM_CHAT_ID }}
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
           TELEGRAM_VIP_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_VIP_WEBHOOK_SECRET }}
         run: node scripts/deploy-cloudflare-api.mjs
