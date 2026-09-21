@@ -29,7 +29,11 @@ async function isAuthorized(request,env){
   if((await verifyAdminToken(request,env)).ok)return true;
   const token=env.ADMIN_TOKEN;
   const authorization=request.headers.get("Authorization")||"";
-  return !!token&&authorization.startsWith("Bearer ")&&authorization.slice(7)===token;
+  const legacyHeader=request.headers.get("X-Admin-Token")||"";
+  return !!token&&(
+    (authorization.startsWith("Bearer ")&&authorization.slice(7)===token) ||
+    legacyHeader===token
+  );
 }
 
 export async function handleMediaApi(request,env){
