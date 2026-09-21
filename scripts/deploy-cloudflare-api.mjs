@@ -198,6 +198,19 @@ async function syncSecretsAndDeploy() {
   return deployment;
 }
 
+async function syncCronSchedules() {
+  const result = await api(accountPath(`/workers/scripts/${WORKER}/schedules`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ schedules: [{ cron: "*/5 * * * *" }] }),
+  });
+  const schedules = result?.schedules || [];
+  if (!schedules.some((schedule) => schedule?.cron === "*/5 * * * *")) {
+    throw new Error("Cloudflare Cron Trigger verification failed: */5 * * * * is not configured.");
+  }
+  console.log("Cloudflare Cron Trigger: */5 * * * * configured and verified.");
+}
+
 async function verifyApiLineage() {
   const deployments = await api(accountPath(`/workers/scripts/${WORKER}/deployments`));
   const latest = deployments?.deployments?.[0];
@@ -215,5 +228,6 @@ await applyMigrations();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
+await syncCronSchedules();
 await verifyApiLineage();
 console.log("API/SDK deployment controller completed successfully.");
