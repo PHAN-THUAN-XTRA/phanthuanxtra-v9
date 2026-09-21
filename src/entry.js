@@ -29,7 +29,7 @@ export default {
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
-        const assetResponse = await env.ASSETS.fetch(new Request(url, { method: "GET", headers: assetHeaders }));
+        const assetResponse = await env.ASSETS.fetch(new Request(url, { method: "GET", headers: assetHeaders, cf: { cacheTtl: 0, cacheEverything: false } }));
         const headers = new Headers(assetResponse.headers);
         headers.set("content-type", "text/html; charset=utf-8");
         headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
@@ -41,7 +41,7 @@ export default {
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
-        const assetResponse = await env.ASSETS.fetch(new Request(url, { method: "GET", headers: assetHeaders }));
+        const assetResponse = await env.ASSETS.fetch(new Request(url, { method: "GET", headers: assetHeaders, cf: { cacheTtl: 0, cacheEverything: false } }));
         const headers = new Headers(assetResponse.headers);
         headers.set("content-type", "text/html; charset=utf-8");
         headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
@@ -54,7 +54,7 @@ export default {
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
-        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET", headers: assetHeaders }));
+        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET", headers: assetHeaders, cf: { cacheTtl: 0, cacheEverything: false } }));
         const headers = new Headers(assetResponse.headers);
         headers.set("content-type", "text/html; charset=utf-8");
         headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
