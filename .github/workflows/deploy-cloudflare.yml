@@ -178,10 +178,10 @@ jobs:
         run: |
           set -euo pipefail
           curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/home.headers -o /tmp/home.html "https://phanthuanxtra.com/?audit=$GITHUB_SHA"
-printf 'HOME_HEADERS_RAW:\n'
-cat -v /tmp/home.headers
-printf 'HOME_CONTENT_TYPE:\n'
-grep -i '^content-type:' /tmp/home.headers || true
+          printf 'HOME_HEADERS_RAW:\n'
+          cat -v /tmp/home.headers
+          printf 'HOME_CONTENT_TYPE:\n'
+          grep -i '^content-type:' /tmp/home.headers || true
           grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/home.headers
           grep -Fq 'PHAN THUẦN XTRA' /tmp/home.html
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home.html
