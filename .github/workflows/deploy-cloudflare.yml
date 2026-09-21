@@ -142,7 +142,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/)" = "200"
+          curl --silent --show-error --fail --max-time 30 -D /tmp/home.headers -o /tmp/home.html "https://phanthuanxtra.com/?audit=$GITHUB_SHA"
+          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/home.headers
+          if grep -Eiq '^content-encoding:' /tmp/home.headers; then exit 1; fi
+          grep -Fq 'PHAN THUẦN XTRA' /tmp/home.html
+          ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home.html
+          ! grep -Fq 'há»‡ sinh thĂ¡i' /tmp/home.html
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
           echo "Public smoke: /, /api/health, /admin.html => HTTP 200."
@@ -154,7 +159,7 @@ jobs:
           CF_ZONE_ID: ${{ env.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
-          payload='{"files":["https://phanthuanxtra.com/admin.html"]}'
+          payload='{"files":["https://phanthuanxtra.com/","https://phanthuanxtra.com/admin.html"]}'
           purged=0
           for candidate in "${CF_PURGE_TOKEN:-}" "${CF_PURGE_BACKUP_TOKEN:-}"; do
             if [ -z "$candidate" ]; then continue; fi
@@ -172,10 +177,13 @@ jobs:
             jq -c '{success,errors, messages}' /tmp/purge-response.json 2>/dev/null || true
           done
           test "$purged" = "1"
-          echo "Cloudflare targeted purge: /admin.html => API success."
+          echo "Cloudflare targeted purge: / and /admin.html => API success."
+          curl --silent --show-error --fail --max-time 30 -D /tmp/home-purge.headers -o /tmp/home-purge.html "https://phanthuanxtra.com/?purge_verify=$GITHUB_SHA"
+          grep -Fq 'PHAN THUẦN XTRA' /tmp/home-purge.html
+          ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home-purge.html
           curl --silent --show-error --fail --max-time 30 -D /tmp/admin-purge.headers -o /tmp/admin-purge.html "https://phanthuanxtra.com/admin.html?purge_verify=$GITHUB_SHA"
           grep -Fq 'PHAN THUẦN XTRA' /tmp/admin-purge.html
-          echo "Post-purge Admin asset verification: PASS."
+          echo "Post-purge Homepage + Admin asset verification: PASS."
 
       - name: Verify Admin UTF-8 asset delivery
         shell: bash
