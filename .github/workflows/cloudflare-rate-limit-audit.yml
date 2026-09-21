@@ -9,6 +9,7 @@ jobs:
     timeout-minutes: 10
     env:
       CF_ZONE_ID: 7b2653821ef0d8052bfc91c4cf5008ca
+      CF_WAF_TOKEN: ${{ secrets.CLOUDFLARE_WAF_API_TOKEN }}
       CF_PRIMARY_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CF_BACKUP_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
     steps:
@@ -17,7 +18,7 @@ jobs:
         run: |
           set -euo pipefail
           ok=0
-          for token in "$CF_PRIMARY_TOKEN" "$CF_BACKUP_TOKEN"; do
+          for token in "$CF_WAF_TOKEN" "$CF_PRIMARY_TOKEN" "$CF_BACKUP_TOKEN"; do
             [ -n "$token" ] || continue
             status="$(curl -sS --max-time 30 -o /tmp/ruleset.json -w '%{http_code}' "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets/phases/http_ratelimit/entrypoint" -H "Authorization: Bearer $token")"
             if [ "$status" = 200 ] && jq -e '.success == true' /tmp/ruleset.json >/dev/null; then ok=1; break; fi
