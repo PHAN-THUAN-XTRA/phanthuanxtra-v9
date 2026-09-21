@@ -154,6 +154,7 @@ export async function handleAiChat(request,env){
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"https://phanthuanxtra.com","Access-Control-Allow-Headers":"content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}});
   if(request.method!=="POST")return json({ok:false,error:"Method Not Allowed"},405); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},503);
   const body=await request.json().catch(()=>null); const message=clean(body?.message); if(!message)return json({ok:false,error:"Tin nhắn trống"},400);
+  const suppressCrmNotification = body?.suppress_crm_notification === true && /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel); const history=await loadHistory(env,conversationId); const contact=extractContact(message);
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"user",message).run();
   const[cars,knowledge]=await Promise.all([loadCars(env),searchKnowledge(env,message)]);
@@ -177,9 +178,6 @@ export async function handleAiChat(request,env){
   if(phone)await saveLead(env,conversationId,phone,name,message); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,conversationId).run();
   // Every website AI message must reach CRM exactly once. Unknown requests are
   // already notified above; all other messages use the normal AI chat source.
-  if(!needsHuman)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
-  // If an allowed AI conversation contains contact details, send a dedicated
-  // lead notification as well so the owner sees the captured phone immediately.
-  if(!needsHuman && phone)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
+  if(!needsHuman && !suppressCrmNotification)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
   return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:MODEL_PRIMARY});
 }
