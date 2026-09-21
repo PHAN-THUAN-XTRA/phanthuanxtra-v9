@@ -23,7 +23,7 @@ export default {
         const assetUrl = new URL("/admin.html", request.url);
         return Response.redirect(assetUrl, 302);
       }
-      if (url.pathname === "/admin.html") {
+      if (url.pathname === "/") {\n        const assetHeaders = new Headers(request.headers);\n        assetHeaders.set("accept-encoding", "identity");\n        assetHeaders.set("cache-control", "no-cache");\n        const assetResponse = await env.ASSETS.fetch(new Request(url, { method: "GET", headers: assetHeaders }));\n        const headers = new Headers(assetResponse.headers);\n        headers.set("content-type", "text/html; charset=utf-8");\n        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");\n        headers.delete("content-encoding");\n        headers.delete("content-length");\n        return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });\n      }\n      if (url.pathname === "/admin.html") {
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
