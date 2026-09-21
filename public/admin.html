@@ -33,11 +33,7 @@ body{margin:0;background:#0b0b0b;color:#eee;font:15px system-ui,sans-serif}main{
 const $=s=>document.querySelector(s);
 function msg(t,ok=false){$('#loginMsg').textContent=t;$('#loginMsg').className='msg '+(ok?'ok':'err')}
 async function openControl(){
-  const html=await fetch('/admin-control.html?v='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Không tải được Admin Control');return r.text()});
-  const closeScript='<'+ '/script>';
-  const bootstrap='<script>(function(){const t=sessionStorage.getItem(\'ptx_admin_token\')||\'\';if(t){const el=document.querySelector(\'#token\');if(el){el.value=t;const b=document.querySelector(\'#loginBtn\');if(b)setTimeout(()=>b.click(),0);}}})();'+closeScript;
-  const patched=html.replace('</body>',bootstrap+'</body>');
-  document.open();document.write(patched);document.close();
+  location.replace('/admin-control.html');
 }
 async function login(){
   const password=$('#password').value.trim();
