@@ -189,6 +189,15 @@ jobs:
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
           echo "Public smoke: /, /api/health, /admin.html => HTTP 200; UTF-8 verified after curl decompression."
+          curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/style.headers -o /tmp/style.css "https://phanthuanxtra.com/style.css?audit=$GITHUB_SHA"
+          printf 'STYLE_CONTENT_TYPE:\n'
+          grep -i '^content-type:' /tmp/style.headers || true
+          grep -Eiq '^content-type:[[:space:]]*text/css([[:space:]]*;|[[:space:]]*$)' /tmp/style.headers
+          grep -Fq '.hero-xtra' /tmp/style.css
+          grep -Fq '.industry-grid' /tmp/style.css
+          grep -Fq '.container' /tmp/style.css
+          test "$(wc -c < /tmp/style.css)" -gt 10000
+          echo "Homepage stylesheet delivery: HTTP 200; text/css; expected luxury layout selectors present."
       - name: Verify Admin UTF-8 asset delivery
         shell: bash
         run: |
