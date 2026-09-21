@@ -176,10 +176,17 @@ async function uploadWorker(assetJwt) {
 
 async function syncSecretsAndDeploy() {
   const secrets = {};
-  for (const name of ["ADMIN_PASSWORD", "ADMIN_RECOVERY_ROTATE_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_VIP_BOT_TOKEN", "TELEGRAM_CRM_BOT_TOKEN", "TELEGRAM_CRM_CHAT_ID"]) {
+  const currentBindingNames = new Set((await api(accountPath(`/workers/scripts/${WORKER}/settings`))?.bindings?.map((binding) => binding?.name).filter(Boolean) || []);
+  for (const name of ["ADMIN_PASSWORD", "ADMIN_RECOVERY_ROTATE_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_VIP_BOT_TOKEN"]) {
     const value = process.env[name];
     if (!value) throw new Error(`${name} GitHub secret is absent; refusing production deploy.`);
     secrets[name] = { name, text: value, type: "secret_text" };
+  }
+  for (const name of ["TELEGRAM_CRM_BOT_TOKEN", "TELEGRAM_CRM_CHAT_ID"]) {
+    const value = process.env[name];
+    if (value) secrets[name] = { name, text: value, type: "secret_text" };
+    else if (currentBindingNames.has(name)) console.log(`${name}: preserving existing Cloudflare Worker binding.`);
+    else throw new Error(`${name} is absent from both GitHub Actions and the existing Cloudflare Worker; refusing production deploy.`);
   }
   for (const name of ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET"]) {
     const value = process.env[name];
