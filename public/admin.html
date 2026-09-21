@@ -33,10 +33,11 @@ body{margin:0;background:#0b0b0b;color:#eee;font:15px system-ui,sans-serif}main{
 const $=s=>document.querySelector(s);
 function msg(t,ok=false){$('#loginMsg').textContent=t;$('#loginMsg').className='msg '+(ok?'ok':'err')}
 async function openControl(){
-  // Keep unauthenticated users on the login page. Redirecting immediately to
-  // admin-control creates a loop because admin-control sends missing/invalid
-  // sessions back here.
-
+  const token=sessionStorage.getItem('ptx_admin_token');
+  if(!token)return;
+  const r=await fetch('/api/admin/dashboard',{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok)throw Error('Phiên Admin không hợp lệ');
+  location.replace('/admin-control.html');
 }
 async function login(){
   const password=$('#password').value.trim();
