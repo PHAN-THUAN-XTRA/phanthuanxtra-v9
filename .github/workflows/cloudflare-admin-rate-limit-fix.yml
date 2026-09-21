@@ -19,8 +19,14 @@ jobs:
           set -euo pipefail
           [ -n "$CF_WAF_TOKEN" ] || { echo "::error::CLOUDFLARE_WAF_API_TOKEN missing"; exit 1; }
           url="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets/$RULESET_ID/rules/$RULE_ID"
-          curl -sS --fail-with-body --max-time 30 "$url" -H "Authorization: Bearer $CF_WAF_TOKEN" > /tmp/before.json
-          jq -e '.success == true' /tmp/before.json >/dev/null
+          # Cloudflare Rulesets API does not expose GET on the individual-rule endpoint.
+          # Re-read the phase entrypoint and prove the audited rule still exists before PATCH.
+          entrypoint="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/rulesets/phases/http_ratelimit/entrypoint"
+          curl -sS --fail-with-body --max-time 30 "$entrypoint" -H "Authorization: Bearer $CF_WAF_TOKEN" > /tmp/before.json
+          jq -e --arg id "$RULE_ID" '.success == true and any(.result.rules[]?; .id == $id)' /tmp/before.json >/dev/null || {
+            echo "::error::Audited rate-limit rule no longer exists; refusing mutation."
+            exit 1
+          }
           expression='http.request.method eq "POST" and (http.request.uri.path eq "/api/admin/login" or http.request.uri.path eq "/api/admin/forgot-password" or http.request.uri.path eq "/api/admin/recovery/rotate" or http.request.uri.path eq "/login" or http.request.uri.path eq "/wp-login.php")'
           payload="$(jq -nc --arg expression "$expression" '{action:"block",description:"Login protection",enabled:true,expression:$expression,ratelimit:{characteristics:["ip.src","cf.colo.id"],mitigation_timeout:10,period:10,requests_per_period:5}}')"
           status="$(curl -sS --max-time 30 -o /tmp/update.json -w '%{http_code}' -X PATCH "$url" -H "Authorization: Bearer $CF_WAF_TOKEN" -H 'content-type: application/json' --data "$payload")"
