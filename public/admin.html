@@ -33,7 +33,10 @@ body{margin:0;background:#0b0b0b;color:#eee;font:15px system-ui,sans-serif}main{
 const $=s=>document.querySelector(s);
 function msg(t,ok=false){$('#loginMsg').textContent=t;$('#loginMsg').className='msg '+(ok?'ok':'err')}
 async function openControl(){
-  location.replace('/admin-control.html');
+  // Keep unauthenticated users on the login page. Redirecting immediately to
+  // admin-control creates a loop because admin-control sends missing/invalid
+  // sessions back here.
+
 }
 async function login(){
   const password=$('#password').value.trim();
