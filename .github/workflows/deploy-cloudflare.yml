@@ -177,26 +177,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --silent --show-error --fail --max-time 30 -D /tmp/home.headers -o /tmp/home.html "https://phanthuanxtra.com/?audit=$GITHUB_SHA"
+          curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/home.headers -o /tmp/home.html "https://phanthuanxtra.com/?audit=$GITHUB_SHA"
           grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/home.headers
-          if grep -Eiq '^content-encoding:' /tmp/home.headers; then exit 1; fi
           grep -Fq 'PHAN THUẦN XTRA' /tmp/home.html
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home.html
           ! grep -Fq 'há»‡ sinh thĂ¡i' /tmp/home.html
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
-          echo "Public smoke: /, /api/health, /admin.html => HTTP 200."
+          echo "Public smoke: /, /api/health, /admin.html => HTTP 200; UTF-8 verified after curl decompression."
       - name: Verify Admin UTF-8 asset delivery
         shell: bash
         run: |
           set -euo pipefail
-          curl --silent --show-error --fail --max-time 30 -D /tmp/admin.headers -o /tmp/admin.html https://phanthuanxtra.com/admin.html
+          curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/admin.headers -o /tmp/admin.html https://phanthuanxtra.com/admin.html
           grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset=utf-8([[:space:]]*;|[[:space:]]*$)' /tmp/admin.headers
-          if grep -Eiq '^content-encoding:' /tmp/admin.headers; then exit 1; fi
           grep -Fq 'PHAN THUẦN XTRA' /tmp/admin.html
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/admin.html
           ! grep -Fq 'ÄÄƒng nháº­p Admin' /tmp/admin.html
-          echo "Admin asset delivery: HTTP 200; UTF-8 content-type; no content-encoding; mojibake markers absent."
+          echo "Admin asset delivery: HTTP 200; UTF-8 content-type; decoded body; mojibake markers absent."
       - name: R2 Worker E2E GET DELETE 404
         shell: bash
         env:
