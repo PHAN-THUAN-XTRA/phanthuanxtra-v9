@@ -1,0 +1,69 @@
+name: Admin Recovery Rotate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-recovery-rotate
+  cancel-in-progress: false
+
+jobs:
+  rotate:
+    name: Rotate Admin recovery code
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Verify bootstrap secret is configured
+        shell: bash
+        env:
+          ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${ROTATE_TOKEN:-}"
+          echo "Admin recovery bootstrap credential: present"
+
+      - name: Rotate recovery code
+        id: rotate
+        shell: bash
+        env:
+          ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          payload="$(jq -nc --arg rotateToken "$ROTATE_TOKEN" '{rotateToken:$rotateToken}')"
+          curl --fail-with-body --silent --show-error --max-time 30 \
+            -H 'content-type: application/json' \
+            --data "$payload" \
+            https://phanthuanxtra.com/api/admin/recovery/rotate > /tmp/admin-recovery.json
+          jq -e '.ok == true and (.recoveryCode | type == "string") and (.recoveryCode | length >= 32)' /tmp/admin-recovery.json >/dev/null
+          code="$(jq -r '.recoveryCode' /tmp/admin-recovery.json)"
+          echo "::add-mask::$code"
+          printf '%s' "$code" > /tmp/admin-recovery-code.txt
+          echo "Admin recovery rotation: PASS"
+          echo "The new recovery code is stored only in the protected workflow artifact."
+
+      - name: Upload one-time recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-recovery-code
+          path: /tmp/admin-recovery-code.txt
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Safety summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '# Admin Recovery Rotate'
+            echo
+            echo '- Recovery code rotated through the production API.'
+            echo '- Secret/token values were not written to the workflow summary.'
+            echo '- Recovery artifact retention: 1 day.'
+            echo '- No Wrangler command is used.'
+            echo '- No repository or source mutation is performed by this workflow.'
+          } >> "$GITHUB_STEP_SUMMARY"
