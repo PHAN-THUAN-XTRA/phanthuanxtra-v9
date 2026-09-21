@@ -133,6 +133,10 @@ jobs:
         env:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || secrets.TELEGRAM_AUTO_BOT_TOKEN }}
+          TELEGRAM_VIP_BOT_TOKEN: ${{ secrets.TELEGRAM_VIP_BOT_TOKEN }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          TELEGRAM_VIP_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_VIP_WEBHOOK_SECRET }}
         run: node scripts/deploy-cloudflare-api.mjs
       - name: Verify public production boundary
         shell: bash
