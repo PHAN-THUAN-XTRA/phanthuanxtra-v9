@@ -224,14 +224,14 @@ jobs:
             done
             CF_LAST_STATUS="429"; return 1
           }
-          cf_status GET "$media_url" -H 'cache-control: no-cache'
+          cf_status GET "$media_url" -H "Authorization: Bearer ${token}" -H 'cache-control: no-cache'
           test "$CF_LAST_STATUS" = "200"
           cf_status DELETE "$media_url" -H "Authorization: Bearer ${token}"
           test "$CF_LAST_STATUS" = "200"
           post_delete_url="${media_url}?r2_e2e_cache_bust=$(date +%s%N)"
           cf_status GET "$post_delete_url" -H 'cache-control: no-cache'
           test "$CF_LAST_STATUS" = "404"
-          echo "R2 Worker E2E: upload -> GET 200 -> DELETE 200 -> cache-busted GET 404."
+          echo "R2 Worker E2E: upload -> authenticated GET 200 -> DELETE 200 -> cache-busted GET 404."
       - name: Deployment completed
         run: |
           echo "========================================"
