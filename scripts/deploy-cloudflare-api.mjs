@@ -202,7 +202,7 @@ async function syncCronSchedules() {
   const result = await api(accountPath(`/workers/scripts/${WORKER}/schedules`), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ schedules: [{ cron: "*/5 * * * *" }] }),
+    body: JSON.stringify([{ cron: "*/5 * * * *" }]),
   });
   const schedules = result?.schedules || [];
   if (!schedules.some((schedule) => schedule?.cron === "*/5 * * * *")) {
