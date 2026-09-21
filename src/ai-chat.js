@@ -175,11 +175,8 @@ export async function handleAiChat(request,env){
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();
   const phone=clean(body?.phone,30)||contact.phone; const name=clean(body?.name,120)||contact.name;
   if(phone)await saveLead(env,conversationId,phone,name,message); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,conversationId).run();
-  // Every website AI message must reach CRM exactly once. Unknown requests are
-  // already notified above; all other messages use the normal AI chat source.
+  // Mirror the test-drive path: every allowed website AI message is delivered
+  // to the same Telegram CRM bot/chat exactly once, including captured contact.
   if(!needsHuman)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
-  // If an allowed AI conversation contains contact details, send a dedicated
-  // lead notification as well so the owner sees the captured phone immediately.
-  if(!needsHuman && phone)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
   return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:MODEL_PRIMARY});
 }
