@@ -1,9 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
-> Date: 2026-09-18 (UTC+7)
+> Date: 2026-09-22 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Current main lineage: `987368c27ccb3ddf349173a52d4cc87dd2ce0f47` (PR #254 merged; current-lineage Stage 3 reconciliation run #13 completed successfully; deployed Worker remains the verified `f1b61fb` lineage).
+> Latest verified main/deploy lineage: `8a8324e7bd46148a1129cd99fbf702959fe69a9f` (PR #377). See section 12.5 for current evidence and PR #378 pending status; older lineage references below are historical, not current release certification.
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -334,3 +334,37 @@ Rules:
 - Security finding: pre-fix machine-audit artifacts could include a sensitive value from a `plain_text` binding because the original redactor inspected field names but not sensitive binding names. No credential value is copied into this MASTER.
 - Remediation: redaction now treats `secret_text` and sensitive binding names as secret objects and redacts `text/value`; CI validates that no sensitive binding value escapes. Known pre-fix audit artifacts are deleted by a one-time GitHub Actions cleanup workflow after merge.
 - Credential rotation remains a separate production mutation and requires explicit approval; artifact deletion and redaction do not rotate Cloudflare credentials.
+
+
+### 12.5 Canonical audit handoff — 2026-09-22 UTC+7
+- Owner reaffirmed: use **only this existing Markdown file on GitHub** for project status/handoff. Do not create competing audit/checkpoint Markdown files. This entry supersedes older current-status claims above where lineage differs; historical evidence is retained.
+- PR #377 merged as `8a8324e7bd46148a1129cd99fbf702959fe69a9f`: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/377
+- Production deploy #1013: actual production deploy, public boundary, Admin UTF-8 and R2 GET → DELETE → 404 steps all SUCCESS: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35700708497
+- Cleanup #1 confirmed DELETE HTTP 204 for all three pre-fix artifacts: `10680328206`, `10680711498`, `10680792704`: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35700708468
+- Machine audit #8: redaction contract PASS; 10 Workers mapped; mutations=0; KEEP/REVIEW/NOT PRESENT classifications in 12.4 retained; REMOVE empty. Both AI Gateway and AI Search inventory reported UNAVAILABLE; never infer absence: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35700708486
+- Production Gate-15 #233 including D1/R2 succeeded: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35700708459
+- APK #1074 build succeeded (not physical-device verification): https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35700708641
+- At the recorded check, 12 workflows succeeded and Production Smoke #703 was CANCELLED with no jobs returned: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35700708474 . Shared concurrency is a hypothesis, not a proven cancellation cause. Do not label every workflow green.
+
+#### Active PR #378 — production credential safety
+- PR: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/378 ; branch `fix/smoke-production-credential-safety`. OPEN, not merged at this checkpoint.
+- Removes live password-reset/recovery rotation from both routine production smoke workflows, removes unused recovery rotation secret binding, and explicitly reports password-reset E2E NOT RUN. Retains existing login/auth, website/Gateway health, D1/R2 and concurrency settings.
+- New Production Credential Safety check rejects known reset/rotate endpoint references, rotation secret, misleading reset PASS output and missing retained-check markers in these two workflows. This bounded static check is not proof against every possible indirect credential mutation.
+- Local validation: YAML parse, all shell steps bash -n, guard Python syntax PASS; guard accepts edited workflows and rejects each unsafe original workflow.
+- All 7 PR workflows succeeded on **code head** `790820a905d2edf7ba8bc1bf951868df22901fc0`. This documentation commit changes the head; recheck the resulting head before merge rather than carrying old green evidence forward.
+- Credential guard: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35701644080
+- Runtime harness: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35701643580
+- APK: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35701643418
+- Static audit: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35701643417
+- Deploy workflow validation succeeded, but actual production deploy job was **SKIPPED** on the PR: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35701643481
+- CI: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35701643454
+- Admin pipeline: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/35701643711
+- PR green does not mean production has this fix. Remaining D1/R2 steps still write/delete test data; this change does not make the entire smoke read-only. Password-reset E2E requires isolated testing or a separately approved production procedure.
+
+#### Pending authorization and next steps
+1. Recheck new PR #378 head and checks after this MASTER update. Merge remains pending explicit approval; writing this entry is not merge authorization. Do not open another competing checkpoint PR.
+2. After authorized merge, obtain actual merge SHA and fresh push/deploy/UTF-8/R2 evidence. Shared-concurrency cancellation remains a separate unresolved boundary; PR #378 does not claim to fix it.
+3. AI Gateway/AI Search inventory remains blocked; Dashboard Ask AI in the cloud browser requires user verification. No direct Ask AI runtime success is claimed.
+4. Credential suspected of artifact exposure has no verified remediation rotation. Redaction/artifact deletion is not credential rotation. Rotation and Cloudflare resource deletion require separate approval.
+5. Owner uses Windows 10 PowerShell. Request specific PowerShell/Ask AI help only when needed; never request secret values in chat.
+6. No background monitoring automation has been created. Production GREEN remains locked until all required current-lineage release evidence is reconciled, including physical-device and other open gates.
