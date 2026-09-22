@@ -154,7 +154,7 @@ async function uploadWorker(assetJwt) {
     main_module: "src/entry.js",
     compatibility_date: COMPATIBILITY_DATE,
     compatibility_flags: ["nodejs_compat"],
-    assets: { jwt: assetJwt, config: { not_found_handling: "404-page", run_worker_first: ["/", "/home", "/home/", "/style.css", "/admin", "/admin/", "/admin.html", "/admin-control", "/admin-control.html", "/admin-recovery*", "/api/*", "/media/*"] } },
+    assets: { jwt: assetJwt, config: { not_found_handling: "404-page", run_worker_first: ["/", "/home", "/home/", "/style.css", "/admin", "/admin/", "/admin.html", "/admin-control", "/admin-control/", "/admin-control.html", "/admin-recovery", "/admin-recovery/", "/admin-recovery.html", "/api/*", "/media/*"] } },
     triggers: { crons: ["*/5 * * * *"] },
     bindings: await getCurrentBindings(),
     annotations: {
