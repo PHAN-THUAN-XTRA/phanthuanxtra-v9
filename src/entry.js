@@ -11,6 +11,7 @@ import { handleAppApi } from "./app-api.js";
 import { handleAppAdmin } from "./app-admin.js";
 import { handleAdminVehiclePipeline } from "./admin-vehicle-pipeline.js";
 import { reconcileTelegramNotifications } from "./telegram-notifications.js";
+import { handlePublishCore } from "./publish-core.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
 
@@ -54,6 +55,8 @@ export default {
         headers.delete("content-length");
         return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
       }
+      const publishCoreResponse = await handlePublishCore(request, env);
+      if (publishCoreResponse) return publishCoreResponse;
       const aiChatResponse = await handleAiChat(request, env);
       if (aiChatResponse) return aiChatResponse;
       const adminPipeline = await handleAdminVehiclePipeline(request, env);
