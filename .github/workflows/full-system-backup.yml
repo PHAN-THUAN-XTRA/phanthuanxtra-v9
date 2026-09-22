@@ -10,6 +10,7 @@ on:
       - .github/workflows/gate-14-backup-restore.yml
       - scripts/full-system-backup.mjs
   schedule:
+    # 07:00 Asia/Ho_Chi_Minh (UTC+7)
     - cron: "0 0 * * *"
 
 permissions:
