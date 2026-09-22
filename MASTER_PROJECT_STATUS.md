@@ -303,3 +303,11 @@ Rules:
 - Evidence: `cloudflare-audit/report.json` is an ephemeral GitHub Actions artifact retained 30 days, not a second committed Markdown source of truth.
 - Trigger: automatically on main when the audit workflow/script changes; manual dispatch remains available.
 - Decision rule: resources are not classified REMOVE until machine evidence proves no production dependency. Unsupported API permissions are recorded as UNAVAILABLE rather than guessed.
+
+
+### 12.2 CF-MACHINE-001 invalidated; CF-MACHINE-002 supersedes it
+- CF-MACHINE-001 workflow execution itself succeeded with zero mutations, but its report parser had an off-by-one HTTP-status bug: Cloudflare `200` was recorded as `0` and `403` as `3`.
+- Therefore CF-MACHINE-001 resource availability fields are **INVALID FOR CLASSIFICATION**. No KEEP/REMOVE decision may rely on that artifact.
+- CF-MACHINE-002 fixes status parsing by slicing with the exact marker length and re-runs the same read-only inventory automatically on main.
+- Queue-01 production E2E race also identified: the push-triggered E2E attempted Admin login before the concurrent production deployment completed. Queue-01 is changed to `workflow_run` and executes only after a successful `Deploy Cloudflare Worker` run for `main`, checking out the exact deployed SHA.
+- Both changes are CI/audit control-plane fixes only; no Cloudflare resource mutation is performed.
