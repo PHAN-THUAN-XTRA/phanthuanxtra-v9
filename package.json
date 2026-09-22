@@ -12,7 +12,8 @@
     "check": "node --check scripts/deploy-cloudflare-api.mjs",
     "d1:create": "wrangler d1 create phanthuanxtra-db",
     "d1:migrate": "wrangler d1 migrations apply phanthuanxtra-db --remote",
-    "d1:local": "wrangler d1 migrations apply phanthuanxtra-db --local"
+    "d1:local": "wrangler d1 migrations apply phanthuanxtra-db --local",
+    "test": "node --test test/*.test.js"
   },
   "devDependencies": {
     "wrangler": "^4.121.0"
