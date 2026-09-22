@@ -38,3 +38,13 @@ jobs:
           check_asset "/admin.html" "PHAN THUẦN XTRA"
           check_asset "/admin-recovery.html" "Admin Recovery"
           check_asset "/api/health" '"ok":true'
+
+          # P4 public-flow regression: homepage structure + dynamic vehicle detail asset.
+          home="$(mktemp)"
+          curl --silent --show-error --compressed --retry 3 --max-time 20 "$SITE_URL/" -o "$home"
+          for marker in 'id="cars-section"' 'id="test-drive"' 'id="ai-assistant"' 'id="contact"' 'id="compareModal"' 'id="aiWidget"'; do
+            test "$(grep -Foc "$marker" "$home")" = "1"
+          done
+          test "$(grep -Foc '</main>' "$home")" = "1"
+          test "$(grep -Foc '</html>' "$home")" = "1"
+          check_asset "/car.html?id=__p4_missing__" "vehicleDetail"
