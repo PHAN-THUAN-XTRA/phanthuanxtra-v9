@@ -8,12 +8,15 @@ permissions:
 
 jobs:
   telegram-diagnostics:
-    name: Check Auto + VIP Telegram bots
+    name: Audit production Telegram bot roles
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       TELEGRAM_AUTO_BOT_TOKEN: ${{ secrets.TELEGRAM_AUTO_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_VIP_BOT_TOKEN: ${{ secrets.TELEGRAM_VIP_BOT_TOKEN }}
+      TELEGRAM_CRM_BOT_TOKEN: ${{ secrets.TELEGRAM_CRM_BOT_TOKEN }}
+      TELEGRAM_CRM_CHAT_ID: ${{ secrets.TELEGRAM_CRM_CHAT_ID }}
+      TELEGRAM_CHAT_BOT_TOKEN: ${{ secrets.TELEGRAM_CHAT_BOT_TOKEN }}
 
     steps:
       - name: Check secret presence without revealing values
@@ -22,7 +25,10 @@ jobs:
           set -euo pipefail
           [[ -n "${TELEGRAM_AUTO_BOT_TOKEN:-}" ]] || { echo "❌ Auto Bot token is missing (checked TELEGRAM_AUTO_BOT_TOKEN, then TELEGRAM_BOT_TOKEN)"; exit 1; }
           [[ -n "${TELEGRAM_VIP_BOT_TOKEN:-}" ]] || { echo "❌ TELEGRAM_VIP_BOT_TOKEN is missing"; exit 1; }
-          echo "✅ Both Telegram bot tokens are available to diagnostics."
+          [[ -n "${TELEGRAM_CRM_BOT_TOKEN:-}" ]] || { echo "❌ CRM Bot token is missing"; exit 1; }
+          [[ -n "${TELEGRAM_CRM_CHAT_ID:-}" ]] || { echo "❌ CRM Chat ID is missing"; exit 1; }
+          echo "✅ Required production Telegram tokens (Auto, VIP, CRM) are available."
+          if [[ -n "${TELEGRAM_CHAT_BOT_TOKEN:-}" ]]; then echo "ℹ️ Separate AI Chat Bot token is configured."; else echo "ℹ️ Separate AI Chat Bot token is NOT configured; website AI remains independent of Telegram."; fi
 
       - name: Check Telegram identity and webhook state
         shell: bash
@@ -86,6 +92,37 @@ jobs:
 
           check_bot "AUTO BOT" "$TELEGRAM_AUTO_BOT_TOKEN" "/api/telegram/webhook" "phanthuanxtra_auto_bot"
           check_bot "VIP BOT" "$TELEGRAM_VIP_BOT_TOKEN" "/api/telegram/vip-webhook" "phanthuanxtra_vip_bot"
+
+          echo ""
+          echo "===== CRM BOT ====="
+          crm_me="$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 1 --request POST --url "https://api.telegram.org/bot${TELEGRAM_CRM_BOT_TOKEN}/getMe")"
+          printf '%s' "$crm_me" | jq -e '.ok == true' >/dev/null
+          echo "Telegram API: ✅ ok=true"
+          echo "Bot ID: $(printf '%s' "$crm_me" | jq -r '.result.id // "unknown"')"
+          echo "Username: $(printf '%s' "$crm_me" | jq -r '.result.username // "unknown"')"
+          crm_chat="$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 1 -H 'Content-Type: application/json' --data "$(jq -nc --arg chat_id "$TELEGRAM_CRM_CHAT_ID" '{chat_id:$chat_id}')" "https://api.telegram.org/bot${TELEGRAM_CRM_BOT_TOKEN}/getChat")"
+          printf '%s' "$crm_chat" | jq -e '.ok == true' >/dev/null
+          echo "CRM destination: ✅ accessible; type=$(printf '%s' "$crm_chat" | jq -r '.result.type // "unknown"')"
+
+          if [[ -n "${TELEGRAM_CHAT_BOT_TOKEN:-}" ]]; then
+            echo ""
+            echo "===== OPTIONAL SEPARATE AI CHAT BOT ====="
+            chat_me="$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 1 --request POST --url "https://api.telegram.org/bot${TELEGRAM_CHAT_BOT_TOKEN}/getMe")"
+            printf '%s' "$chat_me" | jq -e '.ok == true' >/dev/null
+            echo "Telegram API: ✅ ok=true"
+            echo "Bot ID: $(printf '%s' "$chat_me" | jq -r '.result.id // "unknown"')"
+            echo "Username: $(printf '%s' "$chat_me" | jq -r '.result.username // "unknown"')"
+            chat_info="$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 1 --request POST --url "https://api.telegram.org/bot${TELEGRAM_CHAT_BOT_TOKEN}/getWebhookInfo")"
+            echo "Webhook configured: $(printf '%s' "$chat_info" | jq -r '(.result.url // "") | length > 0')"
+            echo "Pending updates: $(printf '%s' "$chat_info" | jq -r '.result.pending_update_count // 0')"
+          fi
+
+          auto_id="$(curl --silent "https://api.telegram.org/bot${TELEGRAM_AUTO_BOT_TOKEN}/getMe" | jq -r '.result.id // empty')"
+          vip_id="$(curl --silent "https://api.telegram.org/bot${TELEGRAM_VIP_BOT_TOKEN}/getMe" | jq -r '.result.id // empty')"
+          crm_id="$(printf '%s' "$crm_me" | jq -r '.result.id // empty')"
+          chat_id=""
+          if [[ -n "${TELEGRAM_CHAT_BOT_TOKEN:-}" ]]; then chat_id="$(printf '%s' "$chat_me" | jq -r '.result.id // empty')"; fi
+          printf "Distinct configured bot IDs: "; printf "%s\n" "$auto_id" "$vip_id" "$crm_id" "$chat_id" | sed '/^$/d' | sort -u | wc -l
 
       - name: Safety confirmation
         run: |
