@@ -430,3 +430,11 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 | P2 | **IN PROGRESS** | KEEP proven live bindings; finish exact `IMAGES` usage/runtime classification. |
 | P3 | **PLANNED** | Define authenticated canonical Publish Core from existing Telegram/Admin flows. |
 | P4 | **PLANNED** | Production visual/performance audit before UI implementation. |
+
+
+## 14. Tooling constraint — Wrangler CLI
+
+- **Do not use Wrangler CLI as an execution path for this project unless the owner explicitly changes this rule.**
+- Cloudflare account/runtime operations that require full Cloudflare authority should be performed through **Ask AI in the Cloudflare Dashboard** when needed.
+- ChatGPT prepares the exact instruction/prompt; the owner pastes it into Cloudflare Ask AI; GitHub remains the durable audit/evidence plane and records results in this `MASTER_PROJECT_STATUS.md`.
+- Reading `wrangler.json` for configuration/dependency audit is allowed; this restriction is about **executing Wrangler CLI commands**, not inspecting the repository configuration file.
