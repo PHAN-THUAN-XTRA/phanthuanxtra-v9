@@ -1,4 +1,4 @@
-import { handleAdminCars } from "./cms.js";
+import { saveCar } from "./vehicle-persistence.js";
 import { publishCar } from "./telegram.js";
 import { verifyAdminToken } from "./admin-auth.js";
 
@@ -27,13 +27,8 @@ export async function handlePublishCore(request, env) {
   const carId = clean(body.id, 81);
   if (!carId) return json({ error: "id là bắt buộc" }, 400);
 
-  const saveRequest = new Request(new URL("/api/admin/cars", request.url), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const saved = await handleAdminCars(saveRequest, env);
-  if (!saved.ok) return saved;
+  const saved = await saveCar(env.DB, body, { id: carId, mode: "create", actor: auth.actor });
+  if (!saved.ok) return json({ error: saved.error }, saved.status);
 
   let telegram = null;
   if (body.outputs?.telegram === true) {
