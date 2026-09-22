@@ -368,3 +368,65 @@ Rules:
 4. Credential suspected of artifact exposure has no verified remediation rotation. Redaction/artifact deletion is not credential rotation. Rotation and Cloudflare resource deletion require separate approval.
 5. Owner uses Windows 10 PowerShell. Request specific PowerShell/Ask AI help only when needed; never request secret values in chat.
 6. No background monitoring automation has been created. Production GREEN remains locked until all required current-lineage release evidence is reconciled, including physical-device and other open gates.
+
+
+## 13. P0–P4 MASTER AUDIT & EXECUTION PLAN — CONSOLIDATED 2026-09-22
+
+This section consolidates the temporary `XTRA_MASTER_AUDIT.md` into this canonical MASTER. After this consolidation, `MASTER_PROJECT_STATUS.md` is the only project-status / audit-plan Markdown source of truth.
+
+### Operating model
+1. **ChatGPT = reasoning / audit / decision layer.** Inspect evidence first and choose the smallest safe change.
+2. **Cloudflare Ask AI / Workers AI = execution accelerator.** It may execute defined tasks with its authorized capabilities, but its conclusions do not replace GitHub/runtime evidence.
+3. **GitHub automation = verifier and evidence plane.** Prefer direct automated audit and focused branch/PR changes; serialize production-mutating E2E and never reset production credentials in routine smoke.
+4. **This MASTER = durable plan + evidence ledger.** Do not create a parallel checkpoint/control Markdown.
+5. **Fix only from evidence.** Cancelled/skipped is not a failed assertion; never patch merely to make status green.
+6. **Conserve AI quota.** Routine CI should use deterministic health/auth checks when live inference is unnecessary.
+
+### P0 — Gate-15 closure: COMPLETE
+- Fresh manual Gate-15 run: **35705461544**.
+- Event: `workflow_dispatch`; branch: `main`; tested SHA: `fc093e3a9b79b30b24c299bec78fb74516f2907c`.
+- Result: **SUCCESS**.
+- Verified workflow steps include website + production Worker checks, Admin authentication boundary, Developer Gateway health/auth, D1 create/read/delete, production credential-safety policy, R2 media write/read/delete with post-delete verification, detail-page smoke, and final production summary.
+- No application fix was required to close P0.
+- Historical cancelled run `35703616243` remains historical evidence only and is superseded for P0 closure by the fresh successful run above.
+
+### Ask AI / Workers AI audit execution
+- AI Unified Executor run: **35705678250** on SHA `fc093e3a9b79b30b24c299bec78fb74516f2907c`.
+- Result: **SUCCESS**.
+- Checkout, environment preparation, canonical checkpoint read, Cloudflare Workers AI executor, safety/regression gate and executor summary all completed successfully.
+- Task objective: audit P1 GitHub workflow overlap and P2 Cloudflare binding/runtime usage without production mutation or resource deletion.
+- GitHub/source/runtime evidence remains authoritative for resulting KEEP/REVIEW/fix decisions.
+
+### P1 — GitHub workflow inventory and consolidation: IN PROGRESS
+Objective: reduce duplicate triggers, duplicate production E2E, Actions noise and ambiguous cancellation states.
+
+Audit every `.github/workflows/*.yml` and classify CI/static/unit, deploy, production verification, credential/security, scheduled maintenance, Android/release, AI automation and obsolete/duplicate. Record triggers/path filters, concurrency, secrets, D1/R2/credential mutation, AI inference, workflow dependencies and overlap.
+
+Target architecture: `CI -> Deploy -> Production Verify -> Release Evidence`. Only one serialized workflow should perform production-mutating D1/R2 E2E; other workflows should consume evidence where practical. Do not delete or merge workflows until dependency/trigger evidence proves the change safe.
+
+Current evidence: repository inventory contains **36 workflow YAML files**. A documentation-only master-plan PR triggered multiple unrelated checks including Android/runtime/deploy-class workflows, so trigger/path-filter consolidation is a concrete P1 target. Audit/fix through GitHub directly where possible.
+
+### P2 — Cloudflare binding/runtime inventory: IN PROGRESS
+Current `wrangler.json` declares Assets/`ASSETS`, Workers AI/`AI`, Images/`IMAGES`, AI Search/`AI_SEARCH`, R2/`MEDIA`, D1/`DB`, observability, cache and cron `*/5 * * * *`.
+
+Rules: prove source/runtime usage before removal. Existing source audit confirms `AI_SEARCH` is used by website AI logic and the scheduled handler is live for Telegram webhook/reconciliation maintenance; therefore neither is a cleanup candidate. `ASSETS`, `AI`, `MEDIA` and `DB` also have established runtime dependencies. Complete exact `IMAGES` call-site/runtime evidence before classifying it. Never remove a binding from configuration alone.
+
+### P3 — Unified Publish Core: PLANNED
+Desired flow: `Telegram | Admin | ChatGPT | future API clients -> Publish Core -> validation -> D1/R2 -> website -> outbound channels`.
+
+Existing verified capabilities include Telegram vehicle photo/text ingestion, R2 media storage, vehicle AI + publication gates, promotion to website data, Admin inventory management and Admin car-to-Telegram publishing. Channel adapters should handle ingestion/auth only; canonical schema, deterministic validation, idempotency, draft/review/publish state and audit trail belong in one Publish Core. ChatGPT should call the authenticated API rather than duplicate business logic.
+
+### P4 — UI V2 conversion simplification: PLANNED
+Proposed hierarchy: `Hero -> Automotive inventory -> Private Concierge -> Ecosystem -> AI Assistant -> Contact`. Keep primary CTAs small and consistent: inventory plus private contact/appointment. Perform desktop/mobile production visual review, CTA/inventory/contact friction, performance/Core Web Vitals, accessibility and SEO/schema audit before implementation. Do not perform wholesale redesign before P1/P2 are stable.
+
+### Automatic audit protocol
+Read this MASTER first; read current main SHA and recent Actions; compare evidence with P0–P4; audit non-destructively first; use existing safe verifiers; make focused branch/PR changes; never mutate production credentials in routine automation; never delete Cloudflare bindings/workflows without dependency proof; record durable evidence back into this MASTER. Ask the owner only for external permission, Cloudflare account-only settings, secret/billing decisions, destructive production actions or external-channel authorization.
+
+### Current P0–P4 ledger
+| Priority | State | Evidence / next action |
+|---|---|---|
+| P0 | **COMPLETE** | Gate-15 run `35705461544` SUCCESS on `fc093e3`. |
+| P1 | **IN PROGRESS** | Complete 36-workflow trigger/dependency/overlap map; then smallest safe consolidation PR(s). |
+| P2 | **IN PROGRESS** | KEEP proven live bindings; finish exact `IMAGES` usage/runtime classification. |
+| P3 | **PLANNED** | Define authenticated canonical Publish Core from existing Telegram/Admin flows. |
+| P4 | **PLANNED** | Production visual/performance audit before UI implementation. |
