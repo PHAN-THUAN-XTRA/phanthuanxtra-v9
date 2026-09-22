@@ -1,0 +1,101 @@
+name: Cleanup CI Test Cars
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/cleanup-ci-test-cars.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
+    steps:
+      - name: Remove leaked CI vehicle records
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+
+          login_payload="$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}'             -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$login_payload")"
+          echo "Admin login HTTP $status"
+          test "$status" = "200"
+          token="$(jq -r '.token // empty' /tmp/login.json)"
+          test -n "$token"
+
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20             -H "Authorization: Bearer $token" "$SITE_URL/api/admin/cars" > /tmp/cars.json
+
+          jq -r '
+            .cars[]?
+            | select(
+                (.brand == "PT XTRA TEST")
+                or (.brand == "PT XTRA STAGE3")
+                or (.brand == "PT XTRA GATE15")
+                or (.model == "CI E2E Vehicle")
+                or (.model == "CI E2E Origin")
+                or (.model == "Runtime E2E")
+                or (.model == "Runtime Evidence")
+                or (.id | test("^(ci-e2e-|ci-origin-e2e-|stage3-|gate15-)"))
+              )
+            | .id
+          ' /tmp/cars.json > /tmp/test-car-ids.txt
+
+          count="$(grep -c . /tmp/test-car-ids.txt || true)"
+          echo "CI test records found: $count"
+
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            encoded="$(jq -nr --arg v "$id" '$v|@uri')"
+            deleted=0
+            for delay in 0 3 8 15; do
+              [ "$delay" -eq 0 ] || sleep "$delay"
+              status="$(curl --silent --show-error --max-time 20 -o /tmp/delete.json -w '%{http_code}'                 -X DELETE "$SITE_URL/api/admin/cars/$encoded" -H "Authorization: Bearer $token")" || true
+              echo "Delete $id HTTP $status"
+              if [ "$status" = "200" ] || [ "$status" = "404" ]; then
+                deleted=1
+                break
+              fi
+              [ "$status" = "429" ] || break
+            done
+            test "$deleted" = "1"
+          done < /tmp/test-car-ids.txt
+
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20             -H "Authorization: Bearer $token" "$SITE_URL/api/admin/cars" > /tmp/cars-after.json
+
+          remaining="$(jq '[.cars[]? | select(
+              (.brand == "PT XTRA TEST")
+              or (.brand == "PT XTRA STAGE3")
+              or (.brand == "PT XTRA GATE15")
+              or (.model == "CI E2E Vehicle")
+              or (.model == "CI E2E Origin")
+              or (.model == "Runtime E2E")
+              or (.model == "Runtime Evidence")
+              or (.id | test("^(ci-e2e-|ci-origin-e2e-|stage3-|gate15-)"))
+            )] | length' /tmp/cars-after.json)"
+          echo "CI test records remaining: $remaining"
+          test "$remaining" = "0"
+
+          public="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$SITE_URL/api/cars")"
+          visible="$(printf '%s' "$public" | jq '[.cars[]? | select(
+              (.brand == "PT XTRA TEST")
+              or (.brand == "PT XTRA STAGE3")
+              or (.brand == "PT XTRA GATE15")
+              or (.model == "CI E2E Vehicle")
+              or (.model == "CI E2E Origin")
+              or (.model == "Runtime E2E")
+              or (.model == "Runtime Evidence")
+            )] | length')"
+          echo "Public CI test records visible: $visible"
+          test "$visible" = "0"
+          echo "CI test car cleanup: PASS"
