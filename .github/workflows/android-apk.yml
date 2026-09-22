@@ -6,8 +6,14 @@ on:
       - feature/apk-mvp
       - refactor/apk-architecture-v1
       - queue/gate11-13-finalize
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   workflow_dispatch:
 
 permissions:
