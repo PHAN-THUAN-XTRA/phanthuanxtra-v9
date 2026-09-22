@@ -49,9 +49,15 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           TEST_CAR_ID="ci-origin-e2e-${GITHUB_RUN_ID}"
           export TEST_CAR_ID
-          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' -X POST "$BASE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
-          echo "Worker-origin Admin login HTTP $status"
-          test "$status" = "200"
+          login_ok=0
+          for delay in 0 5 10 20; do
+            if [ "$delay" -gt 0 ]; then sleep "$delay"; fi
+            status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' -X POST "$BASE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+            echo "Worker-origin Admin login delay=${delay}s HTTP $status"
+            if [ "$status" = "200" ]; then login_ok=1; break; fi
+            if [ "$status" != "401" ] && [ "$status" != "429" ]; then cat /tmp/login.json >&2 || true; exit 1; fi
+          done
+          test "$login_ok" = "1"
           SESSION="$(jq -r '.token // empty' /tmp/login.json)"
           test "$SESSION" != ""
           printf '%s' "$SESSION" | grep -Eq '^ptx1\.[0-9]+\.[a-f0-9]{32}\.[A-Za-z0-9_-]+$'
