@@ -65,6 +65,10 @@ test('Phan Thuần identity knowledge is present when AI Search is unavailable',
       const system = payload.messages.find(x => x.role === 'system')?.content || '';
       assert.match(system, /Tên được sử dụng: Phan Thuần/);
       assert.match(system, /Phan Thuần là người mà trợ lý PHAN THUẦN XTRA đang đại diện hỗ trợ/);
+      assert.match(system, /hồ sơ truyền thông chính thức — do chủ website cung cấp/i);
+      assert.match(system, /PhanThuanSaigon/);
+      assert.match(system, /Phan Thuần Xuyên Á Auto/);
+      assert.match(system, /720 Trường Chinh/);
       return { response: 'Phan Thuần là người mà trợ lý PHAN THUẦN XTRA đang đại diện hỗ trợ và là tên gắn với thương hiệu PHAN THUẦN XTRA.' };
     } }
   };
@@ -121,4 +125,33 @@ test('website AI chat rejects empty messages', async () => {
     method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({message:'   '})
   }), {DB:mockDb()});
   assert.equal(response.status, 400);
+});
+
+
+test('Phan Thuần ecosystem lookup expands AI Search with official aliases and public corroboration terms', async () => {
+  const DB = mockDb();
+  let searchPayload = null;
+  const env = {
+    DB,
+    AI_SEARCH: { async search(payload) { searchPayload = payload; return { chunks: [] }; } },
+    AI: { async run(model, payload) {
+      const system = payload.messages.find(x => x.role === 'system')?.content || '';
+      assert.match(system, /European Yachts/);
+      assert.match(system, /Business Jets/);
+      assert.match(system, /Green Energy/);
+      return { response: 'Theo hồ sơ chính thức do chủ website cung cấp, Phan Thuần/PHAN THUẦN XTRA được giới thiệu với Luxury Automotive, European Yachts, Business Jets và Green Energy.' };
+    } }
+  };
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'profile-search-test',visitor_id:'profile-search-test',message:'Phan Thuần làm những lĩnh vực gì?'})
+  }), env);
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.needs_human, false);
+  const q = searchPayload?.messages?.[0]?.content || '';
+  assert.match(q, /phanthuanxtra/i);
+  assert.match(q, /PhanThuanSaigon/);
+  assert.match(q, /Ô tô Xuyên Á Phan Thuần/);
+  assert.match(q, /Green Energy/);
 });
