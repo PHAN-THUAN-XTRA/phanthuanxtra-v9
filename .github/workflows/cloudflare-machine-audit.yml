@@ -35,7 +35,7 @@ jobs:
       - name: Verify report contract
         run: |
           set -euo pipefail
-          jq -e '.audit=="CF-MACHINE-001" and .mutations==0' cloudflare-audit/report.json >/dev/null
+          jq -e '.audit=="CF-MACHINE-002" and .mutations==0' cloudflare-audit/report.json >/dev/null
           jq '{audit,generated_at,mutations,production,source_evidence,availability:(.resources|map_values({unavailable:(.unavailable//false),status:(.status//null)}))}' cloudflare-audit/report.json >> "$GITHUB_STEP_SUMMARY"
       - name: Upload machine evidence
         uses: actions/upload-artifact@v4
