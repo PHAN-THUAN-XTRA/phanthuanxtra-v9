@@ -140,22 +140,10 @@ jobs:
         run: |
           echo "::notice::Routine CI does not call Workers AI inference; daily allocation is reserved for real website customers."
 
-      - name: Password reset production E2E
-        shell: bash
+      - name: Password reset isolation policy
         run: |
-          set -euo pipefail
-          test -n "$ADMIN_PASSWORD"
-          login="$(curl --fail --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg p "$ADMIN_PASSWORD" '{password:$p}')")"
-          token="$(printf '%s' "$login" | jq -r '.token // empty')"
-          test -n "$token"
-          rotate="$(curl --fail --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/recovery/rotate" -H "Authorization: Bearer ${token}" -H 'content-type: application/json' --data '{}')"
-          code="$(printf '%s' "$rotate" | jq -r '.recoveryCode // empty')"
-          test -n "$code"
-          temporary="Stage3-${GITHUB_RUN_ID}-Reset!"
-          curl --fail --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg c "$code" --arg p "$temporary" '{recoveryCode:$c,password:$p,confirm:$p}')" | jq -e '.ok == true' >/dev/null
-          curl --fail --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg p "$temporary" '{password:$p}')" | jq -e '.ok == true and (.token | length > 0)' >/dev/null
-          curl --fail --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg c "$code" --arg p "$ADMIN_PASSWORD" '{recoveryCode:$c,password:$p,confirm:$p}')" | jq -e '.ok == true' >/dev/null
-          echo "Password reset: PASS"
+          echo "::notice::Routine Stage 3 does not mutate the live Admin password."
+          echo "::notice::Full password-reset testing is isolated in Password Reset Production E2E and serialized through the shared production E2E queue."
 
       - name: R2 lifecycle
         shell: bash
@@ -196,5 +184,5 @@ jobs:
           echo 'D1 CRUD: PASS'
           echo 'Gateway: PASS'
           echo 'Workers AI inference: intentionally not consumed by CI; reserved for website customers'
-          echo 'Admin/Password Reset: PASS'
+          echo 'Admin auth boundary: PASS; password reset mutation isolated to dedicated E2E'
           echo 'R2: PASS'
