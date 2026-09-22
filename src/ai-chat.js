@@ -60,7 +60,7 @@ Lĩnh vực chatbot hỗ trợ khách: Luxury Automotive trong catalog website; 
 `;
 
 const IDENTITY_RE = /phan\s*thuần|phan\s*thuan|phanthuần|phanthuan|xtra intelligence|phan thuần xtra/i;
-const IDENTITY_QUERY_RE = /(?:(?:phan\s*thuần|phan\s*thuan|phanthuan|phanthuanxtra|xtra intelligence).{0,120}(?:là ai|ai là|giới thiệu|thông tin|profile|tiểu sử|doanh nhân|thương hiệu|hệ sinh thái|lĩnh vực|ô tô xuyên á|xuyên á auto|facebook|du thuyền|yacht|chuyên cơ|private jet|business jet|năng lượng xanh|green energy)|(?:ô tô xuyên á|xuyên á auto|du thuyền|yacht|chuyên cơ|private jet|business jet|năng lượng xanh|green energy).{0,120}(?:phan\s*thuần|phan\s*thuan|phanthuan|phanthuanxtra))/i;
+const IDENTITY_QUERY_RE = /(?:(?:phan\s*thuần|phan\s*thuan|phanthuan|phanthuanxtra|xtra intelligence).{0,120}(?:là ai|ai là|giới thiệu|thông tin về|profile|tiểu sử|doanh nhân|thương hiệu|hệ sinh thái|lĩnh vực|ô tô xuyên á|xuyên á auto|facebook|du thuyền|yacht|chuyên cơ|private jet|business jet|năng lượng xanh|green energy)|(?:thông tin về|giới thiệu về|profile|tiểu sử|ô tô xuyên á|xuyên á auto|du thuyền|yacht|chuyên cơ|private jet|business jet|năng lượng xanh|green energy).{0,120}(?:phan\s*thuần|phan\s*thuan|phanthuan|phanthuanxtra))/i;
 const VEHICLE_RE = /\b(mua xe|bán xe|xe nào|xe gì|mẫu xe|dòng xe|lái thử|thu đổi|định giá|giá xe|giá bao nhiêu|phù hợp|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup)\b/i;
 const PHONE_RE = /(?:\+?84|0)(?:\D*\d){9,10}/;
 
