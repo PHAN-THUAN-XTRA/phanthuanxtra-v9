@@ -495,3 +495,13 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Production verification on PR #389 merge SHA `b802f1081122650b1a9b5051e87acdb945b6f2ce` completed SUCCESS: Deploy Cloudflare Worker `35727206036`; Production Smoke Gate-15 `35727206126`; QUEUE-01 Production E2E Origin `35727303745`; CI `35727206140`; Production Credential Safety `35727206011`; Admin PT Xtra Pipeline `35727206017`; Release Gate Static Audit `35727206175`; Android APK MVP `35727206061`; Stage 3 Production Reconciliation `35727206067`; Homepage Canonical Verify `35727206026`; Admin Redirect Verify `35727206021`.
 - P3 is COMPLETE for the scoped vehicle/listing publishing architecture. Generic article CMS and Facebook/Zalo publishing remain out of scope because the audited repository does not contain verified implementations for those outputs; no unsupported capability is claimed.
 - No P3 completion evidence requires Wrangler CLI, and no Cloudflare resource/binding or production credential mutation was introduced by these refactors.
+
+
+## 16. P4 UI/UX V2 — IN PROGRESS
+- Pre-V2 homepage source was backed up in-repository at `public/backup/p4-pre-v2-index.html` before homepage mutation.
+- Source audit preserved every current homepage capability/link target: Automotive inventory/search/filter/favorites/compare, test-drive lead form, Green Energy, European Yachts, Business Jets, AI Assistant, Services, Private Contact/phone/Zalo, and existing detail/runtime scripts.
+- V2 information hierarchy starts with Hero → Automotive/Inventory → Private Concierge → Ecosystem, while retaining the existing Energy/Marine/Aviation detail sections, test-drive conversion flow, AI, Services and Contact.
+- Primary navigation now exposes Automotive, Concierge, Ecosystem, AI and Contact directly. Hero CTAs prioritize Automotive and Private Concierge without removing the existing test-drive flow.
+- Mobile hardening adds single-column hero/feature/forms/cards, compact actions and contact controls for <=760px and <=420px breakpoints.
+- Admin authentication/control behavior is preserved unchanged in this first visual slice; Admin UX redesign requires a separate audited slice so authentication/recovery boundaries are not coupled to homepage presentation changes.
+- P4 remains IN PROGRESS until PR checks, merged production asset verification, inventory/detail flow and Admin UX follow-up are evidenced.

@@ -320,3 +320,8 @@ footer{
   .industry-card,.car-card{transition:none}
   .industry-card:hover,.car-card:hover{transform:none}
 }
+
+/* P4 UI/UX V2: mobile-first navigation and section rhythm */
+@media (max-width: 760px){
+  .header .nav{min-height:68px}.hotline{display:none}.hero{padding-top:96px}.hero-grid,.feature-grid,.form-grid{grid-template-columns:1fr!important;gap:34px!important}.hero h1{font-size:clamp(54px,18vw,82px)}.stats{grid-template-columns:repeat(3,1fr);gap:8px}.section{padding:72px 0}.section-head{gap:20px}.industry-grid{grid-template-columns:1fr}.contact-box{align-items:flex-start}.contact-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.contact-actions .btn{text-align:center}.tools,.search-row{width:100%}.search-row{display:grid;grid-template-columns:1fr}.cars{grid-template-columns:1fr}.ai-panel{align-items:flex-start}}
+@media (max-width: 420px){.container{width:min(100% - 28px,1200px)}.actions{display:grid}.actions .btn{width:100%;box-sizing:border-box;text-align:center}.stats b{font-size:20px}.stats span{font-size:10px}.contact-actions{grid-template-columns:1fr}}
