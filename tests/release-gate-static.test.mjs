@@ -51,3 +51,15 @@ test('canonical status is the only project status markdown file', () => {
   assert.match(status, /DUY NHẤT — CANONICAL PROJECT STATUS/);
   assert.match(status, /(?:Do not create competing checkpoint\/status Markdown files|never create competing checkpoint `?\.md` files|do not create competing checkpoint\/status Markdown files)/i);
 });
+
+
+test('homepage has no retired Gods Eye showcase or redirect loop source', () => {
+  const index = read('public/index.html');
+  const entry = read('src/entry.js');
+  const deploy = read('scripts/deploy-cloudflare-api.mjs');
+  assert.doesNotMatch(index, /God.?s Eye View|XTRA WORLD INTELLIGENCE|bilawalsidhu|gods-eye-view/i);
+  assert.equal(fs.existsSync(new URL('../public/_redirects', import.meta.url)), false);
+  assert.match(entry, /url\.pathname === "\/home"/);
+  assert.match(entry, /new URL\("\/index\.html", request\.url\)/);
+  assert.match(deploy, /"\/home", "\/home\/"/);
+});

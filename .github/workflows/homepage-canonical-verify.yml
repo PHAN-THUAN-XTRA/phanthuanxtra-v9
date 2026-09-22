@@ -1,0 +1,47 @@
+name: Homepage Canonical Verify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify homepage body and redirect chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE_URL="https://phanthuanxtra.com/"
+          meta="$(curl --silent --show-error --location --max-redirs 5 --connect-timeout 10 --max-time 30             -D /tmp/home.headers -o /tmp/home.html             -w '%{http_code}|%{url_effective}|%{num_redirects}' "$SITE_URL")"
+          IFS='|' read -r status final_url redirects <<< "$meta"
+          echo "Homepage HTTP $status"
+          echo "Homepage final URL $final_url"
+          echo "Homepage redirects $redirects"
+          test "$status" = "200"
+          test "$redirects" -le 2
+          grep -Fq "PHAN THUẦN XTRA" /tmp/home.html
+          if grep -Eiq "God.?s Eye View|XTRA WORLD INTELLIGENCE|bilawalsidhu|gods-eye-view" /tmp/home.html; then
+            echo "Retired God's Eye View content is still present in production."
+            exit 1
+          fi
+          echo "Homepage retired-content check: PASS"
+
+          home_meta="$(curl --silent --show-error --location --max-redirs 5 --connect-timeout 10 --max-time 30             -o /tmp/home-path.html -w '%{http_code}|%{url_effective}|%{num_redirects}'             "https://phanthuanxtra.com/home")"
+          IFS='|' read -r home_status home_final home_redirects <<< "$home_meta"
+          echo "/home HTTP $home_status"
+          echo "/home final URL $home_final"
+          echo "/home redirects $home_redirects"
+          test "$home_status" = "200"
+          test "$home_redirects" -le 2
+          grep -Fq "PHAN THUẦN XTRA" /tmp/home-path.html
+          if grep -Eiq "God.?s Eye View|XTRA WORLD INTELLIGENCE|bilawalsidhu|gods-eye-view" /tmp/home-path.html; then
+            echo "Retired content is still present on /home."
+            exit 1
+          fi
+          echo "Homepage canonical redirect/body verification: PASS"
