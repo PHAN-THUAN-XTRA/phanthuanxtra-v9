@@ -1,0 +1,53 @@
+name: Live Chat AI Identity Verify
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/live-chat-ai-identity-verify.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify no-accent Phan Thuan identity response
+        shell: bash
+        env:
+          SITE_URL: https://phanthuanxtra.com
+        run: |
+          set -euo pipefail
+          CID="ci-ai-chat-${GITHUB_RUN_ID}"
+          payload="$(jq -nc --arg cid "$CID" '{conversation_id:$cid,visitor_id:$cid,message:"phan thuan la ai",suppress_crm_notification:true,test_context:"production-smoke"}')"
+          status="$(curl --silent --show-error --max-time 30 -o /tmp/identity.json -w '%{http_code}' -X POST "$SITE_URL/api/ai-chat" -H 'content-type: application/json' --data "$payload")"
+          echo "Identity HTTP $status"
+          cat /tmp/identity.json
+          test "$status" = "200"
+          jq -e '.ok == true and .needs_human == false and (.reply | contains("Phan Thuần")) and (.reply | contains("PHAN THUẦN XTRA"))' /tmp/identity.json >/dev/null
+          if jq -e '.reply | contains("Tôi chưa có thông tin xác thực")' /tmp/identity.json >/dev/null; then
+            echo "Identity regression still present."
+            exit 1
+          fi
+          echo "No-accent identity response: PASS"
+
+      - name: Verify public vehicle catalog excludes CI records
+        shell: bash
+        env:
+          SITE_URL: https://phanthuanxtra.com
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 30 "$SITE_URL/api/cars" > /tmp/cars.json
+          jq -e '.cars | type == "array"' /tmp/cars.json >/dev/null
+          jq -e '[.cars[]? | select(
+            (.id | tostring | test("^(ci-e2e-|ci-origin-e2e-|stage3-|gate15-)"))
+            or (.brand == "PT XTRA TEST")
+            or (.brand == "PT XTRA STAGE3")
+            or (.brand == "PT XTRA GATE15")
+          )] | length == 0' /tmp/cars.json >/dev/null
+          echo "Public cars: $(jq '.cars | length' /tmp/cars.json)"
+          jq -r '.cars[]? | "- \(.brand // "") \(.name // .model // "") [\(.tag // .status // "")]"' /tmp/cars.json | head -20
+          echo "Public vehicle catalog: PASS"
