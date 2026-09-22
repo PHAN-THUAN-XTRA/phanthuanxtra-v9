@@ -518,3 +518,12 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Re-audit after the visible repetition report confirms the corrective branch has one HTML document boundary and one instance of each primary section/widget: Ecosystem, Test Drive, AI, Services, Contact, compare modal and AI widget.
 - Intended hierarchy is Hero → Automotive → Private Concierge → Ecosystem → Energy → Yachts → Business Jets → Test Drive → AI → Services → Contact.
 - No auth/API/Worker binding behavior changed.
+
+
+### 16.3 P4 closure — production UI/UX flow
+- PR #394 removed the duplicated homepage document shell; production source now has one main/document boundary, one compare modal and one AI widget.
+- PR #395 connected Admin Inventory to the existing authenticated/idempotent Telegram publish endpoint without adding secrets or changing auth boundaries.
+- PR #396 fixed dynamic D1 inventory detail routing by using `/car.html?id=<id>` when no explicit page exists; existing explicit/static detail pages remain supported.
+- PR #396 merged as `1939cef20d9bba78f8113e7b568843acb8a9160f`; exact-SHA production evidence is fully green: Deploy `35734178644`, Gate-15 `35734178634`, QUEUE-01 `35734283839`, Production Asset Delivery `35734178625`, Homepage Canonical `35734178623`, Admin Redirect `35734178727`, CI `35734178666`, Credential Safety `35734178841`, Admin Pipeline `35734178761`, Static Audit `35734178868`, Android `35734178750`, Stage 3 `35734178665`.
+- Final closure gate extends Production Asset Delivery with public homepage structural invariants and generic vehicle-detail asset verification so the duplicate-shell/detail-link regressions are checked on production after future relevant changes.
+- P4 status: COMPLETE once this closure PR merges and its exact-SHA production chain is green.
