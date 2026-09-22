@@ -60,7 +60,7 @@ jobs:
           echo 'Authenticated dashboard: OK'
           TEST_IMAGE_URL="https://phanthuanxtra.com/media/vehicles/publish-admin-${TEST_CAR_ID}.jpg"
           export TEST_IMAGE_URL
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "$BASE_URL/api/admin/cars" -H "Authorization: Bearer $SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Origin\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"available\",\"description\":\"Queue-01 production E2E; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}" | tee /tmp/create.json
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "$BASE_URL/api/admin/cars" -H "Authorization: Bearer $SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Origin\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"hidden\",\"description\":\"Queue-01 production E2E; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}" | tee /tmp/create.json
           jq -e '.ok == true and .id == env.TEST_CAR_ID' /tmp/create.json >/dev/null
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $SESSION" "$BASE_URL/api/admin/cars/$TEST_CAR_ID" | tee /tmp/read-one.json
           jq -e --arg id "$TEST_CAR_ID" '.car.id == $id and .car.brand == "PT XTRA TEST"' /tmp/read-one.json >/dev/null
