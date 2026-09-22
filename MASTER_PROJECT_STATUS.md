@@ -322,3 +322,15 @@ Rules:
 - Queue-01 rerun after the production deploy completed successfully, confirming the earlier Admin 401 was a deployment-order race.
 - CF-MACHINE-003 extends the read-only audit across every Worker: settings/bindings, route metadata and Cron schedules, using the same existing GitHub Actions Cloudflare credentials.
 - Automated classification is conservative: verified production dependencies = KEEP; non-production Workers = REVIEW; REMOVE remains empty until dependency evidence and explicit destructive approval exist.
+
+
+### 12.4 CF-MACHINE-003 classification + audit artifact security fix
+- CF-MACHINE-003 completed read-only with `mutations: 0`.
+- Machine evidence: Cloudflare Queues API returned HTTP 200 with `total_count: 0`. Dashboard-only names `verify-email` and `purchase` are classified **NOT PRESENT**, not REMOVE targets.
+- **KEEP**: production Worker `phanthuanxtra-v2`; production D1 binding; R2 bucket `phanthuanxtra-media`; Workers AI binding `AI`; AI Search binding `AI_SEARCH`; Developer Gateway `phanthuanxtra-developer-gateway`.
+- **REVIEW**: non-production Workers `ask-ai-agent`, `ask-ai-api`, `luxury-ui-analyzer`, `phanthuanxtra`, `phanthuanxtra-backup`, `phanthuanxtra-chatbot`, `phanthuanxtra-dashboard`, `phanthuanxtra-v2-backup`. No REMOVE classification yet.
+- **AI Gateway: REVIEW/BLOCKED** because both existing audit credentials receive HTTP 403 from the list endpoint; absence must not be inferred.
+- **AI Search inventory: permission-blocked**, but the verified production `AI_SEARCH` binding and website source usage prove it is a live dependency, therefore KEEP.
+- Security finding: pre-fix machine-audit artifacts could include a sensitive value from a `plain_text` binding because the original redactor inspected field names but not sensitive binding names. No credential value is copied into this MASTER.
+- Remediation: redaction now treats `secret_text` and sensitive binding names as secret objects and redacts `text/value`; CI validates that no sensitive binding value escapes. Known pre-fix audit artifacts are deleted by a one-time GitHub Actions cleanup workflow after merge.
+- Credential rotation remains a separate production mutation and requires explicit approval; artifact deletion and redaction do not rotate Cloudflare credentials.
