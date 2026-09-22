@@ -65,7 +65,7 @@ const isIdentityMention = value => /phan\s*thuan|phanthuan|phanthuanxtra|xtra in
 function isIdentityQuery(value){
   const t=foldVi(value);
   const name=/phan\s*thuan|phanthuan|phanthuanxtra|xtra intelligence/.test(t);
-  const intent=/\b(la ai|ai la|gioi thieu|thong tin(?: ve)?|profile|tieu su|doanh nhan|thuong hieu|he sinh thai|linh vuc|o to xuyen a|xuyen a auto|facebook|du thuyen|yacht|chuyen co|private jet|business jet|nang luong xanh|green energy)\b/.test(t);
+  const intent=/\b(la ai|ai la|gioi thieu|thong tin ve|profile|tieu su|doanh nhan|thuong hieu|he sinh thai|linh vuc|o to xuyen a|xuyen a auto|facebook|du thuyen|yacht|chuyen co|private jet|business jet|nang luong xanh|green energy)\b/.test(t);
   const reverse=/\b(thong tin(?: ve)?|gioi thieu(?: ve)?|profile|tieu su|o to xuyen a|xuyen a auto|du thuyen|yacht|chuyen co|private jet|business jet|nang luong xanh|green energy)\b.{0,120}(phan\s*thuan|phanthuan|phanthuanxtra)/.test(t);
   return (name && intent) || reverse;
 }
