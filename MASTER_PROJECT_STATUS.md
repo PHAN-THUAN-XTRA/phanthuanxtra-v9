@@ -461,3 +461,11 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Focused remediation removes the `pull_request -> main` trigger from Gate 15 Runtime Evidence Harness. Its dedicated audit-branch push trigger and manual `workflow_dispatch` remain available, so the harness is retained for intentional runtime evidence collection without mutating production for ordinary PRs.
 - Canonical production Gate-15 remains `production-smoke-gate15.yml`; post-deploy origin verification remains QUEUE-01. `production-smoke.yml` remains a duplicate candidate requiring final dependency/history evidence before disable/delete.
 - No Cloudflare resource, production credential, D1 schema, R2 bucket, or binding is changed by this remediation.
+
+
+### 13.4 P1 consolidation — retire duplicate Production Smoke automatic trigger
+- PR #384 merged as `8a347786845664e4893b889a6c90f2d9ad9273ec` after all observed checks succeeded; deploy on the PR was skipped. Ordinary PRs no longer trigger the Gate 15 Runtime Evidence Harness production D1/R2 mutation.
+- Final duplicate audit compared `production-smoke.yml` and `production-smoke-gate15.yml`: both automatically triggered on main pushes, used the same production E2E concurrency group, and covered website/Worker health, Admin auth, Developer Gateway, D1 mutation and R2 mutation. Gate-15 additionally checks out the exact triggering commit and is the established canonical P0 verifier.
+- Consolidation keeps `Production Smoke Gate-15` as the automatic canonical production gate. The legacy `Production Smoke Test` is changed to manual-only `workflow_dispatch` and moved to a separate legacy-manual concurrency group. This stops duplicate production mutation on every main push while preserving an explicit fallback/manual diagnostic path.
+- P1 core remediation state after this change: Android docs-only automatic build noise removed; PR-triggered Gate-15 runtime production mutation removed; QUEUE-01 Wrangler dependency removed; duplicate Production Smoke automatic push mutation retired. QUEUE-01 remains post-deploy origin verification and canonical Gate-15 remains public production verification.
+- P2 source binding classification remains complete: all declared production bindings/cron are KEEP; no source-supported REMOVE candidate exists.
