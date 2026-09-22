@@ -1,0 +1,86 @@
+name: Decommission God's Eye View
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/decommission-gods-eye-view.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  decommission:
+    name: Remove God's Eye View from Cloudflare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      TARGET_HOSTNAME: eye.phanthuanxtra.com
+      TARGET_WORKER: phanthuanxtra-gods-eye-view
+
+    steps:
+      - name: Validate credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          echo "Cloudflare credentials are configured."
+
+      - name: Detach custom domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+
+          domains="$(curl --fail-with-body --silent --show-error "${auth[@]}"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains?hostname=$TARGET_HOSTNAME")"
+          printf '%s' "$domains" | jq -e '.success == true' >/dev/null
+
+          mapfile -t ids < <(printf '%s' "$domains" | jq -r --arg h "$TARGET_HOSTNAME" '.result[]? | select(.hostname == $h) | .id')
+          if [ "${#ids[@]}" -eq 0 ]; then
+            echo "Custom domain already absent: $TARGET_HOSTNAME"
+          else
+            for id in "${ids[@]}"; do
+              response="$(curl --fail-with-body --silent --show-error -X DELETE "${auth[@]}"                 "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains/$id")"
+              printf '%s' "$response" | jq -e '.success == true' >/dev/null
+              echo "Detached custom domain: $TARGET_HOSTNAME"
+            done
+          fi
+
+          verify="$(curl --fail-with-body --silent --show-error "${auth[@]}"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains?hostname=$TARGET_HOSTNAME")"
+          printf '%s' "$verify" | jq -e --arg h "$TARGET_HOSTNAME" '.success == true and ([.result[]? | select(.hostname == $h)] | length == 0)' >/dev/null
+          echo "Custom domain detach verification: PASS"
+
+      - name: Delete dedicated Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$(mktemp)"
+          status="$(curl --silent --show-error -o "$out" -w '%{http_code}' -X DELETE             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$TARGET_WORKER")" || true
+          echo "Worker delete HTTP $status"
+          if [ "$status" != "200" ] && [ "$status" != "204" ] && [ "$status" != "404" ]; then
+            cat "$out"
+            exit 1
+          fi
+
+          check="$(curl --silent --show-error -o /dev/null -w '%{http_code}'             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$TARGET_WORKER")" || true
+          echo "Worker post-delete GET HTTP $check"
+          test "$check" = "404"
+          echo "Dedicated Worker deletion verification: PASS"
+
+      - name: Verify public endpoint is no longer serving
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --max-time 15 -o /dev/null -w '%{http_code}' "https://$TARGET_HOSTNAME/")" || status=000
+          echo "$TARGET_HOSTNAME HTTP $status"
+          case "$status" in
+            000|404|410|530) ;;
+            *) echo "Endpoint still appears routable; refusing false decommission success."; exit 1 ;;
+          esac
+          echo "Public endpoint decommission verification: PASS"
