@@ -27,17 +27,22 @@ PHAN THUẦN XTRA là thương hiệu/website mà chatbot đang tư vấn. Chatb
 - Khi khách hỏi "Phan Thuần là ai?", trước hết hãy trả lời đúng phạm vi đã xác nhận: Phan Thuần là người mà trợ lý PHAN THUẦN XTRA đang đại diện hỗ trợ và là tên gắn với thương hiệu PHAN THUẦN XTRA.
 - Không tự suy đoán hoặc bổ sung chức danh, tiểu sử, tuổi, quê quán, tài sản, thành tích, đối tác hay thông tin cá nhân nếu chưa có nguồn xác thực trong knowledge base.
 
-## Hồ sơ thương hiệu bổ sung — nguồn do chủ website cung cấp
-- Phan Thuần/phanthuanxtra được giới thiệu trong tài liệu truyền thông như một doanh nhân xây dựng hệ sinh thái đa ngành, kết nối phong cách sống cao cấp với định hướng phát triển bền vững.
-- Nhận diện phanthuanxtra (PhanThuan Xtra) được mô tả là định hướng thương hiệu cá nhân nhất quán trên nền tảng số.
-- Hệ sinh thái được tài liệu truyền thông mô tả gồm 3 trụ cột chính: Luxury Automotive; trải nghiệm cao cấp gồm European Yachts và Business Jets; và Green Energy.
-- Luxury Automotive: gắn với salon Ô tô Xuyên Á tại TP.HCM; tài liệu giới thiệu hoạt động kết nối xe sang, siêu xe và các phiên bản giới hạn như Rolls-Royce, Porsche, Lexus.
-- European Yachts: môi giới du thuyền châu Âu nhập khẩu chính ngạch theo nội dung tài liệu cung cấp.
-- Business Jets: dịch vụ/giải pháp cho thuê máy bay phản lực thương gia, tài liệu nêu cấu hình từ 12 đến 13 chỗ ngồi.
-- Green Energy: định hướng năng lượng xanh và năng lượng mặt trời, được tài liệu mô tả là một bước đi dài hạn hướng tới phát triển bền vững.
-- Tài liệu truyền thông kết luận hệ sinh thái bao gồm siêu xe, du thuyền, chuyên cơ tư nhân và năng lượng xanh.
-- Thông tin liên hệ được tài liệu cung cấp: Hotline Salon 08 6699 7891; Facebook chính chủ được ghi là Phan Thuần (PhanThuanSaigon); hashtag #phanthuanxtra #PhanThuanXtra.
-- Khi trả lời từ phần hồ sơ truyền thông này, phải dùng cách diễn đạt "theo tài liệu truyền thông được cung cấp" khi cần phân biệt với dữ liệu đã xác minh độc lập.
+## Hồ sơ truyền thông chính thức — do chủ website cung cấp, cập nhật 2026-09-22
+- Phan Thuần/phanthuanxtra được giới thiệu trong hồ sơ truyền thông chính thức như một doanh nhân xây dựng hệ sinh thái đa ngành, kết nối phong cách sống cao cấp với định hướng phát triển bền vững.
+- Nhận diện phanthuanxtra (PhanThuan Xtra) được dùng như bộ nhận diện thương hiệu cá nhân nhất quán trên nền tảng số.
+- Hồ sơ mô tả 3 trụ cột: Luxury Automotive; trải nghiệm cao cấp gồm European Yachts và Business Jets; và Green Energy.
+- Luxury Automotive: gắn với hoạt động Ô tô Xuyên Á tại TP.HCM; hồ sơ mô tả hoạt động kết nối xe sang, siêu xe và xe cao cấp/phiên bản giới hạn, với các thương hiệu được nhắc đến như Rolls-Royce, Porsche, Lexus.
+- European Yachts: hồ sơ mô tả hoạt động môi giới/kết nối du thuyền châu Âu nhập khẩu chính ngạch.
+- Business Jets: hồ sơ mô tả giải pháp/cho thuê chuyên cơ thương gia, với cấu hình được nêu từ 12 đến 13 chỗ.
+- Green Energy: hồ sơ mô tả định hướng năng lượng xanh và năng lượng mặt trời như một hướng phát triển dài hạn.
+- Hồ sơ truyền thông tóm tắt hệ sinh thái gồm xe sang/siêu xe, du thuyền, chuyên cơ tư nhân và năng lượng xanh.
+- Kênh liên hệ do chủ website cung cấp: Hotline 08 6699 7891 / 0866 997 891; Facebook: Phan Thuần (PhanThuanSaigon), https://www.facebook.com/PhanThuanSaigon/; hashtag #phanthuanxtra #PhanThuanXtra.
+- Khi dùng các nội dung ở mục này, nếu nguồn chưa được xác minh độc lập thì phải diễn đạt là "theo hồ sơ/tài liệu chính thức do chủ website cung cấp", không biến thành tuyên bố xác minh độc lập.
+
+## Dấu vết công khai đã đối chiếu
+- Một tin đăng công khai gần đây trên Chợ Tốt hiển thị người bán "Phan Thuần Xuyên Á Auto", nội dung liên hệ "Ô tô Xuyên Á Phan Thuần" và địa chỉ 720 Trường Chinh, Tân Bình, TP.HCM cho xe Land Rover Defender 110 HSE 2024.
+- Dấu vết này chỉ dùng để củng cố mối liên hệ công khai giữa tên Phan Thuần và hoạt động automotive/Xuyên Á; không dùng để tự suy diễn chức danh, quy mô tài sản, vị thế thị trường, mạng lưới quốc tế hoặc các dịch vụ khác.
+- Nguồn công khai tham chiếu: https://xe.chotot.com/mua-ban-quan-tan-binh-tp-ho-chi-minh/131425087.htm
 
 Website chính thức: https://phanthuanxtra.com/
 Hotline tư vấn: 0866 997 891
@@ -55,7 +60,7 @@ Lĩnh vực chatbot hỗ trợ khách: Luxury Automotive trong catalog website; 
 `;
 
 const IDENTITY_RE = /phan\s*thuần|phan\s*thuan|phanthuần|phanthuan|xtra intelligence|phan thuần xtra/i;
-const IDENTITY_QUERY_RE = /(?:phan\s*thuần|phan\s*thuan|phanthuan|xtra intelligence).{0,80}(?:là ai|ai là|giới thiệu|thông tin về|profile|tiểu sử|doanh nhân|thương hiệu|hệ sinh thái)/i;
+const IDENTITY_QUERY_RE = /(?:(?:phan\s*thuần|phan\s*thuan|phanthuan|phanthuanxtra|xtra intelligence).{0,120}(?:là ai|ai là|giới thiệu|thông tin|profile|tiểu sử|doanh nhân|thương hiệu|hệ sinh thái|lĩnh vực|ô tô xuyên á|xuyên á auto|facebook|du thuyền|yacht|chuyên cơ|private jet|business jet|năng lượng xanh|green energy)|(?:ô tô xuyên á|xuyên á auto|du thuyền|yacht|chuyên cơ|private jet|business jet|năng lượng xanh|green energy).{0,120}(?:phan\s*thuần|phan\s*thuan|phanthuan|phanthuanxtra))/i;
 const VEHICLE_RE = /\b(mua xe|bán xe|xe nào|xe gì|mẫu xe|dòng xe|lái thử|thu đổi|định giá|giá xe|giá bao nhiêu|phù hợp|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup)\b/i;
 const PHONE_RE = /(?:\+?84|0)(?:\D*\d){9,10}/;
 
@@ -69,7 +74,8 @@ CHỈ được tư vấn 2 nhóm: (1) thông tin Phan Thuần/PHAN THUẦN XTRA 
 - Với xe: chỉ khẳng định dữ liệu có trong catalog; không bịa giá, ODO, năm, phiên bản, option hoặc tình trạng.
 - Nếu khách hỏi một xe không có trong catalog, nói rõ hiện website chưa có dữ liệu xe đó và không tự tạo thông tin.
 - Với Phan Thuần/XTRA: chỉ nói những gì có căn cứ; không suy đoán tiểu sử, chức danh, tài sản, thành tích hoặc thông tin cá nhân.
-- Nếu thông tin đến từ hồ sơ truyền thông được cung cấp, giữ đúng phạm vi và nêu rõ đó là nội dung theo tài liệu truyền thông khi cần.
+- Phân biệt nguồn: dữ liệu website/D1 và dấu vết công khai đã đối chiếu có thể mô tả như dữ liệu công khai; các tuyên bố chỉ có trong hồ sơ do chủ website cung cấp phải được gắn nhãn "theo hồ sơ/tài liệu chính thức do chủ website cung cấp" khi trả lời.
+- Khi AI Search trả thêm kết quả từ website hoặc nguồn công khai, chỉ dùng nội dung có liên quan trực tiếp đến đúng Phan Thuần/PHAN THUẦN XTRA; bỏ qua kết quả trùng tên hoặc không đủ căn cứ nhận dạng.
 - Nếu câu hỏi thuộc ngoài 2 nhóm hoặc KNOWLEDGE CONTEXT không có căn cứ, phải nói rõ bạn chưa có thông tin xác thực và xin TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp liên hệ.
 - Với mọi nhu cầu xe thể hiện ý định quan tâm/mua/xem/lái thử/hỏi giá/hỏi tình trạng/tư vấn thêm, sau khi trả lời bằng CATALOG XE HIỆN TẠI phải chủ động xin HỌ TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp tư vấn.
 - Nếu lịch sử hội thoại hoặc tin nhắn hiện tại đã có số điện thoại, xác nhận đã tiếp nhận/chuyển thông tin cho anh Phan Thuần; không yêu cầu khách cung cấp lại.
@@ -85,7 +91,7 @@ async function searchKnowledge(env, query) {
   const identity = IDENTITY_RE.test(query);
   if (!env.AI_SEARCH) return { text: BRAND_KNOWLEDGE, evidence: identity, topScore: identity ? 1 : 0 };
   try {
-    const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\ngiới thiệu Phan Thuần\nanh Phan Thuần là ai\nthông tin chính thức về Phan Thuần` : query;
+    const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nLuxury Automotive European Yachts Business Jets Green Energy\nthông tin chính thức về Phan Thuần` : query;
     const result = await env.AI_SEARCH.search({ messages:[{role:"user",content:searchQuery}], ai_search_options:{instance_ids:AI_SEARCH_IDS,retrieval:{retrieval_type:"hybrid",keyword_match_mode:"or",match_threshold:identity?0.2:0.45,max_num_results:MAX_KNOWLEDGE_CHUNKS},reranking:{enabled:true,model:"@cf/baai/bge-reranker-base"}} });
     const chunks = result?.chunks || [];
     const context = chunks.map(chunk=>chunk.content||chunk.text||"").filter(Boolean).join("\n\n---\n\n");
@@ -159,7 +165,7 @@ async function runAI(env,messages,cars,knowledge){
 }
 function deterministicIdentityReply(message){
   if(!IDENTITY_QUERY_RE.test(message))return "";
-  return "Phan Thuần là người mà trợ lý PHAN THUẦN XTRA đang đại diện hỗ trợ và là tên gắn với thương hiệu PHAN THUẦN XTRA. Theo tài liệu truyền thông được cung cấp, hệ sinh thái được giới thiệu gồm Luxury Automotive, European Yachts, Business Jets và Green Energy. Chatbot hiện chỉ tư vấn bán hàng đối với các xe đang có trên website. Hotline liên hệ: 0866 997 891.";
+  return "Phan Thuần là người gắn với thương hiệu PHAN THUẦN XTRA mà trợ lý đang đại diện hỗ trợ. Theo hồ sơ chính thức do chủ website cung cấp, hệ sinh thái được giới thiệu gồm Luxury Automotive, European Yachts, Business Jets và Green Energy. Dấu vết công khai đã đối chiếu cũng cho thấy tên Phan Thuần Xuyên Á Auto gắn với hoạt động automotive tại TP.HCM. Chatbot chỉ tư vấn bán hàng đối với xe đang có trên website; các lĩnh vực còn lại được cung cấp ở mức thông tin hồ sơ. Hotline: 0866 997 891.";
 }
 function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
 async function saveLead(env,conversationId,phone,name,message){if(!phone||!env.DB)return false;const normalized=phone.replace(/\D/g,"");if(normalized.length<9)return false;await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message) VALUES (?,?,?,?)").bind(clean(name,120),clean(phone,30),"",`[AI CHAT ${conversationId}] ${clean(message,1800)}`).run();await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(name,120)||null,clean(phone,30),conversationId).run();return true;}
