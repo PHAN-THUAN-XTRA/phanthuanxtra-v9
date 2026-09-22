@@ -122,23 +122,8 @@ jobs:
           done
           test "$last_status" = "200"
 
-      - name: Smoke XTRA Unified AI with configured gateway credential
-        if: ${{ env.GATEWAY_READ_TOKEN != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          status="$(curl --silent --show-error --retry 2 --retry-delay 1 --max-time 60 -o /tmp/unified-ai.json -w '%{http_code}' -X POST "$GATEWAY_URL/v1/ai/unified" -H "Authorization: Bearer $GATEWAY_READ_TOKEN" -H 'content-type: application/json' --data '{"task_id":"production-smoke","mode":"audit","instruction":"Return exactly: XTRA_UNIFIED_AI_OK"}')"
-          cat /tmp/unified-ai.json
-          if [ "$status" = "200" ]; then
-            jq -e '.ok == true and .logical_agent == "xtra-unified-ai" and .engine == "cloudflare-workers-ai" and .production_mutation == false' /tmp/unified-ai.json >/dev/null
-            jq -e '.response | contains("XTRA_UNIFIED_AI_OK")' /tmp/unified-ai.json >/dev/null
-          elif jq -e '.error == "dual_workers_ai_failed" and (.detail | contains("4006:") and contains("daily free allocation"))' /tmp/unified-ai.json >/dev/null; then
-            echo "::notice::Gateway health/auth passed; Cloudflare Workers AI daily quota is exhausted (4006). External capacity condition, not an application regression."
-          else
-            echo "Unexpected Gateway/Workers AI failure: HTTP $status" >&2
-            exit 1
-          fi
-
+      - name: Gateway AI quota conservation
+        run: echo "::notice::Routine CI does not call authenticated Gateway AI inference; Workers AI quota is reserved for real website customers."
       - name: Require Gateway credential for production gate
         if: ${{ env.GATEWAY_READ_TOKEN == '' }}
         run: |
