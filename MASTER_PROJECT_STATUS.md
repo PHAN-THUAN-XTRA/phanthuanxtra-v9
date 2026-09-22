@@ -426,8 +426,8 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 | Priority | State | Evidence / next action |
 |---|---|---|
 | P0 | **COMPLETE** | Gate-15 run `35705461544` SUCCESS on `fc093e3`. |
-| P1 | **IN PROGRESS** | Complete 36-workflow trigger/dependency/overlap map; then smallest safe consolidation PR(s). |
-| P2 | **IN PROGRESS** | KEEP proven live bindings; finish exact `IMAGES` usage/runtime classification. |
+| P1 | **COMPLETE** | Trigger/consolidation remediation completed; production deploy, canonical Gate-15 and post-deploy QUEUE-01 all SUCCESS on `df18d130`. |
+| P2 | **SOURCE CLASSIFICATION COMPLETE** | ASSETS/AI/IMAGES/AI_SEARCH/MEDIA/DB/cron all KEEP from direct source usage; account/runtime telemetry remains a separate optional evidence layer. |
 | P3 | **PLANNED** | Define authenticated canonical Publish Core from existing Telegram/Admin flows. |
 | P4 | **PLANNED** | Production visual/performance audit before UI implementation. |
 
@@ -469,3 +469,10 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Consolidation keeps `Production Smoke Gate-15` as the automatic canonical production gate. The legacy `Production Smoke Test` is changed to manual-only `workflow_dispatch` and moved to a separate legacy-manual concurrency group. This stops duplicate production mutation on every main push while preserving an explicit fallback/manual diagnostic path.
 - P1 core remediation state after this change: Android docs-only automatic build noise removed; PR-triggered Gate-15 runtime production mutation removed; QUEUE-01 Wrangler dependency removed; duplicate Production Smoke automatic push mutation retired. QUEUE-01 remains post-deploy origin verification and canonical Gate-15 remains public production verification.
 - P2 source binding classification remains complete: all declared production bindings/cron are KEEP; no source-supported REMOVE candidate exists.
+
+
+### 13.5 P1 completion evidence — production verification on canonical main
+- PR #385 merged to `main` as `df18d130e0cd1472a31448525e49f62f09e319e7` after its PR checks passed.
+- The post-merge production chain on that exact SHA completed SUCCESS: Deploy Cloudflare Worker run `35721081413`; Production Smoke Gate-15 run `35721081444`; QUEUE-01 Production E2E Origin run `35721166160`; Production Credential Safety `35721081368`; CI `35721081369`; Android APK MVP `35721081381`; Release Gate Static Audit `35721081385`; Admin PT Xtra Pipeline `35721081394`; Homepage Canonical Verify `35721081393`; Admin Redirect Verify `35721081370`; Stage 3 Production Reconciliation `35721081375`.
+- P1 is therefore COMPLETE for the scoped trigger/consolidation work: canonical deploy succeeded, canonical Gate-15 succeeded, and the post-deploy origin verifier succeeded on the same main SHA after the no-Wrangler remediation.
+- No final evidence in this chain requires Wrangler CLI. No production credential rotation or destructive Cloudflare resource mutation was performed by the P1 remediation.
