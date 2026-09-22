@@ -37,8 +37,9 @@ jobs:
           set -euo pipefail
           test -n "$ADMIN_PASSWORD"
           TEST_CAR_ID="gate15-e2e-${GITHUB_RUN_ID}"
-          TEST_IMAGE_URL="$(curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$SITE_URL/api/cars" | jq -r '[.cars[]?.images[]?.url // empty] | map(select(type == "string" and startswith("http"))) | map(select(test("^https://phanthuanxtra\\.com/media/vehicles/publish-(admin-)?[A-Za-z0-9._-]+\\.jpg$"))) | .[0] // empty')"
-          test -n "$TEST_IMAGE_URL"
+          TEST_IMAGE_URL="$SITE_URL/images/lx600-urban.jpg"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -o /dev/null "$TEST_IMAGE_URL"
+          echo "D1 runtime E2E uses stable public static image; R2 lifecycle is tested separately."
           trap 'if [ -n "${ADMIN_SESSION:-}" ]; then curl --silent --show-error --retry 2 --max-time 20 -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" >/dev/null || true; fi' EXIT
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
           test "$status" = 200
