@@ -428,7 +428,7 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 | P0 | **COMPLETE** | Gate-15 run `35705461544` SUCCESS on `fc093e3`. |
 | P1 | **COMPLETE** | Trigger/consolidation remediation completed; production deploy, canonical Gate-15 and post-deploy QUEUE-01 all SUCCESS on `df18d130`. |
 | P2 | **SOURCE CLASSIFICATION COMPLETE** | ASSETS/AI/IMAGES/AI_SEARCH/MEDIA/DB/cron all KEEP from direct source usage; account/runtime telemetry remains a separate optional evidence layer. |
-| P3 | **PLANNED** | Define authenticated canonical Publish Core from existing Telegram/Admin flows. |
+| P3 | **IN PROGRESS** | Canonical vehicle Publish Core introduced; next extract shared persistence service, add contract tests, then migrate Telegram/Admin/CMS/App callers. |
 | P4 | **PLANNED** | Production visual/performance audit before UI implementation. |
 
 
@@ -476,3 +476,12 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - The post-merge production chain on that exact SHA completed SUCCESS: Deploy Cloudflare Worker run `35721081413`; Production Smoke Gate-15 run `35721081444`; QUEUE-01 Production E2E Origin run `35721166160`; Production Credential Safety `35721081368`; CI `35721081369`; Android APK MVP `35721081381`; Release Gate Static Audit `35721081385`; Admin PT Xtra Pipeline `35721081394`; Homepage Canonical Verify `35721081393`; Admin Redirect Verify `35721081370`; Stage 3 Production Reconciliation `35721081375`.
 - P1 is therefore COMPLETE for the scoped trigger/consolidation work: canonical deploy succeeded, canonical Gate-15 succeeded, and the post-deploy origin verifier succeeded on the same main SHA after the no-Wrangler remediation.
 - No final evidence in this chain requires Wrangler CLI. No production credential rotation or destructive Cloudflare resource mutation was performed by the P1 remediation.
+
+
+## 15. P3 Publish Core — canonicalization started
+- Audit result: current publishing is vehicle/listing publishing, not a generic article CMS. Existing inputs are fragmented across Telegram AI ingestion (`telegram-ingest.js` / `telegram-router.js`), Admin vehicle creation (`/api/admin/cars`), CMS/API vehicle CRUD (`/api/cms/v1/cars`), App API vehicle CRUD, and Telegram output (`publishCar`).
+- Existing Telegram ingestion already performs R2 source storage, Workers AI vehicle analysis, confidence gating, optional PT Xtra plate branding, D1 draft state, website car promotion and Telegram publishing with duplicate protection.
+- Existing Admin path has an AI/branding preprocessor before `handleAdminCars`. CMS and App API write cars separately, so validation/storage semantics are duplicated.
+- P3 introduces `POST /api/publish/v1/cars` as the first canonical Publish Core entry point. It accepts trusted Admin/CMS/App bearer identities, delegates car validation/D1 persistence to the existing CMS car handler, and optionally fans out to Telegram through the existing idempotent `publishCar` implementation.
+- This first slice deliberately does not claim Facebook/Zalo/article publishing and does not replace Telegram AI ingestion yet. Next P3 slice should extract a shared service function so Telegram/Admin/CMS/App all call the same validation/persistence core without internal HTTP-shaped adapters, then add contract tests and migrate callers incrementally.
+- Security scope: no new secret is introduced; existing Admin/CMS/App credentials are reused. No Cloudflare resource/binding mutation is required.
