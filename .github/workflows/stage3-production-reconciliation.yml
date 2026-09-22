@@ -82,7 +82,7 @@ jobs:
             done
           }
           trap cleanup_d1 EXIT
-          create_payload="$(jq -nc --arg id "$id" --arg image "https://phanthuanxtra.com/media/vehicles/publish-admin-${id}.jpg" '{id:$id,brand:"PT XTRA STAGE3",model:"Runtime E2E",year:2026,mileage:1,price:1,fuel:"test",category:"suv",color:"test",status:"available",description:"temporary Stage 3 runtime evidence",features:["e2e"],images:[{url:$image}]}')"
+          create_payload="$(jq -nc --arg id "$id" --arg image "https://phanthuanxtra.com/media/vehicles/publish-admin-${id}.jpg" '{id:$id,brand:"PT XTRA STAGE3",model:"Runtime E2E",year:2026,mileage:1,price:1,fuel:"test",category:"suv",color:"test",status:"hidden",description:"temporary Stage 3 runtime evidence",features:["e2e"],images:[{url:$image}]}')"
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "${SITE_URL}/api/admin/cars" -H "Authorization: Bearer ${token}" -H 'content-type: application/json' --data "$create_payload" | tee /tmp/create.json
           jq -e --arg id "$id" '.ok == true and .id == $id' /tmp/create.json >/dev/null
 
