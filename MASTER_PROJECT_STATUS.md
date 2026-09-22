@@ -453,3 +453,11 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - QUEUE-01 retains Worker-origin Admin signed-session verification, authenticated dashboard, D1 create/read/delete, and R2 upload/read/delete/404 through the production Worker API. This preserves post-deploy origin verification without Wrangler CLI.
 - Gate-15 remains the broader canonical public production smoke/E2E gate. QUEUE-01 remains a post-deploy origin verifier for now; workflow deletion/merging is deferred until trigger lineage proves that removing it would not reduce post-deploy evidence.
 - No production credential rotation, Cloudflare resource deletion, or binding removal is part of this remediation.
+
+
+### 13.3 P1 remediation — stop PR-triggered production mutation
+- PR #383 merged as `78bf48401e3c315aeeccaa274d794eeb2a0a65b6` after all required observed checks completed successfully; production deploy on the PR remained skipped. QUEUE-01 no longer contains or depends on Wrangler CLI.
+- Trigger audit found `gate15-runtime-evidence.yml` ran on every pull request targeting `main` while performing production D1 create/read/delete and R2 upload/read/delete/404. This violates the target separation between PR validation and serialized production-mutating verification and explains production runtime activity on otherwise non-production PRs.
+- Focused remediation removes the `pull_request -> main` trigger from Gate 15 Runtime Evidence Harness. Its dedicated audit-branch push trigger and manual `workflow_dispatch` remain available, so the harness is retained for intentional runtime evidence collection without mutating production for ordinary PRs.
+- Canonical production Gate-15 remains `production-smoke-gate15.yml`; post-deploy origin verification remains QUEUE-01. `production-smoke.yml` remains a duplicate candidate requiring final dependency/history evidence before disable/delete.
+- No Cloudflare resource, production credential, D1 schema, R2 bucket, or binding is changed by this remediation.
