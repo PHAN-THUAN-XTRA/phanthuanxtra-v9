@@ -1,3 +1,4 @@
+import { saveCar } from "./vehicle-persistence.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { createPtXtraPlateImage, hasValidPlateBox } from "./plate-branding.js";
 import { publishCar } from "./telegram.js";
@@ -42,9 +43,7 @@ async function promoteDraft(env,inboxId,ai,publishMediaKey){
   if(!canAutoPublish(ai))return {published:false,reason:"identity_or_confidence_below_threshold"};
   const carId=carIdForInbox(inboxId); const description=clean(ai.description,10000)||`Xe ${clean(ai.brand)} ${clean(ai.model)} được nhập từ Telegram và phân tích bởi AI.`; const features=Array.isArray(ai.features)?ai.features.map(clean).filter(Boolean).slice(0,80):[]; const imageUrl=`https://phanthuanxtra.com/media/${encodeURIComponent(publishMediaKey)}`;
   const existing=await env.DB.prepare("SELECT id,status FROM cars WHERE id=? LIMIT 1").bind(carId).first();
-  if(!existing)await env.DB.prepare("INSERT INTO cars (id,brand,model,year,mileage,price,fuel,category,color,status,description,features_json,featured,cover_image) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(carId,clean(ai.brand,100),clean(ai.model,160),ai.year??null,ai.mileage??0,ai.price??0,clean(ai.fuel,100),clean(ai.category,40)||"other",clean(ai.color,80),"available",description,JSON.stringify(features),0,imageUrl).run();
-  const imageExists=await env.DB.prepare("SELECT id FROM car_images WHERE car_id=? AND url=? LIMIT 1").bind(carId,imageUrl).first();
-  if(!imageExists)await env.DB.prepare("INSERT INTO car_images (car_id,url,sort_order,is_cover) VALUES (?,?,0,1)").bind(carId,imageUrl).run();
+  if(!existing){const saved=await saveCar(env.DB,{id:carId,brand:ai.brand,model:ai.model,year:ai.year??null,mileage:ai.mileage??0,price:ai.price??0,fuel:ai.fuel,category:ai.category||"other",color:ai.color,status:"available",description,features,featured:false,cover_image:imageUrl,images:[imageUrl]},{id:carId,mode:"create",actor:"telegram-ai"});if(!saved.ok)throw new Error(saved.error);}
   const published=await publishCar(env,carId); await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='published',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run(); return {published:true,car_id:carId,telegram:published};
 }
 
