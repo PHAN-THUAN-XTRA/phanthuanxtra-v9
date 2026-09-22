@@ -152,6 +152,10 @@ async function runAI(env,messages,cars,knowledge){
     }
   }
 }
+function deterministicIdentityReply(message){
+  if(!IDENTITY_QUERY_RE.test(message))return "";
+  return "Phan Thuần là người mà trợ lý PHAN THUẦN XTRA đang đại diện hỗ trợ và là tên gắn với thương hiệu PHAN THUẦN XTRA. Theo tài liệu truyền thông được cung cấp, hệ sinh thái được giới thiệu gồm Luxury Automotive, European Yachts, Business Jets và Green Energy. Chatbot hiện chỉ tư vấn bán hàng đối với các xe đang có trên website. Hotline liên hệ: 0866 997 891.";
+}
 function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
 async function saveLead(env,conversationId,phone,name,message){if(!phone||!env.DB)return false;const normalized=phone.replace(/\D/g,"");if(normalized.length<9)return false;await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message) VALUES (?,?,?,?)").bind(clean(name,120),clean(phone,30),"",`[AI CHAT ${conversationId}] ${clean(message,1800)}`).run();await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(name,120)||null,clean(phone,30),conversationId).run();return true;}
 async function pendingUnknown(env,cid){try{return await env.DB.prepare("SELECT id,question,name,phone,status FROM ai_unknown_questions WHERE conversation_id=? AND status='pending' ORDER BY id DESC LIMIT 1").bind(cid).first();}catch{return null;}}
@@ -179,7 +183,13 @@ export async function handleAiChat(request,env){
     if(unknown.created || contact.name || contact.phone){await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:contact.name,phone:contact.phone,message,reply:"Cần Phan Thuần/nhân viên bổ sung thông tin xác thực."});}
     reply="Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA. Tôi không muốn đoán sai. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu đến Phan Thuần/nhân viên để được tư vấn chính xác.";
   } else {
-    try{const result=await runAI(env,[...history,{role:"user",content:message}],cars,knowledge.text);reply=result.text}catch(error){console.error("ai_chat",String(error?.message||error));reply="Tôi đã nhận được tin nhắn của anh/chị. Hiện trợ lý AI đang bận xử lý, anh/chị có thể để lại số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
+    const identityFallback=deterministicIdentityReply(message);
+    try{const result=await runAI(env,[...history,{role:"user",content:message}],cars,knowledge.text);reply=result.text}catch(error){
+      console.error("ai_chat",String(error?.message||error));
+      if(identityFallback){reply=identityFallback;}
+      else if(vehicleQuery){reply=cars.length?"Hiện Workers AI đang tạm đạt giới hạn xử lý. Danh mục xe trên website vẫn hoạt động; anh/chị vui lòng cho tôi biết chiếc xe đang quan tâm và để lại họ tên + số điện thoại, Phan Thuần/nhân viên sẽ liên hệ tư vấn từ đúng catalog hiện tại.":"Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";}
+      else{reply="Tôi đã nhận được tin nhắn của anh/chị. Anh/chị có thể để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
+    }
   }
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();
   const phone=clean(body?.phone,30)||contact.phone; const name=clean(body?.name,120)||contact.name;
