@@ -428,7 +428,7 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 | P0 | **COMPLETE** | Gate-15 run `35705461544` SUCCESS on `fc093e3`. |
 | P1 | **COMPLETE** | Trigger/consolidation remediation completed; production deploy, canonical Gate-15 and post-deploy QUEUE-01 all SUCCESS on `df18d130`. |
 | P2 | **SOURCE CLASSIFICATION COMPLETE** | ASSETS/AI/IMAGES/AI_SEARCH/MEDIA/DB/cron all KEEP from direct source usage; account/runtime telemetry remains a separate optional evidence layer. |
-| P3 | **IN PROGRESS** | Canonical vehicle Publish Core introduced; next extract shared persistence service, add contract tests, then migrate Telegram/Admin/CMS/App callers. |
+| P3 | **COMPLETE** | Vehicle Publish Core canonicalized: Telegram AI, Admin/CMS, App API and Publish API share validation/persistence; website/D1/R2 and idempotent Telegram output are verified. |
 | P4 | **PLANNED** | Production visual/performance audit before UI implementation. |
 
 
@@ -485,3 +485,13 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - P3 introduces `POST /api/publish/v1/cars` as the first canonical Publish Core entry point. It accepts trusted Admin/CMS/App bearer identities, delegates car validation/D1 persistence to the existing CMS car handler, and optionally fans out to Telegram through the existing idempotent `publishCar` implementation.
 - This first slice deliberately does not claim Facebook/Zalo/article publishing and does not replace Telegram AI ingestion yet. Next P3 slice should extract a shared service function so Telegram/Admin/CMS/App all call the same validation/persistence core without internal HTTP-shaped adapters, then add contract tests and migrate callers incrementally.
 - Security scope: no new secret is introduced; existing Admin/CMS/App credentials are reused. No Cloudflare resource/binding mutation is required.
+
+
+### 15.1 P3 completion evidence — canonical vehicle publishing
+- PR #387 introduced the authenticated canonical `POST /api/publish/v1/cars` entry point and optional idempotent Telegram fan-out.
+- PR #388 extracted `src/vehicle-persistence.js`; Admin/CMS, Publish Core and Telegram AI promotion now share the same vehicle validation/D1/image persistence service instead of separate write implementations.
+- PR #389 migrated App API POST/PUT vehicle writes to the same shared service and added contract tests for vehicle IDs, canonical payload normalization, status validation and update preservation.
+- Canonical flow is now: Telegram AI / Admin / CMS / App API / Publish API → shared vehicle persistence → D1 + persisted media URLs/R2-backed media → website inventory → optional Telegram `publishCar` output with `telegram_posts.car_id` duplicate protection.
+- Production verification on PR #389 merge SHA `b802f1081122650b1a9b5051e87acdb945b6f2ce` completed SUCCESS: Deploy Cloudflare Worker `35727206036`; Production Smoke Gate-15 `35727206126`; QUEUE-01 Production E2E Origin `35727303745`; CI `35727206140`; Production Credential Safety `35727206011`; Admin PT Xtra Pipeline `35727206017`; Release Gate Static Audit `35727206175`; Android APK MVP `35727206061`; Stage 3 Production Reconciliation `35727206067`; Homepage Canonical Verify `35727206026`; Admin Redirect Verify `35727206021`.
+- P3 is COMPLETE for the scoped vehicle/listing publishing architecture. Generic article CMS and Facebook/Zalo publishing remain out of scope because the audited repository does not contain verified implementations for those outputs; no unsupported capability is claimed.
+- No P3 completion evidence requires Wrangler CLI, and no Cloudflare resource/binding or production credential mutation was introduced by these refactors.
