@@ -276,3 +276,20 @@ Rules:
 - Telegram Bot API responses must return `.ok == true` for the status message, archive, manifest and SHA-256 file. HTTP/API errors fail the workflow.
 - The archive must fit the configured Telegram delivery ceiling (49,000,000 bytes); oversize archives fail visibly rather than reporting a false-green backup.
 - Secret values remain excluded from the backup and must never be printed in logs.
+
+
+#### CF-AI-003 — 2026-09-22 UTC+7
+- Objective: dashboard-side Cloudflare intelligence audit without API token disclosure or destructive action.
+- Ask AI result: **COMPLETE (dashboard-side intelligence only; no API execution)**.
+- Dashboard capabilities: product/dashboard pages were discoverable, but account entitlements/capabilities remained unresolved and the session could not enumerate Worker names, D1/R2/KV resources, DNS/routes, bindings, cron schedules or deployment versions.
+- Workers AI usage: actual Neuron consumption and account tier were unavailable in the Ask AI session. Treat plan/quota conclusions as conditional until machine evidence confirms them.
+- Dashboard findings reported by Ask AI: queue names `verify-email` and `purchase` appeared in dashboard search. This is discovery evidence only; existence, ownership, consumers and dependency on PHAN THUẦN XTRA are **not yet machine-verified**, so no queue mutation is authorized.
+- AI Gateway / AI Search: dashboard pages were discoverable, but the existence of a credits page or tokens page alone does **not** prove an active gateway/index or production dependency. Machine verification is required before cleanup decisions.
+- God's Eye View: no dashboard search match was reported. The authoritative retirement evidence remains the earlier GitHub/API decommission verification; dashboard absence is supporting evidence only.
+- GitHub reconciliation: production website Chat AI source uses `@cf/zai-org/glm-4.7-flash` primary with `@cf/meta/llama-3.2-3b-instruct` fallback and a short response cache. Current Stage 3 reconciliation explicitly avoids Workers AI inference in routine CI and reserves allocation for website customers. The Developer Gateway still has Workers AI models configured, but its production dependency/traffic must be audited before any removal.
+- Machine-audit policy: this repository intentionally uses GitHub Actions → Cloudflare API/SDK rather than Wrangler for production automation. Do not adopt Ask AI's Wrangler commands as the canonical execution path.
+- Security: no Cloudflare token/API key/secret value is to be supplied to Dashboard Ask AI or committed to GitHub.
+- Mutations executed: **0**.
+- Post-change verification: not required because CF-AI-003 made no Cloudflare mutation.
+- Final sync state: **SYNCED** once this ledger entry is merged.
+- Next machine checks: use existing authorized GitHub Actions/API-SDK evidence to inventory relevant Worker/routes/bindings and verify whether the reported queues, AI Gateway or AI Search have any PHAN THUẦN XTRA dependency; classify KEEP / REVIEW / REMOVE only after dependency evidence.
