@@ -136,7 +136,7 @@ jobs:
           test -n "$ADMIN_SESSION"
           export ADMIN_SESSION
           trap 'admin_request /tmp/admin-cleanup.json -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION" >/dev/null 2>&1 || true' EXIT
-          admin_request /tmp/admin-create.json -X POST "$SITE_URL/api/admin/cars" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Vehicle\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"available\",\"description\":\"CI production E2E test record; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}"
+          admin_request /tmp/admin-create.json -X POST "$SITE_URL/api/admin/cars" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Vehicle\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"hidden\",\"description\":\"CI production E2E test record; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}"
           test "$ADMIN_LAST_STATUS" = "201"
           jq -e '.ok == true and .id == env.TEST_CAR_ID' /tmp/admin-create.json >/dev/null
           admin_request /tmp/admin-cars.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars"
