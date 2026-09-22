@@ -311,3 +311,14 @@ Rules:
 - CF-MACHINE-002 fixes status parsing by slicing with the exact marker length and re-runs the same read-only inventory automatically on main.
 - Queue-01 production E2E race also identified: the push-triggered E2E attempted Admin login before the concurrent production deployment completed. Queue-01 is changed to `workflow_run` and executes only after a successful `Deploy Cloudflare Worker` run for `main`, checking out the exact deployed SHA.
 - Both changes are CI/audit control-plane fixes only; no Cloudflare resource mutation is performed.
+
+
+### 12.3 CF-MACHINE-002 evidence and CF-MACHINE-003 dependency mapping
+- CF-MACHINE-002 corrected the parser and completed successfully with `mutations: 0`.
+- Verified production facts from Cloudflare API: Worker `phanthuanxtra-v2`; active zone `phanthuanxtra.com`; routes for apex, `www`, and `chat`; production D1 binding to `phanthuanxtra-db` (`8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d`); R2 binding `phanthuanxtra-media`; Workers AI binding `AI`; AI Search namespace binding `AI_SEARCH`.
+- Cloudflare Queues API returned an empty queue list with HTTP 200. Dashboard Ask AI names `verify-email` and `purchase` are therefore treated as **NOT PRESENT in current account API inventory**, not cleanup targets.
+- AI Gateway list remained permission-blocked (HTTP 403), so it stays REVIEW and no mutation is authorized.
+- The initial AI Search list path was corrected to the current namespace-scoped endpoint. Regardless of inventory permission, the production Worker binding proves AI Search is a live dependency and therefore KEEP.
+- Queue-01 rerun after the production deploy completed successfully, confirming the earlier Admin 401 was a deployment-order race.
+- CF-MACHINE-003 extends the read-only audit across every Worker: settings/bindings, route metadata and Cron schedules, using the same existing GitHub Actions Cloudflare credentials.
+- Automated classification is conservative: verified production dependencies = KEEP; non-production Workers = REVIEW; REMOVE remains empty until dependency evidence and explicit destructive approval exist.
