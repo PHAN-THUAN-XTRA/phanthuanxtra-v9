@@ -293,3 +293,13 @@ Rules:
 - Post-change verification: not required because CF-AI-003 made no Cloudflare mutation.
 - Final sync state: **SYNCED** once this ledger entry is merged.
 - Next machine checks: use existing authorized GitHub Actions/API-SDK evidence to inventory relevant Worker/routes/bindings and verify whether the reported queues, AI Gateway or AI Search have any PHAN THUẦN XTRA dependency; classify KEEP / REVIEW / REMOVE only after dependency evidence.
+
+
+### 12.1 CF-MACHINE-001 — automated Cloudflare read-only inventory
+- Purpose: machine-verify Cloudflare resources that Dashboard Ask AI CF-AI-003 could not enumerate.
+- Execution plane: GitHub Actions → Cloudflare REST API using existing production-scoped GitHub secrets. No Wrangler and no user-supplied credential values.
+- Scope: Workers, D1, R2, KV, Queues, AI Gateway, AI Search, production zone/routes, production Worker settings/bindings and deployments, plus source-level Workers AI call evidence.
+- Safety: GET/read-only requests only; `mutations: 0`; secret-like fields are redacted from the generated report.
+- Evidence: `cloudflare-audit/report.json` is an ephemeral GitHub Actions artifact retained 30 days, not a second committed Markdown source of truth.
+- Trigger: automatically on main when the audit workflow/script changes; manual dispatch remains available.
+- Decision rule: resources are not classified REMOVE until machine evidence proves no production dependency. Unsupported API permissions are recorded as UNAVAILABLE rather than guessed.

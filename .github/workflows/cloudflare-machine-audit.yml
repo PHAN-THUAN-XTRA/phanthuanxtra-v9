@@ -1,0 +1,46 @@
+name: Cloudflare Machine Inventory Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cloudflare-machine-audit.yml
+      - scripts/cloudflare-machine-audit.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-machine-audit
+  cancel-in-progress: false
+
+env:
+  WORKER_NAME: phanthuanxtra-v2
+  ZONE_NAME: phanthuanxtra.com
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run read-only Cloudflare inventory
+        run: node scripts/cloudflare-machine-audit.mjs
+      - name: Verify report contract
+        run: |
+          set -euo pipefail
+          jq -e '.audit=="CF-MACHINE-001" and .mutations==0' cloudflare-audit/report.json >/dev/null
+          jq '{audit,generated_at,mutations,production,source_evidence,availability:(.resources|map_values({unavailable:(.unavailable//false),status:(.status//null)}))}' cloudflare-audit/report.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload machine evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-machine-audit-${{ github.run_id }}
+          path: cloudflare-audit/report.json
+          retention-days: 30
+          if-no-files-found: error
