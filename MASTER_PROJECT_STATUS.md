@@ -512,3 +512,9 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Regression audit found legacy static vehicle detail pages still linked to removed `#inventory`; corrected both detail navigation/back links to canonical `#cars-section`.
 - Admin Control keeps existing authentication/session/recovery/API behavior unchanged. UX changes are presentation-only: sticky mobile tabs, full-width touch controls, 44px minimum targets, horizontal table containment, single-column vehicle form, mobile-safe modal, clearer “Đăng xe” CTA and direct Website preview.
 - P4 remains IN PROGRESS until this slice merges and its production asset/flow checks are green.
+
+
+### 16.2 P4 homepage document-boundary verification
+- Re-audit after the visible repetition report confirms the corrective branch has one HTML document boundary and one instance of each primary section/widget: Ecosystem, Test Drive, AI, Services, Contact, compare modal and AI widget.
+- Intended hierarchy is Hero → Automotive → Private Concierge → Ecosystem → Energy → Yachts → Business Jets → Test Drive → AI → Services → Contact.
+- No auth/API/Worker binding behavior changed.
