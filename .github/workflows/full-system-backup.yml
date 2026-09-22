@@ -3,12 +3,6 @@ name: Full System Backup
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - MASTER_PROJECT_STATUS.md
-      - .github/workflows/full-system-backup.yml
-      - .github/workflows/gate-14-backup-restore.yml
-      - scripts/full-system-backup.mjs
   schedule:
     # 07:00 Asia/Ho_Chi_Minh (UTC+7)
     - cron: "0 0 * * *"
@@ -135,16 +129,44 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Send backup result and compact manifest to Telegram
-        if: always()
-        continue-on-error: true
+      - name: Deliver verified backup to Telegram
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "$TELEGRAM_BACKUP_BOT_TOKEN" ] || [ -z "$TELEGRAM_BACKUP_CHAT_ID" ]; then exit 0; fi
-          status="${{ job.status }}"; size="unknown"; if [ -f full-system-backup.tar.gz ]; then size="$(du -h full-system-backup.tar.gz | cut -f1)"; fi
-          text=$(printf '📦 <b>Backup phanthuanxtra.com — FULL SYSTEM</b>\n📊 status: %s\n💾 archive: %s\n🧩 GitHub + Worker + bindings + D1 + R2 + routes + manifest + SHA-256\n🔐 secret values: excluded' "$status" "$size")
-          curl --silent --show-error --data-urlencode "chat_id=$TELEGRAM_BACKUP_CHAT_ID" --data-urlencode "text=$text" --data-urlencode "parse_mode=HTML" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendMessage"
-          if [ -f full-system-backup.tar.gz ] && [ "$(stat -c%s full-system-backup.tar.gz)" -le 49000000 ]; then curl --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz" -F "caption=Full-system backup archive — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"; fi
-          if [ -f "$BACKUP_ROOT/manifest.json" ]; then curl --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@$BACKUP_ROOT/manifest.json" -F "caption=Backup manifest — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"; fi
-          if [ -f full-system-backup.tar.gz.sha256 ]; then curl --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz.sha256" -F "caption=Backup SHA-256 — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument"; fi
+          test -n "$TELEGRAM_BACKUP_BOT_TOKEN"
+          test -n "$TELEGRAM_BACKUP_CHAT_ID"
+          test -s full-system-backup.tar.gz
+          test -s full-system-backup.tar.gz.sha256
+          test -s "$BACKUP_ROOT/manifest.json"
+
+          archive_bytes="$(stat -c%s full-system-backup.tar.gz)"
+          if [ "$archive_bytes" -gt 49000000 ]; then
+            echo "Backup archive is too large for the configured Telegram delivery limit: $archive_bytes bytes"
+            exit 1
+          fi
+
+          telegram_ok() {
+            local response="$1" label="$2"
+            if ! printf '%s' "$response" | jq -e '.ok == true' >/dev/null; then
+              echo "Telegram delivery failed: $label"
+              printf '%s' "$response" | jq -c '{ok, error_code, description}' 2>/dev/null || true
+              return 1
+            fi
+            echo "Telegram delivery PASS: $label"
+          }
+
+          size="$(du -h full-system-backup.tar.gz | cut -f1)"
+          text=$(printf '📦 <b>Backup phanthuanxtra.com — FULL SYSTEM</b>\n📊 status: success\n💾 archive: %s\n🧩 GitHub + Worker + bindings + D1 + R2 + routes + manifest + SHA-256\n🔐 secret values: excluded' "$size")
+
+          response="$(curl --fail-with-body --silent --show-error --data-urlencode "chat_id=$TELEGRAM_BACKUP_CHAT_ID" --data-urlencode "text=$text" --data-urlencode "parse_mode=HTML" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendMessage")"
+          telegram_ok "$response" "status message"
+
+          response="$(curl --fail-with-body --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz" -F "caption=Full-system backup archive — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument")"
+          telegram_ok "$response" "backup archive"
+
+          response="$(curl --fail-with-body --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@$BACKUP_ROOT/manifest.json" -F "caption=Backup manifest — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument")"
+          telegram_ok "$response" "manifest"
+
+          response="$(curl --fail-with-body --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz.sha256" -F "caption=Backup SHA-256 — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument")"
+          telegram_ok "$response" "SHA-256"
+          echo "Telegram full-system backup delivery: PASS"

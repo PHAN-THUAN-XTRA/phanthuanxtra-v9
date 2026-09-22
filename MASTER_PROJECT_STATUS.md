@@ -266,3 +266,13 @@ Rules:
 - Security decision: do **not** provide Cloudflare API token values to Ask AI or paste them into chat.
 - Execution-plane decision: use existing authorized GitHub Actions → Cloudflare API/SDK automation for machine-readable Cloudflare audit/execution evidence; use Dashboard Ask AI for dashboard-local analysis/documentation where useful; reconcile both through this MASTER.
 - Final sync state: **SYNCED-PARTIAL** after this ledger update is merged; no Cloudflare mutation occurred.
+
+
+## 12. DAILY TELEGRAM BACKUP CONTRACT — 2026-09-22
+- Required schedule: **07:00 Asia/Ho_Chi_Minh every day**, implemented as GitHub Actions cron `0 0 * * *` (UTC).
+- Manual `workflow_dispatch` remains available for recovery/testing; routine push-triggered full backups are removed to prevent duplicate Telegram deliveries unrelated to the 07:00 schedule.
+- A scheduled backup is PASS only when collection, checksums, archive integrity, GitHub artifact upload **and Telegram delivery** all succeed.
+- Telegram backup credentials must be present; missing credentials are a failure, not a silent skip.
+- Telegram Bot API responses must return `.ok == true` for the status message, archive, manifest and SHA-256 file. HTTP/API errors fail the workflow.
+- The archive must fit the configured Telegram delivery ceiling (49,000,000 bytes); oversize archives fail visibly rather than reporting a false-green backup.
+- Secret values remain excluded from the backup and must never be printed in logs.
