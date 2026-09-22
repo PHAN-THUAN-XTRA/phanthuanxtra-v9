@@ -322,3 +322,12 @@ Rules:
 - Queue-01 rerun after the production deploy completed successfully, confirming the earlier Admin 401 was a deployment-order race.
 - CF-MACHINE-003 extends the read-only audit across every Worker: settings/bindings, route metadata and Cron schedules, using the same existing GitHub Actions Cloudflare credentials.
 - Automated classification is conservative: verified production dependencies = KEEP; non-production Workers = REVIEW; REMOVE remains empty until dependency evidence and explicit destructive approval exist.
+
+
+### 12.4 Production Admin E2E race — root cause and isolation
+- A post-deploy Queue-01 run failed canonical Admin login with HTTP 401 even though the Worker deployment had completed successfully.
+- Timestamp correlation identified a distinct race: routine Stage 3 temporarily changed the live D1 Admin password during its password-reset E2E, and Queue-01 attempted login inside that temporary-password window.
+- This was **not** an Admin authentication defect. Stage 3 restored the canonical password and its own reconciliation completed successfully.
+- Routine Stage 3 no longer rotates recovery credentials or changes the live Admin password. Full password-reset mutation remains isolated to the dedicated Password Reset Production E2E workflow.
+- Queue-01 now shares the existing `xtra-production-e2e-single-queue` concurrency lane with Stage 3 and retries only transient Admin `401/429` login responses before failing, protecting against explicitly authorized standalone password-reset windows.
+- The fix reduces live production-auth mutation risk while preserving separate password-reset E2E coverage.
