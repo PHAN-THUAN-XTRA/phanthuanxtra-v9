@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAiChat } from '../src/ai-chat.js';
 
-function mockDb() {
+function mockDb(cars = []) {
   const rows = [];
   const unknown = [];
   return {
@@ -17,6 +17,7 @@ function mockDb() {
             },
             async all() {
               if (sql.includes('FROM ai_messages')) return {results: rows.filter(x=>x.type==='message').slice(-12).map(x=>({role:x.role,content:x.content}))};
+              if (sql.includes("FROM cars WHERE status <> 'hidden'")) return {results: cars.filter(x=>x.status !== 'hidden')};
               return {results:[]};
             },
             async first() {
@@ -154,4 +155,47 @@ test('Phan Thuần ecosystem lookup expands AI Search with official aliases and 
   assert.match(q, /PhanThuanSaigon/);
   assert.match(q, /Ô tô Xuyên Á Phan Thuần/);
   assert.match(q, /Green Energy/);
+});
+
+
+test('ASCII Vietnamese identity question "phan thuan la ai" is answered without Workers AI', async () => {
+  const DB = mockDb();
+  let aiCalls = 0;
+  const env = {
+    DB,
+    AI: { async run() { aiCalls += 1; throw new Error('Workers AI should not be required for basic identity'); } }
+  };
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'ascii-identity',visitor_id:'ascii-identity',message:'phan thuan la ai'})
+  }), env);
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.ok, true);
+  assert.equal(data.needs_human, false);
+  assert.match(data.reply, /Phan Thuần/);
+  assert.match(data.reply, /PHAN THUẦN XTRA/);
+  assert.equal(aiCalls, 0);
+});
+
+test('ASCII Vietnamese vehicle query uses only visible website catalog when Workers AI is unavailable', async () => {
+  const DB = mockDb([
+    {id:'lexus-live',brand:'Lexus',model:'LX 600',year:2025,mileage:100,status:'available',price:1,category:'suv'},
+    {id:'ci-hidden',brand:'PT XTRA TEST',model:'CI E2E Vehicle',year:2026,mileage:1,status:'hidden',price:1,category:'suv'}
+  ]);
+  const env = {
+    DB,
+    AI_SEARCH: { async search() { return {chunks:[]}; } },
+    AI: { async run() { throw new Error('quota 4006'); } }
+  };
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'ascii-cars',visitor_id:'ascii-cars',message:'website co xe nao'})
+  }), env);
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.needs_human, false);
+  assert.match(data.reply, /Lexus LX 600 2025/);
+  assert.doesNotMatch(data.reply, /CI E2E Vehicle/);
+  assert.match(data.reply, /họ tên \+ số điện thoại/i);
 });
