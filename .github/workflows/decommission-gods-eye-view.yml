@@ -20,63 +20,77 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
       TARGET_HOSTNAME: eye.phanthuanxtra.com
       TARGET_WORKER: phanthuanxtra-gods-eye-view
 
     steps:
-      - name: Validate credentials
+      - name: Decommission and verify
         shell: bash
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_ACCOUNT_ID"
-          test -n "$CLOUDFLARE_API_TOKEN"
-          echo "Cloudflare credentials are configured."
 
-      - name: Detach custom domain
-        shell: bash
-        run: |
-          set -euo pipefail
-          auth=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+          tokens=()
+          [ -n "${CLOUDFLARE_API_TOKEN:-}" ] && tokens+=("$CLOUDFLARE_API_TOKEN")
+          [ -n "${CLOUDFLARE_BACKUP_API_TOKEN:-}" ] && tokens+=("$CLOUDFLARE_BACKUP_API_TOKEN")
+          [ "${#tokens[@]}" -gt 0 ] || { echo "No Cloudflare Worker token is configured."; exit 1; }
 
-          domains="$(curl --fail-with-body --silent --show-error "${auth[@]}"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains?hostname=$TARGET_HOSTNAME")"
-          printf '%s' "$domains" | jq -e '.success == true' >/dev/null
+          ACTIVE_TOKEN=""
+          for candidate in "${tokens[@]}"; do
+            status="$(curl --silent --show-error -o /tmp/domains.json -w '%{http_code}'               -H "Authorization: Bearer $candidate"               "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains?hostname=$TARGET_HOSTNAME")" || true
+            echo "Workers domains list HTTP $status"
+            if [ "$status" = "200" ] && jq -e '.success == true and (.result | type == "array")' /tmp/domains.json >/dev/null 2>&1; then
+              ACTIVE_TOKEN="$candidate"
+              break
+            fi
+            jq -c '{success,errors,messages}' /tmp/domains.json 2>/dev/null || true
+          done
+          [ -n "$ACTIVE_TOKEN" ] || { echo "No configured token can read Worker domains."; exit 1; }
 
-          mapfile -t ids < <(printf '%s' "$domains" | jq -r --arg h "$TARGET_HOSTNAME" '.result[]? | select(.hostname == $h) | .id')
+          delete_api() {
+            local url="$1" label="$2" status body
+            body="$(mktemp)"
+            for candidate in "${tokens[@]}"; do
+              status="$(curl --silent --show-error -o "$body" -w '%{http_code}' -X DELETE                 -H "Authorization: Bearer $candidate" "$url")" || true
+              echo "$label DELETE HTTP $status"
+              if [ "$status" = "204" ]; then return 0; fi
+              if [ "$status" = "200" ]; then
+                if [ ! -s "$body" ] || jq -e '.success == true' "$body" >/dev/null 2>&1; then return 0; fi
+              fi
+              if [ "$status" = "404" ]; then return 0; fi
+            done
+            jq -c '{success,errors,messages}' "$body" 2>/dev/null || true
+            return 1
+          }
+
+          mapfile -t ids < <(jq -r --arg h "$TARGET_HOSTNAME" '.result[]? | select(.hostname == $h) | .id' /tmp/domains.json)
           if [ "${#ids[@]}" -eq 0 ]; then
             echo "Custom domain already absent: $TARGET_HOSTNAME"
           else
             for id in "${ids[@]}"; do
-              response="$(curl --fail-with-body --silent --show-error -X DELETE "${auth[@]}"                 "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains/$id")"
-              printf '%s' "$response" | jq -e '.success == true' >/dev/null
+              delete_api                 "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains/$id"                 "Worker domain"
               echo "Detached custom domain: $TARGET_HOSTNAME"
             done
           fi
 
-          verify="$(curl --fail-with-body --silent --show-error "${auth[@]}"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains?hostname=$TARGET_HOSTNAME")"
-          printf '%s' "$verify" | jq -e --arg h "$TARGET_HOSTNAME" '.success == true and ([.result[]? | select(.hostname == $h)] | length == 0)' >/dev/null
+          status="$(curl --silent --show-error -o /tmp/domains-after.json -w '%{http_code}'             -H "Authorization: Bearer $ACTIVE_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/domains?hostname=$TARGET_HOSTNAME")" || true
+          echo "Worker domains verification HTTP $status"
+          test "$status" = "200"
+          jq -e --arg h "$TARGET_HOSTNAME"             '.success == true and ([.result[]? | select(.hostname == $h)] | length == 0)'             /tmp/domains-after.json >/dev/null
           echo "Custom domain detach verification: PASS"
 
-      - name: Delete dedicated Worker
-        shell: bash
-        run: |
-          set -euo pipefail
-          out="$(mktemp)"
-          status="$(curl --silent --show-error -o "$out" -w '%{http_code}' -X DELETE             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$TARGET_WORKER")" || true
-          echo "Worker delete HTTP $status"
-          if [ "$status" != "200" ] && [ "$status" != "204" ] && [ "$status" != "404" ]; then
-            cat "$out"
-            exit 1
-          fi
+          delete_api             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$TARGET_WORKER"             "Worker script"
 
-          check="$(curl --silent --show-error -o /dev/null -w '%{http_code}'             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$TARGET_WORKER")" || true
-          echo "Worker post-delete GET HTTP $check"
-          test "$check" = "404"
+          worker_absent=0
+          for candidate in "${tokens[@]}"; do
+            status="$(curl --silent --show-error -o /tmp/worker-get.json -w '%{http_code}'               -H "Authorization: Bearer $candidate"               "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$TARGET_WORKER")" || true
+            echo "Worker post-delete GET HTTP $status"
+            if [ "$status" = "404" ]; then worker_absent=1; break; fi
+          done
+          test "$worker_absent" = "1"
           echo "Dedicated Worker deletion verification: PASS"
 
-      - name: Verify public endpoint is no longer serving
-        shell: bash
-        run: |
-          set -euo pipefail
           status="$(curl --silent --show-error --max-time 15 -o /dev/null -w '%{http_code}' "https://$TARGET_HOSTNAME/")" || status=000
           echo "$TARGET_HOSTNAME HTTP $status"
           case "$status" in
