@@ -3,30 +3,66 @@ import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 
 const accountId=process.env.CLOUDFLARE_ACCOUNT_ID||"";
 const primary=process.env.CLOUDFLARE_API_TOKEN||"";
-const backup=process.env.CLOUDFLARE_BACKUP_API_TOKEN||"";
+const backup=process.env.CLOUDFLARE_BACKUP_API_TOKEN||"";\nconst waf=process.env.CLOUDFLARE_WAF_API_TOKEN||"";
 const zoneName=process.env.ZONE_NAME||"phanthuanxtra.com";
 const prodWorker=process.env.WORKER_NAME||"phanthuanxtra-v2";
 if(!accountId) throw new Error("Missing CLOUDFLARE_ACCOUNT_ID");
 if(!primary&&!backup) throw new Error("Missing Cloudflare API token");
-const tokens=[["primary",primary],["backup",backup]].filter(([,v])=>v);
+const tokens=[["primary",primary],["backup",backup],["waf",waf]].filter(([,v])=>v);
 function raw(path,token){const out=execFileSync("curl",["-sS","-H",`Authorization: Bearer ${token}`,"-w","\n__STATUS__%{http_code}",`https://api.cloudflare.com/client/v4${path}`],{encoding:"utf8"});const marker="\n__STATUS__";const i=out.lastIndexOf(marker);const text=i>=0?out.slice(0,i):out;const status=i>=0?Number(out.slice(i+marker.length).trim()):0;let body;try{body=JSON.parse(text)}catch{body={raw:"[non-json response]"}}return{status,body};}
 function get(path){const attempts=[];for(const [name,t] of tokens){const r=raw(path,t);attempts.push({token:name,status:r.status,success:r.body?.success===true});if(r.status>=200&&r.status<300&&r.body?.success!==false)return{ok:true,token:name,status:r.status,body:r.body};if(![401,403].includes(r.status))break;}return{ok:false,attempts};}
 function clean(x){if(Array.isArray(x))return x.map(clean);if(!x||typeof x!=="object")return x;const o={};for(const[k,v]of Object.entries(x)){if(/secret|token|password|private.?key|api.?key/i.test(k))o[k]="[REDACTED]";else o[k]=clean(v)}return o}
 function result(path){const r=get(path);return r.ok?{status:r.status,token_source:r.token,result:clean(r.body.result),result_info:clean(r.body.result_info)}:{unavailable:true,attempts:r.attempts};}
-const report={audit:"CF-MACHINE-002",generated_at:new Date().toISOString(),mutations:0,account_id:accountId,production:{worker:prodWorker,zone:zoneName},resources:{}};
+const report={audit:"CF-MACHINE-003",generated_at:new Date().toISOString(),mutations:0,account_id:accountId,production:{worker:prodWorker,zone:zoneName},resources:{}};
 report.resources.workers=result(`/accounts/${accountId}/workers/scripts`);
 report.resources.d1=result(`/accounts/${accountId}/d1/database`);
 report.resources.r2=result(`/accounts/${accountId}/r2/buckets`);
 report.resources.kv=result(`/accounts/${accountId}/storage/kv/namespaces`);
 report.resources.queues=result(`/accounts/${accountId}/queues`);
 report.resources.ai_gateway=result(`/accounts/${accountId}/ai-gateway/gateways`);
-report.resources.ai_search=result(`/accounts/${accountId}/ai-search/instances`);
+report.resources.ai_search=result(`/accounts/${accountId}/ai-search/namespaces/default/instances`);
 const zones=get(`/zones?name=${encodeURIComponent(zoneName)}&status=active&per_page=50`);
 const zone=zones.ok?(zones.body.result||[]).find(z=>z.name===zoneName):null;
 report.resources.zone=zone?clean({id:zone.id,name:zone.name,status:zone.status}):{unavailable:true};
 report.resources.routes=zone?.id?result(`/zones/${zone.id}/workers/routes`):{unavailable:true};
 report.resources.production_worker_settings=result(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(prodWorker)}/settings`);
 report.resources.production_worker_deployments=result(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(prodWorker)}/deployments`);
+const workerList=Array.isArray(report.resources.workers?.result)?report.resources.workers.result:[];
+report.worker_dependencies={};
+for(const worker of workerList){
+  const name=worker?.id;
+  if(!name) continue;
+  report.worker_dependencies[name]={
+    routes:clean(worker.routes||[]),
+    settings:result(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(name)}/settings`),
+    schedules:result(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(name)}/schedules`)
+  };
+}
+const prodBindings=report.resources.production_worker_settings?.result?.bindings||[];
+const prodD1=prodBindings.filter(b=>b.type==="d1").map(b=>({name:b.name,id:b.database_id||b.id}));
+const prodR2=prodBindings.filter(b=>b.type==="r2_bucket").map(b=>({name:b.name,bucket:b.bucket_name}));
+const prodAiSearch=prodBindings.filter(b=>b.type==="ai_search_namespace").map(b=>({name:b.name,namespace:b.namespace}));
+const allWorkers=workerList.map(w=>w.id).filter(Boolean);
+report.decisions={
+  keep:[
+    {type:"worker",id:prodWorker,reason:"production routes and bindings verified"},
+    ...prodD1.map(x=>({type:"d1",id:x.id,name:x.name,reason:"bound to production Worker"})),
+    ...prodR2.map(x=>({type:"r2",id:x.bucket,name:x.name,reason:"bound to production Worker"})),
+    ...prodAiSearch.map(x=>({type:"ai_search",id:x.namespace,name:x.name,reason:"bound to production Worker"})),
+    ...(allWorkers.includes("phanthuanxtra-developer-gateway")?[{type:"worker",id:"phanthuanxtra-developer-gateway",reason:"repository-managed Developer Gateway"}]:[])
+  ],
+  review:[
+    ...allWorkers.filter(x=>![prodWorker,"phanthuanxtra-developer-gateway"].includes(x)).map(id=>({type:"worker",id,reason:"requires dependency review before mutation"}))
+  ],
+  remove:[],
+  not_present:{
+    queues:Array.isArray(report.resources.queues?.result)&&report.resources.queues.result.length===0?["verify-email","purchase"]:[]
+  },
+  blocked:{
+    ai_gateway:report.resources.ai_gateway?.unavailable?"API permission/read unavailable":null,
+    ai_search_inventory:report.resources.ai_search?.unavailable?"API permission/read unavailable; production AI_SEARCH binding still proves dependency":null
+  }
+};
 const source=readFileSync("src/ai-chat.js","utf8");
 const gateway=readFileSync("developer-gateway/src/dual-gateway.js","utf8");
 report.source_evidence={website_ai_run_calls:(source.match(/\.AI\.run\(/g)||[]).length,developer_gateway_ai_run_calls:(gateway.match(/\.AI\.run\(/g)||[]).length,website_primary_model:"@cf/zai-org/glm-4.7-flash",website_fallback_model:"@cf/meta/llama-3.2-3b-instruct"};
@@ -34,8 +70,8 @@ mkdirSync("cloudflare-audit",{recursive:true});
 writeFileSync("cloudflare-audit/report.json",JSON.stringify(report,null,2));
 const queues=report.resources.queues?.result;
 const qnames=Array.isArray(queues)?queues.map(q=>q.queue_name||q.name).filter(Boolean):[];
-console.log("CF-MACHINE-002 read-only audit complete");
-console.log("Queues:",qnames.length?qnames.join(", "):report.resources.queues?.unavailable?"UNAVAILABLE":"none");
+console.log("CF-MACHINE-003 read-only dependency audit complete");
+console.log("Queues:",qnames.length?qnames.join(", "):report.resources.queues?.unavailable?"UNAVAILABLE":"none");\nconsole.log("Workers mapped:",Object.keys(report.worker_dependencies).length);\nconsole.log("KEEP:",report.decisions.keep.map(x=>`${x.type}:${x.id}`).join(", "));\nconsole.log("REVIEW:",report.decisions.review.map(x=>`${x.type}:${x.id}`).join(", "));\nconsole.log("REMOVE: none (destructive cleanup requires separate verified approval)");
 console.log("AI Gateway:",report.resources.ai_gateway?.unavailable?"UNAVAILABLE":"READ");
 console.log("AI Search:",report.resources.ai_search?.unavailable?"UNAVAILABLE":"READ");
 console.log("Mutations: 0");
