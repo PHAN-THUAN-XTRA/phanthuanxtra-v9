@@ -194,9 +194,44 @@ The former `docs/APK_AUTOMATION_CHECKPOINT.md` has been consolidated into this M
 - APK checkpoint dated 2026-09-18 recorded branch `chore/apk-canonical-ci-2026-09-18` and main commit `f7f7e42ef2572ed1b617cd89ab1757419a9e93e5` (PR #271 merge).
 - Later MASTER evidence supersedes that historical SHA for current project status; retain it only as historical traceability.
 
-## 11. CLOUDFLARE ASK AI CONTROL PROTOCOL
-- This MASTER is the sole Markdown source of truth for ChatGPT ↔ owner ↔ Cloudflare Ask AI coordination.
-- Do not create a second checkpoint/control Markdown file.
-- ChatGPT audits GitHub evidence and prepares Cloudflare Ask AI instructions; the owner relays those instructions in the active Cloudflare Dashboard Ask AI session and returns its response for review.
-- Before destructive Cloudflare actions, record resource, current state, dependencies, proposed action, risk and rollback. If dependency evidence is incomplete, classify the resource for review rather than deletion.
-- After an approved Cloudflare action, reconcile its evidence back into this MASTER through the normal branch → PR → checks → merge process.
+## 11. CLOUDFLARE ASK AI / WORKERS AI CONTROL + SYNCHRONIZATION PROTOCOL
+- This MASTER is the **sole Markdown source of truth** for ChatGPT ↔ owner ↔ GitHub ↔ Cloudflare Ask AI / Workers AI coordination. Do not create a second checkpoint/control Markdown file.
+- The owner is the relay between ChatGPT and the active Ask AI session on `dash.cloudflare.com`; ChatGPT does not claim direct control of that browser session.
+- **Every Ask AI instruction that changes or proposes changing Cloudflare state must be recorded in this MASTER.**
+- **Every Ask AI execution result must be returned to ChatGPT and reconciled into this MASTER before the action is treated as complete.**
+- A Cloudflare action is not considered synchronized or closed merely because Ask AI says it succeeded. Closure requires the corresponding GitHub MASTER update to pass branch → PR → required checks → merge.
+- Before destructive or hard-to-reverse Cloudflare actions, record: resource, resource type/ID or exact name, current state, dependencies, proposed action, expected result, risk, rollback and approval state. If dependency evidence is incomplete, classify as REVIEW and do not delete.
+- Never paste, store or commit secret values, tokens, passwords, recovery codes or private credentials. Record only secret/binding names and presence/status where needed.
+- Production-critical resources remain protected unless an explicit, evidenced change is approved: `phanthuanxtra.com`, the production Worker, Admin, website Chat AI, vehicle catalog, D1, R2, CRM/Telegram and Developer Gateway where dependency still exists.
+- Workers AI optimization must prioritize real customer Chat AI traffic. CI, health checks and smoke tests should avoid paid/quota-consuming inference when deterministic validation can prove the same boundary.
+- Ask AI / Workers AI may audit broadly, but mutations must remain narrow, reversible where possible and serialized through the single execution queue.
+
+### 11.1 Mandatory Ask AI execution ledger
+For every instruction sent to Cloudflare Ask AI that can mutate state, append or update one record in this MASTER with:
+- `ASK_AI_ID`: sequential local identifier, e.g. `CF-AI-001`.
+- `UTC+7 timestamp`.
+- `Objective`.
+- `Instruction sent`: concise exact operational intent; do not include secret values.
+- `Target resources`.
+- `Pre-change evidence`.
+- `Risk / rollback`.
+- `Ask AI result`: COMPLETE / PARTIAL / FAILED / REVIEW.
+- `Cloudflare evidence`: resource state, route/domain/binding/deployment identifiers or dashboard/API evidence available from the Ask AI response.
+- `GitHub reconciliation`: branch, PR, checks and merge SHA that record the result.
+- `Post-change verification`: affected production/runtime checks.
+- `Final sync state`: `SYNCED` only when Cloudflare evidence and the merged MASTER agree.
+
+### 11.2 Required handoff loop
+`ChatGPT reads MASTER → ChatGPT prepares instruction → owner sends it to Cloudflare Ask AI → Ask AI executes/audits → owner returns the full relevant result to ChatGPT → ChatGPT challenges dependencies/results → GitHub MASTER update via branch/PR/checks/merge → runtime verification where applicable → mark ASK_AI_ID SYNCED.`
+
+Rules:
+- Do not issue the next conflicting mutation while the current `ASK_AI_ID` is unsynchronized.
+- Read-only audits may continue in parallel only when they cannot alter production state.
+- If Ask AI reports a change but the result cannot be independently evidenced, record it as PARTIAL/REVIEW, not PASS.
+- If Cloudflare and GitHub disagree, Cloudflare runtime evidence describes current runtime while this MASTER must be updated immediately through the normal PR path; never silently choose one side.
+- If an Ask AI action changes Worker routes, domains, bindings, D1/R2/KV/Queues, Cron, AI Gateway/Search, Workers AI configuration or any production dependency, post-change runtime verification is mandatory before `SYNCED`.
+
+### 11.3 Current coordination state
+- Canonical coordination file: `MASTER_PROJECT_STATUS.md`.
+- Separate Cloudflare/Ask-AI checkpoint Markdown files: **FORBIDDEN**.
+- Current policy: **no Ask AI mutation is considered complete until recorded and merged here with evidence.**
