@@ -1,3 +1,4 @@
+import { saveCar, carImages, validCarId } from "./vehicle-persistence.js";
 const MAX_BODY_BYTES = 1024 * 1024;
 const CAR_STATUSES = new Set(["available", "reserved", "sold", "hidden"]);
 const LEAD_STATUSES = new Set(["new", "contacted", "qualified", "won", "lost"]);
@@ -17,7 +18,7 @@ const response = (data, status = 200, headers = {}) => new Response(JSON.stringi
 const text = (value, max = 1000) => String(value ?? "").trim().slice(0, max);
 const integer = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const bool = value => value === true || value === 1 || value === "1" || value === "true";
-const safeId = value => /^[a-z0-9][a-z0-9_-]{2,80}$/i.test(String(value ?? ""));
+const safeId = validCarId;
 
 function authorized(request, env) {
   const key = env.CMS_API_KEY;
@@ -39,50 +40,7 @@ async function audit(db, action, resource, resourceId, summary) {
     .bind("chatgpt-cms", action, resource, text(resourceId, 100), text(summary, 500)).run();
 }
 
-async function imagesFor(db, carId) {
-  const q = await db.prepare("SELECT id,url,sort_order,is_cover FROM car_images WHERE car_id=? ORDER BY sort_order,id").bind(carId).all();
-  return q.results || [];
-}
-
-function normalizeImages(images) {
-  if (!Array.isArray(images)) return [];
-  return images.slice(0, 30).map((item, index) => {
-    if (typeof item === "string") return { url: text(item, 200000), sort_order: index, is_cover: index === 0 };
-    return { url: text(item?.url, 200000), sort_order: integer(item?.sort_order, index), is_cover: bool(item?.is_cover) };
-  }).filter(x => /^https?:\/\//i.test(x.url));
-}
-
-async function replaceImages(db, carId, images) {
-  await db.prepare("DELETE FROM car_images WHERE car_id=?").bind(carId).run();
-  const list = normalizeImages(images);
-  if (!list.length) return;
-  const coverIndex = list.findIndex(x => x.is_cover);
-  await db.batch(list.map((item, index) => db.prepare(
-    "INSERT INTO car_images (car_id,url,sort_order,is_cover) VALUES (?,?,?,?)"
-  ).bind(carId, item.url, index, coverIndex === -1 ? (index === 0 ? 1 : 0) : (index === coverIndex ? 1 : 0))));
-}
-
-function carPayload(body, existing = {}) {
-  const brand = text(body?.brand ?? existing.brand, 100);
-  const model = text(body?.model ?? existing.model, 160);
-  const status = text(body?.status ?? existing.status ?? "available", 30).toLowerCase();
-  if (!brand || !model) return { error: "brand và model là bắt buộc" };
-  if (!CAR_STATUSES.has(status)) return { error: `status phải là: ${[...CAR_STATUSES].join(", ")}` };
-  return { value: {
-    brand, model,
-    year: body?.year === null ? null : integer(body?.year ?? existing.year, 0) || null,
-    mileage: integer(body?.mileage ?? existing.mileage, 0),
-    price: integer(body?.price ?? existing.price, 0),
-    fuel: text(body?.fuel ?? existing.fuel, 100),
-    category: text(body?.category ?? existing.category, 40),
-    color: text(body?.color ?? existing.color, 80),
-    status,
-    description: text(body?.description ?? existing.description, 10000),
-    features: Array.isArray(body?.features) ? body.features.slice(0, 80).map(x => text(x, 300)) : (existing.features_json ? JSON.parse(existing.features_json || "[]") : []),
-    featured: bool(body?.featured ?? existing.featured),
-    cover_image: text(body?.cover_image ?? existing.cover_image, 200000)
-  }};
-}
+const imagesFor = carImages;
 
 async function listCars(db, url) {
   const limit = Math.min(Math.max(integer(url.searchParams.get("limit"), 50), 1), 200);
@@ -132,26 +90,9 @@ export async function handleAdminCars(request, env) {
     existing = await env.DB.prepare("SELECT * FROM cars WHERE id=?").bind(id).first();
     if (!existing) return response({ error: "Không tìm thấy xe" }, 404);
   }
-  const parsed = carPayload(body, existing);
-  if (parsed.error) return response({ error: parsed.error }, 400);
-  const v = parsed.value;
-  const carId = request.method === "POST" ? text(body.id, 81) : id;
-  if (request.method === "POST" && !safeId(carId)) return response({ error: "id phải gồm 3-81 ký tự, chỉ chữ/số/-/_" }, 400);
-  try {
-    if (request.method === "POST") {
-      await env.DB.prepare(`INSERT INTO cars (id,brand,model,year,mileage,price,fuel,category,color,status,description,features_json,featured,cover_image) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(carId, v.brand, v.model, v.year, v.mileage, v.price, v.fuel, v.category, v.color, v.status, v.description, JSON.stringify(v.features), v.featured ? 1 : 0, v.cover_image).run();
-      await audit(env.DB, "create", "car", carId, `${v.brand} ${v.model}`);
-    } else {
-      await env.DB.prepare(`UPDATE cars SET brand=?,model=?,year=?,mileage=?,price=?,fuel=?,category=?,color=?,status=?,description=?,features_json=?,featured=?,cover_image=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(v.brand, v.model, v.year, v.mileage, v.price, v.fuel, v.category, v.color, v.status, v.description, JSON.stringify(v.features), v.featured ? 1 : 0, v.cover_image, carId).run();
-      await audit(env.DB, "update", "car", carId, `${v.brand} ${v.model}`);
-    }
-    if (Object.prototype.hasOwnProperty.call(body, "images")) await replaceImages(env.DB, carId, body.images);
-    return response({ ok: true, id: carId, car: { ...(await env.DB.prepare("SELECT * FROM cars WHERE id=?").bind(carId).first()), images: await imagesFor(env.DB, carId) } }, request.method === "POST" ? 201 : 200);
-  } catch (error) {
-    if (String(error?.message || error).includes("UNIQUE")) return response({ error: "ID bài đăng đã tồn tại" }, 409);
-    console.error(error);
-    return response({ error: "Không thể lưu bài xe" }, 500);
-  }
+  const result = await saveCar(env.DB, body, { id: request.method === "POST" ? body.id : id, mode: request.method === "POST" ? "create" : "update", actor: "cms" });
+  if (!result.ok) return response({ error: result.error }, result.status);
+  return response({ ok: true, id: result.id, car: result.car }, result.status);
 }
 
 async function handleCars(request, env, parts) {
