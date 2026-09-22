@@ -1,0 +1,30 @@
+name: Admin Redirect Verify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify admin routes do not redirect loop
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in /admin /admin.html /admin-control /admin-control.html /admin-recovery /admin-recovery.html; do
+            meta="$(curl --silent --show-error --location --max-redirs 5 --connect-timeout 10 --max-time 30               -o /tmp/admin-page.html -w '%{http_code}|%{url_effective}|%{num_redirects}'               "https://phanthuanxtra.com${path}")"
+            IFS='|' read -r status final_url redirects <<< "$meta"
+            echo "$path HTTP $status"
+            echo "$path final URL $final_url"
+            echo "$path redirects $redirects"
+            test "$status" = "200"
+            test "$redirects" = "0"
+            grep -Fq "PHAN THUẦN XTRA" /tmp/admin-page.html
+          done
+          echo "Admin redirect verification: PASS"
