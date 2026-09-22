@@ -162,56 +162,11 @@ jobs:
           echo 'BLOCKED: ADMIN_PASSWORD is not available in GitHub Actions.'
           exit 1
 
-      - name: E2E Password reset production boundary
+      - name: Production credential safety policy
         shell: bash
         run: |
-          set -euo pipefail
-          test -n "$ADMIN_PASSWORD"
-          TEST_PASSWORD="Xtra-Gate15-${GITHUB_RUN_ID}-Reset!"
-          retry_admin() {
-            local output="$1"; shift
-            local attempt status
-            for attempt in 1 2 3 4 5 6 7 8; do
-              : > "$output"
-              set +e
-              curl --silent --show-error --max-time 30 -D /tmp/password-response.headers -o "$output" -w '%{http_code}' "$@" > /tmp/password-http-code.txt
-              curl_rc=$?
-              set -e
-              status="$(cat /tmp/password-http-code.txt 2>/dev/null || true)"
-              if [ -z "$status" ]; then status=000; fi
-              echo "Password E2E HTTP ${status} (attempt ${attempt}, curl_rc ${curl_rc})"
-              if [ "$status" = "200" ]; then RETRY_ADMIN_STATUS=200; return 0; fi
-              if [ "$status" != "429" ] && [ "$status" != "000" ]; then RETRY_ADMIN_STATUS="$status"; return 0; fi
-              echo "Transient Cloudflare/transport boundary; waiting 10s before retry"
-              sleep 10
-            done
-            RETRY_ADMIN_STATUS="${status:-000}"; return 0
-          }
-          retry_admin /tmp/admin-login-password.json -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
-          test "$RETRY_ADMIN_STATUS" = "200"
-          ADMIN_SESSION="$(jq -r '.token // empty' /tmp/admin-login-password.json | tr -d '[:space:]')"
-          test -n "$ADMIN_SESSION"
-          export TEST_PASSWORD
-          retry_admin /tmp/recovery-rotate.json -X POST "$SITE_URL/api/admin/recovery/rotate" -H "Authorization: Bearer $ADMIN_SESSION" -H 'content-type: application/json' --data '{}'
-          test "$RETRY_ADMIN_STATUS" = "200"
-          RECOVERY_CODE="$(jq -r '.recoveryCode // empty' /tmp/recovery-rotate.json)"
-          test -n "$RECOVERY_CODE"
-          export RECOVERY_CODE
-          retry_admin /tmp/password-reset.json -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$TEST_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')"
-          test "$RETRY_ADMIN_STATUS" = "200"
-          jq -e '.ok == true' /tmp/password-reset.json >/dev/null
-          retry_admin /tmp/password-reset-login.json -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$TEST_PASSWORD" '{password:$password}')"
-          test "$RETRY_ADMIN_STATUS" = "200"
-          NEW_SESSION="$(jq -r '.token // empty' /tmp/password-reset-login.json)"
-          test -n "$NEW_SESSION"
-          retry_admin /tmp/password-reset-dashboard.json "$SITE_URL/api/admin/dashboard" -H "Authorization: Bearer $NEW_SESSION"
-          test "$RETRY_ADMIN_STATUS" = "200"
-          retry_admin /tmp/password-restore.json -X POST "$SITE_URL/api/admin/forgot-password" -H 'content-type: application/json' --data "$(jq -nc --arg code "$RECOVERY_CODE" --arg password "$ADMIN_PASSWORD" '{recoveryCode:$code,password:$password,confirm:$password}')"
-          test "$RETRY_ADMIN_STATUS" = "200"
-          jq -e '.ok == true' /tmp/password-restore.json >/dev/null
-          retry_admin /tmp/password-restore-login.json -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')"
-          test "$RETRY_ADMIN_STATUS" = "200"
-          echo 'Gate password reset E2E: PASS'
+          echo '::notice::Password reset E2E: NOT RUN. Routine smoke must not change production passwords or recovery codes.'
+          echo 'Use an isolated test environment for password-reset E2E; production credential changes require separate approval.'
 
       - name: E2E R2 media write/read/delete through Admin binding
         shell: bash
@@ -255,7 +210,7 @@ jobs:
           echo "Worker: $WORKER_URL"
           echo 'Gateway / AI: PASS'
           echo 'D1: PASS'
-          echo 'Password Reset: PASS'
+          echo 'Password Reset E2E: NOT RUN (production credential safety)'
           echo 'R2 E2E: PASS'
           echo 'Legacy example page: removed'
           echo '========================================'
