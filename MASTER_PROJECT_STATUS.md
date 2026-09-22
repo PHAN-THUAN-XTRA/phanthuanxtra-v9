@@ -171,3 +171,32 @@ Stage 3 starts from the current main/runtime lineage above. Do not assume histor
 - Fresh production runtime evidence after the merged deployment: https://phanthuanxtra.com/admin-recovery returned HTTP 200, content-type: text/html; charset=utf-8, and cache-control: no-store, no-cache, must-revalidate, max-age=0; no content-encoding header was present.
 - **Admin Recovery HTML delivery boundary: 🟢 PASS.**
 - This closes the specific Admin Recovery delivery/header failure only. It does not close the recovery API functional boundary, Gate-15, or Production GREEN by itself.
+
+
+## 10. APK AUTOMATION — CONSOLIDATED CANONICAL CHECKPOINT
+The former `docs/APK_AUTOMATION_CHECKPOINT.md` has been consolidated into this MASTER. No separate APK checkpoint Markdown is canonical or required.
+
+### Canonical CI path
+- Canonical Android workflow: `.github/workflows/android-apk.yml`.
+- Duplicate Gate 11 workflows were removed from the automation path.
+- CI gates: production App API health → AI contract regression → Gradle 8.9 / Java 17 build → APK existence → SHA-256 → artifact upload.
+- Direct GitHub Release publication remains available from the canonical workflow under its existing Gate 11 publish condition.
+- Production Worker deployment remains GitHub Actions → Cloudflare API/SDK; Wrangler is not used.
+
+### Physical-device gate
+- CI cannot prove behavior on the Samsung Galaxy S21 Ultra.
+- The S21 Ultra physical-device regression remains an explicit final evidence gate and must be run after a verified APK artifact is available.
+
+### Operating protocol
+- After every APK PR: verify CI → merge only when green → re-audit main across APK/API/Worker/automation → record evidence in this MASTER → continue to the next smallest verified change.
+
+### Preserved historical evidence
+- APK checkpoint dated 2026-09-18 recorded branch `chore/apk-canonical-ci-2026-09-18` and main commit `f7f7e42ef2572ed1b617cd89ab1757419a9e93e5` (PR #271 merge).
+- Later MASTER evidence supersedes that historical SHA for current project status; retain it only as historical traceability.
+
+## 11. CLOUDFLARE ASK AI CONTROL PROTOCOL
+- This MASTER is the sole Markdown source of truth for ChatGPT ↔ owner ↔ Cloudflare Ask AI coordination.
+- Do not create a second checkpoint/control Markdown file.
+- ChatGPT audits GitHub evidence and prepares Cloudflare Ask AI instructions; the owner relays those instructions in the active Cloudflare Dashboard Ask AI session and returns its response for review.
+- Before destructive Cloudflare actions, record resource, current state, dependencies, proposed action, risk and rollback. If dependency evidence is incomplete, classify the resource for review rather than deletion.
+- After an approved Cloudflare action, reconcile its evidence back into this MASTER through the normal branch → PR → checks → merge process.
