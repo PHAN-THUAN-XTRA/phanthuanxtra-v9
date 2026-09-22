@@ -52,6 +52,6 @@ test('admin control reuses the authenticated session instead of asking for ADMIN
   assert.doesNotMatch(control,/<label>ADMIN_TOKEN<\/label>/);
   assert.doesNotMatch(control,/id="token"/);
   assert.match(control,/let token=sessionStorage\.getItem\('ptx_admin_token'\)\|\|''/);
-  assert.match(control,/if\(!token\)\{location\.replace\('\/admin\.html'\);return\}/);
+  assert.match(control,/if\(!token\)\{location\.replace\('\/admin'\);return\}/);
   assert.match(control,/login\(\);/);
 });

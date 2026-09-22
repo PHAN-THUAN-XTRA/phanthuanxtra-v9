@@ -17,6 +17,7 @@ body{margin:0;background:#0b0b0b;color:#eee;font:15px system-ui,sans-serif}main{
 <div class="field"><label for="password">MẬT KHẨU QUẢN TRỊ</label><input id="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu quản trị"></div>
 <button class="btn" id="loginBtn">Đăng nhập</button>
 <button class="link" id="forgotBtn" type="button">Quên mật khẩu?</button>
+<a class="link" href="/admin-recovery" style="display:inline-block;text-decoration:none">Xoay mã khôi phục</a>
 </div>
 <div id="forgotForm" class="hidden">
 <p class="muted">Dùng <b>mã khôi phục Admin</b> để đặt mật khẩu mới. Mã khôi phục không phải mật khẩu đăng nhập và không được gửi vào chat.</p>
@@ -32,7 +33,11 @@ body{margin:0;background:#0b0b0b;color:#eee;font:15px system-ui,sans-serif}main{
 const $=s=>document.querySelector(s);
 function msg(t,ok=false){$('#loginMsg').textContent=t;$('#loginMsg').className='msg '+(ok?'ok':'err')}
 async function openControl(){
-  location.replace('/admin-control.html');
+  const token=sessionStorage.getItem('ptx_admin_token');
+  if(!token)return;
+  const r=await fetch('/api/admin/dashboard',{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok)throw Error('Phiên Admin không hợp lệ');
+  location.replace('/admin-control');
 }
 async function login(){
   const password=$('#password').value.trim();
