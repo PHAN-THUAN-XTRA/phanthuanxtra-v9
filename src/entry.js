@@ -21,12 +21,14 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
-      if (url.pathname === "/admin" || url.pathname === "/admin/") {
-        const assetUrl = new URL("/admin.html", request.url);
-        return Response.redirect(assetUrl, 302);
-      }
-      if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/") {
-        const assetUrl = new URL("/index.html", request.url);
+      const adminAssetPath = (() => {
+        if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin.html") return "/admin";
+        if (url.pathname === "/admin-control" || url.pathname === "/admin-control/" || url.pathname === "/admin-control.html") return "/admin-control";
+        if (url.pathname === "/admin-recovery" || url.pathname === "/admin-recovery/" || url.pathname === "/admin-recovery.html") return "/admin-recovery";
+        return null;
+      })();
+      if (adminAssetPath) {
+        const assetUrl = new URL(adminAssetPath, request.url);
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
@@ -34,24 +36,13 @@ export default {
         const headers = new Headers(assetResponse.headers);
         headers.set("content-type", "text/html; charset=utf-8");
         headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
+        headers.delete("location");
         headers.delete("content-encoding");
         headers.delete("content-length");
-        return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
+        return new Response(assetResponse.body, { status: 200, headers });
       }
-      if (url.pathname === "/admin.html") {
-        const assetHeaders = new Headers(request.headers);
-        assetHeaders.set("accept-encoding", "identity");
-        assetHeaders.set("cache-control", "no-cache");
-        const assetResponse = await env.ASSETS.fetch(new Request(url, { method: "GET", headers: assetHeaders, cf: { cacheTtl: 0, cacheEverything: false } }));
-        const headers = new Headers(assetResponse.headers);
-        headers.set("content-type", "text/html; charset=utf-8");
-        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
-        headers.delete("content-encoding");
-        headers.delete("content-length");
-        return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
-      }
-      if (url.pathname === "/admin-recovery") {
-        const assetUrl = new URL("/admin-recovery.html", request.url);
+      if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/") {
+        const assetUrl = new URL("/index.html", request.url);
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
