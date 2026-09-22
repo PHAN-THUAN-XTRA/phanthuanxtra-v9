@@ -1,7 +1,6 @@
 import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { createPtXtraPlateImage } from "./plate-branding.js";
 import { canAutoPublish, promoteDraft } from "./telegram-ingest.js";
-import { handleAiChat } from "./ai-chat.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
@@ -105,25 +104,8 @@ async function autoWebhook(request, env, ctx) {
   return json({ ok: true, received: true, queued: Boolean(ctx) });
 }
 
-async function aiWebhook(request, env) {
-  if (!env.TELEGRAM_CHAT_BOT_TOKEN) return json({ ok: false, error: "TELEGRAM_CHAT_BOT_TOKEN is not configured" }, 503);
-  const secret = env.TELEGRAM_CHAT_WEBHOOK_SECRET;
-  if (secret && request.headers.get("X-Telegram-Chat-Bot-Api-Secret-Token") !== secret) return json({ error: "Unauthorized" }, 401);
-  const update = await request.json().catch(() => null);
-  const message = update?.message || update?.edited_message;
-  if (!message?.chat?.id) return json({ ok: true, ignored: true });
-  const text = clean(message.text || message.caption);
-  if (!text) return json({ ok: true, ignored: true });
-  const chatId = String(message.chat.id);
-  const aiRequest = new Request(new URL("/api/ai-chat", request.url), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: text, conversation_id: `telegram:${chatId}`, visitor_id: `telegram:${chatId}`, channel: "telegram" }) });
-  const aiResponse = await handleAiChat(aiRequest, env);
-  const result = await aiResponse.json().catch(() => ({ ok: false }));
-  if (result.reply) await tg(env.TELEGRAM_CHAT_BOT_TOKEN, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: clean(result.reply, 4000) });
-  return json({ ok: true, conversation_id: result.conversation_id, replied: Boolean(result.reply) });
-}
 export async function handleTelegramRouter(request, env, ctx) {
   const url = new URL(request.url);
   if (url.pathname === "/api/telegram/webhook" && request.method === "POST") return autoWebhook(request, env, ctx);
-  if (url.pathname === "/api/telegram/ai-webhook" && request.method === "POST") return aiWebhook(request, env);
   return null;
 }
