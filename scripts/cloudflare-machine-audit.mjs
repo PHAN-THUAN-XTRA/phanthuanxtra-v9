@@ -8,7 +8,7 @@ const zoneName=process.env.ZONE_NAME||"phanthuanxtra.com";
 const prodWorker=process.env.WORKER_NAME||"phanthuanxtra-v2";
 if(!accountId) throw new Error("Missing CLOUDFLARE_ACCOUNT_ID");
 if(!primary&&!backup) throw new Error("Missing Cloudflare API token");
-const tokens=[["primary",primary],["backup",backup],["waf",waf]].filter(([,v])=>v);
+const tokens=[["primary",primary],["backup",backup]].filter(([,v])=>v);
 function raw(path,token){const out=execFileSync("curl",["-sS","-H",`Authorization: Bearer ${token}`,"-w","\n__STATUS__%{http_code}",`https://api.cloudflare.com/client/v4${path}`],{encoding:"utf8"});const marker="\n__STATUS__";const i=out.lastIndexOf(marker);const text=i>=0?out.slice(0,i):out;const status=i>=0?Number(out.slice(i+marker.length).trim()):0;let body;try{body=JSON.parse(text)}catch{body={raw:"[non-json response]"}}return{status,body};}
 function get(path){const attempts=[];for(const [name,t] of tokens){const r=raw(path,t);attempts.push({token:name,status:r.status,success:r.body?.success===true});if(r.status>=200&&r.status<300&&r.body?.success!==false)return{ok:true,token:name,status:r.status,body:r.body};if(![401,403].includes(r.status))break;}return{ok:false,attempts};}
 function clean(x){if(Array.isArray(x))return x.map(clean);if(!x||typeof x!=="object")return x;const o={};for(const[k,v]of Object.entries(x)){if(/secret|token|password|private.?key|api.?key/i.test(k))o[k]="[REDACTED]";else o[k]=clean(v)}return o}
