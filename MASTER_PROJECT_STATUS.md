@@ -505,3 +505,10 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Mobile hardening adds single-column hero/feature/forms/cards, compact actions and contact controls for <=760px and <=420px breakpoints.
 - Admin authentication/control behavior is preserved unchanged in this first visual slice; Admin UX redesign requires a separate audited slice so authentication/recovery boundaries are not coupled to homepage presentation changes.
 - P4 remains IN PROGRESS until PR checks, merged production asset verification, inventory/detail flow and Admin UX follow-up are evidenced.
+
+
+### 16.1 P4 slice 2 — Admin/mobile and vehicle-detail regression
+- Post-#391 production chain on merge SHA `148f48c8560e9cb3107480610c1a8bd10fc693e5` is fully green: Deploy `35728809048`, Gate-15 `35728808949`, QUEUE-01 `35728905449`, Production Asset Delivery `35728809148`, Homepage Canonical `35728809029`, Admin Redirect `35728808986`, CI `35728809035`, Credential Safety `35728808951`, Admin Pipeline `35728809002`, Static Audit `35728809037`, Android `35728809075`, Stage 3 `35728809030`.
+- Regression audit found legacy static vehicle detail pages still linked to removed `#inventory`; corrected both detail navigation/back links to canonical `#cars-section`.
+- Admin Control keeps existing authentication/session/recovery/API behavior unchanged. UX changes are presentation-only: sticky mobile tabs, full-width touch controls, 44px minimum targets, horizontal table containment, single-column vehicle form, mobile-safe modal, clearer “Đăng xe” CTA and direct Website preview.
+- P4 remains IN PROGRESS until this slice merges and its production asset/flow checks are green.
