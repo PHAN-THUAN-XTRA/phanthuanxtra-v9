@@ -235,3 +235,19 @@ Rules:
 - Canonical coordination file: `MASTER_PROJECT_STATUS.md`.
 - Separate Cloudflare/Ask-AI checkpoint Markdown files: **FORBIDDEN**.
 - Current policy: **no Ask AI mutation is considered complete until recorded and merged here with evidence.**
+
+
+### 11.4 Ask AI execution ledger
+
+#### CF-AI-001 — 2026-09-22 UTC+7
+- Objective: high-speed Cloudflare audit/optimization while protecting production and prioritizing Workers AI quota for real website Chat AI traffic.
+- Instruction sent: audit and execute the largest safe Cloudflare optimization batch; hard-stop destructive production actions; return Cloudflare/runtime evidence.
+- Target resources: Workers/Pages, routes/custom domains, Workers AI, AI Gateway/Search, D1, R2, KV, Queues, Cron, bindings and production verification endpoints.
+- Pre-change evidence: not obtained by Ask AI because its Cloudflare API connection was unavailable.
+- Risk / rollback: no mutation occurred, therefore no rollback required.
+- Ask AI result: **FAILED**.
+- Cloudflare evidence reported by Ask AI: API token invalid/expired; all calls returned connection error; actions executed = 0; resources changed/removed = none; all resources preserved; production verification unavailable.
+- GitHub reconciliation: this ledger entry records the failed attempt only. It does **not** assert that the repository's independent GitHub Actions Cloudflare credentials are expired or invalid.
+- Post-change verification: not required for this attempt because Ask AI reported no Cloudflare mutation.
+- Final sync state: **SYNCED-FAILED / BLOCKED ON ASK AI CLOUDFLARE RECONNECTION**.
+- Required next action: reconnect/re-authorize the Cloudflare account used by Dashboard Ask AI without sharing token/secret values in chat, then rerun the same audit as the next execution attempt.
