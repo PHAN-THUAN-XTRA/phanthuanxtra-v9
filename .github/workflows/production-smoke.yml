@@ -94,51 +94,10 @@ jobs:
           test "$status" = "401"
           jq -e '.ok == false and .error == "unauthorized"' /tmp/gateway-unauth.json >/dev/null
 
-      - name: E2E website AI chat boundary
-        shell: bash
-        run: |
-          set -euo pipefail
-          payload="$(jq -nc --arg id "ci-ai-chat-${GITHUB_RUN_ID}" '{conversation_id:$id,visitor_id:$id,message:"Tôi muốn tìm Lexus",suppress_crm_notification:true,test_context:"production-smoke"}')"
-          last_status=000
-          for attempt in 1 2 3 4; do
-            : > /tmp/ai-chat.json
-            set +e
-            status="$(curl --silent --show-error --max-time 60 -o /tmp/ai-chat.json -w '%{http_code}' -X POST "$SITE_URL/api/ai-chat" -H 'content-type: application/json' --data "$payload")"
-            curl_rc=$?
-            set -e
-            [ -n "$status" ] || status=000
-            echo "Website AI chat HTTP $status (attempt $attempt, curl_rc $curl_rc)"
-            last_status="$status"
-            if [ "$status" = "200" ]; then
-              jq -e '.ok == true and (.conversation_id | length > 0) and (.reply | type == "string" and length > 0)' /tmp/ai-chat.json >/dev/null
-              echo 'Website AI chat E2E: PASS'
-              break
-            fi
-            if [ "$status" != "429" ] && [ "$status" != "500" ] && [ "$status" != "502" ] && [ "$status" != "503" ] && [ "$status" != "504" ] && [ "$status" != "000" ]; then
-              cat /tmp/ai-chat.json
-              exit 1
-            fi
-            sleep 5
-          done
-          test "$last_status" = "200"
-
-      - name: Smoke XTRA Unified AI with configured gateway credential
-        if: ${{ env.GATEWAY_READ_TOKEN != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          status="$(curl --silent --show-error --retry 2 --retry-delay 1 --max-time 60 -o /tmp/unified-ai.json -w '%{http_code}' -X POST "$GATEWAY_URL/v1/ai/unified" -H "Authorization: Bearer $GATEWAY_READ_TOKEN" -H 'content-type: application/json' --data '{"task_id":"production-smoke","mode":"audit","instruction":"Return exactly: XTRA_UNIFIED_AI_OK"}')"
-          cat /tmp/unified-ai.json
-          if [ "$status" = "200" ]; then
-            jq -e '.ok == true and .logical_agent == "xtra-unified-ai" and .engine == "cloudflare-workers-ai" and .production_mutation == false' /tmp/unified-ai.json >/dev/null
-            jq -e '.response | contains("XTRA_UNIFIED_AI_OK")' /tmp/unified-ai.json >/dev/null
-          elif jq -e '.error == "dual_workers_ai_failed" and (.detail | contains("4006:") and contains("daily free allocation"))' /tmp/unified-ai.json >/dev/null; then
-            echo "::notice::Gateway health/auth passed; Cloudflare Workers AI daily quota is exhausted (4006). External capacity condition, not an application regression."
-          else
-            echo "Unexpected Gateway/Workers AI failure: HTTP $status" >&2
-            exit 1
-          fi
-
+      - name: Website Chat AI quota conservation
+        run: echo "Routine CI skips live website AI inference to conserve Cloudflare allocation."
+      - name: Gateway AI quota conservation
+        run: echo "::notice::Routine CI does not call authenticated Gateway AI inference; Workers AI quota is reserved for real website customers."
       - name: Require Gateway credential for production gate
         if: ${{ env.GATEWAY_READ_TOKEN == '' }}
         run: |
