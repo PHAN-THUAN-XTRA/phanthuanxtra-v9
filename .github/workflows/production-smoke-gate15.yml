@@ -67,23 +67,8 @@ jobs:
           check_http_200 "$SITE_URL/api/cars" "/api/cars"
           check_http_200 "$SITE_URL/admin.html" "/admin.html"
           check_http_200 "$WORKER_URL/" "Production Worker"
-      - name: E2E website corner Chat AI
-        shell: bash
-        run: |
-          set -euo pipefail
-          CID="ci-ai-chat-${GITHUB_RUN_ID}"
-          payload="$(jq -nc --arg message "Phan Thuần là ai?" --arg cid "$CID" '{message:$message,conversation_id:$cid,test_context:"production-smoke",suppress_crm_notification:true}')"
-          status="$(curl --silent --show-error --max-time 60 -o /tmp/website-ai.json -w '%{http_code}' -X POST "$SITE_URL/api/ai-chat" -H 'content-type: application/json' --data "$payload")"
-          echo "Website /api/ai-chat HTTP $status"
-          cat /tmp/website-ai.json
-          test "$status" = "200"
-          jq -e '.ok == true and (.reply | type == "string") and (.reply | length > 10) and .needs_human == false' /tmp/website-ai.json >/dev/null
-          if jq -e '.reply | contains("Hiện trợ lý AI đang bận xử lý")' /tmp/website-ai.json >/dev/null; then
-            echo "Website Chat AI returned runtime fallback instead of a real AI answer." >&2
-            exit 1
-          fi
-          jq -e '.reply | test("Phan Thuần|PHAN THUẦN XTRA"; "i")' /tmp/website-ai.json >/dev/null
-          echo 'Website corner Chat AI E2E: PASS'
+      - name: Website Chat AI quota conservation
+        run: echo "::notice::Routine CI does not call live /api/ai-chat inference; Workers AI quota is reserved for real website customers."
       - name: Smoke admin authentication boundary
         shell: bash
         run: |
@@ -108,22 +93,8 @@ jobs:
           echo "Gateway unauthenticated boundary HTTP $status"
           test "$status" = "401"
           jq -e '.ok == false and .error == "unauthorized"' /tmp/gateway-unauth.json >/dev/null
-      - name: Smoke XTRA Unified AI with configured gateway credential
-        if: ${{ env.GATEWAY_READ_TOKEN != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          status="$(curl --silent --show-error --retry 2 --retry-delay 1 --max-time 60 -o /tmp/unified-ai.json -w '%{http_code}' -X POST "$GATEWAY_URL/v1/ai/unified" -H "Authorization: Bearer $GATEWAY_READ_TOKEN" -H 'content-type: application/json' --data '{"task_id":"production-smoke","mode":"audit","instruction":"Return exactly: XTRA_UNIFIED_AI_OK"}')"
-          cat /tmp/unified-ai.json
-          if [ "$status" = "200" ]; then
-            jq -e '.ok == true and .logical_agent == "xtra-unified-ai" and .engine == "cloudflare-workers-ai" and .production_mutation == false' /tmp/unified-ai.json >/dev/null
-            jq -e '.response | contains("XTRA_UNIFIED_AI_OK")' /tmp/unified-ai.json >/dev/null
-          elif jq -e '.error == "dual_workers_ai_failed" and (.detail | contains("4006:") and contains("daily free allocation"))' /tmp/unified-ai.json >/dev/null; then
-            echo "::notice::Gateway health/auth passed; Cloudflare Workers AI daily quota is exhausted (4006). External capacity condition, not an application regression."
-          else
-            echo "Unexpected Gateway/Workers AI failure: HTTP $status" >&2
-            exit 1
-          fi
+      - name: Gateway AI quota conservation
+        run: echo "::notice::Routine CI does not call authenticated Gateway AI inference; Workers AI quota is reserved for real website customers."
       - name: Require Gateway credential for production gate
         if: ${{ env.GATEWAY_READ_TOKEN == '' }}
         run: |
