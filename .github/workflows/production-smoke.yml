@@ -1,14 +1,6 @@
-name: Production Smoke Test
+name: Production Smoke Test (legacy manual)
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "docs/**"
-      - "AUDIT_*.md"
-      - "backup/README.md"
-      - "**/*.md"
   workflow_dispatch:
     inputs:
       execution_id:
@@ -18,7 +10,7 @@ on:
         type: string
 
 concurrency:
-  group: xtra-production-e2e-single-queue
+  group: xtra-production-smoke-legacy-manual
   cancel-in-progress: false
 
 permissions:
