@@ -41,14 +41,19 @@ async function processBundle(env, bundleKey, chatId) {
       await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["⚠️ ĐÃ PHÂN TÍCH XE — CHƯA TỰ ĐĂNG", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, ai.year ? `📅 Năm: ${ai.year}` : null, ai.price != null ? `💰 Giá: ${ai.price}` : null, ai.mileage != null ? `🛣 ODO: ${ai.mileage}` : null, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, "🪪 Chưa đạt điều kiện xác định vùng biển số / độ tin cậy.", "⏳ Xe thật đã được lưu làm bản nháp, không tạo dữ liệu giả.", `🖼 /media/${mediaKey}`].filter(Boolean).join("\n") });
       return;
     }
-    const publishMediaKey = `vehicles/publish-inbox-${inboxId}-${sourceHash.slice(0, 16)}.jpg`;
-    await createPtXtraPlateImage(env, bytes, contentType, ai.plate_bbox, publishMediaKey);
-    await env.DB.prepare(`UPDATE vehicle_ai_drafts SET ai_json=?,status='branded',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?`).bind(JSON.stringify({ ...ai, media_key: mediaKey, publish_media_key: publishMediaKey, bundle_key: bundleKey, branding: "PT Xtra", branding_target: "license_plate" }), inboxId).run();
+    let publishMediaKey = mediaKey;
+    const plate = ai?.plate_bbox;
+    const hasPlate = Boolean(plate && Number(plate.width) > 0 && Number(plate.height) > 0);
+    if (hasPlate) {
+      publishMediaKey = `vehicles/publish-inbox-${inboxId}-${sourceHash.slice(0, 16)}.jpg`;
+      await createPtXtraPlateImage(env, bytes, contentType, plate, publishMediaKey);
+    }
+    await env.DB.prepare(`UPDATE vehicle_ai_drafts SET ai_json=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?`).bind(JSON.stringify({ ...ai, media_key: mediaKey, publish_media_key: publishMediaKey, bundle_key: bundleKey, branding: hasPlate ? "PT Xtra" : "none", branding_target: hasPlate ? "license_plate" : null }), hasPlate ? "branded" : "ready_to_publish", inboxId).run();
     await env.DB.prepare("UPDATE telegram_inbox SET processed_image_url=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(`/media/${publishMediaKey}`, bundleKey).run();
     const promotion = await promoteDraft(env, inboxId, ai, publishMediaKey);
     if (!promotion?.published) throw new Error(promotion?.reason || "Vehicle publication gate rejected the listing");
     await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(bundleKey).run();
-    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["🚀 ĐÃ PHÂN TÍCH + ĐÃ THAY BIỂN SỐ PT XTRA + TỰ ĐĂNG XE", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, ai.year ? `📅 Năm: ${ai.year}` : null, ai.price != null ? `💰 Giá: ${ai.price}` : null, ai.mileage != null ? `🛣 ODO: ${ai.mileage}` : null, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, "🪪 Biển số: đã thay bằng PT Xtra", `🖼 Ảnh publish: /media/${publishMediaKey}`, "🌐 Website: phanthuanxtra.com", "✅ Bản ảnh publish đã được tạo trong R2 trước khi tạo bản ghi website."].filter(Boolean).join("\n") });
+    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["🚀 ĐÃ PHÂN TÍCH + TỰ ĐĂNG XE", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, ai.year ? `📅 Năm: ${ai.year}` : null, ai.price != null ? `💰 Giá: ${ai.price}` : null, ai.mileage != null ? `🛣 ODO: ${ai.mileage}` : null, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, hasPlate ? "🪪 Biển số: đã thay bằng PT Xtra" : "🪪 Biển số: không phát hiện — giữ ảnh gốc", `🖼 Ảnh publish: /media/${publishMediaKey}`, "🌐 Website: phanthuanxtra.com", "✅ Bản ảnh publish đã được tạo trong R2 trước khi tạo bản ghi website."].filter(Boolean).join("\n") });
   } catch (error) {
     const message = clean(error?.message || error);
     await env.DB.prepare("UPDATE telegram_inbox SET status='failed',bundle_status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(message, bundleKey).run().catch(() => {});
@@ -71,14 +76,20 @@ async function processTelegramUpdate(env, update, chatId) {
   const sourceHash = await sha256(`${chatId}:${message.message_id}:${photo?.file_unique_id || caption}`);
   const isPhoto = Boolean(photo);
   const recent = (await env.DB.prepare("SELECT id,bundle_key,file_id,caption,bundle_status FROM telegram_inbox WHERE chat_id=? AND bundle_status='pending' AND created_at >= datetime('now','-45 seconds') ORDER BY id DESC LIMIT 20").bind(chatId).all()).results || [];
-  const partner = recent.find(row => Boolean(row.file_id) !== isPhoto);
+  // Pair only with the complementary half of an incomplete bundle. Ignore rows already
+  // containing both photo + caption; otherwise a later text can attach to an older photo.
+  const partner = recent.find(row => {
+    const rowHasPhoto = Boolean(row.file_id);
+    const rowHasText = Boolean(clean(row.caption));
+    return isPhoto ? (!rowHasPhoto && rowHasText) : (rowHasPhoto && !rowHasText);
+  });
   const bundleKey = partner?.bundle_key || `${chatId}:${message.message_id}`;
   await env.DB.prepare("INSERT INTO telegram_inbox (source_hash,chat_id,message_id,file_id,file_unique_id,file_path,caption,status,bundle_key,bundle_status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'received',?,'pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(source_hash) DO NOTHING").bind(sourceHash, chatId, Number(message.message_id || 0), photo?.file_id || "", photo?.file_unique_id || "", "", caption, bundleKey).run();
   const rows = (await env.DB.prepare("SELECT id,file_id,caption,bundle_status FROM telegram_inbox WHERE bundle_key=? ORDER BY id").bind(bundleKey).all()).results || [];
   const hasPhoto = rows.some(row => Boolean(row.file_id));
   const hasText = rows.some(row => clean(row.caption));
   if (hasPhoto && hasText) {
-    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: "📥 ĐÃ GHÉP ẢNH + THÔNG TIN XE\n⏳ Đang phân tích AI, thay biển PT Xtra và kiểm tra publish..." }).catch(() => {});
+    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: "📥 ĐÃ GHÉP ẢNH + THÔNG TIN XE\n⏳ Đang phân tích AI và kiểm tra publish..." }).catch(() => {});
     await sleep(1200);
     const status = (await env.DB.prepare("SELECT bundle_status FROM telegram_inbox WHERE bundle_key=? LIMIT 1").bind(bundleKey).first())?.bundle_status;
     if (status === "pending") await processBundle(env, bundleKey, chatId);
