@@ -69,7 +69,7 @@ jobs:
           echo "Public Blog API HTTP $status"; test "$status" = "200"
           jq -e '.post.slug==env.SLUG and .post.status=="published"' /tmp/public.json >/dev/null
 
-          status="$(curl --compressed --silent --show-error --retry 2 --max-time 20 -D /tmp/page.headers -o /tmp/page.html -w '%{http_code}' "$SITE_URL/blog/$SLUG")"
+          status="$(curl --compressed --silent --show-error --retry 2 --retry-all-errors --retry-delay 1 --max-time 20 -H 'cache-control: no-cache' -D /tmp/page.headers -o /tmp/page.html -w '%{http_code}' "$SITE_URL/blog/$SLUG?e2e=$GITHUB_RUN_ID")"
           echo "Public Blog page HTTP $status"; test "$status" = "200"
           grep -Eiq '^content-type: *text/html; *charset *= *utf-8' /tmp/page.headers
           grep -Fq 'PHAN THUẦN XTRA' /tmp/page.html
