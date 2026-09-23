@@ -188,7 +188,7 @@ async function syncSecretsAndDeploy() {
     else if (currentBindingNames.has(name)) console.log(`${name}: preserving existing Cloudflare Worker binding.`);
     else throw new Error(`${name} is absent from both GitHub Actions and the existing Cloudflare Worker; refusing production deploy.`);
   }
-  for (const name of ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET"]) {
+  for (const name of ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET", "TELEGRAM_AUTO_PUBLISH_CHAT_IDS"]) {
     const value = process.env[name];
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
   }
