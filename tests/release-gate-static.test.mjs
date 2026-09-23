@@ -134,7 +134,7 @@ test('editorial Worker decodes asset bytes as strict UTF-8 before response', () 
 
 test('production deploy routes every editorial category through Worker-first', () => {
   const deploy = read('scripts/deploy-cloudflare-api.mjs');
-  assert.match(deploy, /run_worker_first:\\s*true/);
+  assert.match(deploy, /run_worker_first:\s*true/);
   const gate = read('.github/workflows/production-asset-gate.yml');
   const verifier = read('scripts/verify-editorial-production.mjs');
   assert.match(gate, /node scripts\/verify-editorial-production\.mjs/);
