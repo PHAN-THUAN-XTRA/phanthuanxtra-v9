@@ -115,3 +115,12 @@ test('Founder category opens a dedicated indexable article', () => {
   assert.match(article, /facebook\.com\/PhanThuanSaigon/);
   assert.match(article, /founder-phan-thuan\.webp/);
 });
+
+test('all editorial category routes are Worker-served as explicit UTF-8 HTML', () => {
+  const entry = read('src/entry.js');
+  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(entry, new RegExp(route.replace('/','\\/')));
+  assert.match(entry, /headers\.set\("content-type", "text\/html; charset=utf-8"\)/);
+  for (const page of ['public/phan-thuan.html','public/green-energy.html','public/yachts.html','public/business-jets.html']) {
+    const html = read(page); assert.match(html, /<meta charset="UTF-8">/); assert.match(html, /PHAN THUẦN XTRA/); assert.doesNotMatch(html, /PHAN THUáº¦N|NhĂ¢n|Táº§m NhĂ¬n/);
+  }
+});
