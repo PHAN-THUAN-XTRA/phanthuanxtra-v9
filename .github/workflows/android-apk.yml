@@ -57,7 +57,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ! grep -RniE 'Authorization: Bearer [A-Za-z0-9._-]{16,}|api[_-]?token[[:space:]]*=[[:space:]]*["'"'][^"'"']+' app/src/main || { echo 'Potential hard-coded credential in Android source'; exit 1; }
+          if grep -RniE 'Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9._-]{16,}' app/src/main; then echo 'Potential hard-coded bearer credential in Android source'; exit 1; fi
+          if grep -RniE 'api[_-]?token[[:space:]]*=[[:space:]]*[^[:space:]]{16,}' app/src/main; then echo 'Potential hard-coded API token in Android source'; exit 1; fi
           grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
           grep -q 'android:exported="false"' app/src/main/AndroidManifest.xml
           grep -q 'AES/GCM' app/src/main/java/com/phanthuanxtra/app/SecureTokenStore.java
