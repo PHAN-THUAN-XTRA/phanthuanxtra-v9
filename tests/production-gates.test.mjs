@@ -6,7 +6,7 @@ import { handleAiChat } from '../src/ai-chat.js';
 import { handleAppApi } from '../src/app-api.js';
 import { handleMediaApi } from '../src/media.js';
 
-function mockDb() {
+function mockDb(cars = []) {
   const rows = [];
   const unknown = [];
   return {
@@ -20,6 +20,7 @@ function mockDb() {
           },
           async all() {
             if (sql.includes('FROM ai_messages')) return { results: rows.filter(x=>x.type==='message').slice(-12).map(x=>({role:x.role,content:x.content})) };
+            if (sql.includes("FROM cars WHERE status <> 'hidden'")) return { results: cars.filter(x=>x.status !== 'hidden') };
             return { results:[] };
           },
           async first() {
@@ -94,11 +95,11 @@ test('production gate: hidden vehicles are excluded from public catalog query', 
 
 
 test('production gate: Workers AI falls back when primary returns empty output', async () => {
-  const DB = mockDb();
+  const DB = mockDb([{id:'lexus-live',brand:'Lexus',model:'LX 600',year:2025,mileage:100,status:'available',price:1,category:'suv'}]);
   const calls = [];
   const env = {
     DB,
-    AI_SEARCH: { async search() { return { chunks:[] }; } },
+    AI_SEARCH: { async search() { throw new Error('vehicle advice must not use AI Search'); } },
     AI: {
       async run(model) {
         calls.push(model);
@@ -114,5 +115,6 @@ test('production gate: Workers AI falls back when primary returns empty output',
   assert.equal(response.status, 200);
   assert.equal(data.ok, true);
   assert.equal(data.reply, 'FALLBACK_OK');
-  assert.deepEqual(calls, ['@cf/zai-org/glm-4.7-flash', '@cf/meta/llama-3.2-3b-instruct']);
+  assert.equal(data.ai_model, '@cf/qwen/qwen3.8-27b');
+  assert.deepEqual(calls, ['@cf/zai-org/glm-4.7-flash', '@cf/qwen/qwen3.8-27b']);
 });
