@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
   void styleField(EditText e){e.setTextColor(WHITE);e.setHintTextColor(SILVER);e.setPadding(dp(14),0,dp(14),0);e.setMinHeight(dp(50));e.setBackground(surface(Color.rgb(7,23,20),EMERALD,14));}
   void build(){
     LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(12),dp(12),dp(12),dp(10));content.setBackgroundColor(OBSIDIAN);
-    TextView brand=tv("PHAN THUẦN XTRA");brand.setTextSize(24);brand.setTypeface(null,Typeface.BOLD);brand.setTextColor(GOLD_SOFT);content.addView(brand);
+    LinearLayout top=row();Button back=btn("‹ TRANG CHỦ",v->finish());back.setTextColor(GOLD_SOFT);back.setBackground(surface(OBSIDIAN,GOLD,12));top.addView(back,new LinearLayout.LayoutParams(dp(118),dp(44)));TextView brand=tv("PHAN THUẦN XTRA");brand.setTextSize(22);brand.setGravity(Gravity.END);brand.setTypeface(null,Typeface.BOLD);brand.setTextColor(GOLD_SOFT);top.addView(brand,new LinearLayout.LayoutParams(0,dp(48),1));content.addView(top);
     TextView sub=tv("MOBILE OPERATOR HUB  •  QUẢN LÝ PHANTHUANXTRA.COM");sub.setTextSize(10);sub.setTextColor(EMERALD_GLOW);content.addView(sub);gap(content,6);
     boolean signedIn=!authStore.get().isEmpty();
     content.addView(section(signedIn?"● PHIÊN ADMIN ĐÃ LƯU AN TOÀN":"ĐĂNG NHẬP ADMIN"));
@@ -60,7 +60,7 @@ public class MainActivity extends Activity {
     ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(content);
     LinearLayout shell=new LinearLayout(this);shell.setOrientation(LinearLayout.VERTICAL);shell.setBackgroundColor(OBSIDIAN);shell.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
     LinearLayout nav=row();nav.setPadding(dp(6),dp(5),dp(6),dp(7));nav.setBackgroundColor(Color.rgb(3,28,24));
-    Button home=btn("⌂ Trang chủ",v->call("GET","/dashboard",null,null,null));Button cars=btn("Xe",v->call("GET","/cars",null,null,null));Button leads=btn("Leads",v->manageLeads());Button media=btn("Media",v->pickGalleryImage());
+    Button home=btn("⌂ Trang chủ",v->finish());Button cars=btn("Xe",v->call("GET","/cars",null,null,null));Button leads=btn("Leads",v->manageLeads());Button media=btn("Media",v->pickGalleryImage());
     for(Button b:new Button[]{home,cars,leads,media}){b.setTextSize(11);nav.addView(b,new LinearLayout.LayoutParams(0,dp(46),1));}
     shell.addView(nav);setContentView(shell);
   }
