@@ -1,0 +1,5 @@
+import test from "node:test";import assert from "node:assert/strict";import {handleBlog} from "../src/blog.js";
+function db(post){return{prepare(){return{bind(){return this},first:async()=>post,all:async()=>({results:post?[post]:[]})}}}}
+const post={id:7,title:"PHAN THUẦN XTRA",slug:"phan-thuan-xtra",excerpt:"Tiếng Việt",content:"Nội dung",category:"Tin tức",status:"published",tags_json:"[]"};
+test("public blog detail accepts cache-busting query and returns UTF-8 HTML",async()=>{const r=await handleBlog(new Request("https://phanthuanxtra.com/blog/phan-thuan-xtra?e2e=123"),{DB:db(post)});assert.equal(r.status,200);assert.match(r.headers.get("content-type"),/text\/html; charset=utf-8/i);assert.equal(r.headers.get("cache-control"),"no-store");assert.match(await r.text(),/PHAN THUẦN XTRA/)});
+test("public blog detail returns 404 only when published post is absent",async()=>{const r=await handleBlog(new Request("https://phanthuanxtra.com/blog/missing"),{DB:db(null)});assert.equal(r.status,404)});
