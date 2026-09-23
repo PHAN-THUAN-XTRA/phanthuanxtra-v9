@@ -17,7 +17,8 @@
       "/admin.html",
       "/api/*",
       "/media/*",
-      "/blog*"
+      "/blog/*",
+      "/blog"
     ]
   },
   "observability": {
