@@ -124,3 +124,10 @@ test('all editorial category routes are Worker-served as explicit UTF-8 HTML', (
     const html = read(page); assert.match(html, /<meta charset="UTF-8">/); assert.match(html, /PHAN THUẦN XTRA/); assert.doesNotMatch(html, /PHAN THUáº¦N|NhĂ¢n|Táº§m NhĂ¬n/);
   }
 });
+
+test('editorial Worker decodes asset bytes as strict UTF-8 before response', () => {
+  const entry = read('src/entry.js');
+  assert.match(entry, /new TextDecoder\("utf-8", \{ fatal: true \}\)/);
+  assert.match(entry, /await assetResponse\.arrayBuffer\(\)/);
+  assert.match(entry, /return new Response\(html,/);
+});
