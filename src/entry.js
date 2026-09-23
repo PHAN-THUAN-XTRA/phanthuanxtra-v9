@@ -50,18 +50,22 @@ export default {
       ]);
       if (editorialAssets.has(url.pathname)) {
         const assetUrl = new URL(editorialAssets.get(url.pathname), request.url);
-        const assetHeaders = new Headers(request.headers);
-        assetHeaders.set("accept-encoding", "identity");
-        assetHeaders.set("cache-control", "no-cache");
-        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET", headers: assetHeaders, cf: { cacheTtl: 0, cacheEverything: false } }));
-        const headers = new Headers(assetResponse.headers);
+        // Fetch the immutable asset using a fresh request. Never forward browser headers
+        // (Accept-Encoding/Range/etc.) into the asset binding for editorial HTML.
+        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl.toString(), {
+          method: "GET",
+          headers: new Headers({ "accept": "text/html" }),
+          cf: { cacheTtl: 0, cacheEverything: false }
+        }));
+        if (!assetResponse.ok) return assetResponse;
+        const bytes = await assetResponse.arrayBuffer();
+        const html = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        const headers = new Headers();
         headers.set("content-type", "text/html; charset=utf-8");
         headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
-        headers.delete("content-encoding"); headers.delete("content-length"); headers.delete("location");
-        // Decode asset bytes as UTF-8 and re-encode the string explicitly. This prevents
-        // upstream/static charset ambiguity from turning Vietnamese into mojibake.
-        const html = new TextDecoder("utf-8", { fatal: true }).decode(await assetResponse.arrayBuffer());
-        return new Response(html, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
+        headers.set("x-content-type-options", "nosniff");
+        headers.set("x-ptx-editorial-utf8", "worker-v3");
+        return new Response(html, { status: 200, headers });
       }
       if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/") {
         const assetUrl = new URL("/index.html", request.url);
