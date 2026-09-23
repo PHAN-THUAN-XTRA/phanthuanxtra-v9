@@ -61,7 +61,7 @@ test('homepage has no retired Gods Eye showcase or redirect loop source', () => 
   assert.equal(fs.existsSync(new URL('../public/_redirects', import.meta.url)), false);
   assert.match(entry, /url\.pathname === "\/home"/);
   assert.match(entry, /new URL\("\/index\.html", request\.url\)/);
-  assert.match(deploy, /"\/home", "\/home\/"/);
+  assert.match(deploy, /run_worker_first:\s*true/);
 });
 
 
