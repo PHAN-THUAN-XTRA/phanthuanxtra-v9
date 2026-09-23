@@ -29,8 +29,8 @@ test('APK production identity is stable and launcher is exported', () => {
   const gradle = read('android/app/build.gradle');
   const manifest = read('android/app/src/main/AndroidManifest.xml');
   assert.match(gradle, /applicationId\s+'com\.phanthuanxtra\.app'/);
-  assert.match(gradle, /versionCode 6/);
-  assert.match(gradle, /versionName\s+'1\.5\.0'/);
+  assert.match(gradle, /versionCode 7/);
+  assert.match(gradle, /versionName\s+'1\.6\.0'/);
   assert.match(manifest, /android:name="\.OperatorHubActivity"/);
   assert.match(manifest, /android:exported="true"/);
   assert.match(manifest, /android\.intent\.action\.MAIN/);
@@ -73,8 +73,12 @@ test('APK product UI contains no Cloudflare or GitHub infrastructure credential 
 
 test('APK navigation keeps explicit home exits and product destinations', () => {
   const main = read('android/app/src/main/java/com/phanthuanxtra/app/MainActivity.java');
-  assert.match(main, /‹ TRANG CHỦ/);
-  assert.match(main, /⌂ Trang chủ/);
+  assert.match(main, /showDashboard\(\)/);
+  assert.match(main, /showCars\(\)/);
+  assert.match(main, /showLeadsScreen\(\)/);
+  assert.match(main, /showMediaScreen\(\)/);
   assert.match(main, /AI NHẬP XE TỪ ẢNH/);
-  assert.match(main, /btn\("Media",v->openMedia\(\)\)/);
+  assert.match(main, /XÁC NHẬN TẠO XE/);
+  assert.match(main, /HỦY • KHÔNG TẠO XE/);
+  assert.match(main, /OBSIDIAN=Color\.rgb\(5,7,6\).*EMERALD=Color\.rgb\(15,95,80\).*GOLD=Color\.rgb\(199,163,90\)/s);
 });
