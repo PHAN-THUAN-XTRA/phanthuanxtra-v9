@@ -76,6 +76,9 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
   const image = dataUrl(contentType, bytes);
   const errors = [];
 
+  // Scout supports multimodal image messages. Fall back when its license or capacity is unavailable.
+  try { const response = await env.AI.run("@cf/meta/llama-4-scout-17b-16e-instruct", { messages: [{ role: "system", content: "Trích xuất dữ liệu xe có bằng chứng; chỉ trả JSON, không suy đoán." }, { role: "user", content: [{ type: "image_url", image_url: { url: image } }, { type: "text", text: prompt }] }], max_tokens: 1200, temperature: 0 }); return { ...parseResult(response), _ai_model: "@cf/meta/llama-4-scout-17b-16e-instruct" }; } catch (error) { recordFailure(errors, "@cf/meta/llama-4-scout-17b-16e-instruct", error); }
+
   // Prefer the current Cloudflare-hosted Qwen vision model. It accepts
   // OpenAI-compatible multimodal message parts through the Workers AI binding.
   try {
@@ -134,3 +137,6 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
   failure.diagnostics = errors;
   throw failure;
 }
+
+// Optional COCO object detection: labels are supporting evidence, never vehicle identity.
+export async function detectVehicleObjects(env,fileBytes){if(!env.AI)return [];try{const result=await env.AI.run("@cf/facebook/detr-resnet-50",{image:new Uint8Array(fileBytes)});const items=Array.isArray(result)?result:Array.isArray(result?.detections)?result.detections:[];return items.filter(x=>Number(x.score??x.confidence)>=0.5).slice(0,10).map(x=>({label:String(x.label??"").slice(0,40),score:Number(x.score??x.confidence)}));}catch{return [];}}
