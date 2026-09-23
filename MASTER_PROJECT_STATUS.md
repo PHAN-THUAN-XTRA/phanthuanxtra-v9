@@ -621,3 +621,15 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - PR review should report: changed surface, findings by severity with file/line evidence, proposed minimal remediation, generated/updated tests, CI results, residual risks, and `DEPLOY ELIGIBLE` or `DEPLOY LOCKED`. It must never report GREEN solely from model judgment.
 - Current rollout mode: policy-first. Existing workflows remain unchanged by this Markdown-only slice. Automation of the GPT audit as a required GitHub check is the next implementation slice and must itself follow the single-queue PR method before becoming a merge/deploy requirement.
 - Rollback: this slice changes documentation/control policy only and performs no production mutation, secret rotation, Cloudflare resource change, D1 migration, Worker deploy or application-code change.
+
+
+### 19.1 Phase 2 — executable pre-deploy automation
+- Implementation branch: `feat/ai-predeploy-automation`.
+- Adds PR workflow `.github/workflows/ai-predeploy-audit.yml` with check name `AI Pre-Deploy Audit / Validate`; it runs only on pull requests to `main`, uses read-only repository permissions, audits the exact base/head diff, then executes deterministic regression tests.
+- Adds `scripts/predeploy-audit.mjs`: deterministic first-line audit for hard-coded credentials/bearer tokens, sensitive logging, HTML injection sinks, wildcard CORS, unbounded loops, dynamic D1 SQL interpolation, Workers AI inference changes, Telegram delivery changes, delete/R2-style boundaries and cache changes.
+- BLOCKER/HIGH findings exit non-zero and emit `DEPLOY LOCKED`. MEDIUM/LOW findings remain visible for review but do not by themselves claim production failure.
+- Behavior-changing files under `src/`, `public/`, `scripts/` or Android source require a changed regression test in the same PR; otherwise the audit raises HIGH and blocks eligibility.
+- Adds `test/predeploy-audit.test.js` to guard the audit contract and runs the repository `npm test` suite after the diff audit.
+- This is intentionally deterministic and secret-free: no external GPT/OpenAI credential is introduced into Actions. ChatGPT/GPT remains the deeper PR-review/test-authoring layer, while this required-check candidate provides reproducible enforcement in GitHub CI.
+- Phase 2 remains **OPEN** until this implementation PR passes its own CI/audit checks, merges, and the repository branch rules require `AI Pre-Deploy Audit / Validate` before merge. Exact-SHA production runtime/E2E remains a separate post-merge gate.
+\n
