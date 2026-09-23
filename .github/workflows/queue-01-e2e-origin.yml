@@ -55,9 +55,10 @@ jobs:
           # One real Workers AI Vision inference per successful production deploy.
           # This is intentionally non-destructive: it validates the same authenticated
           # endpoint used by Android before the D1/R2 lifecycle begins.
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 \
-            'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/2018_Tesla_Model_S_75D.jpg/640px-2018_Tesla_Model_S_75D.jpg' \
-            -o /tmp/vehicle-vision-smoke.jpg
+          # Use a repository-owned deterministic JPEG fixture so production evidence
+          # cannot be blocked by an external image host changing/denying the URL.
+          base64 -d tests/fixtures/vehicle-vision-smoke.jpg.b64 > /tmp/vehicle-vision-smoke.jpg
+          test -s /tmp/vehicle-vision-smoke.jpg
           vision_status="$(curl --silent --show-error --max-time 90 -o /tmp/vehicle-vision.json -w '%{http_code}' \
             -X POST "$BASE_URL/api/admin/vehicle/analyze?caption=Production%20Vision%20smoke%3A%20identify%20the%20vehicle%20conservatively" \
             -H "Authorization: Bearer $SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
