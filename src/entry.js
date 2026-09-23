@@ -42,6 +42,24 @@ export default {
         headers.delete("content-length");
         return new Response(assetResponse.body, { status: 200, headers });
       }
+      const editorialAssets = new Map([
+        ["/phan-thuan", "/phan-thuan.html"], ["/phan-thuan/", "/phan-thuan.html"],
+        ["/green-energy", "/green-energy.html"], ["/green-energy/", "/green-energy.html"],
+        ["/yachts", "/yachts.html"], ["/yachts/", "/yachts.html"],
+        ["/business-jets", "/business-jets.html"], ["/business-jets/", "/business-jets.html"]
+      ]);
+      if (editorialAssets.has(url.pathname)) {
+        const assetUrl = new URL(editorialAssets.get(url.pathname), request.url);
+        const assetHeaders = new Headers(request.headers);
+        assetHeaders.set("accept-encoding", "identity");
+        assetHeaders.set("cache-control", "no-cache");
+        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET", headers: assetHeaders, cf: { cacheTtl: 0, cacheEverything: false } }));
+        const headers = new Headers(assetResponse.headers);
+        headers.set("content-type", "text/html; charset=utf-8");
+        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
+        headers.delete("content-encoding"); headers.delete("content-length"); headers.delete("location");
+        return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
+      }
       if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/") {
         const assetUrl = new URL("/index.html", request.url);
         const assetHeaders = new Headers(request.headers);
