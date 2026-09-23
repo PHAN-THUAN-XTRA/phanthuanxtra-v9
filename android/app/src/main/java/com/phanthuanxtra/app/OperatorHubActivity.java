@@ -13,6 +13,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.util.DisplayMetrics;
 
 /** XTRA premium operator cockpit. Credentials stay encrypted on-device and are never injected into WebView. */
 public final class OperatorHubActivity extends Activity {
@@ -25,28 +26,29 @@ public final class OperatorHubActivity extends Activity {
 
     @Override public void onCreate(Bundle state) { super.onCreate(state); tokenStore = new SecureTokenStore(this); build(); }
 
+    private int dp(float value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private GradientDrawable bg(int color, float radius, int strokeColor, int strokeWidth) {
-        GradientDrawable g = new GradientDrawable(); g.setColor(color); g.setCornerRadius(radius); if (strokeWidth > 0) g.setStroke(strokeWidth, strokeColor); return g;
+        GradientDrawable g = new GradientDrawable(); g.setColor(color); g.setCornerRadius(dp(radius)); if (strokeWidth > 0) g.setStroke(dp(strokeWidth), strokeColor); return g;
     }
     private TextView text(String value, float size, int color) {
-        TextView v = new TextView(this); v.setText(value); v.setTextSize(size); v.setTextColor(color); v.setPadding(4, 8, 4, 8); return v;
+        TextView v = new TextView(this); v.setText(value); v.setTextSize(size); v.setTextColor(color); v.setPadding(dp(4), dp(8), dp(4), dp(8)); return v;
     }
     private EditText secretField(String label) {
         EditText e = new EditText(this); e.setHint(label); e.setHintTextColor(SILVER); e.setTextColor(WHITE);
         e.setSingleLine(true); e.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        e.setPadding(18, 4, 18, 4); e.setBackground(bg(GRAPHITE, 18, Color.rgb(55,58,61), 1));
+        e.setPadding(dp(18), dp(4), dp(18), dp(4)); e.setBackground(bg(GRAPHITE, 18, Color.rgb(55,58,61), 1));
         return e;
     }
     private Button button(String label, View.OnClickListener listener, boolean primary) {
         Button b = new Button(this); b.setText(label); b.setTextColor(primary ? BLACK : WHITE); b.setTextSize(13); b.setAllCaps(false);
-        b.setGravity(Gravity.CENTER); b.setMinHeight(52); b.setPadding(12, 0, 12, 0); b.setOnClickListener(listener);
+        b.setGravity(Gravity.CENTER); b.setMinHeight(dp(52)); b.setPadding(dp(12), 0, dp(12), 0); b.setOnClickListener(listener);
         b.setBackground(bg(primary ? GOLD : CARBON, 16, primary ? GOLD : Color.rgb(54,58,60), 1)); return b;
     }
-    private void gap(LinearLayout root, int h) { TextView g = new TextView(this); root.addView(g, new LinearLayout.LayoutParams(1,h)); }
-    private LinearLayout card() { LinearLayout c = new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setPadding(18,14,18,16); c.setBackground(bg(CARBON, 20, Color.rgb(43,46,48), 1)); return c; }
+    private void gap(LinearLayout root, int h) { TextView g = new TextView(this); root.addView(g, new LinearLayout.LayoutParams(1,dp(h))); }
+    private LinearLayout card() { LinearLayout c = new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setPadding(dp(18),dp(14),dp(18),dp(16)); c.setBackground(bg(CARBON, 20, Color.rgb(43,46,48), 1)); return c; }
 
     private void build() {
-        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(14,16,14,8); root.setBackgroundColor(BLACK);
+        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(12),dp(12),dp(12),dp(8)); root.setBackgroundColor(BLACK);
         LinearLayout head = new LinearLayout(this); head.setOrientation(LinearLayout.HORIZONTAL); head.setGravity(Gravity.CENTER_VERTICAL);
         TextView brand = text("PHAN THUẦN XTRA", 22, WHITE); brand.setTypeface(null, android.graphics.Typeface.BOLD); head.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
         TextView live = text("● LIVE", 12, JADE_GLOW); live.setTypeface(null, android.graphics.Typeface.BOLD); head.addView(live); root.addView(head);
@@ -62,7 +64,7 @@ public final class OperatorHubActivity extends Activity {
         LinearLayout clears = new LinearLayout(this); clears.setOrientation(LinearLayout.HORIZONTAL);
         Button cf = button("Xóa Cloudflare", v -> { tokenStore.clearCloudflare(); cloudflareToken.setText(""); cloudflareToken.setHint("Cloudflare API token"); setStatus("Cloudflare token đã được xóa khỏi thiết bị."); }, false);
         Button gh = button("Xóa GitHub", v -> { tokenStore.clearGitHub(); githubToken.setText(""); githubToken.setHint("GitHub token"); setStatus("GitHub token đã được xóa khỏi thiết bị."); }, false);
-        clears.addView(cf,new LinearLayout.LayoutParams(0,52,1)); clears.addView(gh,new LinearLayout.LayoutParams(0,52,1)); system.addView(clears);
+        clears.addView(cf,new LinearLayout.LayoutParams(0,dp(52),1)); clears.addView(gh,new LinearLayout.LayoutParams(0,dp(52),1)); system.addView(clears);
         system.addView(text("AES/GCM + Android Keystore  •  Token không được truyền vào Chat/WebView", 10, SILVER)); root.addView(system); gap(root,10);
 
         LinearLayout quick = card(); quick.addView(text("QUICK CONTROL", 11, SOFT_GOLD));
