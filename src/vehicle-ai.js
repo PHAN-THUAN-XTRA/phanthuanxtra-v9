@@ -48,7 +48,7 @@ Thông tin người dùng: ${caption || "(không có)"}`;
   // LLaVA's documented binding contract accepts raw image bytes + prompt.
   try {
     const response = await env.AI.run("@cf/llava-hf/llava-1.5-7b-hf", {
-      image: Array.from(bytes),
+      image: bytes,
       prompt: prompt + "\nTrả về JSON thuần theo các trường: " + Object.keys(schema.properties).join(", ") + ".",
       max_tokens: 1200
     });
