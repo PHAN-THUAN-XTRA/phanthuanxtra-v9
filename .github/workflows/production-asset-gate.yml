@@ -57,7 +57,7 @@ jobs:
             local body headers status
             body="$(mktemp)"; headers="$(mktemp)"
             status="$(curl --silent --show-error --compressed --retry 3 --retry-delay 1 --max-time 20 \
-              --location --proto '=https' --proto-redir '=https' \\
+              --location --proto '=https' --proto-redir '=https' \
               -D "$headers" -o "$body" -w '%{http_code}' "$SITE_URL$path")"
             echo "$path final HTTP $status"
             test "$status" = "200"
@@ -66,10 +66,7 @@ jobs:
             grep -Fq "PHAN THUẦN XTRA" "$body"
             grep -Fq "$marker" "$body"
             ! grep -Eq 'PHAN THUáº¦N|NhĂ¢n|Táº§m NhĂ¬n|Ä|đŸ|â€¢|Â©' "$body"
-            python3 - "$body" <<'PY'
-import pathlib, sys
-pathlib.Path(sys.argv[1]).read_bytes().decode("utf-8", errors="strict")
-PY
+            python3 -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).read_bytes().decode("utf-8", errors="strict")' "$body"
           }
           check_editorial_utf8 "/phan-thuan" "Doanh Nhân Phan Thuần"
           check_editorial_utf8 "/green-energy" "Năng Lượng Xanh"
