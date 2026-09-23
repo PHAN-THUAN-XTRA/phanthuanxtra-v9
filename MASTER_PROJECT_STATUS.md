@@ -545,3 +545,12 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Application Validation no longer executes Wrangler. It performs static JSON/config contract validation only; deployment remains owned by the GitHub Actions Cloudflare API/SDK deploy workflow.
 - Consolidation candidates identified for a later deletion PR only after dependency/trigger proof: legacy manual smoke/runtime-evidence workflows, completed one-shot Cloudflare repair/cleanup workflows, and overlapping AI audit/executor workflows. No safety workflow is deleted by this audit slice.
 - Cloudflare operational target: one read-only inventory/audit path, one deploy path, and one strict post-deploy E2E path; account-level mutation remains explicit/manual.
+
+
+### 17.2 P5 workflow consolidation — round 2
+- Retired completed one-shot cleanup: `remove-unsafe-cloudflare-audit-artifacts.yml`.
+- Retired legacy manual production smoke and standalone Gate-15 runtime harness; canonical `production-smoke-gate15.yml` plus strict post-deploy `queue-01-e2e-origin.yml` remain the production runtime evidence paths.
+- Retired one-purpose Cloudflare rate-limit audit/fix workflows. General read-only Cloudflare inventory remains `cloudflare-machine-audit.yml`; account-level WAF mutation is no longer kept as a routine repository workflow.
+- Retired overlapping `ai-peer-continuity.yml`; `ai-peer-executor.yml` remains the single read-only Cloudflare Workers AI checkpoint/executor workflow.
+- `gate10-runtime-evidence.yml` is retained because it is coupled to `Deploy Developer Gateway` completion and verifies the dedicated dual-Workers-AI gateway runtime contract.
+- Core deploy/safety workflows and all production Cloudflare bindings remain unchanged.
