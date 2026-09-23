@@ -63,7 +63,7 @@ jobs:
           jq -e '.ok==true and .post.status=="published" and .post.slug==env.SLUG' /tmp/create.json >/dev/null
 
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $SESSION" "$SITE_URL/api/admin/posts/$POST_ID" -o /tmp/read.json
-          jq -e '.post.id==env.POST_ID|tonumber' /tmp/read.json >/dev/null 2>&1 || jq -e --argjson id "$POST_ID" '.post.id==$id' /tmp/read.json >/dev/null
+          jq -e --argjson id "$POST_ID" '.post.id==$id and .post.slug==env.SLUG' /tmp/read.json >/dev/null
 
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/public.json -w '%{http_code}' "$SITE_URL/api/blog/posts/$SLUG")"
           echo "Public Blog API HTTP $status"; test "$status" = "200"
