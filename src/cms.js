@@ -1,4 +1,5 @@
 import { saveCar, carImages, validCarId } from "./vehicle-persistence.js";
+import { listPosts, getPost, savePost, deletePost } from "./post-persistence.js";
 const MAX_BODY_BYTES = 1024 * 1024;
 const CAR_STATUSES = new Set(["available", "reserved", "sold", "hidden"]);
 const LEAD_STATUSES = new Set(["new", "contacted", "qualified", "won", "lost"]);
@@ -123,9 +124,18 @@ async function handleLeads(request, env, parts) {
   return response({ ok: true, id });
 }
 
+async function handlePosts(request,env,parts){
+ const id=parts[0]||"";const u=new URL(request.url);
+ if(request.method==="GET"){if(id){const p=await getPost(env.DB,id);return p?response({post:p}):response({error:"Không tìm thấy bài viết"},404)}return response({posts:await listPosts(env.DB,{status:text(u.searchParams.get("status"),20),q:text(u.searchParams.get("q"),120),limit:u.searchParams.get("limit")||100})})}
+ if(request.method==="POST"){const b=await readJson(request);if(!b)return response({error:"JSON không hợp lệ"},400);const x=await savePost(env.DB,b,{mode:"create",actor:"cms-api"});return response(x.ok?{ok:true,id:x.id,post:x.post}:{error:x.error},x.status)}
+ if(request.method==="PUT"){if(!id)return response({error:"Thiếu ID bài viết"},400);const b=await readJson(request);if(!b)return response({error:"JSON không hợp lệ"},400);const x=await savePost(env.DB,b,{id,mode:"update",actor:"cms-api"});return response(x.ok?{ok:true,id:x.id,post:x.post}:{error:x.error},x.status)}
+ if(request.method==="DELETE"){if(!id)return response({error:"Thiếu ID bài viết"},400);if((request.headers.get("X-CMS-Confirm")||"").toLowerCase()!=="delete")return response({error:"Thiếu X-CMS-Confirm: delete"},428);const x=await deletePost(env.DB,id,{actor:"cms-api"});return response(x.ok?{ok:true,deleted:x.id}:{error:x.error},x.status)}
+ return response({error:"Method Not Allowed"},405,{Allow:"GET,POST,PUT,DELETE"});
+}
+
 async function dashboard(db) {
   const rows = await Promise.all([
-    ["cars", "SELECT COUNT(*) n FROM cars"], ["featured", "SELECT COUNT(*) n FROM cars WHERE featured=1"], ["available", "SELECT COUNT(*) n FROM cars WHERE status='available'"], ["reserved", "SELECT COUNT(*) n FROM cars WHERE status='reserved'"], ["sold", "SELECT COUNT(*) n FROM cars WHERE status='sold'"], ["hidden", "SELECT COUNT(*) n FROM cars WHERE status='hidden'"], ["leads", "SELECT COUNT(*) n FROM leads"], ["newLeads", "SELECT COUNT(*) n FROM leads WHERE status='new'"], ["wonLeads", "SELECT COUNT(*) n FROM leads WHERE status='won'"], ["auditEvents", "SELECT COUNT(*) n FROM cms_audit_log"]
+    ["cars", "SELECT COUNT(*) n FROM cars"], ["featured", "SELECT COUNT(*) n FROM cars WHERE featured=1"], ["available", "SELECT COUNT(*) n FROM cars WHERE status='available'"], ["reserved", "SELECT COUNT(*) n FROM cars WHERE status='reserved'"], ["sold", "SELECT COUNT(*) n FROM cars WHERE status='sold'"], ["hidden", "SELECT COUNT(*) n FROM cars WHERE status='hidden'"], ["leads", "SELECT COUNT(*) n FROM leads"], ["newLeads", "SELECT COUNT(*) n FROM leads WHERE status='new'"], ["wonLeads", "SELECT COUNT(*) n FROM leads WHERE status='won'"], ["auditEvents", "SELECT COUNT(*) n FROM cms_audit_log"], ["posts", "SELECT COUNT(*) n FROM posts"], ["publishedPosts", "SELECT COUNT(*) n FROM posts WHERE status='published'"]
   ].map(async ([key, sql]) => [key, Number((await db.prepare(sql).first("n")) || 0)]));
   return Object.fromEntries(rows);
 }
@@ -146,6 +156,7 @@ export async function handleCmsApi(request, env) {
     if (resource === "audit") return handleAudit(request, env);
     if (resource === "cars") return handleCars(request, env, parts);
     if (resource === "leads") return handleLeads(request, env, parts);
+    if (resource === "posts") return handlePosts(request, env, parts);
     return response({ error: "CMS endpoint not found" }, 404);
   } catch (error) { console.error("CMS API error", error); return response({ error: "Internal Server Error" }, 500); }
 }
