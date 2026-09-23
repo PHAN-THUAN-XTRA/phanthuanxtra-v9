@@ -11,8 +11,8 @@ const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'ut
   assert.doesNotMatch(source, /wrangler\s+(deploy|delete|rollback)/i);
  });
 
-test('AI continuity workflow does not grant production write permissions', () => {
-  const source = read('.github/workflows/ai-peer-continuity.yml');
+test('AI unified executor does not grant production write permissions', () => {
+  const source = read('.github/workflows/ai-peer-executor.yml');
   assert.match(source, /contents:\s*read/);
   assert.doesNotMatch(source, /contents:\s*write/);
   assert.match(source, /Production mutations:\s*\*\*not attempted\*\*/);
