@@ -7,6 +7,9 @@ import android.net.Uri;
 import android.text.InputType;
 import android.view.*;
 import android.widget.*;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import org.json.*;
 import java.io.*;
 import java.util.*;
@@ -20,33 +23,46 @@ public class MainActivity extends Activity {
   EditText password,carId; TextView output; AuthStore authStore; ApiClient api;
   ExecutorService executor; Handler mainHandler;
   boolean busy=false;
+  static final int OBSIDIAN=Color.rgb(5,7,6), EMERALD=Color.rgb(15,95,80), EMERALD_DEEP=Color.rgb(5,47,41), EMERALD_GLOW=Color.rgb(45,154,130), GOLD=Color.rgb(199,163,90), GOLD_SOFT=Color.rgb(232,211,154), WHITE=Color.rgb(244,245,242), SILVER=Color.rgb(185,193,189);
 
   @Override public void onCreate(Bundle b){super.onCreate(b);authStore=new AuthStore(this);api=new ApiClient(BASE,authStore);executor=Executors.newSingleThreadExecutor();mainHandler=new Handler(Looper.getMainLooper());build();}
-  TextView tv(String s){TextView v=new TextView(this);v.setText(s);v.setTextSize(16);v.setPadding(8,8,8,8);return v;}
-  Button btn(String label,View.OnClickListener l){Button b=new Button(this);b.setText(label);b.setOnClickListener(l);return b;}
+  int dp(float v){return Math.round(v*getResources().getDisplayMetrics().density);}
+  GradientDrawable surface(int fill,int stroke,float radius){GradientDrawable g=new GradientDrawable();g.setColor(fill);g.setCornerRadius(dp(radius));g.setStroke(dp(1),stroke);return g;}
+  TextView tv(String s){TextView v=new TextView(this);v.setText(s);v.setTextSize(15);v.setTextColor(WHITE);v.setPadding(dp(10),dp(9),dp(10),dp(9));return v;}
+  Button btn(String label,View.OnClickListener l){Button b=new Button(this);b.setText(label);b.setTextColor(WHITE);b.setTextSize(13);b.setAllCaps(false);b.setMinHeight(dp(48));b.setPadding(dp(10),0,dp(10),0);b.setBackground(surface(EMERALD_DEEP,EMERALD,14));b.setOnClickListener(l);return b;}
+  TextView section(String label){TextView v=tv(label);v.setTextColor(GOLD_SOFT);v.setTextSize(12);v.setTypeface(null,Typeface.BOLD);return v;}
+  void gap(LinearLayout x,float h){Space s=new Space(this);x.addView(s,new LinearLayout.LayoutParams(1,dp(h)));}
+  LinearLayout row(){LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setGravity(Gravity.CENTER);return r;}
+  void pair(LinearLayout root,Button a,Button b){LinearLayout r=row();LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(52),1);p.setMarginEnd(dp(4));r.addView(a,p);LinearLayout.LayoutParams q=new LinearLayout.LayoutParams(0,dp(52),1);q.setMarginStart(dp(4));r.addView(b,q);root.addView(r);}
+  void styleField(EditText e){e.setTextColor(WHITE);e.setHintTextColor(SILVER);e.setPadding(dp(14),0,dp(14),0);e.setMinHeight(dp(50));e.setBackground(surface(Color.rgb(7,23,20),EMERALD,14));}
   void build(){
-    LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,24,24,24);
-    root.addView(tv("PHAN THUẦN XTRA\\nQUẢN LÝ PHANTHUANXTRA.COM"));
+    LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(12),dp(12),dp(12),dp(10));content.setBackgroundColor(OBSIDIAN);
+    TextView brand=tv("PHAN THUẦN XTRA");brand.setTextSize(24);brand.setTypeface(null,Typeface.BOLD);brand.setTextColor(GOLD_SOFT);content.addView(brand);
+    TextView sub=tv("MOBILE OPERATOR HUB  •  QUẢN LÝ PHANTHUANXTRA.COM");sub.setTextSize(10);sub.setTextColor(EMERALD_GLOW);content.addView(sub);gap(content,6);
     boolean signedIn=!authStore.get().isEmpty();
-    password=new EditText(this);password.setHint(signedIn?"Phiên Admin • ĐÃ LƯU • nhập mật khẩu để đăng nhập lại":"Mật khẩu Admin phanthuanxtra.com");password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);root.addView(password);
-    root.addView(btn("ĐĂNG NHẬP ADMIN",v->loginAdmin()));
-    root.addView(btn("ĐĂNG XUẤT",v->{authStore.clear();password.setText("");password.setHint("Mật khẩu Admin phanthuanxtra.com");output.setText("Đã đăng xuất và xóa phiên Admin khỏi thiết bị.");}));
-    root.addView(btn("KIỂM TRA KẾT NỐI",v->callPublic("GET","/dashboard")));
-    root.addView(btn("DASHBOARD",v->call("GET","/dashboard",null,null,null)));
-    root.addView(btn("KHO XE",v->call("GET","/cars",null,null,null)));
-    root.addView(btn("TÌM XE",v->searchCars()));
-    carId=new EditText(this);carId.setHint("ID xe để xem / sửa / xóa");root.addView(carId);
-    root.addView(btn("CHI TIẾT XE",v->getCar()));
-    root.addView(btn("SỬA TOÀN BỘ THÔNG TIN XE",v->editCar()));
-    root.addView(btn("QUẢN LÝ GALLERY",v->manageGallery()));
-    root.addView(btn("THÊM ẢNH VÀO GALLERY",v->pickGalleryImage()));
-    root.addView(btn("ĐỔI TRẠNG THÁI",v->changeStatus()));
-    root.addView(btn("BẬT / TẮT NỔI BẬT",v->toggleFeatured()));
-    root.addView(btn("XÓA XE",v->confirmDelete()));
-    root.addView(btn("KHÁCH HÀNG / LEADS",v->manageLeads()));
-    root.addView(btn("THÊM XE + AI",v->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE),PICK_NEW)));
-    root.addView(btn("MỞ PHANTHUANXTRA.COM",v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(SITE)))));
-    output=tv("Sẵn sàng.");ScrollView sv=new ScrollView(this);sv.addView(output);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
+    content.addView(section(signedIn?"● PHIÊN ADMIN ĐÃ LƯU AN TOÀN":"ĐĂNG NHẬP ADMIN"));
+    password=new EditText(this);password.setHint(signedIn?"Nhập mật khẩu khi cần đăng nhập lại":"Mật khẩu Admin phanthuanxtra.com");password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);styleField(password);content.addView(password);gap(content,6);
+    Button login=btn("ĐĂNG NHẬP ADMIN",v->loginAdmin());login.setTextColor(OBSIDIAN);login.setBackground(surface(GOLD,GOLD_SOFT,14));
+    Button logout=btn("ĐĂNG XUẤT",v->{authStore.clear();password.setText("");password.setHint("Mật khẩu Admin phanthuanxtra.com");output.setText("Đã đăng xuất và xóa phiên Admin khỏi thiết bị.");});
+    pair(content,login,logout);gap(content,10);
+    content.addView(section("TỔNG QUAN HỆ THỐNG"));
+    pair(content,btn("DASHBOARD",v->call("GET","/dashboard",null,null,null)),btn("KHO XE",v->call("GET","/cars",null,null,null)));
+    pair(content,btn("TÌM XE",v->searchCars()),btn("LEADS",v->manageLeads()));gap(content,8);
+    content.addView(section("QUẢN LÝ XE"));
+    carId=new EditText(this);carId.setHint("ID xe để xem / sửa / xóa");styleField(carId);content.addView(carId);gap(content,6);
+    pair(content,btn("CHI TIẾT XE",v->getCar()),btn("SỬA THÔNG TIN",v->editCar()));
+    pair(content,btn("GALLERY",v->manageGallery()),btn("THÊM ẢNH",v->pickGalleryImage()));
+    pair(content,btn("ĐỔI TRẠNG THÁI",v->changeStatus()),btn("BẬT / TẮT NỔI BẬT",v->toggleFeatured()));
+    pair(content,btn("THÊM XE + AI",v->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE),PICK_NEW)),btn("XÓA XE",v->confirmDelete()));
+    gap(content,8);content.addView(section("ĐỒNG BỘ"));
+    pair(content,btn("KIỂM TRA PHIÊN",v->callPublic("GET","/dashboard")),btn("MỞ WEBSITE",v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(SITE)))));
+    output=tv("Sẵn sàng.");output.setTextColor(SILVER);output.setBackground(surface(Color.rgb(7,17,15),EMERALD_DEEP,14));content.addView(output,new LinearLayout.LayoutParams(-1,dp(150)));
+    ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(content);
+    LinearLayout shell=new LinearLayout(this);shell.setOrientation(LinearLayout.VERTICAL);shell.setBackgroundColor(OBSIDIAN);shell.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+    LinearLayout nav=row();nav.setPadding(dp(6),dp(5),dp(6),dp(7));nav.setBackgroundColor(Color.rgb(3,28,24));
+    Button home=btn("⌂ Trang chủ",v->call("GET","/dashboard",null,null,null));Button cars=btn("Xe",v->call("GET","/cars",null,null,null));Button leads=btn("Leads",v->manageLeads());Button media=btn("Media",v->pickGalleryImage());
+    for(Button b:new Button[]{home,cars,leads,media}){b.setTextSize(11);nav.addView(b,new LinearLayout.LayoutParams(0,dp(46),1));}
+    shell.addView(nav);setContentView(shell);
   }
   void loginAdmin(){final String value=password.getText().toString();if(value.isEmpty()){output.setText("Vui lòng nhập mật khẩu Admin.");return;}runAsync(()->{try{JSONObject body=new JSONObject();body.put("password",value);String response=api.requestChecked("POST","/login",body.toString(),null,"application/json");String session=new JSONObject(response).optString("token","").trim();if(session.isEmpty())throw new Exception("Máy chủ không trả phiên Admin");authStore.save(session);ui(()->{password.setText("");password.setHint("Phiên Admin • ĐÃ LƯU");output.setText("Đăng nhập Admin thành công.");});}catch(Exception e){ui(()->output.setText("Đăng nhập thất bại: "+e.getMessage()));}});}
   void runAsync(Runnable task){if(executor==null||executor.isShutdown()||busy)return;busy=true;ui(()->output.setText("Đang xử lý..."));executor.execute(()->{try{task.run();}finally{busy=false;}});}
