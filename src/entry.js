@@ -58,7 +58,10 @@ export default {
         headers.set("content-type", "text/html; charset=utf-8");
         headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
         headers.delete("content-encoding"); headers.delete("content-length"); headers.delete("location");
-        return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
+        // Decode asset bytes as UTF-8 and re-encode the string explicitly. This prevents
+        // upstream/static charset ambiguity from turning Vietnamese into mojibake.
+        const html = new TextDecoder("utf-8", { fatal: true }).decode(await assetResponse.arrayBuffer());
+        return new Response(html, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
       }
       if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/") {
         const assetUrl = new URL("/index.html", request.url);
