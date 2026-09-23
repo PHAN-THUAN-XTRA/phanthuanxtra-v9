@@ -92,7 +92,9 @@ test('Founder profile and customer AI scope stay explicit', () => {
   assert.match(index, /href="\/phan-thuan"/);
   assert.match(index, /chỉ tư vấn xe đang có trên website và thông tin chính thức về Phan Thuần/);
   assert.match(ai, /CHỈ được tư vấn 2 nhóm/);
-  assert.match(ai, /contact\.name && contact\.phone/);
+  assert.match(ai, /effectiveContact\.name&&effectiveContact\.phone/);
+  assert.match(ai, /@cf\/qwen\/qwen3\.8-27b/);
+  assert.match(ai, /@cf\/nvidia\/nemotron-3-120b-a12b/);
   assert.match(ai, /Telegram\/CRM/);
 });
 
