@@ -596,3 +596,13 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - AI design decision: do not hard-code or assume the quoted rate limits/model availability. Existing Workers AI binding remains the integration boundary. AI-assisted editorial generation/vision is a follow-up slice only after model/runtime audit proves availability; deterministic CMS CRUD does not consume AI quota.
 - Security: no new secrets, no Cloudflare binding deletion, no credential rotation. Admin/App authentication reuses the existing signed Admin session/App token boundary; Telegram reuses the existing verified Auto Bot webhook.
 - Acceptance remains OPEN until CI, Android build, exact-SHA deploy, D1 migration/schema availability, public Blog UTF-8, Admin/App CRUD, Telegram command E2E and rollback-safe delete/update evidence pass.
+
+
+### 18.1 Blog production E2E + Workers AI editorial follow-up — 2026-09-23
+- PR #438 merged as `9c2c72dce15eed1caf98d553c0aa74f83d208461`; exact-SHA deploy, CI, Android and Gate-15 passed.
+- First Blog CMS Production E2E run `35846470891` failed before runtime CRUD because its Telegram source grep did not match the actual `blogCommand` regex. Runtime Blog lifecycle was skipped, so P6 remains OPEN until the corrected gate passes after deployment.
+- Follow-up branch adds a free-tier-first editorial AI router. Current Cloudflare documentation (2026-09) says Workers AI has a shared 10,000-Neuron/day free allocation; it does not provide unlimited per-model free inference. The router therefore uses fallbacks rather than calling every model per request.
+- Text/editorial order: `@cf/zai-org/glm-4.7-flash` -> `@cf/google/gemma-4-26b-a4b-it` -> `@cf/nvidia/nemotron-3-120b-a12b` -> lightweight Llama fallback. Vision/editorial order: existing proven `@cf/qwen/qwen3.8-27b` -> Gemma 4 vision -> Llama 3.2 Vision.
+- Explicitly excluded from the free-first route: Kimi K2.6 and GLM 5.2 because current Cloudflare docs require Workers Paid/prepaid credits for them.
+- New authenticated Admin endpoints: `POST /api/admin/posts/ai-draft` for title/excerpt/content/category/tags/SEO drafting and `POST /api/admin/posts/ai-image` for image description/alt/caption/object hints. AI output is editorial assistance; deterministic CMS persistence remains separate.
+- P6 may be marked COMPLETE only after corrected exact-SHA production Blog lifecycle gate passes CREATE -> READ -> public UTF-8 -> UPDATE -> DELETE -> 404.
