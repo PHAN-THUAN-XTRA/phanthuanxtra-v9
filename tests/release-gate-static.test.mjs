@@ -30,7 +30,7 @@ test('APK production identity is stable and launcher is exported', () => {
   const manifest = read('android/app/src/main/AndroidManifest.xml');
   assert.match(gradle, /applicationId\s+'com\.phanthuanxtra\.app'/);
   assert.match(gradle, /versionCode\\s+6/);
-  assert.match(gradle, /versionName\s+'1\.4\.0'/);
+  assert.match(gradle, /versionName\s+'1\.5\.0'/);
   assert.match(manifest, /android:name="\.OperatorHubActivity"/);
   assert.match(manifest, /android:exported="true"/);
   assert.match(manifest, /android\.intent\.action\.MAIN/);
@@ -67,7 +67,7 @@ test('homepage has no retired Gods Eye showcase or redirect loop source', () => 
 
 test('APK product UI contains no Cloudflare or GitHub infrastructure credential controls', () => {
   const hub = read('android/app/src/main/java/com/phanthuanxtra/app/OperatorHubActivity.java');
-  assert.doesNotMatch(hub, /saveCloudflare|saveGitHub|Cloudflare API token|GitHub token/);
+  assert.doesNotMatch(hub, /saveCloudflare|saveGitHub|secretField\(|LƯU TOKEN|Xóa Cloudflare|Xóa GitHub/);
   assert.match(hub, /QUẢN LÝ APK/);
 });
 
