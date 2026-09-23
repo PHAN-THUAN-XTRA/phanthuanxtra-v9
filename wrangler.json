@@ -7,7 +7,6 @@
     "nodejs_compat"
   ],
   "minify": true,
-
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -17,22 +16,19 @@
       "/admin/",
       "/admin.html",
       "/api/*",
-      "/media/*"
+      "/media/*",
+      "/blog*"
     ]
   },
-
   "observability": {
     "enabled": true
   },
-
   "ai": {
     "binding": "AI"
   },
-
   "images": {
     "binding": "IMAGES"
   },
-
   "ai_search_namespaces": [
     {
       "binding": "AI_SEARCH",
@@ -40,14 +36,12 @@
       "remote": true
     }
   ],
-
   "r2_buckets": [
     {
       "binding": "MEDIA",
       "bucket_name": "phanthuanxtra-media"
     }
   ],
-
   "d1_databases": [
     {
       "binding": "DB",
@@ -55,12 +49,12 @@
       "database_id": "8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d"
     }
   ],
-
   "cache": {
     "enabled": true
   },
-
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    "crons": [
+      "*/5 * * * *"
+    ]
   }
 }
