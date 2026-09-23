@@ -82,3 +82,14 @@ test('APK navigation keeps explicit home exits and product destinations', () => 
   assert.match(main, /HỦY • KHÔNG TẠO XE/);
   assert.match(main, /OBSIDIAN=Color\.rgb\(5,7,6\).*EMERALD=Color\.rgb\(15,95,80\).*GOLD=Color\.rgb\(199,163,90\)/s);
 });
+
+test('Founder profile and customer AI scope stay explicit', () => {
+  const index = read('public/index.html');
+  const ai = read('src/ai-chat.js');
+  assert.match(index, /THE FOUNDER • PRIVATE CONCIERGE/);
+  assert.match(index, /facebook\.com\/PhanThuanSaigon/);
+  assert.match(index, /chỉ tư vấn xe đang có trên website và thông tin chính thức về Phan Thuần/);
+  assert.match(ai, /CHỈ được tư vấn 2 nhóm/);
+  assert.match(ai, /contact\.name && contact\.phone/);
+  assert.match(ai, /Telegram\/CRM/);
+});
