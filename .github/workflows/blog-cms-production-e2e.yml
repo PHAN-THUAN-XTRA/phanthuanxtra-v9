@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -Fq 'function blogCommand' src/telegram-router.js
-          grep -Fq '/^(\\/blog|news)' src/telegram-router.js || grep -Fq '/^(\\/(blog|news)' src/telegram-router.js
+          grep -Eq 'blogCommand.*blog.*news|\\^\\/\\(blog\\|news\\)' src/telegram-router.js
           grep -Fq 'publishTelegramBlog' src/telegram-router.js
           grep -Fq 'savePost(env.DB,draft' src/telegram-router.js
           grep -Fq 'blog/' src/telegram-router.js
