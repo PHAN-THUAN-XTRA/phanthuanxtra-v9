@@ -5,4 +5,4 @@ test("public blog detail accepts cache-busting query and returns UTF-8 HTML",asy
 test("public blog detail returns 404 only when published post is absent",async()=>{const r=await handleBlog(new Request("https://phanthuanxtra.com/blog/missing"),{DB:db(null)});assert.equal(r.status,404)});
 
 import fs from "node:fs";
-test("Wrangler routes public Blog pages through Worker before static assets",()=>{const w=JSON.parse(fs.readFileSync(new URL("../wrangler.json",import.meta.url),"utf8"));assert.ok(w.assets.run_worker_first.includes("/blog"));assert.ok(w.assets.run_worker_first.includes("/blog/*"));assert.ok(!w.assets.run_worker_first.includes("/blog*"))});
+test("Wrangler runs Worker before static assets for dynamic Blog HTML",()=>{const w=JSON.parse(fs.readFileSync(new URL("../wrangler.json",import.meta.url),"utf8"));assert.equal(w.assets.run_worker_first,true)});
