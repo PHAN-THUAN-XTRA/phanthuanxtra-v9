@@ -13,7 +13,17 @@ function mockDb(cars = []) {
             async run() {
               if (sql.includes('INSERT INTO ai_conversations')) rows.push({type:'conversation',id:args[0]});
               if (sql.includes('INSERT INTO ai_messages')) rows.push({type:'message',role:args[1],content:args[2]});
-              if (sql.includes('INSERT INTO ai_unknown_questions')) unknown.push({id:unknown.length+1,conversation_id:args[0],question:args[1],name:args[2],phone:args[3],status:'pending'});
+              if (sql.includes('INSERT INTO ai_unknown_questions')) {
+                const row={id:unknown.length+1,conversation_id:args[0],question:args[1],name:args[2],phone:args[3],status:'pending'};
+                unknown.push(row);
+                return {meta:{last_row_id:row.id,changes:1}};
+              }
+              if (sql.includes('UPDATE ai_unknown_questions SET name=COALESCE')) {
+                const row=unknown.find(x=>x.id===args[2]);
+                if(row){if(args[0])row.name=args[0];if(args[1])row.phone=args[1];}
+                return {meta:{changes:row?1:0}};
+              }
+              return {meta:{changes:1}};
             },
             async all() {
               if (sql.includes('FROM ai_messages')) return {results: rows.filter(x=>x.type==='message').slice(-12).map(x=>({role:x.role,content:x.content}))};
@@ -33,15 +43,26 @@ function mockDb(cars = []) {
   };
 }
 
-test('website AI chat creates a conversation, calls AI and persists reply', async () => {
-  const DB = mockDb();
+test('website AI chat uses visible D1 catalog and GLM -> Qwen fallback without AI Search', async () => {
+  const DB = mockDb([
+    {id:'lexus-live',brand:'Lexus',model:'LX 600',year:2025,mileage:100,status:'available',price:1,category:'suv'},
+    {id:'hidden-car',brand:'Ferrari',model:'Hidden Test',year:2026,mileage:1,status:'hidden',price:1,category:'sport'}
+  ]);
+  let searchCalls = 0;
+  const modelCalls = [];
   const env = {
     DB,
-    AI_SEARCH: { async search() { return { chunks: [] }; } },
+    AI_SEARCH: { async search() { searchCalls += 1; return { chunks:[{content:'Ferrari ngoài catalog không được dùng'}] }; } },
     AI: { async run(model, payload) {
-      assert.equal(model, '@cf/meta/llama-3.2-3b-instruct');
+      modelCalls.push(model);
+      if (model === '@cf/zai-org/glm-4.7-flash') throw new Error('transient primary failure');
+      assert.equal(model, '@cf/qwen/qwen3.8-27b');
+      const system = payload.messages.find(x=>x.role==='system')?.content || '';
+      assert.match(system, /Lexus/);
+      assert.doesNotMatch(system, /Hidden Test/);
+      assert.doesNotMatch(system, /Ferrari ngoài catalog/);
       assert.equal(payload.messages.at(-1).content, 'Tôi muốn tìm Lexus');
-      return { response: 'Tôi có thể hỗ trợ anh tìm Lexus phù hợp.' };
+      return { response: 'Lexus LX 600 2025 đang có trên website. Anh/chị vui lòng để lại họ tên + số điện thoại nếu muốn anh Phan Thuần tư vấn trực tiếp.' };
     } }
   };
   const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
@@ -54,6 +75,9 @@ test('website AI chat creates a conversation, calls AI and persists reply', asyn
   assert.equal(data.conversation_id, 'test-conversation');
   assert.match(data.reply, /Lexus/);
   assert.equal(data.needs_human, false);
+  assert.equal(data.ai_model, '@cf/qwen/qwen3.8-27b');
+  assert.equal(searchCalls, 0);
+  assert.deepEqual(modelCalls, ['@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3.8-27b']);
   assert.ok(DB._rows.some(x=>x.type==='message' && x.role==='user'));
   assert.ok(DB._rows.some(x=>x.type==='message' && x.role==='assistant'));
 });
@@ -198,4 +222,54 @@ test('ASCII Vietnamese vehicle query uses only visible website catalog when Work
   assert.match(data.reply, /Lexus LX 600 2025/);
   assert.doesNotMatch(data.reply, /CI E2E Vehicle/);
   assert.match(data.reply, /họ tên \+ số điện thoại/i);
+});
+
+
+test('vehicle query with empty website catalog does not call Workers AI or AI Search', async () => {
+  const DB = mockDb([]);
+  let aiCalls = 0;
+  let searchCalls = 0;
+  const env = {
+    DB,
+    AI_SEARCH: { async search() { searchCalls += 1; return {chunks:[]}; } },
+    AI: { async run() { aiCalls += 1; return {response:'Không được gọi'}; } }
+  };
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'empty-catalog',visitor_id:'empty-catalog',message:'Tôi muốn mua Ferrari'})
+  }), env);
+  const data = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(data.needs_human, false);
+  assert.match(data.reply, /chưa có xe trong catalog/i);
+  assert.equal(aiCalls, 0);
+  assert.equal(searchCalls, 0);
+  assert.equal(data.ai_model, null);
+});
+
+test('unknown handoff remembers name then completes when phone arrives in a later message', async () => {
+  const DB = mockDb();
+  const env = {
+    DB,
+    AI_SEARCH: { async search() { return { chunks: [] }; } },
+    AI: { async run() { throw new Error('AI must not answer out-of-scope questions'); } }
+  };
+  const first = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'handoff-two-turns',visitor_id:'handoff-two-turns',message:'Tôi tên là Nguyễn Văn An. Tôi muốn hỏi một dịch vụ chưa có trên website.'})
+  }), env);
+  const firstData = await first.json();
+  assert.equal(firstData.needs_human, true);
+  assert.match(firstData.reply, /số điện thoại/i);
+  assert.equal(DB._unknown[0].name, 'Nguyễn Văn An');
+
+  const second = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'handoff-two-turns',visitor_id:'handoff-two-turns',message:'Số điện thoại của tôi là 0909123456'})
+  }), env);
+  const secondData = await second.json();
+  assert.equal(secondData.needs_human, true);
+  assert.match(secondData.reply, /đã tiếp nhận họ tên và số điện thoại/i);
+  assert.equal(DB._unknown[0].name, 'Nguyễn Văn An');
+  assert.equal(DB._unknown[0].phone, '0909123456');
 });
