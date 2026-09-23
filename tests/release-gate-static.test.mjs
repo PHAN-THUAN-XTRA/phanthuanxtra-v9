@@ -136,15 +136,19 @@ test('production deploy routes every editorial category through Worker-first', (
   const deploy = read('scripts/deploy-cloudflare-api.mjs');
   for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(deploy, new RegExp('run_worker_first:[\\s\\S]*' + route.replace('/','\\/')));
   const gate = read('.github/workflows/production-asset-gate.yml');
-  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(gate, new RegExp('check_editorial_utf8 "' + route.replace('/','\\/') + '"'));
-  assert.match(gate, /PHAN THUáº¦N\|NhĂ¢n\|Táº§m NhĂ¬n/);
-  assert.match(gate, /decode\("utf-8", errors="strict"\)/);
+  const verifier = read('scripts/verify-editorial-production.mjs');
+  assert.match(gate, /node scripts\/verify-editorial-production\.mjs/);
+  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(verifier, new RegExp(route.replace('/','\\/')));
+  assert.match(verifier, /PHAN THUáº¦N|NhĂ¢n|Táº§m NhĂ¬n/);
+  assert.match(verifier, /TextDecoder/);
 });
 
 test('deploy verifies Worker provenance and UTF-8 on every editorial production route', () => {
   const workflow = read('.github/workflows/deploy-cloudflare.yml');
-  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(workflow, new RegExp(route.replace('/','\\/')));
-  assert.match(workflow, /x-ptx-editorial-utf8/);
-  assert.match(workflow, /worker-v3/);
-  assert.match(workflow, /errors="strict"/);
+  const verifier = read('scripts/verify-editorial-production.mjs');
+  assert.match(workflow, /node scripts\/verify-editorial-production\.mjs/);
+  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(verifier, new RegExp(route.replace('/','\\/')));
+  assert.match(verifier, /x-ptx-editorial-utf8/);
+  assert.match(verifier, /worker-v3/);
+  assert.match(verifier, /TextDecoder/);
 });
