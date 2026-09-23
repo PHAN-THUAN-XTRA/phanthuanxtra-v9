@@ -583,3 +583,16 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Android APK MVP on the exact alignment SHA completed successfully; the native operator app now uses `https://phanthuanxtra.com/api/app/v1` as its API base.
 - Production signing status remains **PASS** from Android Production Release run `35836171648` on predecessor exact SHA `29d84899c65683aacfccb84946afcf175bcfba92`. No signing material changed in PR #435.
 - Remaining Android release acceptance: Samsung Galaxy S21 Ultra physical-device regression is still OPEN. AAB / Google Play distribution remains a separate future release layer.
+
+
+## 18. P6 SHARED BLOG / NEWS CMS — IN PROGRESS (2026-09-23)
+- Deep repository audit found D1 already has canonical `posts` schema from `migrations/0002_posts.sql`, but no shared runtime CRUD/publishing path existed for Admin + Telegram + Android.
+- Active branch: `feat/shared-blog-cms`. No production mutation is claimed until PR merge and exact-SHA deploy/E2E gates pass.
+- New shared `src/post-persistence.js` owns post validation, Vietnamese slug normalization, D1 persistence, status lifecycle (`draft/published/archived`) and CMS audit logging.
+- Admin gains authenticated `/api/admin/posts` CRUD and a Blog/Tin tức workspace in Production Control.
+- Android canonical App API gains authenticated `/api/app/v1/posts` CRUD; native operator UI gains Blog/Tin tức list/create/edit.
+- Telegram Auto Bot gains explicit `/blog` or `/news` command publishing. A Telegram photo may be stored in existing MEDIA/R2 as the cover; ordinary vehicle messages keep their existing vehicle pipeline.
+- Public website gains `/blog`, `/blog/<slug>`, and read-only `/api/blog/posts` routes backed by published D1 posts.
+- AI design decision: do not hard-code or assume the quoted rate limits/model availability. Existing Workers AI binding remains the integration boundary. AI-assisted editorial generation/vision is a follow-up slice only after model/runtime audit proves availability; deterministic CMS CRUD does not consume AI quota.
+- Security: no new secrets, no Cloudflare binding deletion, no credential rotation. Admin/App authentication reuses the existing signed Admin session/App token boundary; Telegram reuses the existing verified Auto Bot webhook.
+- Acceptance remains OPEN until CI, Android build, exact-SHA deploy, D1 migration/schema availability, public Blog UTF-8, Admin/App CRUD, Telegram command E2E and rollback-safe delete/update evidence pass.
