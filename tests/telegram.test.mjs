@@ -93,3 +93,14 @@ test('Telegram publish duplicate protection sends only once',async()=>{
     assert.equal(posts.get('tg-101').status,'published');
   }finally{global.fetch=originalFetch;}
 });
+
+
+test('Telegram router source locks complementary bundle pairing and optional plate branding', async()=>{
+  const fs=await import('node:fs');
+  const source=fs.readFileSync(new URL('../src/telegram-router.js',import.meta.url),'utf8');
+  assert.match(source,/rowHasPhoto && !rowHasText/);
+  assert.match(source,/!rowHasPhoto && rowHasText/);
+  assert.match(source,/let publishMediaKey = mediaKey/);
+  assert.match(source,/hasPlate \? "branded" : "ready_to_publish"/);
+  assert.match(source,/TỰ ĐĂNG XE/);
+});
