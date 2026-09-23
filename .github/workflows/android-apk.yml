@@ -53,6 +53,15 @@ jobs:
           gradle-version: '8.9'
       - name: Verify Gradle toolchain
         run: gradle --version
+      - name: Android source safety checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -RniE 'Authorization: Bearer [A-Za-z0-9._-]{16,}|api[_-]?token[[:space:]]*=[[:space:]]*["'"'][^"'"']+' app/src/main || { echo 'Potential hard-coded credential in Android source'; exit 1; }
+          grep -q 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
+          grep -q 'android:exported="false"' app/src/main/AndroidManifest.xml
+          grep -q 'AES/GCM' app/src/main/java/com/phanthuanxtra/app/SecureTokenStore.java
+          echo 'Android source safety: PASS'
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace --console=plain
       - name: Verify APK output and SHA-256
@@ -67,7 +76,7 @@ jobs:
           echo "Source SHA: $GITHUB_SHA"
       - uses: actions/upload-artifact@v4
         with:
-          name: phanthuanxtra-apk-v1.3.0-${{ github.sha }}
+          name: phanthuanxtra-apk-v1.4.0-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/app-debug.apk.sha256
