@@ -53,7 +53,7 @@ public class MainActivity extends Activity {
     pair(content,btn("CHI TIẾT XE",v->getCar()),btn("SỬA THÔNG TIN",v->editCar()));
     pair(content,btn("GALLERY",v->manageGallery()),btn("THÊM ẢNH",v->pickGalleryImage()));
     pair(content,btn("ĐỔI TRẠNG THÁI",v->changeStatus()),btn("BẬT / TẮT NỔI BẬT",v->toggleFeatured()));
-    pair(content,btn("THÊM XE + AI",v->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE),PICK_NEW)),btn("XÓA XE",v->confirmDelete()));
+    pair(content,btn("AI NHẬP XE TỪ ẢNH",v->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE),PICK_NEW)),btn("XÓA XE",v->confirmDelete()));
     gap(content,8);content.addView(section("ĐỒNG BỘ"));
     pair(content,btn("KIỂM TRA PHIÊN",v->callPublic("GET","/dashboard")),btn("MỞ WEBSITE",v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(SITE)))));
     output=tv("Sẵn sàng.");output.setTextColor(SILVER);output.setBackground(surface(Color.rgb(7,17,15),EMERALD_DEEP,14));content.addView(output,new LinearLayout.LayoutParams(-1,dp(150)));
