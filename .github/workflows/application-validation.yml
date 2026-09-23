@@ -46,7 +46,12 @@ jobs:
             -E '@cf/meta/llama-3\.1-8b-instruct(["@]|[^a-zA-Z0-9_-])' src tests; then
             echo "ERROR: deprecated Workers AI model ID detected"; exit 1
           fi
-          grep -n '@cf/meta/llama-3.2-3b-instruct' src/ai-chat.js
+          if grep -n '@cf/meta/llama-3.2-3b-instruct' src/ai-chat.js; then
+            echo "ERROR: legacy website AI fallback detected"; exit 1
+          fi
+          grep -n '@cf/zai-org/glm-4.7-flash' src/ai-chat.js
+          grep -n '@cf/qwen/qwen3.8-27b' src/ai-chat.js
+          grep -n '@cf/nvidia/nemotron-3-120b-a12b' src/ai-chat.js
           echo "Workers AI model guard passed"
       - name: Unit tests
         run: |
