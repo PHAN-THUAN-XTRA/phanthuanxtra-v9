@@ -21,9 +21,9 @@ public final class ApiClient {
     /** Raw compatibility method: returns HTTP status followed by a newline and response body. */
     public String request(String method, String path, String json, byte[] raw, String contentType) throws Exception {
         checkInterrupted();
-        boolean publicEndpoint = path.equals("/health") || path.endsWith("/health");
+        boolean publicEndpoint = path.equals("/health") || path.endsWith("/health") || path.equals("/login");
         String token = authStore.get();
-        if (!publicEndpoint && token.isEmpty()) throw new Exception("Chưa nhập APP API token");
+        if (!publicEndpoint && token.isEmpty()) throw new Exception("Chưa đăng nhập Admin");
 
         HttpURLConnection connection = open(method, path, contentType, token);
         try {
@@ -47,9 +47,9 @@ public final class ApiClient {
     public String requestStream(String method, String path, InputStream raw, long contentLength, String contentType) throws Exception {
         if (raw == null) throw new IllegalArgumentException("raw input is null");
         checkInterrupted();
-        boolean publicEndpoint = path.equals("/health") || path.endsWith("/health");
+        boolean publicEndpoint = path.equals("/health") || path.endsWith("/health") || path.equals("/login");
         String token = authStore.get();
-        if (!publicEndpoint && token.isEmpty()) throw new Exception("Chưa nhập APP API token");
+        if (!publicEndpoint && token.isEmpty()) throw new Exception("Chưa đăng nhập Admin");
 
         HttpURLConnection connection = open(method, path, contentType, token);
         try {
@@ -190,7 +190,7 @@ public final class ApiClient {
 
         private static String userMessageFor(int statusCode) {
             if (statusCode == 400) return "Yêu cầu không hợp lệ. Kiểm tra dữ liệu rồi thử lại.";
-            if (statusCode == 401) return "Phiên xác thực không hợp lệ hoặc token đã hết hiệu lực.";
+            if (statusCode == 401) return "Phiên Admin đã hết hạn hoặc không hợp lệ. Hãy đăng nhập lại.";
             if (statusCode == 403) return "Bạn không có quyền thực hiện thao tác này.";
             if (statusCode == 404) return "Không tìm thấy tài nguyên yêu cầu.";
             if (statusCode == 408) return "Máy chủ phản hồi quá chậm. Vui lòng thử lại.";
