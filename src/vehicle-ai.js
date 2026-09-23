@@ -9,6 +9,7 @@ const schema = {
     fuel: { type: ["string", "null"] },
     category: { type: ["string", "null"] },
     color: { type: ["string", "null"] },
+    condition: { type: ["string", "null"] },
     origin: { type: ["string", "null"] },
     origin_country: { type: ["string", "null"] },
     form_state: { type: "string", enum: ["original","facelift","up_form","modified","uncertain"] },
@@ -19,7 +20,7 @@ const schema = {
     missing_fields: { type: "array", items: { type: "string" } },
     plate_bbox: { type: ["object", "null"], properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } }, required: ["x","y","width","height"] }
   },
-  required: ["brand","model","year","mileage","price","fuel","category","color","origin","origin_country","form_state","form_notes","description","features","confidence","missing_fields","plate_bbox"]
+  required: ["brand","model","year","mileage","price","fuel","category","color","condition","origin","origin_country","form_state","form_notes","description","features","confidence","missing_fields","plate_bbox"]
 };
 
 function dataUrl(contentType, bytes) {
@@ -65,7 +66,7 @@ function recordFailure(errors, model, error) {
 
 export async function analyzeVehicleImage(env, fileBytes, contentType, caption = "") {
   if (!env.AI) throw new Error("Workers AI binding AI is not configured");
-  const prompt = `Bạn là bộ phận nhập kho xe của Phan Thuần Xtra. Chỉ ghi dữ kiện nhìn thấy hoặc được cung cấp rõ ràng; không bịa. Không suy đoán năm sản xuất, ODO, giá, phiên bản, động cơ, option, màu hoặc xuất xứ. Nếu không đủ bằng chứng trả null và thêm trường vào missing_fields. origin/origin_country chỉ ghi khi có bằng chứng rõ từ caption, giấy tờ hoặc dữ kiện nhận dạng đáng tin cậy. Phân biệt form hiện tại với xe gốc: form_state=facelift nếu ngoại hình có dấu hiệu facelift nhưng không coi facelift là năm sản xuất; up_form nếu đã đổi ngoại hình sang form đời mới; modified nếu độ/chỉnh sửa; original nếu không thấy dấu hiệu; uncertain nếu thiếu bằng chứng. form_notes phải giải thích ngắn gọn bằng tiếng Việt khi khác original.
+  const prompt = `Bạn là bộ phận nhập kho xe của Phan Thuần Xtra. Chỉ ghi dữ kiện nhìn thấy hoặc được cung cấp rõ ràng; không bịa. Không suy đoán năm sản xuất, ODO, giá, phiên bản, động cơ, option, màu hoặc xuất xứ. condition chỉ mô tả dấu hiệu ngoại quan nhìn thấy (ví dụ vết xước), không khẳng định tình trạng máy móc hay pháp lý. Nếu không đủ bằng chứng trả null và thêm trường vào missing_fields. origin/origin_country chỉ ghi khi có bằng chứng rõ từ caption, giấy tờ hoặc dữ kiện nhận dạng đáng tin cậy. Phân biệt form hiện tại với xe gốc: form_state=facelift nếu ngoại hình có dấu hiệu facelift nhưng không coi facelift là năm sản xuất; up_form nếu đã đổi ngoại hình sang form đời mới; modified nếu độ/chỉnh sửa; original nếu không thấy dấu hiệu; uncertain nếu thiếu bằng chứng. form_notes phải giải thích ngắn gọn bằng tiếng Việt khi khác original.
 
 QUAN TRỌNG: tìm biển số xe. plate_bbox là vùng chuẩn hóa 0..1 theo ảnh gốc; nếu không nhìn thấy hoặc không chắc chắn thì null.
 
