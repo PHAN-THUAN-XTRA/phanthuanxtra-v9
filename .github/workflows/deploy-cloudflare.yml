@@ -148,7 +148,7 @@ jobs:
           CF_ZONE_ID: ${{ env.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
-          payload='{"files":["https://phanthuanxtra.com/","https://phanthuanxtra.com/admin.html"]}'
+          payload='{"files":["https://phanthuanxtra.com/","https://phanthuanxtra.com/admin.html","https://phanthuanxtra.com/phan-thuan","https://phanthuanxtra.com/green-energy","https://phanthuanxtra.com/yachts","https://phanthuanxtra.com/business-jets"]}'
           purged=0
           for candidate in "${CF_PURGE_TOKEN:-}" "${CF_PURGE_BACKUP_TOKEN:-}"; do
             if [ -z "$candidate" ]; then continue; fi
@@ -166,7 +166,7 @@ jobs:
             jq -c '{success,errors, messages}' /tmp/purge-response.json 2>/dev/null || true
           done
           test "$purged" = "1"
-          echo "Cloudflare targeted purge: / and /admin.html => API success."
+          echo "Cloudflare targeted purge: homepage, admin and all editorial routes => API success."
           curl --silent --show-error --fail --max-time 30 -D /tmp/home-purge.headers -o /tmp/home-purge.html "https://phanthuanxtra.com/?purge_verify=$GITHUB_SHA"
           grep -Fq 'PHAN THUẦN XTRA' /tmp/home-purge.html
           ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/home-purge.html
@@ -191,6 +191,27 @@ jobs:
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/api/health)" = "200"
           test "$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' https://phanthuanxtra.com/admin.html)" = "200"
           echo "Public smoke: /, /api/health, /admin.html => HTTP 200; UTF-8 verified after curl decompression."
+          for spec in \
+            '/phan-thuan|Doanh Nhân Phan Thuần' \
+            '/green-energy|Năng Lượng Xanh' \
+            '/yachts|Du Thuyền Châu Âu' \
+            '/business-jets|Chuyên Cơ Thương Gia'; do
+            path="${spec%%|*}"; expected="${spec#*|}"
+            safe="$(printf '%s' "$path" | tr '/-' '__')"
+            curl --silent --show-error --fail --compressed --max-time 30 \
+              -D "/tmp/editorial${safe}.headers" -o "/tmp/editorial${safe}.html" \
+              "https://phanthuanxtra.com${path}?audit=$GITHUB_SHA"
+            grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8' "/tmp/editorial${safe}.headers"
+            grep -Eiq '^x-ptx-editorial-utf8:[[:space:]]*worker-v3' "/tmp/editorial${safe}.headers"
+            grep -Fq 'PHAN THUẦN XTRA' "/tmp/editorial${safe}.html"
+            grep -Fq "$expected" "/tmp/editorial${safe}.html"
+            ! grep -Eq 'PHAN THUáº¦N|NhĂ¢n|Táº§m NhĂ¬n|Ä|đŸ|â€¢|Â©' "/tmp/editorial${safe}.html"
+            python3 - "/tmp/editorial${safe}.html" <<'PY'
+import pathlib, sys
+pathlib.Path(sys.argv[1]).read_bytes().decode("utf-8", errors="strict")
+PY
+          done
+          echo "Editorial production UTF-8 boundary: all routes PASS."
           curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/style.headers -o /tmp/style.css "https://phanthuanxtra.com/style.css?audit=$GITHUB_SHA"
           printf 'STYLE_CONTENT_TYPE:\n'
           grep -i '^content-type:' /tmp/style.headers || true

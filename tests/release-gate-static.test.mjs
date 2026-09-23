@@ -140,3 +140,11 @@ test('production deploy routes every editorial category through Worker-first', (
   assert.match(gate, /PHAN THUáº¦N\|NhĂ¢n\|Táº§m NhĂ¬n/);
   assert.match(gate, /decode\("utf-8", errors="strict"\)/);
 });
+
+test('deploy verifies Worker provenance and UTF-8 on every editorial production route', () => {
+  const workflow = read('.github/workflows/deploy-cloudflare.yml');
+  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(workflow, new RegExp(route.replace('/','\\/')));
+  assert.match(workflow, /x-ptx-editorial-utf8/);
+  assert.match(workflow, /worker-v3/);
+  assert.match(workflow, /errors="strict"/);
+});
