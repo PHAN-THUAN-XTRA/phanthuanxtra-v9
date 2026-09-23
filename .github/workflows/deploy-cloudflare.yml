@@ -207,10 +207,7 @@ jobs:
             grep -Fq 'PHAN THUẦN XTRA' "/tmp/editorial${safe}.html"
             grep -Fq "$expected" "/tmp/editorial${safe}.html"
             ! grep -Eq 'PHAN THUáº¦N|NhĂ¢n|Táº§m NhĂ¬n|Ä|đŸ|â€¢|Â©' "/tmp/editorial${safe}.html"
-            python3 - "/tmp/editorial${safe}.html" <<'PY'
-import pathlib, sys
-pathlib.Path(sys.argv[1]).read_bytes().decode("utf-8", errors="strict")
-PY
+            python3 -c 'import pathlib,sys; pathlib.Path(sys.argv[1]).read_bytes().decode("utf-8", errors="strict")' "/tmp/editorial${safe}.html"
           done
           echo "Editorial production UTF-8 boundary: all routes PASS."
           curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/style.headers -o /tmp/style.css "https://phanthuanxtra.com/style.css?audit=$GITHUB_SHA"
