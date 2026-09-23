@@ -1,0 +1,95 @@
+name: Blog CMS Production E2E
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blog-cms-production-e2e
+  cancel-in-progress: false
+
+jobs:
+  blog-cms-e2e:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - name: Checkout exact deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      - name: Install jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+      - name: Static Telegram and Android Blog contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'function blogCommand' src/telegram-router.js
+          grep -Fq '/^(\\/blog|news)' src/telegram-router.js || grep -Fq '/^(\\/(blog|news)' src/telegram-router.js
+          grep -Fq 'publishTelegramBlog' src/telegram-router.js
+          grep -Fq 'savePost(env.DB,draft' src/telegram-router.js
+          grep -Fq 'blog/' src/telegram-router.js
+          grep -Fq 'showPostsScreen' android/app/src/main/java/com/phanthuanxtra/app/MainActivity.java
+          grep -Fq '"/posts"' android/app/src/main/java/com/phanthuanxtra/app/MainActivity.java
+          grep -Fq "/api/app/v1/posts" src/app-api.js
+          echo 'Telegram + Android Blog source contracts: PASS'
+      - name: Production Blog create read public UTF-8 update delete 404
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "Admin login HTTP $status"; test "$status" = "200"
+          SESSION="$(jq -r '.token // empty' /tmp/login.json)"; test -n "$SESSION"
+          SLUG="ci-blog-e2e-${GITHUB_RUN_ID}"
+          TITLE="PHAN THUẦN XTRA Blog E2E ${GITHUB_RUN_ID}"
+          export SLUG TITLE
+          cleanup(){ if [ -n "${POST_ID:-}" ]; then curl --silent --show-error --max-time 20 -X DELETE "$SITE_URL/api/admin/posts/$POST_ID" -H "Authorization: Bearer $SESSION" >/dev/null || true; fi; }
+          trap cleanup EXIT
+
+          payload="$(jq -nc --arg title "$TITLE" --arg slug "$SLUG" '{title:$title,slug:$slug,excerpt:"Kiểm tra UTF-8: PHAN THUẦN XTRA — Tin tức ô tô.",content:"Nội dung kiểm thử tự động. Tiếng Việt: Đăng bài, cập nhật, xóa.",category:"Tin tức",tags:["e2e","cms"],status:"published"}')"
+          status="$(curl --silent --show-error --retry 2 --max-time 30 -o /tmp/create.json -w '%{http_code}' -X POST "$SITE_URL/api/admin/posts" -H "Authorization: Bearer $SESSION" -H 'content-type: application/json' --data "$payload")"
+          echo "Create post HTTP $status"; test "$status" = "201"
+          POST_ID="$(jq -r '.id // empty' /tmp/create.json)"; test -n "$POST_ID"; export POST_ID
+          jq -e '.ok==true and .post.status=="published" and .post.slug==env.SLUG' /tmp/create.json >/dev/null
+
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $SESSION" "$SITE_URL/api/admin/posts/$POST_ID" -o /tmp/read.json
+          jq -e '.post.id==env.POST_ID|tonumber' /tmp/read.json >/dev/null 2>&1 || jq -e --argjson id "$POST_ID" '.post.id==$id' /tmp/read.json >/dev/null
+
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/public.json -w '%{http_code}' "$SITE_URL/api/blog/posts/$SLUG")"
+          echo "Public Blog API HTTP $status"; test "$status" = "200"
+          jq -e '.post.slug==env.SLUG and .post.status=="published"' /tmp/public.json >/dev/null
+
+          status="$(curl --compressed --silent --show-error --retry 2 --max-time 20 -D /tmp/page.headers -o /tmp/page.html -w '%{http_code}' "$SITE_URL/blog/$SLUG")"
+          echo "Public Blog page HTTP $status"; test "$status" = "200"
+          grep -Eiq '^content-type: *text/html; *charset *= *utf-8' /tmp/page.headers
+          grep -Fq 'PHAN THUẦN XTRA' /tmp/page.html
+          grep -Fq 'Tiếng Việt' /tmp/page.html
+          ! grep -Fq 'PHAN THUáº¦N XTRA' /tmp/page.html
+          echo 'Public Blog UTF-8: PASS'
+
+          update="$(jq -nc --arg title "$TITLE — Đã cập nhật" --arg slug "$SLUG" '{title:$title,slug:$slug,excerpt:"Bản cập nhật UTF-8: PHAN THUẦN XTRA.",content:"Nội dung sau cập nhật — tiếng Việt chuẩn.",category:"Tin xe",tags:["e2e","updated"],status:"published"}')"
+          status="$(curl --silent --show-error --retry 2 --max-time 30 -o /tmp/update.json -w '%{http_code}' -X PUT "$SITE_URL/api/admin/posts/$POST_ID" -H "Authorization: Bearer $SESSION" -H 'content-type: application/json' --data "$update")"
+          echo "Update post HTTP $status"; test "$status" = "200"
+          jq -e '.ok==true and .post.category=="Tin xe" and (.post.title|contains("Đã cập nhật"))' /tmp/update.json >/dev/null
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$SITE_URL/api/blog/posts/$SLUG" -o /tmp/public-updated.json
+          jq -e '.post.category=="Tin xe" and (.post.content|contains("sau cập nhật"))' /tmp/public-updated.json >/dev/null
+
+          status="$(curl --silent --show-error --retry 2 --max-time 30 -o /tmp/delete.json -w '%{http_code}' -X DELETE "$SITE_URL/api/admin/posts/$POST_ID" -H "Authorization: Bearer $SESSION")"
+          echo "Delete post HTTP $status"; test "$status" = "200"
+          jq -e '.ok==true' /tmp/delete.json >/dev/null
+          POST_ID=""
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/after.json -w '%{http_code}' "$SITE_URL/api/blog/posts/$SLUG")"
+          echo "Public API after delete HTTP $status"; test "$status" = "404"
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/after.html -w '%{http_code}' "$SITE_URL/blog/$SLUG")"
+          echo "Public page after delete HTTP $status"; test "$status" = "404"
+          echo 'BLOG CMS PRODUCTION E2E: CREATE -> READ -> PUBLIC UTF-8 -> UPDATE -> DELETE -> 404 = PASS'
