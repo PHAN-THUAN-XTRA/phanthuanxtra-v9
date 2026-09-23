@@ -1,4 +1,8 @@
-const MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
+const VISION_MODELS = [
+  "@cf/meta/llama-4-scout-17b-16e-instruct",
+  "@cf/llava-hf/llava-1.5-7b-hf",
+  "@cf/meta/llama-3.2-11b-vision-instruct"
+];
 
 const schema = {
   type: "object",
@@ -43,6 +47,16 @@ export async function analyzeVehicleImage(env, fileBytes, contentType, caption =
 QUAN TRỌNG: tìm biển số xe. plate_bbox là vùng chuẩn hóa 0..1 theo ảnh gốc; nếu không nhìn thấy hoặc không chắc chắn thì null.
 
 Thông tin người dùng: ${caption || "(không có)"}`;
-  const response = await env.AI.run(MODEL, { messages: [{ role: "system", content: "Bạn trích xuất dữ liệu xe ô tô chính xác, bảo thủ, không bịa dữ liệu. Tách xuất xứ và form hiện tại khỏi đời xe gốc." }, { role: "user", content: prompt }], image: dataUrl(contentType, new Uint8Array(fileBytes)), max_tokens: 1200, temperature: 0, response_format: { type: "json_schema", json_schema: schema } });
-  return parseResult(response);
+  const input = { messages: [{ role: "system", content: "Bạn trích xuất dữ liệu xe ô tô chính xác, bảo thủ, không bịa dữ liệu. Tách xuất xứ và form hiện tại khỏi đời xe gốc." }, { role: "user", content: prompt }], image: dataUrl(contentType, new Uint8Array(fileBytes)), max_tokens: 1200, temperature: 0, response_format: { type: "json_schema", json_schema: schema } };
+  const errors = [];
+  for (const model of VISION_MODELS) {
+    try {
+      const result = parseResult(await env.AI.run(model, input));
+      return { ...result, _ai_model: model };
+    } catch (error) {
+      errors.push(model + ": " + String(error?.message || error).slice(0, 240));
+    }
+  }
+  throw new Error("All vehicle vision models failed: " + errors.join(" | "));
+
 }
