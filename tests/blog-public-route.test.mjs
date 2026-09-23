@@ -6,3 +6,5 @@ test("public blog detail returns 404 only when published post is absent",async()
 
 import fs from "node:fs";
 test("Wrangler runs Worker before static assets for dynamic Blog HTML",()=>{const w=JSON.parse(fs.readFileSync(new URL("../wrangler.json",import.meta.url),"utf8"));assert.equal(w.assets.run_worker_first,true)});
+
+test("Cloudflare API deploy preserves unconditional Worker-first routing",()=>{const s=fs.readFileSync(new URL("../scripts/deploy-cloudflare-api.mjs",import.meta.url),"utf8");assert.match(s,/assets:\s*\{[\s\S]*?config:\s*\{[\s\S]*?run_worker_first:\s*true/) });
