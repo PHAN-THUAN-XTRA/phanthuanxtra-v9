@@ -1,7 +1,10 @@
 import { notifyTelegramCrm } from "./telegram-crm-notify.js";
 
 const MODEL_PRIMARY = "@cf/zai-org/glm-4.7-flash";
-const MODEL_FALLBACK = "@cf/meta/llama-3.2-3b-instruct";
+const MODEL_FALLBACKS = Object.freeze([
+  "@cf/qwen/qwen3.8-27b",
+  "@cf/nvidia/nemotron-3-120b-a12b"
+]);
 const AI_SEARCH_IDS = ["ai-search-mcp", "ai-search-auto"];
 const MAX_MESSAGE = 4000;
 const MAX_HISTORY = 8;
@@ -27,9 +30,10 @@ PHAN THUẦN XTRA là thương hiệu/website mà chatbot đang tư vấn. Chatb
 - Khi khách hỏi "Phan Thuần là ai?", trước hết hãy trả lời đúng phạm vi đã xác nhận: Phan Thuần là người mà trợ lý PHAN THUẦN XTRA đang đại diện hỗ trợ và là tên gắn với thương hiệu PHAN THUẦN XTRA.
 - Không tự suy đoán hoặc bổ sung chức danh, tiểu sử, tuổi, quê quán, tài sản, thành tích, đối tác hay thông tin cá nhân nếu chưa có nguồn xác thực trong knowledge base.
 
-## Hồ sơ truyền thông chính thức — do chủ website cung cấp, cập nhật 2026-09-22
+## Hồ sơ truyền thông chính thức — do chủ website cung cấp, cập nhật 2026-09-23
 - Phan Thuần/phanthuanxtra được giới thiệu trong hồ sơ truyền thông chính thức như một doanh nhân xây dựng hệ sinh thái đa ngành, kết nối phong cách sống cao cấp với định hướng phát triển bền vững.
 - Nhận diện phanthuanxtra (PhanThuan Xtra) được dùng như bộ nhận diện thương hiệu cá nhân nhất quán trên nền tảng số.
+- Các cách gọi "Phan Thuần", "Phan Thuần Xtra", "PHAN THUẦN XTRA", "phanthuanxtra" và "PhanThuanSaigon" được xem là các cách gọi/nhận diện liên quan trong phạm vi hồ sơ chính thức này; không tự suy diễn đây là tên pháp nhân.
 - Hồ sơ mô tả 3 trụ cột: Luxury Automotive; trải nghiệm cao cấp gồm European Yachts và Business Jets; và Green Energy.
 - Luxury Automotive: gắn với hoạt động Ô tô Xuyên Á tại TP.HCM; hồ sơ mô tả hoạt động kết nối xe sang, siêu xe và xe cao cấp/phiên bản giới hạn, với các thương hiệu được nhắc đến như Rolls-Royce, Porsche, Lexus.
 - European Yachts: hồ sơ mô tả hoạt động môi giới/kết nối du thuyền châu Âu nhập khẩu chính ngạch.
@@ -123,7 +127,7 @@ function cacheKey(messages,cars,knowledge){
   if(!last || PHONE_RE.test(last))return null;
   const catalog=cars.map(c=>`${c.id}|${c.price}|${c.status}|${c.updated_at||""}`).join(";");
   const history=JSON.stringify(messages);
-  return `${MODEL_PRIMARY}|${history}|${catalog}|${knowledge.slice(0,2000)}`;
+  return `${[MODEL_PRIMARY,...MODEL_FALLBACKS].join(",")}|${history}|${catalog}|${knowledge.slice(0,2000)}`;
 }
 function getCached(key){
   if(!key)return null;
@@ -143,6 +147,9 @@ function aiText(response){
     : response?.response ?? response?.result?.response ?? response?.result?.choices?.[0]?.message?.content;
   return typeof text==="string" ? text.trim() : "";
 }
+function quotaExceeded(error){
+  return /3036|4006|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(error?.message||error));
+}
 async function runAI(env,messages,cars,knowledge){
   if(!env.AI)throw new Error("Workers AI binding AI is not configured");
   const key=cacheKey(messages,cars,knowledge);
@@ -151,33 +158,37 @@ async function runAI(env,messages,cars,knowledge){
   const request={messages:[{role:"system",content:systemPrompt(cars,knowledge)},...messages],max_tokens:MAX_OUTPUT_TOKENS,temperature:0.15};
   const runModel=async model=>{
     const response=await env.AI.run(model,request);
-    const text=aiText(response);
-    if(!text)throw new Error(`Workers AI ${model} returned no response`);
-    return clean(text,8000);
+    const output=aiText(response);
+    if(!output)throw new Error(`Workers AI ${model} returned no response`);
+    return clean(output,8000);
   };
-  try {
-    const output=await runModel(MODEL_PRIMARY);
-    console.log("workers_ai_model",MODEL_PRIMARY);
-    setCached(key,output,MODEL_PRIMARY);
-    return {text:output,model:MODEL_PRIMARY};
-  } catch(error) {
-    console.warn("workers_ai_primary_failed",String(error?.message||error));
-    try {
-      const output=await runModel(MODEL_FALLBACK);
-      console.log("workers_ai_model",MODEL_FALLBACK);
-      setCached(key,output,MODEL_FALLBACK);
-      return {text:output,model:MODEL_FALLBACK};
-    } catch(fallbackError) {
-      console.error("workers_ai_fallback_failed",String(fallbackError?.message||fallbackError));
-      throw new Error("Workers AI primary and fallback failed");
+  let lastError=null;
+  for(const model of [MODEL_PRIMARY,...MODEL_FALLBACKS]){
+    try{
+      const output=await runModel(model);
+      console.log("workers_ai_model",model);
+      setCached(key,output,model);
+      return {text:output,model};
+    }catch(error){
+      lastError=error;
+      console.warn("workers_ai_model_failed",model,String(error?.message||error));
+      if(quotaExceeded(error))break;
     }
   }
+  console.error("workers_ai_all_models_failed",String(lastError?.message||lastError||"unknown"));
+  throw new Error("Workers AI model chain failed");
 }
 function deterministicIdentityReply(message){
   if(!isIdentityQuery(message))return "";
   return "Phan Thuần là người gắn với thương hiệu PHAN THUẦN XTRA mà trợ lý đang đại diện hỗ trợ. Theo hồ sơ chính thức do chủ website cung cấp, hệ sinh thái được giới thiệu gồm Luxury Automotive, European Yachts, Business Jets và Green Energy. Dấu vết công khai đã đối chiếu cũng cho thấy tên Phan Thuần Xuyên Á Auto gắn với hoạt động automotive tại TP.HCM. Chatbot chỉ tư vấn bán hàng đối với xe đang có trên website; các lĩnh vực còn lại được cung cấp ở mức thông tin hồ sơ. Hotline: 0866 997 891.";
 }
 function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
+function handoffReply(contact){
+  if(contact.name&&contact.phone)return "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại, đồng thời chuyển yêu cầu đến anh Phan Thuần qua kênh CRM để được tư vấn trực tiếp.";
+  if(contact.name)return `Cảm ơn anh/chị ${contact.name}. Tôi chưa có thông tin xác thực để trả lời chắc chắn; vui lòng cho tôi xin thêm **số điện thoại** để chuyển anh Phan Thuần trực tiếp tư vấn.`;
+  if(contact.phone)return "Cảm ơn anh/chị, tôi đã nhận số điện thoại. Vui lòng cho tôi xin thêm **họ tên** để hoàn tất thông tin chuyển anh Phan Thuần trực tiếp tư vấn.";
+  return "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
+}
 async function saveLead(env,conversationId,phone,name,message){if(!phone||!env.DB)return false;const normalized=phone.replace(/\D/g,"");if(normalized.length<9)return false;await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message) VALUES (?,?,?,?)").bind(clean(name,120),clean(phone,30),"",`[AI CHAT ${conversationId}] ${clean(message,1800)}`).run();await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(name,120)||null,clean(phone,30),conversationId).run();return true;}
 async function pendingUnknown(env,cid){try{return await env.DB.prepare("SELECT id,question,name,phone,status FROM ai_unknown_questions WHERE conversation_id=? AND status='pending' ORDER BY id DESC LIMIT 1").bind(cid).first();}catch{return null;}}
 async function recordUnknown(env,cid,question,name,phone){const existing=await pendingUnknown(env,cid);if(existing){if(name||phone)await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,phone||null,existing.id).run();return {id:existing.id,created:false};}const r=await env.DB.prepare("INSERT INTO ai_unknown_questions (conversation_id,question,name,phone,notified_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)").bind(cid,clean(question,4000),clean(name,120)||null,clean(phone,30)||null).run();return {id:r?.meta?.last_row_id??null,created:true};}
@@ -190,8 +201,13 @@ export async function handleAiChat(request,env){
   const suppressCrmNotification = body?.suppress_crm_notification === true && /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel); const history=await loadHistory(env,conversationId); const contact=extractContact(message);
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"user",message).run();
-  const[cars,knowledge]=await Promise.all([loadCars(env),searchKnowledge(env,message)]);
-  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message); const pending=await pendingUnknown(env,conversationId);
+  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message);
+  const[cars,knowledge]=await Promise.all([
+    loadCars(env),
+    vehicleQuery&&!identityQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
+  ]);
+  const pending=await pendingUnknown(env,conversationId);
+  const effectiveContact={name:contact.name||clean(pending?.name,120),phone:contact.phone||clean(pending?.phone,30)};
   if(pending && (contact.name||contact.phone)){
     await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,pending.id).run();
     await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,conversationId).run();
@@ -199,15 +215,23 @@ export async function handleAiChat(request,env){
   const allowed = identityQuery || vehicleQuery;
   const needsHuman = !allowed || (!identityQuery && !vehicleQuery && !knowledge.evidence);
   let reply;
+  let aiModel=null;
   if(needsHuman){
-    const unknown=await recordUnknown(env,conversationId,message,contact.name,contact.phone);
-    if(contact.name && contact.phone){await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:contact.name,phone:contact.phone,message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});}
-    reply=contact.name && contact.phone ? "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại, đồng thời chuyển yêu cầu đến anh Phan Thuần qua kênh CRM để được tư vấn trực tiếp." : "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
+    const unknown=await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
+    const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&(!pending||!pending.name||!pending.phone));
+    if(contactJustCompleted&&!suppressCrmNotification){await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});}
+    reply=handoffReply(effectiveContact);
   } else {
     const identityFallback=deterministicIdentityReply(message);
-    if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
+    if(vehicleQuery&&!identityQuery&&!cars.length){
+      reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
+    } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
-    } else try{const result=await runAI(env,[...history,{role:"user",content:message}],cars,knowledge.text);reply=result.text}catch(error){
+    } else try{
+      const result=await runAI(env,[...history,{role:"user",content:message}],cars,vehicleQuery?BRAND_KNOWLEDGE:knowledge.text);
+      reply=result.text;
+      aiModel=result.model;
+    }catch(error){
       console.error("ai_chat",String(error?.message||error));
       if(identityFallback){reply=identityFallback;}
       else if(vehicleQuery){
@@ -222,10 +246,10 @@ export async function handleAiChat(request,env){
     }
   }
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();
-  const phone=clean(body?.phone,30)||contact.phone; const name=clean(body?.name,120)||contact.name;
+  const phone=clean(body?.phone,30)||effectiveContact.phone; const name=clean(body?.name,120)||effectiveContact.name;
   if(phone)await saveLead(env,conversationId,phone,name,message); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,conversationId).run();
   // Every website AI message must reach CRM exactly once. Unknown requests are
   // already notified above; all other messages use the normal AI chat source.
   if(!needsHuman && !suppressCrmNotification)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
-  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:MODEL_PRIMARY});
+  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:aiModel});
 }
