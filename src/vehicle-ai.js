@@ -9,6 +9,7 @@ const schema = {
     fuel: { type: ["string", "null"] },
     category: { type: ["string", "null"] },
     color: { type: ["string", "null"] },
+    condition: { type: ["string", "null"] },
     origin: { type: ["string", "null"] },
     origin_country: { type: ["string", "null"] },
     form_state: { type: "string", enum: ["original","facelift","up_form","modified","uncertain"] },
@@ -19,7 +20,7 @@ const schema = {
     missing_fields: { type: "array", items: { type: "string" } },
     plate_bbox: { type: ["object", "null"], properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } }, required: ["x","y","width","height"] }
   },
-  required: ["brand","model","year","mileage","price","fuel","category","color","origin","origin_country","form_state","form_notes","description","features","confidence","missing_fields","plate_bbox"]
+  required: ["brand","model","year","mileage","price","fuel","category","color","condition","origin","origin_country","form_state","form_notes","description","features","confidence","missing_fields","plate_bbox"]
 };
 
 function dataUrl(contentType, bytes) {
@@ -65,7 +66,7 @@ function recordFailure(errors, model, error) {
 
 export async function analyzeVehicleImage(env, fileBytes, contentType, caption = "") {
   if (!env.AI) throw new Error("Workers AI binding AI is not configured");
-  const prompt = `Bạn là bộ phận nhập kho xe của Phan Thuần Xtra. Chỉ ghi dữ kiện nhìn thấy hoặc được cung cấp rõ ràng; không bịa. Không suy đoán năm sản xuất, ODO, giá, phiên bản, động cơ, option, màu hoặc xuất xứ. Nếu không đủ bằng chứng trả null và thêm trường vào missing_fields. origin/origin_country chỉ ghi khi có bằng chứng rõ từ caption, giấy tờ hoặc dữ kiện nhận dạng đáng tin cậy. Phân biệt form hiện tại với xe gốc: form_state=facelift nếu ngoại hình có dấu hiệu facelift nhưng không coi facelift là năm sản xuất; up_form nếu đã đổi ngoại hình sang form đời mới; modified nếu độ/chỉnh sửa; original nếu không thấy dấu hiệu; uncertain nếu thiếu bằng chứng. form_notes phải giải thích ngắn gọn bằng tiếng Việt khi khác original.
+  const prompt = `Bạn là bộ phận nhập kho xe của Phan Thuần Xtra. Chỉ ghi dữ kiện nhìn thấy hoặc được cung cấp rõ ràng; không bịa. Không suy đoán năm sản xuất, ODO, giá, phiên bản, động cơ, option, màu hoặc xuất xứ. condition chỉ mô tả dấu hiệu ngoại quan nhìn thấy (ví dụ vết xước), không khẳng định tình trạng máy móc hay pháp lý. Nếu không đủ bằng chứng trả null và thêm trường vào missing_fields. origin/origin_country chỉ ghi khi có bằng chứng rõ từ caption, giấy tờ hoặc dữ kiện nhận dạng đáng tin cậy. Phân biệt form hiện tại với xe gốc: form_state=facelift nếu ngoại hình có dấu hiệu facelift nhưng không coi facelift là năm sản xuất; up_form nếu đã đổi ngoại hình sang form đời mới; modified nếu độ/chỉnh sửa; original nếu không thấy dấu hiệu; uncertain nếu thiếu bằng chứng. form_notes phải giải thích ngắn gọn bằng tiếng Việt khi khác original.
 
 QUAN TRỌNG: tìm biển số xe. plate_bbox là vùng chuẩn hóa 0..1 theo ảnh gốc; nếu không nhìn thấy hoặc không chắc chắn thì null.
 
@@ -75,6 +76,9 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
   const bytes = new Uint8Array(fileBytes);
   const image = dataUrl(contentType, bytes);
   const errors = [];
+
+  // Scout supports multimodal image messages. Fall back when its license or capacity is unavailable.
+  try { const response = await env.AI.run("@cf/meta/llama-4-scout-17b-16e-instruct", { messages: [{ role: "system", content: "Trích xuất dữ liệu xe có bằng chứng; chỉ trả JSON, không suy đoán." }, { role: "user", content: [{ type: "image_url", image_url: { url: image } }, { type: "text", text: prompt }] }], max_tokens: 1200, temperature: 0 }); return { ...parseResult(response), _ai_model: "@cf/meta/llama-4-scout-17b-16e-instruct" }; } catch (error) { recordFailure(errors, "@cf/meta/llama-4-scout-17b-16e-instruct", error); }
 
   // Prefer the current Cloudflare-hosted Qwen vision model. It accepts
   // OpenAI-compatible multimodal message parts through the Workers AI binding.
@@ -134,3 +138,6 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
   failure.diagnostics = errors;
   throw failure;
 }
+
+// Optional COCO object detection: labels are supporting evidence, never vehicle identity.
+export async function detectVehicleObjects(env,fileBytes){if(!env.AI)return [];try{const result=await env.AI.run("@cf/facebook/detr-resnet-50",{image:new Uint8Array(fileBytes)});const items=Array.isArray(result)?result:Array.isArray(result?.detections)?result.detections:[];return items.filter(x=>Number(x.score??x.confidence)>=0.5).slice(0,10).map(x=>({label:String(x.label??"").slice(0,40),score:Number(x.score??x.confidence)}));}catch{return [];}}
