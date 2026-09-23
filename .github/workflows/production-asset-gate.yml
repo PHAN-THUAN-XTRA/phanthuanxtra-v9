@@ -1,6 +1,6 @@
 name: "Production Asset Delivery Gate"
 
-on:
+"on":
   push:
     branches: [main]
     paths:

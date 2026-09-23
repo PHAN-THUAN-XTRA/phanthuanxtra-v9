@@ -3,7 +3,7 @@ name: "Deploy Cloudflare Worker"
 # Production deployment is GitHub Actions -> Cloudflare API/SDK.
 # Wrangler must not be used as a production deployment mechanism.
 
-on:
+"on":
   workflow_dispatch:
   pull_request:
   push:
