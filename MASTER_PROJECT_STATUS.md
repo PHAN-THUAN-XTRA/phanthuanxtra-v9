@@ -554,3 +554,10 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Retired overlapping `ai-peer-continuity.yml`; `ai-peer-executor.yml` remains the single read-only Cloudflare Workers AI checkpoint/executor workflow.
 - `gate10-runtime-evidence.yml` is retained because it is coupled to `Deploy Developer Gateway` completion and verifies the dedicated dual-Workers-AI gateway runtime contract.
 - Core deploy/safety workflows and all production Cloudflare bindings remain unchanged.
+
+
+### 17.3 P5 Android product hardening — slice 2
+- Android operator app target advanced to versionCode 5 / versionName 1.4.0.
+- Android APK CI now performs source-level credential/safety checks before building: no hard-coded bearer/API token pattern, application backup remains disabled, non-launcher MainActivity remains non-exported, and encrypted SecureTokenStore remains required.
+- APK artifact identity is updated to `phanthuanxtra-apk-v1.4.0-<source-sha>` while retaining SHA-256 output verification.
+- This slice does not claim production signing or physical-device completion. Physical Samsung S21 Ultra regression remains required before final Gate 11 device certification.

@@ -29,8 +29,8 @@ test('APK production identity is stable and launcher is exported', () => {
   const gradle = read('android/app/build.gradle');
   const manifest = read('android/app/src/main/AndroidManifest.xml');
   assert.match(gradle, /applicationId\s+'com\.phanthuanxtra\.app'/);
-  assert.match(gradle, /versionCode\s+4/);
-  assert.match(gradle, /versionName\s+'1\.3\.0'/);
+  assert.match(gradle, /versionCode\s+5/);
+  assert.match(gradle, /versionName\s+'1\.4\.0'/);
   assert.match(manifest, /android:name="\.OperatorHubActivity"/);
   assert.match(manifest, /android:exported="true"/);
   assert.match(manifest, /android\.intent\.action\.MAIN/);
