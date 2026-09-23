@@ -201,8 +201,8 @@ export async function handleAiChat(request,env){
   let reply;
   if(needsHuman){
     const unknown=await recordUnknown(env,conversationId,message,contact.name,contact.phone);
-    if(unknown.created || contact.name || contact.phone){await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:contact.name,phone:contact.phone,message,reply:"Cần anh Phan Thuần bổ sung thông tin xác thực."});}
-    reply="Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA. Tôi không muốn đoán sai. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu đến anh Phan Thuần để được tư vấn trực tiếp và chính xác.";
+    if(contact.name && contact.phone){await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:contact.name,phone:contact.phone,message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});}
+    reply=contact.name && contact.phone ? "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại, đồng thời chuyển yêu cầu đến anh Phan Thuần qua kênh CRM để được tư vấn trực tiếp." : "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
   } else {
     const identityFallback=deterministicIdentityReply(message);
     if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
