@@ -93,3 +93,11 @@ test('Founder profile and customer AI scope stay explicit', () => {
   assert.match(ai, /contact\.name && contact\.phone/);
   assert.match(ai, /Telegram\/CRM/);
 });
+
+test('Founder portrait is optimized and lazy-loaded', () => {
+  const index = read('public/index.html');
+  assert.match(index, /founder-phan-thuan\.webp/);
+  assert.match(index, /loading="lazy"/);
+  assert.match(index, /decoding="async"/);
+  assert.ok(fs.statSync(new URL('../public/images/founder-phan-thuan.webp', import.meta.url)).size < 20000);
+});
