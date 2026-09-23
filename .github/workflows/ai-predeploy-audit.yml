@@ -1,0 +1,25 @@
+name: AI Pre-Deploy Audit
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: AI Pre-Deploy Audit / Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Audit PR diff for security, Worker, D1, R2, AI and Telegram risks
+        run: node scripts/predeploy-audit.mjs "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+      - name: Run deterministic regression tests
+        run: npm test
