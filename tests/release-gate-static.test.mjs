@@ -88,6 +88,8 @@ test('Founder profile and customer AI scope stay explicit', () => {
   const ai = read('src/ai-chat.js');
   assert.match(index, /THE FOUNDER • PRIVATE CONCIERGE/);
   assert.match(index, /facebook\.com\/PhanThuanSaigon/);
+  assert.doesNotMatch(index, /Theo hồ sơ chính thức do chủ website cung cấp/);
+  assert.match(index, /href="\/phan-thuan"/);
   assert.match(index, /chỉ tư vấn xe đang có trên website và thông tin chính thức về Phan Thuần/);
   assert.match(ai, /CHỈ được tư vấn 2 nhóm/);
   assert.match(ai, /contact\.name && contact\.phone/);
@@ -100,4 +102,16 @@ test('Founder portrait is optimized and lazy-loaded', () => {
   assert.match(index, /loading="lazy"/);
   assert.match(index, /decoding="async"/);
   assert.ok(fs.statSync(new URL('../public/images/founder-phan-thuan.webp', import.meta.url)).size < 20000);
+});
+
+test('Founder category opens a dedicated indexable article', () => {
+  const article = read('public/phan-thuan.html');
+  assert.match(article, /Doanh Nhân Phan Thuần \(phanthuanxtra\)/);
+  assert.match(article, /Đồng Nhất Thương Hiệu Cá Nhân Trên Nền Tảng Số/);
+  assert.match(article, /Siêu Xe Và Xe Sang Độc Bản/);
+  assert.match(article, /Du Thuyền Châu Âu Và Chuyên Cơ Thương Gia/);
+  assert.match(article, /Năng Lượng Xanh/);
+  assert.match(article, /08 6699 7891/);
+  assert.match(article, /facebook\.com\/PhanThuanSaigon/);
+  assert.match(article, /founder-phan-thuan\.webp/);
 });
