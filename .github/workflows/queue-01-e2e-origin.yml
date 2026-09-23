@@ -63,6 +63,9 @@ jobs:
             -X POST "$BASE_URL/api/admin/vehicle/analyze?caption=Production%20Vision%20smoke%3A%20identify%20the%20vehicle%20conservatively" \
             -H "Authorization: Bearer $SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
           echo "Vehicle Vision analyze HTTP $vision_status"
+          if [ "$vision_status" != "200" ]; then
+            jq -c '{code,diagnostics}' /tmp/vehicle-vision.json || true
+          fi
           test "$vision_status" = "200"
           jq -e '.ok == true and (.analysis|type=="object") and (.analysis._ai_model|type=="string") and (.analysis._ai_model|length>0)' /tmp/vehicle-vision.json >/dev/null
           echo "Vehicle Vision runtime: PASS model=$(jq -r '.analysis._ai_model' /tmp/vehicle-vision.json)"

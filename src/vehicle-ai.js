@@ -28,10 +28,39 @@ function dataUrl(contentType, bytes) {
   for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
   return `data:${contentType || "image/jpeg"};base64,${btoa(binary)}`;
 }
+
 function parseResult(result) {
-  const text = typeof result === "string" ? result : result?.response;
+  if (result && typeof result.response === "object" && !Array.isArray(result.response)) return result.response;
+  const choiceContent = result?.choices?.[0]?.message?.content;
+  const text = typeof result === "string"
+    ? result
+    : typeof result?.response === "string"
+      ? result.response
+      : typeof choiceContent === "string"
+        ? choiceContent
+        : null;
   if (!text) throw new Error("Workers AI returned no response");
-  try { return JSON.parse(text); } catch { const match = text.match(/\{[\s\S]*\}/); if (!match) throw new Error("AI response is not valid JSON"); return JSON.parse(match[0]); }
+  try { return JSON.parse(text); } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("AI response is not valid JSON");
+    return JSON.parse(match[0]);
+  }
+}
+
+function classifyError(error) {
+  const message = String(error?.message || error).toLowerCase();
+  if (message.includes("license") || message.includes("agree") || message.includes("acceptable use")) return "LICENSE_REQUIRED";
+  if (message.includes("rate") || message.includes("7505") || message.includes("quota")) return "RATE_LIMIT";
+  if (message.includes("7504") || message.includes("validation") || message.includes("invalid") || message.includes("schema")) return "VALIDATION";
+  if (message.includes("7502") || message.includes("model not found")) return "MODEL_NOT_FOUND";
+  if (message.includes("busy") || message.includes("overload") || message.includes("capacity")) return "BUSY";
+  if (message.includes("timeout") || message.includes("timed out")) return "TIMEOUT";
+  if (message.includes("json") || message.includes("no response")) return "PARSE";
+  return "UNKNOWN";
+}
+
+function recordFailure(errors, model, error) {
+  errors.push({ model, code: classifyError(error) });
 }
 
 export async function analyzeVehicleImage(env, fileBytes, contentType, caption = "") {
@@ -40,42 +69,68 @@ export async function analyzeVehicleImage(env, fileBytes, contentType, caption =
 
 QUAN TRỌNG: tìm biển số xe. plate_bbox là vùng chuẩn hóa 0..1 theo ảnh gốc; nếu không nhìn thấy hoặc không chắc chắn thì null.
 
-Thông tin người dùng: ${caption || "(không có)"}`;
+Thông tin người dùng: ${caption || "(không có)"}
+
+Chỉ trả về một JSON object thuần với đúng các trường: ${Object.keys(schema.properties).join(", ")}.`;
   const bytes = new Uint8Array(fileBytes);
+  const image = dataUrl(contentType, bytes);
   const errors = [];
 
-  // Workers AI vision models do not share one universal request schema.
-  // LLaVA's documented binding contract accepts raw image bytes + prompt.
+  // Prefer the current Cloudflare-hosted Qwen vision model. It accepts
+  // OpenAI-compatible multimodal message parts through the Workers AI binding.
+  try {
+    const response = await env.AI.run("@cf/qwen/qwen3.8-27b", {
+      messages: [
+        { role: "system", content: "Bạn trích xuất dữ liệu xe ô tô chính xác, bảo thủ, không bịa dữ liệu. Chỉ trả JSON." },
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: image } },
+            { type: "text", text: prompt }
+          ]
+        }
+      ],
+      max_tokens: 1200,
+      temperature: 0
+    });
+    const result = parseResult(response);
+    return { ...result, _ai_model: "@cf/qwen/qwen3.8-27b" };
+  } catch (error) {
+    recordFailure(errors, "@cf/qwen/qwen3.8-27b", error);
+  }
+
+  // Legacy image-to-text fallback.
   try {
     const response = await env.AI.run("@cf/llava-hf/llava-1.5-7b-hf", {
       image: bytes,
-      prompt: prompt + "\nTrả về JSON thuần theo các trường: " + Object.keys(schema.properties).join(", ") + ".",
+      prompt,
       max_tokens: 1200
     });
     const text = response?.description ?? response?.response ?? response;
     const result = parseResult(typeof text === "string" ? text : JSON.stringify(text));
     return { ...result, _ai_model: "@cf/llava-hf/llava-1.5-7b-hf" };
   } catch (error) {
-    errors.push("@cf/llava-hf/llava-1.5-7b-hf: " + String(error?.message || error).slice(0, 240));
+    recordFailure(errors, "@cf/llava-hf/llava-1.5-7b-hf", error);
   }
 
-  // Llama 3.2 Vision uses the documented messages + data-URL image contract.
+  // Final fallback. This model can require one-time Meta license acceptance.
   try {
     const response = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
       messages: [
         { role: "system", content: "Bạn trích xuất dữ liệu xe ô tô chính xác, bảo thủ, không bịa dữ liệu. Chỉ trả JSON." },
         { role: "user", content: prompt }
       ],
-      image: dataUrl(contentType, bytes),
+      image,
       max_tokens: 1200,
       temperature: 0
     });
     const result = parseResult(response);
     return { ...result, _ai_model: "@cf/meta/llama-3.2-11b-vision-instruct" };
   } catch (error) {
-    errors.push("@cf/meta/llama-3.2-11b-vision-instruct: " + String(error?.message || error).slice(0, 240));
+    recordFailure(errors, "@cf/meta/llama-3.2-11b-vision-instruct", error);
   }
 
-  throw new Error("All vehicle vision models failed: " + errors.join(" | "));
-
+  const failure = new Error("All vehicle vision models failed");
+  failure.diagnostics = errors;
+  throw failure;
 }
