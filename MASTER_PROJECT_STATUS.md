@@ -3,7 +3,7 @@
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
 > Date: 2026-09-23 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Latest verified main/deploy lineage: `29d84899c65683aacfccb84946afcf175bcfba92` (PR #434). Exact-SHA production deploy, Gate-15, QUEUE-01, CI, Android APK MVP and signed Android Production Release evidence are recorded below.
+> Latest verified main/deploy lineage: `f87f637d66ec4b5a4dbc1ac3e4f19b88fa2e28e3` (PR #435). Exact-SHA production deploy, Gate-15, QUEUE-01 App API runtime, CI, Android APK MVP and Stage 3 evidence are green; the signed Android 1.6.0 release remains verified on predecessor SHA `29d84899c65683aacfccb84946afcf175bcfba92`.
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -573,3 +573,13 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Architecture cleanup in this slice aligns the native Android operator app with the canonical `/api/app/v1` namespace while preserving the existing Admin-password UX. `POST /api/app/v1/login` validates the same Admin credential source and issues the existing signed `ptx1` HMAC session; App API authorization accepts either that signed Admin session or the legacy dedicated `APP_API_TOKEN` for backward compatibility.
 - Android `MainActivity` no longer points directly at `/api/admin`; its base URL is `https://phanthuanxtra.com/api/app/v1`. Post-deploy QUEUE-01 is extended to verify App API login, signed-session dashboard access and the App API vehicle-vision route before Gate closure.
 - No new credential or secret is introduced, no production password is rotated, and existing Admin/CMS/App API clients remain backward compatible.
+
+
+### 17.5 App API alignment production closure — 2026-09-23
+- PR #435 merged as exact main SHA `f87f637d66ec4b5a4dbc1ac3e4f19b88fa2e28e3`.
+- Exact-SHA production evidence is green: Deploy Cloudflare Worker `35842558391`, Production Smoke Gate-15 `35842558473`, QUEUE-01 Production E2E Origin `35842646659`, CI `35842558495`, Android APK MVP `35842558440`, Release Gate Static Audit `35842558400`, Production Credential Safety `35842558222`, Admin PT Xtra Pipeline `35842558467`, Homepage Canonical Verify `35842558444`, Admin Redirect Verify `35842558509`, and Stage 3 Production Reconciliation `35842558459`.
+- QUEUE-01 proved the new Android/App API production path after deployment: `POST /api/app/v1/login` returned HTTP 200 and a signed `ptx1` session; authenticated `GET /api/app/v1/dashboard` passed; authenticated `POST /api/app/v1/vehicle/analyze` returned HTTP 200 with production model `@cf/qwen/qwen3.8-27b`.
+- The same run retained D1 CRUD and R2 write/read/delete/post-delete-404 PASS, proving the namespace cleanup did not regress the production persistence/media boundaries.
+- Android APK MVP on the exact alignment SHA completed successfully; the native operator app now uses `https://phanthuanxtra.com/api/app/v1` as its API base.
+- Production signing status remains **PASS** from Android Production Release run `35836171648` on predecessor exact SHA `29d84899c65683aacfccb84946afcf175bcfba92`. No signing material changed in PR #435.
+- Remaining Android release acceptance: Samsung Galaxy S21 Ultra physical-device regression is still OPEN. AAB / Google Play distribution remains a separate future release layer.
