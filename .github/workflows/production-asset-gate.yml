@@ -7,6 +7,7 @@ on:
       - "public/**"
       - "src/entry.js"
       - "src/index.js"
+      - "scripts/deploy-cloudflare-api.mjs"
       - "wrangler.json"
       - ".github/workflows/production-asset-gate.yml"
   workflow_dispatch:
@@ -48,3 +49,27 @@ jobs:
           test "$(grep -Foc '</main>' "$home")" = "1"
           test "$(grep -Foc '</html>' "$home")" = "1"
           check_asset "/car.html?id=__p4_missing__" "vehicleDetail"
+
+          # Editorial UTF-8 regression: verify real production bytes, headers and Vietnamese markers.
+          check_editorial_utf8() {
+            local path="$1" marker="$2"
+            local body headers status
+            body="$(mktemp)"; headers="$(mktemp)"
+            status="$(curl --silent --show-error --compressed --retry 3 --retry-delay 1 --max-time 20 \\
+              --location --proto '=https' --proto-redir '=https' \\
+              -D "$headers" -o "$body" -w '%{http_code}' "$SITE_URL$path")"
+            echo "$path final HTTP $status"
+            test "$status" = "200"
+            grep -Eiq '^content-type:[[:space:]]*text/html([[:space:]]*;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8)?' "$headers"
+            grep -Fq "PHAN THUẦN XTRA" "$body"
+            grep -Fq "$marker" "$body"
+            ! grep -Eq 'PHAN THUáº¦N|NhĂ¢n|Táº§m NhĂ¬n|Ä|đŸ|â€¢|Â©' "$body"
+            python3 - "$body" <<'PY'
+import pathlib, sys
+pathlib.Path(sys.argv[1]).read_bytes().decode("utf-8", errors="strict")
+PY
+          }
+          check_editorial_utf8 "/phan-thuan" "Doanh Nhân Phan Thuần"
+          check_editorial_utf8 "/green-energy" "Năng Lượng Xanh"
+          check_editorial_utf8 "/yachts" "Du Thuyền Châu Âu"
+          check_editorial_utf8 "/business-jets" "Chuyên Cơ Thương Gia"

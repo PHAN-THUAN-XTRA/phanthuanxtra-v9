@@ -131,3 +131,12 @@ test('editorial Worker decodes asset bytes as strict UTF-8 before response', () 
   assert.match(entry, /await assetResponse\.arrayBuffer\(\)/);
   assert.match(entry, /return new Response\(html,/);
 });
+
+test('production deploy routes every editorial category through Worker-first', () => {
+  const deploy = read('scripts/deploy-cloudflare-api.mjs');
+  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(deploy, new RegExp('run_worker_first:[\\s\\S]*' + route.replace('/','\\/')));
+  const gate = read('.github/workflows/production-asset-gate.yml');
+  for (const route of ['/phan-thuan','/green-energy','/yachts','/business-jets']) assert.match(gate, new RegExp('check_editorial_utf8 "' + route.replace('/','\\/') + '"'));
+  assert.match(gate, /PHAN THUáº¦N\|NhĂ¢n\|Táº§m NhĂ¬n/);
+  assert.match(gate, /decode\("utf-8", errors="strict"\)/);
+});
