@@ -13,11 +13,11 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class MainActivity extends Activity {
-  static final String BASE="https://phanthuanxtra.com/api/app/v1";
+  static final String BASE="https://phanthuanxtra.com/api/admin";
   static final String SITE="https://phanthuanxtra.com/";
   static final int PICK_NEW=7, PICK_GALLERY=8;
   static final long MAX_UPLOAD_BYTES=12L*1024L*1024L;
-  EditText token,carId; TextView output; AuthStore authStore; ApiClient api;
+  EditText password,carId; TextView output; AuthStore authStore; ApiClient api;
   ExecutorService executor; Handler mainHandler;
   boolean busy=false;
 
@@ -27,11 +27,11 @@ public class MainActivity extends Activity {
   void build(){
     LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(24,24,24,24);
     root.addView(tv("PHAN THUẦN XTRA\\nQUẢN LÝ PHANTHUANXTRA.COM"));
-    boolean tokenSaved=!authStore.get().isEmpty();
-    token=new EditText(this);token.setHint(tokenSaved?"APP API token • ĐÃ LƯU • nhập mới để thay":"APP API token");token.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);root.addView(token);
-    root.addView(btn("LƯU TOKEN",v->saveToken()));
-    root.addView(btn("XÓA TOKEN",v->{authStore.clear();token.setText("");token.setHint("APP API token");output.setText("Đã xóa token khỏi thiết bị.");}));
-    root.addView(btn("KIỂM TRA KẾT NỐI",v->callPublic("GET","/health")));
+    boolean signedIn=!authStore.get().isEmpty();
+    password=new EditText(this);password.setHint(signedIn?"Phiên Admin • ĐÃ LƯU • nhập mật khẩu để đăng nhập lại":"Mật khẩu Admin phanthuanxtra.com");password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);root.addView(password);
+    root.addView(btn("ĐĂNG NHẬP ADMIN",v->loginAdmin()));
+    root.addView(btn("ĐĂNG XUẤT",v->{authStore.clear();password.setText("");password.setHint("Mật khẩu Admin phanthuanxtra.com");output.setText("Đã đăng xuất và xóa phiên Admin khỏi thiết bị.");}));
+    root.addView(btn("KIỂM TRA KẾT NỐI",v->callPublic("GET","/dashboard")));
     root.addView(btn("DASHBOARD",v->call("GET","/dashboard",null,null,null)));
     root.addView(btn("KHO XE",v->call("GET","/cars",null,null,null)));
     root.addView(btn("TÌM XE",v->searchCars()));
@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
     root.addView(btn("MỞ PHANTHUANXTRA.COM",v->startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(SITE)))));
     output=tv("Sẵn sàng.");ScrollView sv=new ScrollView(this);sv.addView(output);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);
   }
-  void saveToken(){try{String value=token.getText().toString().trim();if(value.isEmpty()){output.setText(authStore.get().isEmpty()?"Chưa có token để lưu.":"Token hiện tại được giữ nguyên; nhập token mới để thay.");return;}authStore.save(value);token.setText("");token.setHint("APP API token • ĐÃ LƯU • nhập mới để thay");output.setText("Đã lưu token an toàn trên thiết bị; giá trị bí mật đã được ẩn.");}catch(Exception e){output.setText("Không thể lưu token: "+e.getMessage());}}
+  void loginAdmin(){final String value=password.getText().toString();if(value.isEmpty()){output.setText("Vui lòng nhập mật khẩu Admin.");return;}runAsync(()->{try{JSONObject body=new JSONObject();body.put("password",value);String response=api.requestChecked("POST","/login",body.toString(),null,"application/json");String session=new JSONObject(response).optString("token","").trim();if(session.isEmpty())throw new Exception("Máy chủ không trả phiên Admin");authStore.save(session);ui(()->{password.setText("");password.setHint("Phiên Admin • ĐÃ LƯU");output.setText("Đăng nhập Admin thành công.");});}catch(Exception e){ui(()->output.setText("Đăng nhập thất bại: "+e.getMessage()));}});}
   void runAsync(Runnable task){if(executor==null||executor.isShutdown()||busy)return;busy=true;ui(()->output.setText("Đang xử lý..."));executor.execute(()->{try{task.run();}finally{busy=false;}});}
   void ui(Runnable task){if(isFinishing()||isDestroyed())return;mainHandler.post(()->{if(!isFinishing()&&!isDestroyed())task.run();});}
   void call(String method,String path,String json,byte[] raw,String type){runAsync(()->{try{String r=api.requestChecked(method,path,json,raw,type==null?"application/json":type);ui(()->output.setText(r));}catch(Exception e){ui(()->output.setText("Lỗi: "+e.getMessage()));}});}

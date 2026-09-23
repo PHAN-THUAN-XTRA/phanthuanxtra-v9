@@ -16,9 +16,9 @@ import android.net.Uri;
 
 /** XTRA premium operator cockpit. Credentials stay encrypted on-device and are never injected into WebView. */
 public final class OperatorHubActivity extends Activity {
-    private static final int BLACK = Color.rgb(5,5,5), CARBON = Color.rgb(16,18,20), GRAPHITE = Color.rgb(26,29,32);
-    private static final int GOLD = Color.rgb(212,175,55), SOFT_GOLD = Color.rgb(231,201,104);
-    private static final int JADE = Color.rgb(0,168,132), WHITE = Color.rgb(244,245,242), SILVER = Color.rgb(169,175,181);
+    private static final int BLACK = Color.rgb(5,7,6), CARBON = Color.rgb(7,17,15), GRAPHITE = Color.rgb(5,47,41);
+    private static final int GOLD = Color.rgb(199,163,90), SOFT_GOLD = Color.rgb(232,211,154);
+    private static final int JADE = Color.rgb(15,95,80), JADE_GLOW = Color.rgb(45,154,130), WHITE = Color.rgb(244,245,242), SILVER = Color.rgb(169,175,181);
     private SecureTokenStore tokenStore;
     private EditText cloudflareToken, githubToken;
     private TextView status;
@@ -49,7 +49,7 @@ public final class OperatorHubActivity extends Activity {
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(14,16,14,8); root.setBackgroundColor(BLACK);
         LinearLayout head = new LinearLayout(this); head.setOrientation(LinearLayout.HORIZONTAL); head.setGravity(Gravity.CENTER_VERTICAL);
         TextView brand = text("PHAN THUẦN XTRA", 22, WHITE); brand.setTypeface(null, android.graphics.Typeface.BOLD); head.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView live = text("● LIVE", 12, JADE); live.setTypeface(null, android.graphics.Typeface.BOLD); head.addView(live); root.addView(head);
+        TextView live = text("● LIVE", 12, JADE_GLOW); live.setTypeface(null, android.graphics.Typeface.BOLD); head.addView(live); root.addView(head);
         TextView rule = text("SHOWROOM COMMAND CENTER  •  PREMIUM OPERATIONS", 10, SOFT_GOLD); root.addView(rule); gap(root,10);
 
         LinearLayout system = card(); system.addView(text("SYSTEM CREDENTIALS", 11, SOFT_GOLD));
