@@ -621,4 +621,3 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - PR review should report: changed surface, findings by severity with file/line evidence, proposed minimal remediation, generated/updated tests, CI results, residual risks, and `DEPLOY ELIGIBLE` or `DEPLOY LOCKED`. It must never report GREEN solely from model judgment.
 - Current rollout mode: policy-first. Existing workflows remain unchanged by this Markdown-only slice. Automation of the GPT audit as a required GitHub check is the next implementation slice and must itself follow the single-queue PR method before becoming a merge/deploy requirement.
 - Rollback: this slice changes documentation/control policy only and performs no production mutation, secret rotation, Cloudflare resource change, D1 migration, Worker deploy or application-code change.
-
