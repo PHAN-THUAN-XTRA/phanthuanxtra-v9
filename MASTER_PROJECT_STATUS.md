@@ -527,3 +527,11 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - PR #396 merged as `1939cef20d9bba78f8113e7b568843acb8a9160f`; exact-SHA production evidence is fully green: Deploy `35734178644`, Gate-15 `35734178634`, QUEUE-01 `35734283839`, Production Asset Delivery `35734178625`, Homepage Canonical `35734178623`, Admin Redirect `35734178727`, CI `35734178666`, Credential Safety `35734178841`, Admin Pipeline `35734178761`, Static Audit `35734178868`, Android `35734178750`, Stage 3 `35734178665`.
 - Final closure gate extends Production Asset Delivery with public homepage structural invariants and generic vehicle-detail asset verification so the duplicate-shell/detail-link regressions are checked on production after future relevant changes.
 - P4 status: COMPLETE once this closure PR merges and its exact-SHA production chain is green.
+
+
+## 17. P5 Product / Android APK — IN PROGRESS
+- P0–P4 are closed production foundations; P5 starts after P4 closure merge `4841ce0878880a6c28d25c8679627a5dcac871ff` and its green exact-SHA production chain.
+- Android source audit confirms a native operator application already covers App API health, dashboard, inventory search/detail/edit/delete, gallery/media upload, AI-assisted vehicle intake, status/featured controls, CRM leads, secure on-device APP API token storage, and the Operator Hub.
+- P5 slice 1 bumps Android to version `1.3.0` / versionCode `4` and hardens build evidence: APK size validation, SHA-256, source SHA, and version + source-SHA artifact naming.
+- No production credentials are added/exposed and Wrangler is not an execution path.
+- P5 remains IN PROGRESS until merge, exact merge-SHA Android build success, and downloadable APK artifact evidence. Physical-device regression remains a separate acceptance layer and is not claimed without device evidence.
