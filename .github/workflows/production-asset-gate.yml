@@ -10,6 +10,7 @@ on:
       - "scripts/deploy-cloudflare-api.mjs"
       - "wrangler.json"
       - ".github/workflows/production-asset-gate.yml"
+      - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
 
 permissions:

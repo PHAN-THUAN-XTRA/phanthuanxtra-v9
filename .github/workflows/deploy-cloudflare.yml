@@ -14,6 +14,7 @@ on:
       - "AUDIT_*.md"
       - "backup/README.md"
       - "**/*.md"
+      - ".github/workflows/production-asset-gate.yml"
 
 permissions:
   contents: read
