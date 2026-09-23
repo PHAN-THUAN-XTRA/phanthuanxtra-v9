@@ -1,9 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
-> Date: 2026-09-22 (UTC+7)
+> Date: 2026-09-23 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Latest verified main/deploy lineage: `8a8324e7bd46148a1129cd99fbf702959fe69a9f` (PR #377). See section 12.5 for current evidence and PR #378 pending status; older lineage references below are historical, not current release certification.
+> Latest verified main/deploy lineage: `29d84899c65683aacfccb84946afcf175bcfba92` (PR #434). Exact-SHA production deploy, Gate-15, QUEUE-01, CI, Android APK MVP and signed Android Production Release evidence are recorded below.
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -560,4 +560,16 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Android operator app target advanced to versionCode 5 / versionName 1.4.0.
 - Android APK CI now performs source-level credential/safety checks before building: no hard-coded bearer/API token pattern, application backup remains disabled, non-launcher MainActivity remains non-exported, and encrypted SecureTokenStore remains required.
 - APK artifact identity is updated to `phanthuanxtra-apk-v1.4.0-<source-sha>` while retaining SHA-256 output verification.
-- This slice does not claim production signing or physical-device completion. Physical Samsung S21 Ultra regression remains required before final Gate 11 device certification.
+- Historical slice note superseded on 2026-09-23: production signing is now **PASS** on Android Production Release run `35836171648` for exact main SHA `29d84899c65683aacfccb84946afcf175bcfba92`. Physical Samsung S21 Ultra regression remains required before final Gate 11 device certification.
+
+
+## 17.4 Android 1.6.0 signed release + App API alignment — 2026-09-23
+- Current main SHA before this alignment slice: `29d84899c65683aacfccb84946afcf175bcfba92` (PR #434).
+- Exact-SHA production chain is green on the current main: Deploy Cloudflare Worker `35836090738`, Production Smoke Gate-15 `35836090724`, QUEUE-01 Production E2E Origin `35836172466`, CI `35836090902`, Android APK MVP `35836090767`, Stage 3 Production Reconciliation `35836090712`.
+- Android version is `1.6.0` / versionCode `7`; debug APK artifact `phanthuanxtra-apk-v1.6.0-29d84899c65683aacfccb84946afcf175bcfba92` was produced successfully.
+- **Production signing PASS:** Android Production Release run `35836171648` completed successfully on exact SHA `29d84899c65683aacfccb84946afcf175bcfba92`. The workflow validated all four signing inputs, built `app-release.apk`, verified the APK signature with Android build-tools `apksigner`, generated SHA-256, uploaded artifact `phanthuanxtra-signed-release-1.6.0-29d84899c65683aacfccb84946afcf175bcfba92`, and removed the temporary keystore.
+- Verified signer certificate subject: `CN=PHAN THUAN XTRA, O=PHAN THUAN XTRA, C=VN`; APK Signature Scheme v2 verification passed.
+- Gate 11 is **not yet final device-certified**: Samsung Galaxy S21 Ultra physical-device regression remains OPEN. AAB / Google Play publication is a later distribution layer and is not claimed complete by APK signing evidence.
+- Architecture cleanup in this slice aligns the native Android operator app with the canonical `/api/app/v1` namespace while preserving the existing Admin-password UX. `POST /api/app/v1/login` validates the same Admin credential source and issues the existing signed `ptx1` HMAC session; App API authorization accepts either that signed Admin session or the legacy dedicated `APP_API_TOKEN` for backward compatibility.
+- Android `MainActivity` no longer points directly at `/api/admin`; its base URL is `https://phanthuanxtra.com/api/app/v1`. Post-deploy QUEUE-01 is extended to verify App API login, signed-session dashboard access and the App API vehicle-vision route before Gate closure.
+- No new credential or secret is introduced, no production password is rotated, and existing Admin/CMS/App API clients remain backward compatible.

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const source=fs.readFileSync(new URL('../src/app-admin.js',import.meta.url),'utf8');
+const appApi=fs.readFileSync(new URL('../src/app-api.js',import.meta.url),'utf8');
+const androidMain=fs.readFileSync(new URL('../android/app/src/main/java/com/phanthuanxtra/app/MainActivity.java',import.meta.url),'utf8');
 const migration=fs.readFileSync(new URL('../migrations/0012_leads_management.sql',import.meta.url),'utf8');
 
 test('app admin exposes authenticated lead CRUD contract',()=>{
@@ -54,4 +56,16 @@ test('admin control reuses the authenticated session instead of asking for ADMIN
   assert.match(control,/let token=sessionStorage\.getItem\('ptx_admin_token'\)\|\|''/);
   assert.match(control,/if\(!token\)\{location\.replace\('\/admin'\);return\}/);
   assert.match(control,/login\(\);/);
+});
+
+
+test('Android operator app uses the canonical App API namespace with signed Admin-session login',()=>{
+  assert.match(androidMain,/BASE="https:\/\/phanthuanxtra\.com\/api\/app\/v1"/);
+  assert.doesNotMatch(androidMain,/BASE="https:\/\/phanthuanxtra\.com\/api\/admin"/);
+  assert.match(appApi,/\/api\/app\/v1\/login/);
+  assert.match(appApi,/verifyAdminPassword/);
+  assert.match(appApi,/issueAdminToken/);
+  assert.match(appApi,/verifyAdminToken/);
+  assert.match(appApi,/await auth\(r,e\)/);
+  assert.match(appApi,/APP_API_TOKEN/);
 });

@@ -27,7 +27,7 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
-      - name: Admin 200 + signed session + dashboard + D1 CRUD + R2 write/read/delete
+      - name: Admin/App API signed session + dashboard + D1 CRUD + R2 write/read/delete
         shell: bash
         run: |
           set -euo pipefail
@@ -52,6 +52,16 @@ jobs:
           jq -e '.stats and (.stats.cars|type == "number")' /tmp/dashboard.json >/dev/null
           echo 'Authenticated dashboard: OK'
 
+          app_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/app-login.json -w '%{http_code}' -X POST "$BASE_URL/api/app/v1/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "App API login HTTP $app_status"
+          test "$app_status" = "200"
+          APP_SESSION="$(jq -r '.token // empty' /tmp/app-login.json)"
+          test -n "$APP_SESSION"
+          printf '%s' "$APP_SESSION" | grep -Eq '^ptx1\.[0-9]+\.[a-f0-9]{32}\.[A-Za-z0-9_-]+$'
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $APP_SESSION" "$BASE_URL/api/app/v1/dashboard" | tee /tmp/app-dashboard.json
+          jq -e '.stats and (.stats.cars|type == "number")' /tmp/app-dashboard.json >/dev/null
+          echo 'Android App API signed-session login/dashboard: OK'
+
           # One real Workers AI Vision inference per successful production deploy.
           # This is intentionally non-destructive: it validates the same authenticated
           # endpoint used by Android before the D1/R2 lifecycle begins.
@@ -60,8 +70,8 @@ jobs:
           base64 -d tests/fixtures/vehicle-vision-smoke.jpg.b64 > /tmp/vehicle-vision-smoke.jpg
           test -s /tmp/vehicle-vision-smoke.jpg
           vision_status="$(curl --silent --show-error --max-time 90 -o /tmp/vehicle-vision.json -w '%{http_code}' \
-            -X POST "$BASE_URL/api/admin/vehicle/analyze?caption=Production%20Vision%20smoke%3A%20identify%20the%20vehicle%20conservatively" \
-            -H "Authorization: Bearer $SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
+            -X POST "$BASE_URL/api/app/v1/vehicle/analyze?caption=Production%20Vision%20smoke%3A%20identify%20the%20vehicle%20conservatively" \
+            -H "Authorization: Bearer $APP_SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
           echo "Vehicle Vision analyze HTTP $vision_status"
           if [ "$vision_status" != "200" ]; then
             jq -c '{code,diagnostics}' /tmp/vehicle-vision.json || true
@@ -98,4 +108,4 @@ jobs:
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-after.json -w '%{http_code}' "$BASE_URL/media/$MEDIA_KEY")"
           echo "R2 read after delete HTTP $status"
           test "$status" = "404"
-          echo 'QUEUE-01 PRODUCTION E2E: ADMIN 200 + SIGNED SESSION + DASHBOARD + D1 CRUD + R2 WRITE/READ/DELETE = PASS'
+          echo 'QUEUE-01 PRODUCTION E2E: ADMIN + APP API SIGNED SESSION + DASHBOARD + D1 CRUD + R2 WRITE/READ/DELETE = PASS'

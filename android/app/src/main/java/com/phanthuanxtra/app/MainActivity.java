@@ -16,7 +16,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class MainActivity extends Activity {
-  static final String BASE="https://phanthuanxtra.com/api/admin";
+  static final String BASE="https://phanthuanxtra.com/api/app/v1";
   static final String SITE="https://phanthuanxtra.com/";
   static final int PICK_NEW=7, PICK_GALLERY=8;
   static final long MAX_UPLOAD_BYTES=12L*1024L*1024L;
