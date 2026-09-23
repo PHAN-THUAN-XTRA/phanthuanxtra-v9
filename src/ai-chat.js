@@ -144,7 +144,7 @@ function setCached(key,text,model){
 function aiText(response){
   const text=typeof response==="string"
     ? response
-    : response?.response ?? response?.result?.response ?? response?.result?.choices?.[0]?.message?.content;
+    : response?.response ?? response?.choices?.[0]?.message?.content ?? response?.result?.response ?? response?.result?.choices?.[0]?.message?.content;
   return typeof text==="string" ? text.trim() : "";
 }
 function quotaExceeded(error){
