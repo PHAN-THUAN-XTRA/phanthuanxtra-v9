@@ -2,6 +2,8 @@ import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { createPtXtraPlateImage } from "./plate-branding.js";
 import { canAutoPublish, promoteDraft } from "./telegram-ingest.js";
 import { savePost } from "./post-persistence.js";
+import { getPost } from "./post-persistence.js";
+import { answerAutoCustomer, autoBlogSlug, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
@@ -66,13 +68,62 @@ function blogCommand(caption){const raw=clean(caption,12000);if(!/^\/(blog|news)
 async function publishTelegramBlog(env,message,chatId){const token=autoBotToken(env),draft=blogCommand(message?.caption||message?.text);if(!draft)return false;const photo=pickPhoto(message);if(photo){const file=await tg(token,"getFile",{file_id:photo.file_id});const path=clean(file?.file_path,1000);const image=await fetch(`https://api.telegram.org/file/bot${token}/${path}`);if(!image.ok)throw new Error(`Telegram blog image download failed: ${image.status}`);const bytes=await image.arrayBuffer(),type=image.headers.get("content-type")||"image/jpeg",ext=type.includes("png")?"png":type.includes("webp")?"webp":"jpg",key=`blog/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.${ext}`;await env.MEDIA.put(key,bytes,{httpMetadata:{contentType:type,cacheControl:"public,max-age=31536000,immutable"}});draft.cover_image=`/media/${key}`}
  const saved=await savePost(env.DB,draft,{mode:"create",actor:"telegram-auto-bot"});if(!saved.ok)throw new Error(saved.error);await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📰 ĐÃ ĐĂNG BÀI WEBSITE\n${saved.post.title}\n🌐 https://phanthuanxtra.com/blog/${saved.post.slug}`});return true}
 
-async function processTelegramUpdate(env, update, chatId) {
+async function publishAiPhotoBlog(env, message, chatId, caption) {
+  if (!env.DB || !env.MEDIA) throw new Error("Chưa cấu hình nơi lưu bài và ảnh.");
+  const token = autoBotToken(env);
+  const slug = await autoBlogSlug(chatId, message.message_id);
+  let post = await getPost(env.DB, slug);
+  if (!post) {
+    const photo = pickPhoto(message);
+    const file = await tg(token, "getFile", { file_id: photo.file_id });
+    if (!file?.file_path) throw new Error("Không tải được ảnh Telegram.");
+    const image = await fetch(`https://api.telegram.org/file/bot${token}/${file.file_path}`);
+    if (!image.ok) throw new Error("Không tải được ảnh Telegram.");
+    const bytes = await image.arrayBuffer();
+    if (bytes.byteLength > 10 * 1024 * 1024) throw new Error("Vui lòng gửi ảnh nhỏ hơn 10 MB.");
+    const type = image.headers.get("content-type") || "image/jpeg";
+    const generated = await generateVehicleBlog(env, bytes, type, caption);
+    const extension = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+    const key = `blog/${slug}.${extension}`;
+    await env.MEDIA.put(key, bytes, { httpMetadata: { contentType: type, cacheControl: "public,max-age=31536000,immutable" } });
+    ({ post } = await createBlogPost(env, generated.draft, { chatId, slug, coverImage: `/media/${key}` }));
+    console.log("telegram_auto_blog_created", { model: generated.model, vision_model: generated.visionModel });
+  }
+  await tg(token, "sendMessage", { chat_id: chatId, text: `📰 BÀI BLOG\n${post.title}\nhttps://phanthuanxtra.com/blog/${post.slug}` });
+}
+
+export async function processTelegramUpdate(env, update, chatId) {
   const token = autoBotToken(env);
   const message = update?.message || update?.channel_post;
-  if (blogCommand(message?.caption || message?.text)) { await publishTelegramBlog(env, message, chatId); return; }
   if (!message?.chat?.id) return;
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
+  const command = parseAutoCommand(caption);
+  if (["start", "help"].includes(command?.name)) {
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — nhập xe theo luồng hiện tại." });
+    return;
+  }
+  if (["blog", "news"].includes(command?.name)) {
+    if (!canPublishAutoBlog(env, chatId)) {
+      await tg(token, "sendMessage", { chat_id: chatId, text: "Chat này chưa được cấp quyền đăng Blog. Bạn có thể dùng /chat để được tư vấn." });
+      return;
+    }
+    if (photo) { await publishAiPhotoBlog(env, message, chatId, command.body); return; }
+    const normalized = { ...message, text: `/blog ${command.body}` };
+    if (blogCommand(normalized.text)) { await publishTelegramBlog(env, normalized, chatId); return; }
+    await tg(token, "sendMessage", { chat_id: chatId, text: "Gửi ảnh xe kèm /blog và ghi chú để AI tạo bài, hoặc /blog với tiêu đề và nội dung trên hai dòng." });
+    return;
+  }
+  if (!photo && (command?.name === "chat" || isAutoChat(caption))) {
+    if (command && !command.body) { await tg(token, "sendMessage", { chat_id: chatId, text: "Nhập /chat cùng câu hỏi về xe của bạn." }); return; }
+    const result = await answerAutoCustomer(env, command?.body || caption);
+    await tg(token, "sendMessage", { chat_id: chatId, text: result.answer });
+    return;
+  }
+  if (command) {
+    await tg(token, "sendMessage", { chat_id: chatId, text: "Gõ /help để xem các lệnh hỗ trợ." });
+    return;
+  }
   if (!photo && !caption) return;
   if (!env.DB || !env.MEDIA) {
     const reason = !env.DB && !env.MEDIA ? "D1/MEDIA" : !env.DB ? "D1" : "MEDIA";
@@ -115,9 +166,14 @@ async function autoWebhook(request, env, ctx) {
   const caption = clean(message.caption || message.text);
   if (!photo && !caption) return json({ ok: true, ignored: true });
   const chatId = String(message.chat.id);
-  try { await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: telegramWebhookReceipt(Boolean(photo)) }); } catch (error) { console.error("telegram_receipt_failed", clean(error?.message || error)); }
-  if (ctx) ctx.waitUntil(processTelegramUpdate(env, update, chatId).catch(error => console.error("telegram_update_failed", clean(error?.message || error))));
-  else processTelegramUpdate(env, update, chatId).catch(error => console.error("telegram_update_failed", clean(error?.message || error)));
+  const receipt = parseAutoCommand(caption) || (!photo && isAutoChat(caption)) ? "📥 Đã nhận yêu cầu. Đang xử lý..." : telegramWebhookReceipt(Boolean(photo));
+  try { await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: receipt }); } catch (error) { console.error("telegram_receipt_failed", clean(error?.message || error)); }
+  const task = processTelegramUpdate(env, update, chatId).catch(async () => {
+    console.error("telegram_update_failed");
+    await tg(token, "sendMessage", { chat_id: chatId, text: "Chưa xử lý được yêu cầu. Vui lòng thử lại sau; không gửi lại liên tục." }).catch(() => {});
+  });
+  if (ctx) ctx.waitUntil(task);
+  else await task;
   return json({ ok: true, received: true, queued: Boolean(ctx) });
 }
 
