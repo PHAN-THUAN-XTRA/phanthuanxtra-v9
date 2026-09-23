@@ -1,4 +1,4 @@
-name: Production Asset Delivery Gate
+name: "Production Asset Delivery Gate"
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
           test "$(grep -Foc '</html>' "$home")" = "1"
           check_asset "/car.html?id=__p4_missing__" "vehicleDetail"
 
-          # Editorial UTF-8 regression: verify real production bytes, headers and Vietnamese markers.
+          # Editorial UTF-8 production regression.
           check_editorial_utf8() {
             local path="$1" marker="$2"
             local body headers status
