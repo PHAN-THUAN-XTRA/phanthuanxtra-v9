@@ -535,3 +535,13 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - P5 slice 1 bumps Android to version `1.3.0` / versionCode `4` and hardens build evidence: APK size validation, SHA-256, source SHA, and version + source-SHA artifact naming.
 - No production credentials are added/exposed and Wrangler is not an execution path.
 - P5 remains IN PROGRESS until merge, exact merge-SHA Android build success, and downloadable APK artifact evidence. Physical-device regression remains a separate acceptance layer and is not claimed without device evidence.
+
+
+### 17.1 P5 GitHub / Cloudflare simplification audit
+- Exact P5 slice-1 merge SHA: `15cee054859ab3f9cc104bb9e3ae756b8436ac95`; exact-SHA Deploy, Gate-15, QUEUE-01, Android APK, Static Audit, CI, Credential Safety, Admin Pipeline and Stage 3 are green.
+- Android artifact evidence: `phanthuanxtra-apk-v1.3.0-15cee054859ab3f9cc104bb9e3ae756b8436ac95` from exact-SHA Android run 35806013581.
+- Cloudflare binding decision remains KEEP for ASSETS, AI, IMAGES, AI_SEARCH, MEDIA/R2, DB/D1 and cron because production source dependencies exist for each; no binding deletion is justified.
+- GitHub inventory contains 36 workflow YAML files. Core production safety/deploy workflows remain unchanged in this slice.
+- Application Validation no longer executes Wrangler. It performs static JSON/config contract validation only; deployment remains owned by the GitHub Actions Cloudflare API/SDK deploy workflow.
+- Consolidation candidates identified for a later deletion PR only after dependency/trigger proof: legacy manual smoke/runtime-evidence workflows, completed one-shot Cloudflare repair/cleanup workflows, and overlapping AI audit/executor workflows. No safety workflow is deleted by this audit slice.
+- Cloudflare operational target: one read-only inventory/audit path, one deploy path, and one strict post-deploy E2E path; account-level mutation remains explicit/manual.
