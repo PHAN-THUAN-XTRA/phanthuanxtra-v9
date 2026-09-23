@@ -17,6 +17,8 @@ jobs:
       TELEGRAM_CRM_BOT_TOKEN: ${{ secrets.TELEGRAM_CRM_BOT_TOKEN }}
       TELEGRAM_CRM_CHAT_ID: ${{ secrets.TELEGRAM_CRM_CHAT_ID }}
       TELEGRAM_CHAT_BOT_TOKEN: ${{ secrets.TELEGRAM_CHAT_BOT_TOKEN }}
+      TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
+      TELEGRAM_BACKUP_CHAT_ID: ${{ secrets.TELEGRAM_BACKUP_CHAT_ID }}
 
     steps:
       - name: Check secret presence without revealing values
@@ -104,6 +106,19 @@ jobs:
           printf '%s' "$crm_chat" | jq -e '.ok == true' >/dev/null
           echo "CRM destination: ✅ accessible; type=$(printf '%s' "$crm_chat" | jq -r '.result.type // "unknown"')"
 
+          echo ""
+          echo "===== BACKUP BOT ====="
+          [[ -n "${TELEGRAM_BACKUP_BOT_TOKEN:-}" ]] || { echo "❌ TELEGRAM_BACKUP_BOT_TOKEN is missing"; exit 1; }
+          [[ -n "${TELEGRAM_BACKUP_CHAT_ID:-}" ]] || { echo "❌ TELEGRAM_BACKUP_CHAT_ID is missing"; exit 1; }
+          backup_me="$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 1 --request POST --url "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/getMe")"
+          printf '%s' "$backup_me" | jq -e '.ok == true' >/dev/null
+          echo "Telegram API: ✅ ok=true"
+          echo "Bot ID: $(printf '%s' "$backup_me" | jq -r '.result.id // "unknown"')"
+          echo "Username: $(printf '%s' "$backup_me" | jq -r '.result.username // "unknown"')"
+          backup_chat="$(curl --fail-with-body --silent --show-error --retry 2 --retry-delay 1 -H 'Content-Type: application/json' --data "$(jq -nc --arg chat_id "$TELEGRAM_BACKUP_CHAT_ID" '{chat_id:$chat_id}')" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/getChat")"
+          printf '%s' "$backup_chat" | jq -e '.ok == true' >/dev/null
+          echo "Backup destination: ✅ accessible; type=$(printf '%s' "$backup_chat" | jq -r '.result.type // "unknown"')"
+
           if [[ -n "${TELEGRAM_CHAT_BOT_TOKEN:-}" ]]; then
             echo ""
             echo "===== OPTIONAL SEPARATE AI CHAT BOT ====="
@@ -120,6 +135,7 @@ jobs:
           auto_id="$(curl --silent "https://api.telegram.org/bot${TELEGRAM_AUTO_BOT_TOKEN}/getMe" | jq -r '.result.id // empty')"
           vip_id="$(curl --silent "https://api.telegram.org/bot${TELEGRAM_VIP_BOT_TOKEN}/getMe" | jq -r '.result.id // empty')"
           crm_id="$(printf '%s' "$crm_me" | jq -r '.result.id // empty')"
+          backup_id="$(printf '%s' "$backup_me" | jq -r '.result.id // empty')"
           chat_id=""
           if [[ -n "${TELEGRAM_CHAT_BOT_TOKEN:-}" ]]; then chat_id="$(printf '%s' "$chat_me" | jq -r '.result.id // empty')"; fi
           printf "Distinct configured bot IDs: "; printf "%s\n" "$auto_id" "$vip_id" "$crm_id" "$chat_id" | sed '/^$/d' | sort -u | wc -l
