@@ -5,9 +5,6 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -19,7 +16,6 @@ import android.net.Uri;
 
 /** XTRA premium operator cockpit. Credentials stay encrypted on-device and are never injected into WebView. */
 public final class OperatorHubActivity extends Activity {
-    private static final String CHAT_URL = "https://ask-ai-agent.phanthuanmodelactor.workers.dev/";
     private static final int BLACK = Color.rgb(5,5,5), CARBON = Color.rgb(16,18,20), GRAPHITE = Color.rgb(26,29,32);
     private static final int GOLD = Color.rgb(212,175,55), SOFT_GOLD = Color.rgb(231,201,104);
     private static final int JADE = Color.rgb(0,168,132), WHITE = Color.rgb(244,245,242), SILVER = Color.rgb(169,175,181);
@@ -50,7 +46,7 @@ public final class OperatorHubActivity extends Activity {
     private LinearLayout card() { LinearLayout c = new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setPadding(18,14,18,16); c.setBackground(bg(CARBON, 20, Color.rgb(43,46,48), 1)); return c; }
 
     private void build() {
-        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(16,18,16,10); root.setBackgroundColor(BLACK);
+        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(14,16,14,8); root.setBackgroundColor(BLACK);
         LinearLayout head = new LinearLayout(this); head.setOrientation(LinearLayout.HORIZONTAL); head.setGravity(Gravity.CENTER_VERTICAL);
         TextView brand = text("PHAN THUẦN XTRA", 22, WHITE); brand.setTypeface(null, android.graphics.Typeface.BOLD); head.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
         TextView live = text("● LIVE", 12, JADE); live.setTypeface(null, android.graphics.Typeface.BOLD); head.addView(live); root.addView(head);
@@ -74,11 +70,6 @@ public final class OperatorHubActivity extends Activity {
         Button site = button("PHANTHUANXTRA.COM  ↗", v -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://phanthuanxtra.com/"))), false); quick.addView(site);
         root.addView(quick); gap(root,10);
 
-        LinearLayout aiHead = new LinearLayout(this); aiHead.setGravity(Gravity.CENTER_VERTICAL);
-        TextView ai = text("ASK AI AGENT", 16, WHITE); ai.setTypeface(null, android.graphics.Typeface.BOLD); aiHead.addView(ai,new LinearLayout.LayoutParams(0,-2,1));
-        aiHead.addView(text("● AI / JADE", 10, JADE)); root.addView(aiHead); root.addView(text("TRỢ LÝ ĐIỀU HÀNH XTRA",10,SILVER));
-        WebView chat = new WebView(this); WebSettings ws=chat.getSettings(); ws.setJavaScriptEnabled(true); ws.setDomStorageEnabled(true); ws.setBuiltInZoomControls(false); ws.setDisplayZoomControls(false); chat.setWebChromeClient(new WebChromeClient()); chat.setBackgroundColor(BLACK); chat.loadUrl(CHAT_URL);
-        root.addView(chat,new LinearLayout.LayoutParams(-1,0,1));
         status=text("Sẵn sàng. Hệ thống bảo mật hoạt động.",10,SILVER); status.setGravity(Gravity.CENTER_VERTICAL); root.addView(status);
         setContentView(root);
     }
