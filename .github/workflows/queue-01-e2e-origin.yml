@@ -27,7 +27,7 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
-      - name: Admin 200 + signed session + dashboard + D1 CRUD + R2 write/read/delete
+      - name: Admin/App API signed session + dashboard + D1 CRUD + R2 write/read/delete
         shell: bash
         run: |
           set -euo pipefail
@@ -51,6 +51,62 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $SESSION" "$BASE_URL/api/admin/dashboard" | tee /tmp/dashboard.json
           jq -e '.stats and (.stats.cars|type == "number")' /tmp/dashboard.json >/dev/null
           echo 'Authenticated dashboard: OK'
+
+          app_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/app-login.json -w '%{http_code}' -X POST "$BASE_URL/api/app/v1/login" -H 'content-type: application/json' --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "App API login HTTP $app_status"
+          test "$app_status" = "200"
+          APP_SESSION="$(jq -r '.token // empty' /tmp/app-login.json)"
+          test -n "$APP_SESSION"
+          printf '%s' "$APP_SESSION" | grep -Eq '^ptx1\.[0-9]+\.[a-f0-9]{32}\.[A-Za-z0-9_-]+
+          # This is intentionally non-destructive: it validates the same authenticated
+          # endpoint used by Android before the D1/R2 lifecycle begins.
+          # Use a repository-owned deterministic JPEG fixture so production evidence
+          # cannot be blocked by an external image host changing/denying the URL.
+          base64 -d tests/fixtures/vehicle-vision-smoke.jpg.b64 > /tmp/vehicle-vision-smoke.jpg
+          test -s /tmp/vehicle-vision-smoke.jpg
+          vision_status="$(curl --silent --show-error --max-time 90 -o /tmp/vehicle-vision.json -w '%{http_code}' \
+            -X POST "$BASE_URL/api/app/v1/vehicle/analyze?caption=Production%20Vision%20smoke%3A%20identify%20the%20vehicle%20conservatively" \
+            -H "Authorization: Bearer $APP_SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
+          echo "Vehicle Vision analyze HTTP $vision_status"
+          if [ "$vision_status" != "200" ]; then
+            jq -c '{code,diagnostics}' /tmp/vehicle-vision.json || true
+          fi
+          test "$vision_status" = "200"
+          jq -e '.ok == true and (.analysis|type=="object") and (.analysis._ai_model|type=="string") and (.analysis._ai_model|length>0)' /tmp/vehicle-vision.json >/dev/null
+          echo "Vehicle Vision runtime: PASS model=$(jq -r '.analysis._ai_model' /tmp/vehicle-vision.json)"
+          TEST_IMAGE_URL="https://phanthuanxtra.com/media/vehicles/publish-admin-${TEST_CAR_ID}.jpg"
+          export TEST_IMAGE_URL
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "$BASE_URL/api/admin/cars" -H "Authorization: Bearer $SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Origin\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"hidden\",\"description\":\"Queue-01 production E2E; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}" | tee /tmp/create.json
+          jq -e '.ok == true and .id == env.TEST_CAR_ID' /tmp/create.json >/dev/null
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $SESSION" "$BASE_URL/api/admin/cars/$TEST_CAR_ID" | tee /tmp/read-one.json
+          jq -e --arg id "$TEST_CAR_ID" '.car.id == $id and .car.brand == "PT XTRA TEST"' /tmp/read-one.json >/dev/null
+          echo 'D1 CRUD create/read: OK'
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X DELETE "$BASE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $SESSION" | tee /tmp/delete.json
+          jq -e '.ok == true and .deleted == env.TEST_CAR_ID' /tmp/delete.json >/dev/null
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/read-after-delete.json -w '%{http_code}' -H "Authorization: Bearer $SESSION" "$BASE_URL/api/admin/cars/$TEST_CAR_ID")"
+          echo "D1 read after delete HTTP $status"
+          test "$status" = "404"
+          echo 'D1 CRUD delete: OK'
+          printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' | base64 -d > /tmp/xtra-e2e.png
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-upload.json -w '%{http_code}' -X POST "$BASE_URL/api/admin/media" -H "Authorization: Bearer $SESSION" -H 'content-type: image/png' --data-binary @/tmp/xtra-e2e.png)"
+          echo "R2 write/upload HTTP $status"
+          test "$status" = "200"
+          MEDIA_KEY="$(jq -r '.key // empty' /tmp/media-upload.json)"
+          test -n "$MEDIA_KEY"
+          export MEDIA_KEY
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$BASE_URL/media/$MEDIA_KEY" -o /tmp/read.png
+          cmp /tmp/xtra-e2e.png /tmp/read.png
+          echo 'R2 Worker route write/read: OK'
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-delete.json -w '%{http_code}' -X DELETE "$BASE_URL/api/admin/media/$MEDIA_KEY" -H "Authorization: Bearer $SESSION")"
+          echo "R2 delete HTTP $status"
+          test "$status" = "200"
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-after.json -w '%{http_code}' "$BASE_URL/media/$MEDIA_KEY")"
+          echo "R2 read after delete HTTP $status"
+          test "$status" = "404"
+          echo 'QUEUE-01 PRODUCTION E2E: ADMIN + APP API SIGNED SESSION + DASHBOARD + D1 CRUD + R2 WRITE/READ/DELETE = PASS'
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $APP_SESSION" "$BASE_URL/api/app/v1/dashboard" | tee /tmp/app-dashboard.json
+          jq -e '.stats and (.stats.cars|type == "number")' /tmp/app-dashboard.json >/dev/null
+          echo 'Android App API signed-session login/dashboard: OK'
 
           # One real Workers AI Vision inference per successful production deploy.
           # This is intentionally non-destructive: it validates the same authenticated
