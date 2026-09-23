@@ -11,15 +11,7 @@
     "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "run_worker_first": [
-      "/admin",
-      "/admin/",
-      "/admin.html",
-      "/api/*",
-      "/media/*",
-      "/blog/*",
-      "/blog"
-    ]
+    "run_worker_first": true
   },
   "observability": {
     "enabled": true
