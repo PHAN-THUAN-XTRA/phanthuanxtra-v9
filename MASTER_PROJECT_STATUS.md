@@ -647,4 +647,3 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - After a WebP replacement is verified and no required reference remains, remove the superseded JPG/PNG and add the smallest targeted regression coverage required by the pre-deploy audit.
 - Founder article `/phan-thuan` uses `/images/phan-thuan-founder-office-2026.webp`; the replaced Founder JPEG has been removed.
 - PR #465 removed `gx460-luxury.jpg`, `lx600-urban.jpg`, and `porsche-718-boxster.jpg` with targeted regression coverage. Final production status remains evidence-driven; do not mark GREEN from documentation alone.
-
