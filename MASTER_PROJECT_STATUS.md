@@ -1,9 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
-> Date: 2026-09-23 (UTC+7)
+> Date: 2026-09-24 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Latest verified main/deploy lineage: `f87f637d66ec4b5a4dbc1ac3e4f19b88fa2e28e3` (PR #435). Exact-SHA production deploy, Gate-15, QUEUE-01 App API runtime, CI, Android APK MVP and Stage 3 evidence are green; the signed Android 1.6.0 release remains verified on predecessor SHA `29d84899c65683aacfccb84946afcf175bcfba92`.
+> Latest verified main/deploy lineage: `36ccdbda537766fad32924e4d5244a27faec5d7b` (PR #453). Exact-SHA production deploy, Gate-15, QUEUE-01, Blog CMS lifecycle, CI, Android APK MVP and Stage 3 evidence are green; PR validation is fail-closed from the production environment. The signed Android 1.6.0 release remains verified on predecessor SHA `29d84899c65683aacfccb84946afcf175bcfba92`.
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
@@ -631,5 +631,11 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Behavior-changing files under `src/`, `public/`, `scripts/` or Android source require a changed regression test in the same PR; otherwise the audit raises HIGH and blocks eligibility.
 - Adds `test/predeploy-audit.test.js` to guard the audit contract and runs the repository `npm test` suite after the diff audit.
 - This is intentionally deterministic and secret-free: no external GPT/OpenAI credential is introduced into Actions. ChatGPT/GPT remains the deeper PR-review/test-authoring layer, while this required-check candidate provides reproducible enforcement in GitHub CI.
-- Phase 2 remains **OPEN** until this implementation PR passes its own CI/audit checks, merges, and the repository branch rules require `AI Pre-Deploy Audit / Validate` before merge. Exact-SHA production runtime/E2E remains a separate post-merge gate.
+- Phase 2 enforcement is **🟢 COMPLETE** as of 2026-09-24. PR #451 merged the executable audit; repository rules require `AI Pre-Deploy Audit / Validate` alongside `CI / Validate`.
+- Negative enforcement proof: PR #452 / run `35942024544` intentionally added an inert synthetic credential-like fixture. The required audit emitted `[BLOCKER] Possible hard-coded credential`, `DEPLOY LOCKED: 1 unresolved BLOCKER/HIGH finding(s).`, and exited 1. The fixture was validation-only and must not be merged.
+- Deploy-path root cause found during #452: `.github/workflows/deploy-cloudflare.yml` attached `environment: production` to its PR validation job, causing misleading production deployment metadata even though the actual production deploy job was skipped.
+- PR #453 fixed that boundary and merged as exact main SHA `36ccdbda537766fad32924e4d5244a27faec5d7b`: PR validation no longer enters the production environment; only the real deploy job carries `environment: production`; deployment is fail-closed to successful validation on `refs/heads/main` for `push` or manual `workflow_dispatch`.
+- PR #453 itself showed no PR deployment record. Exact-SHA post-merge production chain is green: Deploy Cloudflare Worker `35942571871`; Production Smoke Gate-15 `35942571841`; QUEUE-01 Production E2E Origin `35942638421`; Blog CMS Production E2E `35942638436`; CI `35942571826`; Android APK MVP `35942571935`; Release Gate Static Audit `35942571820`; Production Credential Safety `35942571898`; Admin PT Xtra Pipeline `35942571839`; Homepage Canonical Verify `35942571843`; Admin Redirect Verify `35942571870`; Stage 3 Production Reconciliation `35942571878`.
+- Deploy run `35942571871` passed Cloudflare API/SDK deployment, public production boundary, editorial/Admin UTF-8 checks, and R2 Worker E2E GET -> DELETE -> 404. Gate-15 passed website/Worker, Admin auth, D1 CRUD, Gateway/AI quota-conservation boundaries, credential safety and R2 media lifecycle. QUEUE-01 passed signed Admin/App API session, dashboard, D1 CRUD and R2 lifecycle on the exact deployed revision. Blog CMS E2E passed CREATE -> READ -> public UTF-8 -> UPDATE -> DELETE -> 404.
+- GPT/ChatGPT remains the deeper review/test-authoring layer; the GitHub required check is deterministic enforcement. No model judgment alone is production PASS evidence.
 \n
