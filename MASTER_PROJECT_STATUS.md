@@ -638,4 +638,12 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - PR #453 itself showed no PR deployment record. Exact-SHA post-merge production chain is green: Deploy Cloudflare Worker `35942571871`; Production Smoke Gate-15 `35942571841`; QUEUE-01 Production E2E Origin `35942638421`; Blog CMS Production E2E `35942638436`; CI `35942571826`; Android APK MVP `35942571935`; Release Gate Static Audit `35942571820`; Production Credential Safety `35942571898`; Admin PT Xtra Pipeline `35942571839`; Homepage Canonical Verify `35942571843`; Admin Redirect Verify `35942571870`; Stage 3 Production Reconciliation `35942571878`.
 - Deploy run `35942571871` passed Cloudflare API/SDK deployment, public production boundary, editorial/Admin UTF-8 checks, and R2 Worker E2E GET -> DELETE -> 404. Gate-15 passed website/Worker, Admin auth, D1 CRUD, Gateway/AI quota-conservation boundaries, credential safety and R2 media lifecycle. QUEUE-01 passed signed Admin/App API session, dashboard, D1 CRUD and R2 lifecycle on the exact deployed revision. Blog CMS E2E passed CREATE -> READ -> public UTF-8 -> UPDATE -> DELETE -> 404.
 - GPT/ChatGPT remains the deeper review/test-authoring layer; the GitHub required check is deterministic enforcement. No model judgment alone is production PASS evidence.
-\n
+
+
+### 19.2 Image asset policy — canonical record
+- Canonical rule: project status and operational policy updates are recorded in `MASTER_PROJECT_STATUS.md` only; do not create competing policy/status Markdown files.
+- Website image uploads must be converted to **WebP** before production use when WebP satisfies the functional requirement.
+- Preserve source aspect ratio, declare correct intrinsic `width`/`height`, optimize payload size, and use descriptive cache-safe/immutable production filenames.
+- After a WebP replacement is verified and no required reference remains, remove the superseded JPG/PNG and add the smallest targeted regression coverage required by the pre-deploy audit.
+- Founder article `/phan-thuan` uses `/images/phan-thuan-founder-office-2026.webp`; the replaced Founder JPEG has been removed.
+- PR #465 removed `gx460-luxury.jpg`, `lx600-urban.jpg`, and `porsche-718-boxster.jpg` with targeted regression coverage. Final production status remains evidence-driven; do not mark GREEN from documentation alone.
