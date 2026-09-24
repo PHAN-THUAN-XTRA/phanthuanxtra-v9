@@ -9,6 +9,7 @@ const env = {
   DUAL_AI_DEEP_MODEL: '@cf/nvidia/nemotron-3-120b-a12b',
   DUAL_AI_WIDE_MODEL: '@cf/zai-org/glm-4.7-flash',
   PRODUCTION_MUTATIONS_ENABLED: 'false',
+  APK_RATE_LIMITER: { limit: async () => ({ success: true }) },
   AI: { run: async () => ({ response: 'peer-result' }) }
 };
 
@@ -51,4 +52,20 @@ test('dual endpoint never enables production mutation', async () => {
   }), env);
   const body = await response.json();
   assert.equal(body.production_mutation, false);
+});
+
+
+test('dual endpoint returns 429 when APK limiter rejects request', async () => {
+  const limitedEnv = { ...env, APK_RATE_LIMITER: { limit: async () => ({ success: false }) } };
+  const response = await worker.fetch(new Request('https://gateway.example.com/v1/ai/unified', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ instruction: 'test' })
+  }), limitedEnv);
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get('retry-after'), '60');
+  const body = await response.json();
+  assert.equal(body.error, 'rate_limit_exceeded');
+  assert.equal(body.limit, 50);
+  assert.equal(body.period_seconds, 60);
 });
