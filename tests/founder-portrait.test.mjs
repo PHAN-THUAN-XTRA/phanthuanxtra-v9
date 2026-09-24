@@ -8,3 +8,11 @@ test('Founder portrait is a high-quality office portrait asset', async () => {
   assert.equal(image.subarray(0, 4).toString('ascii'), 'RIFF');
   assert.equal(image.subarray(8, 12).toString('ascii'), 'WEBP');
 });
+
+
+test('legacy Founder JPEG has been removed after WebP replacement', async () => {
+  await assert.rejects(
+    readFile(new URL('../public/images/phan-thuan-founder-office-2026.jpg', import.meta.url)),
+    error => error?.code === 'ENOENT'
+  );
+});
