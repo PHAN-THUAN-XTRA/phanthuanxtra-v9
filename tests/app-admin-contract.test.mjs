@@ -82,3 +82,13 @@ test('Android operator hub exposes XTRA AI Assistant through App API', () => {
   assert.match(androidMain, /XTRA AI ASSISTANT/);
   assert.match(androidMain, /"\/assistant"/);
 });
+
+
+test('App API routes assistant through AI Gateway default and exposes bounded sentiment classification', () => {
+  assert.match(appApi, /gateway:\{id:"default"/);
+  assert.match(appApi, /cf-aig-metadata/);
+  assert.match(appApi, /\/api\/app\/v1\/sentiment/);
+  assert.match(appApi, /@cf\/huggingface\/distilbert-sst-2-int8/);
+  assert.match(appApi, /text\(b\.text,2000\)/);
+  assert.match(appApi, /skipCache:true/);
+});
