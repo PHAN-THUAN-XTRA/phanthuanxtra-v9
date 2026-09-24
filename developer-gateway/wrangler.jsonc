@@ -6,6 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "ai": { "binding": "AI" },
+  "ratelimits": [{ "name": "APK_RATE_LIMITER", "namespace_id": "2026092450", "simple": { "limit": 50, "period": 60 } }],
   "vars": {
     "GATEWAY_MODE": "readonly",
     "PRODUCTION_MUTATIONS_ENABLED": "false",
