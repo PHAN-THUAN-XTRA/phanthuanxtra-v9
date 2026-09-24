@@ -6,6 +6,7 @@ name: Deploy Cloudflare Worker
 on:
   workflow_dispatch:
   pull_request:
+    # PR runs are validation-only. Production mutation is restricted to main push/manual dispatch.
   push:
     branches:
       - main
@@ -30,7 +31,6 @@ env:
 jobs:
   validate:
     name: CI / Validate
-    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -76,7 +76,8 @@ jobs:
 
   deploy:
     name: Deploy production Worker (Cloudflare API/SDK)
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    # Fail closed: pull_request events must never enter the production environment or mutate Cloudflare.
+    if: ${{ needs.validate.result == 'success' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     needs: validate
     environment: production
     runs-on: ubuntu-latest
