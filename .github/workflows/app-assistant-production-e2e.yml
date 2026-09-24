@@ -1,0 +1,62 @@
+name: App Assistant Production E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/app-api.js"
+      - "android/**"
+      - ".github/workflows/app-assistant-production-e2e.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-assistant-production-e2e
+  cancel-in-progress: false
+
+jobs:
+  assistant-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_PASSWORD: ${{ secrets['ADMIN_PASSWORD'] }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require production credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ADMIN_PASSWORD:-}" || { echo 'BLOCKED: ADMIN_PASSWORD unavailable'; exit 1; }
+      - name: Authenticate App API and verify AI assistant
+        shell: bash
+        run: |
+          set -euo pipefail
+          login_status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/app-login.json -w '%{http_code}' \
+            -X POST "$SITE_URL/api/app/v1/login" \
+            -H 'content-type: application/json' \
+            --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "App API login HTTP $login_status"
+          test "$login_status" = "200"
+          APP_TOKEN="$(jq -r '.token // empty' /tmp/app-login.json)"
+          test -n "$APP_TOKEN"
+
+          status="$(curl --silent --show-error --max-time 90 -o /tmp/assistant.json -w '%{http_code}' \
+            -X POST "$SITE_URL/api/app/v1/assistant" \
+            -H "Authorization: Bearer $APP_TOKEN" \
+            -H 'content-type: application/json' \
+            --data '{"question":"Hãy xác nhận trợ lý PHAN THUẦN XTRA đang hoạt động. Không thay đổi dữ liệu sản xuất và chỉ trả lời ngắn gọn."}')"
+          echo "Assistant HTTP $status"
+          test "$status" = "200"
+          jq -e '.ok == true and (.answer | type == "string" and length > 0) and (.model | type == "string" and length > 0)' /tmp/assistant.json >/dev/null
+          model="$(jq -r '.model' /tmp/assistant.json)"
+          case "$model" in
+            "@cf/meta/llama-3.1-8b-instruct-fast"|"@cf/qwen/qwen3.8-27b"|"@cf/nvidia/nemotron-3-120b-a12b") ;;
+            *) echo "Unexpected assistant model: $model"; exit 1 ;;
+          esac
+          echo "App Assistant production E2E: PASS"
+          echo "Model: $model"
