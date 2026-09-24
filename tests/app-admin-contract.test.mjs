@@ -69,3 +69,16 @@ test('Android operator app uses the canonical App API namespace with signed Admi
   assert.match(appApi,/await auth\(r,e\)/);
   assert.match(appApi,/APP_API_TOKEN/);
 });
+
+
+test('App API exposes authenticated native AI assistant with free-first fallback chain', () => {
+  assert.match(appApi, /\/api\/app\/v1\/assistant/);
+  assert.match(appApi, /@cf\/meta\/llama-3\.1-8b-instruct-fast/);
+  assert.match(appApi, /@cf\/qwen\/qwen3\.8-27b/);
+  assert.match(appApi, /rejectIfBusy:true/);
+});
+
+test('Android operator hub exposes XTRA AI Assistant through App API', () => {
+  assert.match(androidMain, /XTRA AI ASSISTANT/);
+  assert.match(androidMain, /"\/assistant"/);
+});

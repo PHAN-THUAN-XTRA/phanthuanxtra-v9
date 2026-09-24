@@ -71,7 +71,10 @@ async function uploadWorker() {
     main_module: "developer-gateway/src/dual-gateway.js",
     compatibility_date: "2026-08-11",
     compatibility_flags: ["nodejs_compat"],
-    bindings: await currentBindings(),
+    bindings: [
+      ...(await currentBindings()).filter(binding => binding.name !== "APK_RATE_LIMITER"),
+      { name: "APK_RATE_LIMITER", type: "ratelimit", namespace_id: "2026092450", simple: { limit: 50, period: 60 } },
+    ],
     annotations: {
       "workers/message": `API gateway deploy ${process.env.GITHUB_SHA || "local"}`,
       "workers/tag": process.env.GITHUB_SHA || "api-gateway-deploy",
