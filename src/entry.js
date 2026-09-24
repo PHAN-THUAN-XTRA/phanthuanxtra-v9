@@ -13,6 +13,7 @@ import { handleAdminVehiclePipeline } from "./admin-vehicle-pipeline.js";
 import { reconcileTelegramNotifications } from "./telegram-notifications.js";
 import { handlePublishCore } from "./publish-core.js";
 import { handleBlog } from "./blog.js";
+import { reconcileSeo } from "./seo-ai.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
 
@@ -135,6 +136,10 @@ export default {
         console.log("telegram_vip_webhook_post_heal_status",JSON.stringify(verified));
       }
     } catch (error) { console.error("telegram_vip_webhook_self_heal_failed",String(error?.message||error)); }
+    try {
+      const seo=await reconcileSeo(env);
+      console.log("seo_ai_reconcile",JSON.stringify(seo));
+    } catch (error) { console.error("seo_ai_reconcile_failed",String(error?.message||error)); }
     try {
       const result=await reconcileTelegramNotifications(env);
       console.log("telegram_notifications_reconcile",JSON.stringify(result));
