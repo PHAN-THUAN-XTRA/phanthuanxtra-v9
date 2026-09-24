@@ -1,0 +1,33 @@
+name: Prepare Founder WebP
+on:
+  push:
+    branches:
+      - fix/founder-portrait-webp-20260924
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/founder-portrait-webp-20260924
+      - name: Download approved Founder source
+        run: |
+          curl --fail --location --retry 3 'https://pub-8ac5e22d50cc4037a7d492308a4c50cc.r2.dev/ChatGPT%20Image%2011_11_44%2024%20thg%209%2C%202026.png' -o /tmp/founder.png
+      - name: Convert to optimized WebP
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq webp
+          cwebp -quiet -q 82 -resize 768 0 /tmp/founder.png -o public/images/phan-thuan-founder-office-2026.webp
+          file public/images/phan-thuan-founder-office-2026.webp
+          sha256sum public/images/phan-thuan-founder-office-2026.webp
+      - name: Commit binary asset
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/images/phan-thuan-founder-office-2026.webp
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix(web): add approved Founder WebP asset'
+          git push origin HEAD:fix/founder-portrait-webp-20260924
