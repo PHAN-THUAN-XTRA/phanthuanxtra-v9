@@ -16,3 +16,13 @@ test('legacy Founder JPEG has been removed after WebP replacement', async () => 
     error => error?.code === 'ENOENT'
   );
 });
+
+
+test('retired legacy vehicle JPG assets stay removed', async () => {
+  for (const filename of ['gx460-luxury.jpg', 'lx600-urban.jpg', 'porsche-718-boxster.jpg']) {
+    await assert.rejects(
+      readFile(new URL('../public/images/' + filename, import.meta.url)),
+      error => error?.code === 'ENOENT'
+    );
+  }
+});
