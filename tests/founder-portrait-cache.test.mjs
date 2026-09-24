@@ -4,5 +4,5 @@ import { readFile } from 'node:fs/promises';
 
 test('Founder page uses the immutable high-quality portrait filename', async () => {
   const html = await readFile(new URL('../public/phan-thuan.html', import.meta.url), 'utf8');
-  assert.match(html, /src="\/images\/phan-thuan-founder-office-2026\.jpg"/);
+  assert.match(html, /src="\/images\/phan-thuan-founder-office-2026\.webp"/);
 });
