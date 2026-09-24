@@ -7,7 +7,8 @@ import { listPosts, getPost, savePost, deletePost } from "./post-persistence.js"
 const SEC={"X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"strict-origin-when-cross-origin","Strict-Transport-Security":"max-age=31536000; includeSubDomains; preload"};
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...SEC,...headers}});
 const text=(v,n)=>String(v??"").trim().slice(0,n); const num=v=>Number.isFinite(Number(v))?Number(v):0;
-const STATUSES=new Set(["available","reserved","sold"]);\nconst AI_GATEWAY={gateway:{id:"default",skipCache:true,cacheTtl:60},extraHeaders:{"cf-aig-metadata":JSON.stringify({app:"phanthuanxtra",surface:"android-app-api"})}};
+const STATUSES=new Set(["available","reserved","sold"]);
+const AI_GATEWAY={gateway:{id:"default",skipCache:true,cacheTtl:60},extraHeaders:{"cf-aig-metadata":JSON.stringify({app:"phanthuanxtra",surface:"android-app-api"})}};
 const auth=async(r,e)=>{const a=r.headers.get("Authorization")||"";const t=e.APP_API_TOKEN;if(t&&a.startsWith("Bearer ")&&a.slice(7)===t)return true;return (await verifyAdminToken(r,e)).ok};
 const deny=()=>json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"}); async function body(r){return r.json().catch(()=>null)}
 async function login(r,e){if(r.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"});const b=await body(r)||{};const password=String(b.password??"");if(!e.ADMIN_PASSWORD)return json({error:"Admin credentials chưa được cấu hình"},503);if(!(await verifyAdminPassword(e,password)))return json({error:"Sai mật khẩu"},401);const token=await issueAdminToken(e);if(!token)return json({error:"Không thể tạo phiên Admin"},503);return json({ok:true,token})}
