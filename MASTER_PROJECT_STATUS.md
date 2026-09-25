@@ -1,9 +1,35 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
-> Date: 2026-09-24 (UTC+7)
+> Date: 2026-09-25 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Latest verified main/deploy lineage: `36ccdbda537766fad32924e4d5244a27faec5d7b` (PR #453). Exact-SHA production deploy, Gate-15, QUEUE-01, Blog CMS lifecycle, CI, Android APK MVP and Stage 3 evidence are green; PR validation is fail-closed from the production environment. The signed Android 1.6.0 release remains verified on predecessor SHA `29d84899c65683aacfccb84946afcf175bcfba92`.
+> Current main lineage: `36ccdbda537766fad32924e4d5244a27faec5d7b` (PR #453).
+> Active PR: **#468 — feat(seo): upgrade yachts landing page**.
+> Active branch: `seo/yachts-premium-2026`.
+> PR head: `4ba55a0ee26bea8e559c6ce63893a4adda58461a`.
+> Status: **OPEN / MERGE BLOCKED pending required checks**.
+> PR #468 workflow snapshot: AI Pre-Deploy Audit **in_progress**; Application Validation **in_progress**; Deploy Cloudflare Worker **in_progress**; CI **in_progress**; Release Gate Static Audit **queued**; Admin PT Xtra Pipeline **in_progress**; Android APK MVP **in_progress**; Production Credential Safety **queued**.
+
+## 0. ACTIVE CHECKPOINT — 2026-09-25
+- `public/yachts.html` was upgraded on branch `seo/yachts-premium-2026`.
+- SEO package includes Title, Description, Canonical, Robots, Open Graph, Twitter Card, WebPage/Organization/FAQPage JSON-LD, structured H1/H2/H3 content, yacht-brand editorial sections, FAQ and CTA.
+- The content explicitly avoids unsupported claims that Majesty Yachts belongs to Ferretti Group.
+- PR #468 was created successfully.
+- An immediate merge attempt was rejected by repository protection (HTTP 405): **2 of 2 required status checks were still queued**.
+- No force merge/bypass was performed.
+- No production deployment is claimed for PR #468 yet. Deployment must be verified against the exact merge SHA after merge.
+
+## 0.1 PR #468 WORKFLOW EVIDENCE
+- AI Pre-Deploy Audit — run `36147017090` — **in_progress**.
+- Release Gate Static Audit — run `36147016984` — **queued**.
+- Application Validation — run `36147017050` — **in_progress**.
+- Deploy Cloudflare Worker — run `36147017006` — **in_progress**.
+- Admin PT Xtra Pipeline — run `36147016947` — **in_progress**.
+- CI — run `36147017075` — **in_progress**.
+- Android APK MVP — run `36147017032` — **in_progress**.
+- Production Credential Safety — run `36147017191` — **queued**.
+- These states are observations only; queued/in-progress is not PASS evidence.
+
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
