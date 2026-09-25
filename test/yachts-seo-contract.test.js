@@ -5,7 +5,7 @@ import fs from "node:fs";
 const html = fs.readFileSync(new URL("../public/yachts.html", import.meta.url), "utf8");
 
 test("yachts landing page has canonical SEO metadata and semantic headings", () => {
-  assert.match(html, /<title>Du Thuyền Cao Cấp &amp; Hạng Sang \| Jeanneau, Prestige, Riva \| Phan Thuần Xtra<\/title>/);
+  assert.match(html, /<title>Du Thuyền Cao Cấp & Hạng Sang \| Jeanneau, Prestige, Riva \| Phan Thuần Xtra<\/title>/);
   assert.match(html, /<meta name="description" content="[^"]+"/);
   assert.match(html, /<link rel="canonical" href="https:\/\/phanthuanxtra\.com\/yachts">/);
   assert.match(html, /<meta property="og:title"/);
