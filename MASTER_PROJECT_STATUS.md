@@ -3,33 +3,45 @@
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
 > Date: 2026-09-25 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
-> Current main lineage: `36ccdbda537766fad32924e4d5244a27faec5d7b` (PR #453).
-> Active PR: **#468 — feat(seo): upgrade yachts landing page**.
-> Active branch: `seo/yachts-premium-2026`.
-> PR head: `4ba55a0ee26bea8e559c6ce63893a4adda58461a`.
-> Status: **OPEN / MERGE BLOCKED pending required checks**.
-> PR #468 workflow snapshot: AI Pre-Deploy Audit **in_progress**; Application Validation **in_progress**; Deploy Cloudflare Worker **in_progress**; CI **in_progress**; Release Gate Static Audit **queued**; Admin PT Xtra Pipeline **in_progress**; Android APK MVP **in_progress**; Production Credential Safety **queued**.
+ > Current main lineage: `f2a9c197ca3e3eba80abd136617f91c761663fab` (PR #468 merged).
+ > Active PR: **none** — PR #468 merged.
+ > Active branch: `fix/production-deploy-credential-gate-20260925`.
+ > PR head: `f2a9c197ca3e3eba80abd136617f91c761663fab` (merge commit).
+ > Status: **PRODUCTION DEPLOY BLOCKED — Cloudflare credential authentication failed on exact main SHA**.
+ > PR #468 workflow snapshot: all listed PR validation workflows completed **PASS** before merge.
 
 ## 0. ACTIVE CHECKPOINT — 2026-09-25
-- `public/yachts.html` was upgraded on branch `seo/yachts-premium-2026`.
-- SEO package includes Title, Description, Canonical, Robots, Open Graph, Twitter Card, WebPage/Organization/FAQPage JSON-LD, structured H1/H2/H3 content, yacht-brand editorial sections, FAQ and CTA.
-- The content explicitly avoids unsupported claims that Majesty Yachts belongs to Ferretti Group.
-- PR #468 was created successfully.
-- An immediate merge attempt was rejected by repository protection (HTTP 405): **2 of 2 required status checks were still queued**.
-- No force merge/bypass was performed.
-- No production deployment is claimed for PR #468 yet. Deployment must be verified against the exact merge SHA after merge.
+- PR #468 **MERGED** as main SHA `f2a9c197ca3e3eba80abd136617f91c761663fab`.
+- PR #468 head `b7a2afbd26cd0e5f22eb7997b5a74af45cfdb518` passed the listed required validation workflows before merge.
+- Post-merge push workflows were triggered on the exact merge SHA. Stage 3 Production Reconciliation, Homepage Canonical Verify, Production Credential Safety, CI, Admin PT Xtra Pipeline, Production Smoke Gate-15 and related gates passed.
+- **Blocking failure discovered:** Deploy Cloudflare Worker run `36148326563` failed in `Deploy production Worker (Cloudflare API/SDK)` at **Resolve Cloudflare API credentials**. Both configured candidate credentials returned HTTP **401** against the Cloudflare Workers API; the deploy, purge and all post-deploy verification steps were skipped.
+- **Downstream confirmation:** Production Asset Delivery Gate run `36148326512` failed at `Verify editorial production UTF-8` because `/business-jets` returned without the expected Worker provenance header `x-ptx-editorial-utf8: worker-v3`. The source `src/entry.js` already contains the correct `/business-jets` Worker route, so this is consistent with the new Worker code not being deployed to production.
+- **Root cause:** the production deployment credential boundary, not the yachts SEO code, is currently the smallest failing boundary. The workflow already tries both primary and backup Cloudflare tokens; both were rejected with HTTP 401.
+- **Required owner action:** renew/replace the GitHub production Cloudflare API credential(s) with a token authorized for the target account and Worker script, then rerun the exact-SHA deployment. Secret values must never be placed in source, chat, logs, or this MASTER.
+- No Cloudflare resource mutation, secret rotation, force merge, or Wrangler deployment was performed by this remediation.
+- Production remains **RED/LOCKED** until the exact SHA `f2a9c197...` is deployed through GitHub Actions → Cloudflare API/SDK and all affected runtime gates pass.
 
-## 0.1 PR #468 WORKFLOW EVIDENCE
-- AI Pre-Deploy Audit — run `36147017090` — **in_progress**.
-- Release Gate Static Audit — run `36147016984` — **queued**.
-- Application Validation — run `36147017050` — **in_progress**.
-- Deploy Cloudflare Worker — run `36147017006` — **in_progress**.
-- Admin PT Xtra Pipeline — run `36147016947` — **in_progress**.
-- CI — run `36147017075` — **in_progress**.
-- Android APK MVP — run `36147017032` — **in_progress**.
-- Production Credential Safety — run `36147017191` — **queued**.
-- These states are observations only; queued/in-progress is not PASS evidence.
+## 0.1 EXACT-SHA FAILURE EVIDENCE
+- Deploy Cloudflare Worker: run `36148326563` — **FAILURE**.
+- Validation job: **PASS**.
+- Production deploy job: **FAILURE** at credential resolution.
+- Credential probe result: primary token HTTP 401; backup token HTTP 401; no token selected.
+- Deploy/migrate: **SKIPPED**.
+- Cache purge: **SKIPPED**.
+- Public production boundary: **SKIPPED**.
+- Editorial UTF-8 verification: **SKIPPED**.
+- R2 Worker E2E: **SKIPPED**.
+- Production Asset Delivery Gate: run `36148326512` — **FAILURE** at `/business-jets` Worker UTF-8 provenance.
+- Stage 3 Production Reconciliation: run `36148326604` — **SUCCESS** on exact merge SHA, but it does not prove the new Worker revision was deployed.
 
+## 0.2 REMEDIATION QUEUE
+1. Owner updates/renews the GitHub production Cloudflare token secret(s); do not expose values.
+2. Rerun **Deploy Cloudflare Worker** for the exact merge SHA `f2a9c197ca3e3eba80abd136617f91c761663fab`.
+3. Require Cloudflare API/SDK deployment + purge + public boundary + editorial UTF-8 + R2 E2E to pass.
+4. Re-run/observe Production Asset Delivery Gate and Gate-15/QUEUE-01 exact-SHA production evidence.
+5. Verify `/business-jets` and `/yachts` live routes, headers, SEO metadata and structured data.
+6. Update this MASTER with the exact Worker version, deployment ID, 100% traffic and fresh runtime evidence.
+7. Only then continue to the next smallest open release gate.
 
 ## 1. SOURCE OF TRUTH / OPERATING RULES
 - This file is the sole canonical project-status file; all AI / Work AI must read it before work.
