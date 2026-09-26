@@ -207,6 +207,18 @@ function deterministicIdentityReply(message){
   if(!isIdentityQuery(message))return "";
   return "Phan Thuần là người gắn với thương hiệu PHAN THUẦN XTRA mà trợ lý đang đại diện hỗ trợ. Theo hồ sơ chính thức do chủ website cung cấp, hệ sinh thái được giới thiệu gồm Luxury Automotive, European Yachts, Business Jets và Green Energy. Dấu vết công khai đã đối chiếu cũng cho thấy tên Phan Thuần Xuyên Á Auto gắn với hoạt động automotive tại TP.HCM. Chatbot chỉ tư vấn bán hàng đối với xe đang có trên website; các lĩnh vực còn lại được cung cấp ở mức thông tin hồ sơ. Hotline: 0866 997 891.";
 }
+function deterministicWebsiteReply(message){
+  const topic=foldVi(message);
+  if(/\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid)\b/.test(topic))
+    return "Theo nội dung website PHAN THUẦN XTRA, Green Energy giới thiệu điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid theo nhu cầu sử dụng. Thông số, chi phí và cấu hình dự án cụ thể cần được xác minh theo từng công trình. Hotline: 0866 997 891.";
+  if(/\b(du thuyen|yacht|marine)\b/.test(topic))
+    return "Theo nội dung website PHAN THUẦN XTRA, European Yachts tư vấn du thuyền theo nhu cầu sử dụng, khu vực hoạt động, cabin, tầm hoạt động và ngân sách. Mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm. Hotline: 0866 997 891.";
+  if(/\b(chuyen co|business jet|aviation|private jet)\b/.test(topic))
+    return "Theo nội dung website PHAN THUẦN XTRA, Business Jets giới thiệu dịch vụ chuyên cơ thương gia theo nhu cầu di chuyển riêng. Lịch bay, sân bay, cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến. Hotline: 0866 997 891.";
+  if(/\b(lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(topic))
+    return "Hotline liên hệ chính thức của PHAN THUẦN XTRA: 0866 997 891. Anh/chị cũng có thể gửi nhu cầu qua khu vực liên hệ hoặc private appointment trên website.";
+  return "";
+}
 function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
 function handoffReply(contact){
   if(contact.name&&contact.phone)return "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại, đồng thời chuyển yêu cầu đến anh Phan Thuần qua kênh CRM để được tư vấn trực tiếp.";
@@ -267,7 +279,7 @@ export async function handleAiChat(request,env){
           reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
         }
       }
-      else{reply="Tôi đã nhận được tin nhắn của anh/chị. Anh/chị có thể để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
+      else{reply=websiteTopicQuery ? deterministicWebsiteReply(message) : ""; if(!reply)reply="Tôi đã nhận được tin nhắn của anh/chị. Anh/chị có thể để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
     }
   }
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();

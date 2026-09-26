@@ -302,3 +302,27 @@ for (const [label, message, expected] of [
     assert.equal(data.needs_human, false);
   });
 }
+
+test('website topics retain grounded answers when all Workers AI models fail', async () => {
+  const scenarios = [
+    ['Tư vấn điện mặt trời PV và ESS trên website', /Green Energy.*PV.*ESS/s],
+    ['Tôi muốn tư vấn du thuyền theo nội dung website', /European Yachts.*du thuyền/s],
+    ['Tôi muốn tư vấn chuyên cơ thương gia theo nội dung website', /Business Jets.*chuyên cơ/s],
+    ['Hotline liên hệ chính thức là gì?', /0866 997 891/]
+  ];
+  for (const [message, expected] of scenarios) {
+    const DB = mockDb();
+    const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body:JSON.stringify({conversation_id:crypto.randomUUID(),message})
+    }), { DB, AI_SEARCH:{async search(){throw new Error('search unavailable');}}, AI:{async run(){throw new Error('quota 4006');}} });
+    const data = await response.json();
+    assert.equal(response.status, 200, message);
+    assert.equal(data.ok, true, message);
+    assert.equal(data.needs_human, false, message);
+    assert.equal(data.ai_model, null, message);
+    assert.match(data.reply, expected, message);
+    assert.doesNotMatch(data.reply, /giá thuê là|công suất là|lịch bay đã đặt/i);
+    assert.equal(DB._unknown.length, 0);
+  }
+});
