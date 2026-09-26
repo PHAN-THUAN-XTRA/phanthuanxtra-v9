@@ -48,7 +48,7 @@ export default {
         ["/phan-thuan", "/phan-thuan.html"], ["/phan-thuan/", "/phan-thuan.html"],
         ["/green-energy", "/green-energy.html"], ["/green-energy/", "/green-energy.html"],
         ["/yachts", "/yachts.html"], ["/yachts/", "/yachts.html"],
-        ["/business-jets", "/business-jets.html"], ["/business-jets/", "/business-jets.html"]
+        ["/business-jets", "/__ptx_editorial__/business-jets.html"], ["/business-jets/", "/__ptx_editorial__/business-jets.html"]
       ]);
       if (editorialAssets.has(url.pathname)) {
         const assetUrl = new URL(editorialAssets.get(url.pathname), request.url);
