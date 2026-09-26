@@ -100,10 +100,10 @@ test('Founder profile and customer AI scope stay explicit', () => {
 
 test('Founder portrait is optimized and lazy-loaded', () => {
   const index = read('public/index.html');
-  assert.match(index, /founder-phan-thuan-portrait-2026\.webp/);
+  assert.match(index, /founder-phan-thuan-portrait-2026-v2\.webp/);
   assert.match(index, /loading="lazy"/);
   assert.match(index, /decoding="async"/);
-  assert.ok(fs.statSync(new URL('../public/images/founder-phan-thuan-portrait-2026.webp', import.meta.url)).size < 800000);
+  assert.ok(fs.statSync(new URL('../public/images/founder-phan-thuan-portrait-2026-v2.webp', import.meta.url)).size < 800000);
 });
 
 test('Founder category opens a dedicated indexable article', () => {
@@ -115,7 +115,7 @@ test('Founder category opens a dedicated indexable article', () => {
   assert.match(article, /Năng Lượng Xanh/);
   assert.match(article, /08 6699 7891/);
   assert.match(article, /facebook\.com\/PhanThuanSaigon/);
-  assert.match(article, /founder-phan-thuan-portrait-2026\.webp/);
+  assert.match(article, /founder-phan-thuan-portrait-2026-v2\.webp/);
 });
 
 test('all editorial category routes are Worker-served as explicit UTF-8 HTML', () => {
