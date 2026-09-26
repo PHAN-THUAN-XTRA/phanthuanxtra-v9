@@ -244,6 +244,7 @@ export async function handleAiChat(request,env){
     vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
   ]);
   const pending=await pendingUnknown(env,conversationId);
+  const pendingWasComplete=Boolean(pending?.name&&pending?.phone);
   const effectiveContact={name:clean(body?.name,120)||contact.name||clean(pending?.name,120),phone:clean(body?.phone,30)||contact.phone||clean(pending?.phone,30)};
   if(pending && (effectiveContact.name||effectiveContact.phone)){
     await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,pending.id).run();
@@ -255,7 +256,7 @@ export async function handleAiChat(request,env){
   let aiModel=null;
   if(needsHuman){
     const unknown=await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
-    const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&(!pending||!pending.name||!pending.phone));
+    const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&!pendingWasComplete);
     let sent=false;
     if(contactJustCompleted&&!suppressCrmNotification){
       const notification=await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message:pending?.question||message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});
