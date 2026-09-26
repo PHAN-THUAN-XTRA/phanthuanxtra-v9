@@ -161,3 +161,27 @@ test('production gate: business-jets preserves restored Legacy 600 article and F
   assert.ok(page.includes('Embraer Legacy 600'));
   assert.ok(page.includes('PhanThuanSaigon%2Fvideos%2F1351047426633823'));
 });
+
+
+test('production gate: yachts editorial page preserves all eight verified R2 WebP images', () => {
+  const page = fs.readFileSync(new URL('../public/yachts.html', import.meta.url), 'utf8');
+  const files = [
+    'yachts-01-elite-car-yacht-hai-phong.webp',
+    'yachts-02-marina-sunset.webp',
+    'yachts-03-yacht-experience.webp',
+    'yachts-04-yacht-bedroom.webp',
+    'yachts-05-phu-quoc-coast.webp',
+    'yachts-06-phu-quoc-harbor.webp',
+    'yachts-07-phu-quoc-yachts.webp',
+    'yachts-08-phu-quoc-sailing.webp',
+  ];
+  assert.ok(page.includes('Du Thuyền Cao Cấp &amp; Hạng Sang'));
+  assert.equal((page.match(/\/media\/editorial\/yachts\/yachts-/g) || []).length, 8);
+  for (const file of files) {
+    assert.ok(page.includes('/media/editorial/yachts/' + file), 'missing yacht image: ' + file);
+  }
+  assert.match(page, /yachts-02-marina-sunset\.webp[^>]+fetchpriority="high"/);
+  assert.equal((page.match(/loading="lazy"/g) || []).length, 7);
+  assert.equal((page.match(/decoding="async"/g) || []).length, 8);
+  assert.equal((page.match(/<img[^>]+alt="[^"]+"[^>]*>/g) || []).length, 8);
+});
