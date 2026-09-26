@@ -240,7 +240,7 @@ test('production gate: Green Energy editorial page carries PV ESS Hybrid SEO con
 
 test('production gate: Green Energy 3D PV ESS visual uses R2 WebP asset', () => {
   const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
-  assert.match(page, /\/media\/editorial\/green-energy\/pv-ess-3d\.webp/);
+  assert.match(page, /\/media\/editorial\/green-energy\/green-energy-pv-ess-3d\.webp/);
   assert.match(page, /alt="Mô hình 3D hệ thống năng lượng xanh Phan Thuần Xtra gồm điện mặt trời PV, inverter, pin lưu trữ ESS, điện lưới và thiết bị sử dụng"/);
   assert.match(page, /width="1536" height="1024"/);
   assert.match(page, /class="energy-visual"/);
@@ -249,7 +249,7 @@ test('production gate: Green Energy 3D PV ESS visual uses R2 WebP asset', () => 
 
 test('production gate: Green Energy 3D production delivery gate checks WebP response', () => {
   const workflow = fs.readFileSync(new URL('../.github/workflows/production-asset-gate.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /media\/editorial\/green-energy\/pv-ess-3d\.webp/);
+  assert.match(workflow, /media\/editorial\/green-energy\/green-energy-pv-ess-3d\.webp/);
   assert.match(workflow, /visual_status/);
   assert.match(workflow, /content-type:\[\[:space:\]\]\*image\/webp/);
   assert.match(workflow, /Green Energy 3D WebP delivery PASS/);
