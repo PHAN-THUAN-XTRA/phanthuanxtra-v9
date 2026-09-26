@@ -50,5 +50,21 @@ jobs:
           test "$(grep -Foc '</main>' "$home")" = "1"
           test "$(grep -Foc '</html>' "$home")" = "1"
           check_asset "/car.html?id=__p4_missing__" "vehicleDetail"
+
+          # Green Energy 3D R2 visual must be publicly deliverable through the Worker.
+          visual_headers="$(mktemp)"
+          visual_body="$(mktemp)"
+          visual_status="$(curl --silent --show-error --compressed --retry 3 --retry-delay 1 --max-time 20 \
+            --location --proto '=https' --proto-redir '=https' \
+            -D "$visual_headers" -o "$visual_body" -w '%{http_code}' \
+            "$SITE_URL/media/editorial/green-energy/pv-ess-3d.webp?asset_gate=$GITHUB_SHA")"
+          echo "/media/editorial/green-energy/pv-ess-3d.webp final HTTP $visual_status"
+          test "$visual_status" = "200"
+          grep -Eiq '^content-type:[[:space:]]*image/webp([[:space:]]*;.*)?
+      - name: Verify editorial production UTF-8
+        run: node scripts/verify-editorial-production.mjs
+ "$visual_headers"
+          test -s "$visual_body"
+          echo "Green Energy 3D WebP delivery PASS."
       - name: Verify editorial production UTF-8
         run: node scripts/verify-editorial-production.mjs
