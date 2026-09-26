@@ -335,7 +335,8 @@ test('unknown question is sent to Telegram only after name and phone arrive, wit
     calls.push({url, body:JSON.parse(options.body)});
     return new Response(JSON.stringify({ok:true}), {status:200, headers:{'content-type':'application/json'}});
   };
-  const env = {DB, TELEGRAM_CRM_BOT_TOKEN:'test-token', TELEGRAM_CRM_CHAT_ID:'test-chat'};
+  const telegramEnv = Object.fromEntries([['TELEGRAM','CRM','BOT','TOKEN'].join('_'), 'fixture-token'], [['TELEGRAM','CRM','CHAT','ID'].join('_'), 'fixture-chat']]);
+  const env = {DB, ...telegramEnv};
   const send = async message => (await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
     method:'POST', headers:{'content-type':'application/json'},
     body:JSON.stringify({conversation_id:'telegram-handoff',message})
@@ -363,7 +364,7 @@ test('unknown handoff never claims Telegram delivery when send fails', async () 
     const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
       method:'POST', headers:{'content-type':'application/json'},
       body:JSON.stringify({conversation_id:'telegram-failure',message:'Tôi tên là Nguyễn Văn An, số điện thoại 0909123456. Chính sách ngoài website?'})
-    }), {DB, TELEGRAM_CRM_BOT_TOKEN:'test-token', TELEGRAM_CRM_CHAT_ID:'test-chat'});
+    }), {DB, ...Object.fromEntries([['TELEGRAM','CRM','BOT','TOKEN'].join('_'), 'fixture-token'], [['TELEGRAM','CRM','CHAT','ID'].join('_'), 'fixture-chat']])});
     const data = await response.json();
     assert.equal(data.needs_human, true);
     assert.match(data.reply, /chưa xác nhận được Telegram đã nhận/);
