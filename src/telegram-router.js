@@ -52,7 +52,8 @@ async function processBundle(env, bundleKey, chatId) {
         await env.MEDIA.put(publishMediaKey, response.body, { httpMetadata: { contentType: "image/webp", cacheControl: "public, max-age=31536000, immutable" }, customMetadata: { branding: "none", format: "webp" } });
       }
       processed.push({ row, ai, publishMediaKey, hasPlate, filePath });
-      await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,file_path=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(`/media/${publishMediaKey}`, filePath, Number(row.id)).run();
+      const processedImageUrl = "/media/" + publishMediaKey;
+      await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,file_path=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(processedImageUrl, filePath, Number(row.id)).run();
     }
     const ai = primaryAi || {};
     const inboxId = Number(photoRow.id);
