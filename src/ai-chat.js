@@ -77,6 +77,10 @@ function isVehicleQuery(value){
   const t=foldVi(value);
   return /\b(mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup)\b/.test(t);
 }
+function isWebsiteTopicQuery(value){
+  const t=foldVi(value);
+  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jet|aviation|dich vu|services|lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(t);
+}
 
 function systemPrompt(cars, knowledge) {
   const catalog = cars.length ? JSON.stringify(cars.map(c => ({ id:c.id,brand:c.brand,model:c.model,year:c.year,mileage:c.mileage,price:c.price,fuel:c.fuel,category:c.category,color:c.color,status:c.status,description:c.description }))) : "[]";
