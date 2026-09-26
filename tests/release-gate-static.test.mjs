@@ -100,10 +100,10 @@ test('Founder profile and customer AI scope stay explicit', () => {
 
 test('Founder portrait is optimized and lazy-loaded', () => {
   const index = read('public/index.html');
-  assert.match(index, /founder-phan-thuan\.webp/);
+  assert.match(index, /founder-phan-thuan-portrait-2026\.webp/);
   assert.match(index, /loading="lazy"/);
   assert.match(index, /decoding="async"/);
-  assert.ok(fs.statSync(new URL('../public/images/founder-phan-thuan.webp', import.meta.url)).size < 20000);
+  assert.ok(fs.statSync(new URL('../public/images/founder-phan-thuan-portrait-2026.webp', import.meta.url)).size < 800000);
 });
 
 test('Founder category opens a dedicated indexable article', () => {
