@@ -133,15 +133,16 @@ export async function processTelegramUpdate(env, update, chatId) {
   }
   const sourceHash = await sha256(`${chatId}:${message.message_id}:${photo?.file_unique_id || caption}`);
   const isPhoto = Boolean(photo);
-  const recent = (await env.DB.prepare("SELECT id,bundle_key,file_id,caption,bundle_status FROM telegram_inbox WHERE chat_id=? AND bundle_status='pending' AND created_at >= datetime('now','-45 seconds') ORDER BY id DESC LIMIT 20").bind(chatId).all()).results || [];
-  // Pair only with the complementary half of an incomplete bundle. Ignore rows already
-  // containing both photo + caption; otherwise a later text can attach to an older photo.
-  const partner = recent.find(row => {
+  const mediaGroupId = clean(message.media_group_id, 200);
+  const recent = (await env.DB.prepare("SELECT id,bundle_key,file_id,caption,bundle_status FROM telegram_inbox WHERE chat_id=? AND bundle_status=\'pending\' AND created_at >= datetime(\'now\',\'-45 seconds\') ORDER BY id DESC LIMIT 50").bind(chatId).all()).results || [];
+  // Telegram sends every album item as a separate update. Keep all items in one stable
+  // media_group bundle; only use complementary pairing for non-album photo/text messages.
+  const partner = mediaGroupId ? null : recent.find(row => {
     const rowHasPhoto = Boolean(row.file_id);
     const rowHasText = Boolean(clean(row.caption));
     return isPhoto ? (!rowHasPhoto && rowHasText) : (rowHasPhoto && !rowHasText);
   });
-  const bundleKey = partner?.bundle_key || `${chatId}:${message.message_id}`;
+  const bundleKey = mediaGroupId ? `${chatId}:album:${mediaGroupId}` : (partner?.bundle_key || `${chatId}:${message.message_id}`);
   await env.DB.prepare("INSERT INTO telegram_inbox (source_hash,chat_id,message_id,file_id,file_unique_id,file_path,caption,status,bundle_key,bundle_status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'received',?,'pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(source_hash) DO NOTHING").bind(sourceHash, chatId, Number(message.message_id || 0), photo?.file_id || "", photo?.file_unique_id || "", "", caption, bundleKey).run();
   const rows = (await env.DB.prepare("SELECT id,file_id,caption,bundle_status FROM telegram_inbox WHERE bundle_key=? ORDER BY id").bind(bundleKey).all()).results || [];
   const hasPhoto = rows.some(row => Boolean(row.file_id));
