@@ -174,6 +174,32 @@ async function uploadWorker(assetJwt) {
   console.log(`Worker: API upload completed for ${files.length} modules.`);
 }
 
+async function ensureCustomDomainRoute() {
+  const zoneId = process.env.CLOUDFLARE_ZONE_ID || "7b2653821ef0d8052bfc91c4cf5008ca";
+  const routes = await api(`/zones/${zoneId}/workers/routes`);
+  const wanted = "phanthuanxtra.com/*";
+  const current = Array.isArray(routes) ? routes.find((route) => route?.pattern === wanted) : null;
+  if (current?.script === WORKER) {
+    console.log(`Route: ${wanted} -> ${WORKER} already configured.`);
+    return;
+  }
+  if (current?.id) {
+    await api(`/zones/${zoneId}/workers/routes/${current.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pattern: wanted, script: WORKER }),
+    });
+    console.log(`Route: updated ${wanted} -> ${WORKER}.`);
+    return;
+  }
+  await api(`/zones/${zoneId}/workers/routes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pattern: wanted, script: WORKER }),
+  });
+  console.log(`Route: created ${wanted} -> ${WORKER}.`);
+}
+
 async function syncSecretsAndDeploy() {
   const secrets = {};
   const currentBindingNames = new Set((await api(accountPath(`/workers/scripts/${WORKER}/settings`)))?.bindings?.map((binding) => binding?.name).filter(Boolean) || []);
@@ -239,6 +265,7 @@ await applyMigrations();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
+await ensureCustomDomainRoute();
 await syncCronSchedules();
 await verifyApiLineage();
 console.log("API/SDK deployment controller completed successfully.");
