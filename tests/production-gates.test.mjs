@@ -256,3 +256,18 @@ test('production gate: Green Energy 3D production delivery gate checks WebP resp
   const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
   assert.doesNotMatch(page, /\\\\n\s+\.energy-visual/);
 });
+
+
+test('production gate: Business Jets uses verified private aviation copy', () => {
+  const page = fs.readFileSync(new URL('../public/business-jets.html', import.meta.url), 'utf8');
+  assert.match(page, /Chuyên Cơ Thương Gia/);
+  assert.match(page, /EMB-135BJ \/ Legacy 600/);
+  assert.match(page, /Rolls-Royce AE3007A1P/);
+  assert.match(page, /Legacy 600 không phải Praetor 600/);
+  assert.match(page, /id="flight-request"/);
+  assert.match(page, /Business Jets \/ Private Aviation/);
+  assert.doesNotMatch(page, /an toàn tuyệt đối/i);
+  assert.doesNotMatch(page, /15\s*[–-]\s*20 phút/i);
+  assert.doesNotMatch(page, /AE 3007A1E/);
+  assert.equal((page.match(/facebook\.com\/plugins\/video\.php/g) || []).length, 1);
+});
