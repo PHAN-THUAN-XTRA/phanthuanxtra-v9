@@ -128,3 +128,11 @@ test('production gate: editorial yachts UTF-8 marker matches the current yachts 
   assert.ok(page.includes(marker));
   assert.ok(page.includes('PHAN THUẦN XTRA'));
 });
+
+
+test('production gate: deploy purge includes every Worker-served editorial route', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/deploy-cloudflare.yml', import.meta.url), 'utf8');
+  for (const route of ['phan-thuan','green-energy','yachts','business-jets']) {
+    assert.ok(workflow.includes(`https://phanthuanxtra.com/${route}`), `missing editorial purge URL: ${route}`);
+  }
+});
