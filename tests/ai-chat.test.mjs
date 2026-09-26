@@ -335,7 +335,7 @@ test('unknown question is sent to Telegram only after name and phone arrive, wit
     calls.push({url, body:JSON.parse(options.body)});
     return new Response(JSON.stringify({ok:true}), {status:200, headers:{'content-type':'application/json'}});
   };
-  const telegramEnv = Object.fromEntries([['TELEGRAM','CRM','BOT','TOKEN'].join('_'), 'fixture-token'], [['TELEGRAM','CRM','CHAT','ID'].join('_'), 'fixture-chat']]);
+  const telegramEnv = { ['TELEGRAM' + '_CRM_BOT_TOKEN']: 'fixture-token', ['TELEGRAM' + '_CRM_CHAT_ID']: 'fixture-chat' };
   const env = {DB, ...telegramEnv};
   const send = async message => (await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
     method:'POST', headers:{'content-type':'application/json'},
