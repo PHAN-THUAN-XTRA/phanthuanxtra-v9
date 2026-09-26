@@ -60,10 +60,7 @@ jobs:
             "$SITE_URL/media/editorial/green-energy/pv-ess-3d.webp?asset_gate=$GITHUB_SHA")"
           echo "/media/editorial/green-energy/pv-ess-3d.webp final HTTP $visual_status"
           test "$visual_status" = "200"
-          grep -Eiq '^content-type:[[:space:]]*image/webp([[:space:]]*;.*)?
-      - name: Verify editorial production UTF-8
-        run: node scripts/verify-editorial-production.mjs
- "$visual_headers"
+          grep -Eiq '^content-type:[[:space:]]*image/webp' "$visual_headers"
           test -s "$visual_body"
           echo "Green Energy 3D WebP delivery PASS."
       - name: Verify editorial production UTF-8
