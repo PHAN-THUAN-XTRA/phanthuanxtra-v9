@@ -66,6 +66,16 @@ jobs:
           check_http_200 "$SITE_URL/api/cars" "/api/cars"
           check_http_200 "$SITE_URL/admin.html" "/admin.html"
           check_http_200 "$WORKER_URL/" "Production Worker"
+      - name: Compare editorial provenance on workers.dev and custom domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          for base in "$WORKER_URL" "$SITE_URL"; do
+            echo "== $base/business-jets =="
+            curl --silent --show-error --fail --compressed --max-time 30 -D /tmp/business-jets.headers -o /tmp/business-jets.html "$base/business-jets?probe=$GITHUB_SHA"
+            grep -Ei '^(HTTP/|content-type:|x-ptx-editorial-utf8:|server:|cf-cache-status:|location:)' /tmp/business-jets.headers || true
+            grep -Fq 'PHAN THUẦN XTRA' /tmp/business-jets.html
+          done
       - name: Website Chat AI quota conservation
         run: echo "::notice::Routine CI does not call live /api/ai-chat inference; Workers AI quota is reserved for real website customers."
       - name: Smoke admin authentication boundary
