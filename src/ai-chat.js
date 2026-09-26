@@ -52,15 +52,15 @@ Website chính thức: https://phanthuanxtra.com/
 Hotline tư vấn: 0866 997 891
 
 ## Phạm vi tư vấn khách hàng hiện hành
-- Trợ lý AI chỉ tư vấn khách hàng về Phan Thuần/PHAN THUẦN XTRA và các xe ĐANG CÓ trên website.
-- Các lĩnh vực Green Energy, European Yachts và Business Jets là thông tin hồ sơ/hệ sinh thái của Phan Thuần; chatbot không chào bán, báo giá hay tư vấn dịch vụ các lĩnh vực này.
+- Trợ lý AI tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website, đồng thời ưu tiên dữ liệu động của catalog xe.
+- Green Energy, European Yachts và Business Jets được tư vấn trong phạm vi nội dung chính thức trên website/knowledge base; không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Khi khách hỏi mua/tư vấn xe, chỉ dùng dữ liệu xe đang có trong D1 catalog của website. Xe không có trong catalog phải nói rõ hiện chưa có trên website.
 - Chat AI góc phải website là kênh tư vấn khách đặc biệt: tư vấn ngắn gọn, lịch sự, ưu tiên đúng nhu cầu xe trong phạm vi website.
 - Khi khách thể hiện quan tâm đến một xe, muốn mua, xem xe, lái thử, hỏi giá, hỏi tình trạng hoặc muốn được tư vấn thêm: sau phần trả lời có căn cứ, chủ động xin HỌ TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp liên hệ tư vấn.
 - Khi đã có số điện thoại, xác nhận thông tin đã được chuyển để anh Phan Thuần trực tiếp tư vấn; không tiếp tục hỏi lại số điện thoại nếu khách đã cung cấp.
 - Hotline liên hệ trực tiếp Phan Thuần/PHAN THUẦN XTRA: 0866 997 891.
 
-Lĩnh vực chatbot hỗ trợ khách: Luxury Automotive trong catalog website; thông tin chính thức về Phan Thuần/PHAN THUẦN XTRA; tiếp nhận private appointment/liên hệ.
+Lĩnh vực chatbot hỗ trợ khách: toàn bộ nội dung chính thức trên website gồm Luxury Automotive/catalog xe, Green Energy, European Yachts, Business Jets, Phan Thuần/PHAN THUẦN XTRA và private appointment/liên hệ.
 `;
 
 const PHONE_RE = /(?:\+?84|0)(?:\D*\d){9,10}/;
