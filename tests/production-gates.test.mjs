@@ -143,3 +143,12 @@ test('production gate: business-jets uses an internal Worker asset path distinct
   assert.match(entry, /\["\/business-jets", "\/__ptx_editorial__\/business-jets\.html"\]/);
   assert.match(entry, /headers\.set\("x-ptx-editorial-utf8", "worker-v3"\)/);
 });
+
+
+test('production gate: deploy controller enforces custom-domain Worker route', () => {
+  const src = fs.readFileSync(new URL('../scripts/deploy-cloudflare-api.mjs', import.meta.url), 'utf8');
+  assert.match(src, /\/workers\/routes/);
+  assert.match(src, /phanthuanxtra\.com\/\*/);
+  assert.match(src, /script: WORKER/);
+  assert.match(src, /ensureCustomDomainRoute\(\)/);
+});
