@@ -152,3 +152,12 @@ test('production gate: deploy controller enforces custom-domain Worker route', (
   assert.match(src, /script: WORKER/);
   assert.match(src, /ensureCustomDomainRoute\(\)/);
 });
+
+
+test('production gate: business-jets preserves restored Legacy 600 article and Facebook video', () => {
+  const page = fs.readFileSync(new URL('../public/__ptx_editorial__/business-jets.html', import.meta.url), 'utf8');
+  assert.ok(page.includes('PHAN THUẦN XTRA'));
+  assert.ok(page.includes('Chuyên Cơ Thương Gia'));
+  assert.ok(page.includes('Embraer Legacy 600'));
+  assert.ok(page.includes('PhanThuanSaigon%2Fvideos%2F1351047426633823'));
+});
