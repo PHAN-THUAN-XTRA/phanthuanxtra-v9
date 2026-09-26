@@ -226,6 +226,7 @@ test('production gate: both website AI surfaces advertise full-site advisory sco
 test('production gate: Green Energy editorial page carries PV ESS Hybrid SEO contract', () => {
   const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
   assert.match(page, /<title>Năng lượng xanh &amp; điện mặt trời \| Phan Thuần Xtra<\/title>/);
+  assert.match(page, /Năng Lượng Xanh/);
   assert.match(page, /Năng lượng xanh – Điện mặt trời &amp; giải pháp lưu trữ ESS/);
   assert.match(page, /Energy Storage System/);
   assert.match(page, />Hòa lưới</);
