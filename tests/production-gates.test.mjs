@@ -236,3 +236,12 @@ test('production gate: Green Energy editorial page carries PV ESS Hybrid SEO con
   assert.match(page, /miền Trung/);
   assert.match(page, /https:\/\/phanthuanxtra\.com\/green-energy/);
 });
+
+
+test('production gate: Green Energy 3D PV ESS visual uses R2 WebP asset', () => {
+  const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
+  assert.match(page, /\/media\/editorial\/green-energy\/pv-ess-3d\.webp/);
+  assert.match(page, /alt="Mô hình 3D hệ thống năng lượng xanh Phan Thuần Xtra gồm điện mặt trời PV, inverter, pin lưu trữ ESS, điện lưới và thiết bị sử dụng"/);
+  assert.match(page, /width="1536" height="1024"/);
+  assert.match(page, /class="energy-visual"/);
+});
