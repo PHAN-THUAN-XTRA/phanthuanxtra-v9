@@ -208,7 +208,7 @@ async function syncSecretsAndDeploy() {
     if (!value) throw new Error(`${name} GitHub secret is absent; refusing production deploy.`);
     secrets[name] = { name, text: value, type: "secret_text" };
   }
-  for (const name of ["TELEGRAM_CRM_BOT_TOKEN", "TELEGRAM_CRM_CHAT_ID"]) {
+  for (const name of ["TELEGRAM_AUTO_BOT_TOKEN", "TELEGRAM_CRM_BOT_TOKEN", "TELEGRAM_CRM_CHAT_ID"]) {
     const value = process.env[name];
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
     else if (currentBindingNames.has(name)) console.log(`${name}: preserving existing Cloudflare Worker binding.`);
