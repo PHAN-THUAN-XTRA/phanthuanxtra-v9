@@ -53,7 +53,7 @@ Hotline tư vấn: 0866 997 891
 
 ## Phạm vi tư vấn khách hàng hiện hành
 - Trợ lý AI tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website, đồng thời ưu tiên dữ liệu động của catalog xe.
-- Green Energy, European Yachts và Business Jets được tư vấn trong phạm vi nội dung chính thức trên website/knowledge base; không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
+- Green Energy, European Yachts và Business Jets được cung cấp ở mức thông tin hồ sơ/nội dung chính thức trên website/knowledge base; không chào bán hay tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Khi khách hỏi mua/tư vấn xe, chỉ dùng dữ liệu xe đang có trong D1 catalog của website. Xe không có trong catalog phải nói rõ hiện chưa có trên website.
 - Chat AI góc phải website là kênh tư vấn khách đặc biệt: tư vấn ngắn gọn, lịch sự, ưu tiên đúng nhu cầu xe trong phạm vi website.
 - Khi khách thể hiện quan tâm đến một xe, muốn mua, xem xe, lái thử, hỏi giá, hỏi tình trạng hoặc muốn được tư vấn thêm: sau phần trả lời có căn cứ, chủ động xin HỌ TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp liên hệ tư vấn.
@@ -108,7 +108,7 @@ function systemPrompt(cars, knowledge) {
 Được tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website trong KNOWLEDGE CONTEXT, gồm Phan Thuần/PHAN THUẦN XTRA, Luxury Automotive, Green Energy, European Yachts, Business Jets, dịch vụ và liên hệ/private appointment.
 - Không được tự mở rộng sang chủ đề khác như một trợ lý tổng quát.
 - Mục tiêu tư vấn bán hàng: CHỈ giới thiệu/tư vấn các xe thực sự có trong CATALOG XE HIỆN TẠI. Không tư vấn mua xe ngoài website, không gợi ý mẫu xe không có trong catalog.
-- Green Energy, European Yachts và Business Jets: được giải thích và tư vấn theo nội dung website/KNOWLEDGE CONTEXT; không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
+- Green Energy, European Yachts và Business Jets: chỉ giới thiệu thông tin hồ sơ/nội dung website trong KNOWLEDGE CONTEXT; không tư vấn bán hàng, không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Với xe: chỉ khẳng định dữ liệu có trong catalog; không bịa giá, ODO, năm, phiên bản, option hoặc tình trạng.
 - Nếu khách hỏi một xe không có trong catalog, nói rõ hiện website chưa có dữ liệu xe đó và không tự tạo thông tin.
 - Với Phan Thuần/XTRA: chỉ nói những gì có căn cứ; không suy đoán tiểu sử, chức danh, tài sản, thành tích hoặc thông tin cá nhân.
@@ -220,8 +220,8 @@ function deterministicWebsiteReply(message){
   return "";
 }
 function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
-function handoffReply(contact){
-  if(contact.name&&contact.phone)return "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại, đồng thời chuyển yêu cầu đến anh Phan Thuần qua kênh CRM để được tư vấn trực tiếp.";
+function handoffReply(contact, sent=false){
+  if(contact.name&&contact.phone)return sent ? "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại và gửi yêu cầu qua Telegram/CRM để anh Phan Thuần trực tiếp tư vấn." : "Cảm ơn anh/chị. Tôi đã ghi nhận họ tên, số điện thoại và câu hỏi, nhưng chưa xác nhận được Telegram đã nhận. Anh/chị có thể gọi trực tiếp 0866 997 891 để được hỗ trợ.";
   if(contact.name)return `Cảm ơn anh/chị ${contact.name}. Tôi chưa có thông tin xác thực để trả lời chắc chắn; vui lòng cho tôi xin thêm **số điện thoại** để chuyển anh Phan Thuần trực tiếp tư vấn.`;
   if(contact.phone)return "Cảm ơn anh/chị, tôi đã nhận số điện thoại. Vui lòng cho tôi xin thêm **họ tên** để hoàn tất thông tin chuyển anh Phan Thuần trực tiếp tư vấn.";
   return "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
@@ -244,20 +244,25 @@ export async function handleAiChat(request,env){
     vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
   ]);
   const pending=await pendingUnknown(env,conversationId);
-  const effectiveContact={name:contact.name||clean(pending?.name,120),phone:contact.phone||clean(pending?.phone,30)};
-  if(pending && (contact.name||contact.phone)){
-    await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,pending.id).run();
-    await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,conversationId).run();
+  const pendingWasComplete=Boolean(pending?.name&&pending?.phone);
+  const effectiveContact={name:clean(body?.name,120)||contact.name||clean(pending?.name,120),phone:clean(body?.phone,30)||contact.phone||clean(pending?.phone,30)};
+  if(pending && (effectiveContact.name||effectiveContact.phone)){
+    await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,pending.id).run();
+    await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,conversationId).run();
   }
   const allowed = identityQuery || vehicleQuery || websiteTopicQuery;
-  const needsHuman = !allowed || (websiteTopicQuery && !knowledge.evidence);
+  const needsHuman = Boolean(pending) || !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
   if(needsHuman){
     const unknown=await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
-    const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&(!pending||!pending.name||!pending.phone));
-    if(contactJustCompleted&&!suppressCrmNotification){await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});}
-    reply=handoffReply(effectiveContact);
+    const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&!pendingWasComplete);
+    let sent=false;
+    if(contactJustCompleted&&!suppressCrmNotification){
+      const notification=await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message:pending?.question||message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});
+      sent=notification.sent;
+    }
+    reply=handoffReply(effectiveContact,sent);
   } else {
     const identityFallback=deterministicIdentityReply(message);
     if(vehicleQuery&&!identityQuery&&!cars.length){

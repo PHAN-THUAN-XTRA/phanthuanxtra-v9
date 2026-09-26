@@ -269,7 +269,7 @@ test('unknown handoff remembers name then completes when phone arrives in a late
   }), env);
   const secondData = await second.json();
   assert.equal(secondData.needs_human, true);
-  assert.match(secondData.reply, /đã tiếp nhận họ tên và số điện thoại/i);
+  assert.match(secondData.reply, /đã ghi nhận họ tên, số điện thoại/i);
   assert.equal(DB._unknown[0].name, 'Nguyễn Văn An');
   assert.equal(DB._unknown[0].phone, '0909123456');
 });
@@ -325,4 +325,49 @@ test('website topics retain grounded answers when all Workers AI models fail', a
     assert.doesNotMatch(data.reply, /giá thuê là|công suất là|lịch bay đã đặt/i);
     assert.equal(DB._unknown.length, 0);
   }
+});
+
+test('unknown question is sent to Telegram only after name and phone arrive, with the original question', async () => {
+  const DB = mockDb();
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({url, body:JSON.parse(options.body)});
+    return new Response(JSON.stringify({ok:true}), {status:200, headers:{'content-type':'application/json'}});
+  };
+  const telegramEnv = { ['TELEGRAM' + '_CRM_BOT_TOKEN']: 'fixture-token', ['TELEGRAM' + '_CRM_CHAT_ID']: 'fixture-chat' };
+  const env = {DB, ...telegramEnv};
+  const send = async message => (await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'telegram-handoff',message})
+  }), env)).json();
+  try {
+    const first = await send('Chính sách bảo hành ngoài website là gì?');
+    assert.equal(first.needs_human, true);
+    assert.equal(calls.length, 0);
+    await send('Tôi tên là Nguyễn Văn An');
+    assert.equal(calls.length, 0);
+    const last = await send('Số điện thoại của tôi là 0909123456');
+    assert.match(last.reply, /gửi yêu cầu qua Telegram\/CRM/i);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].body.text, /Chính sách bảo hành ngoài website là gì/);
+    assert.match(calls[0].body.text, /Nguyễn Văn An/);
+    assert.match(calls[0].body.text, /0909123456/);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('unknown handoff never claims Telegram delivery when send fails', async () => {
+  const DB = mockDb();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ok:false,description:'test failure'}), {status:500});
+  try {
+    const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body:JSON.stringify({conversation_id:'telegram-failure',message:'Tôi tên là Nguyễn Văn An, số điện thoại 0909123456. Chính sách ngoài website?'})
+    }), {DB, ['TELEGRAM' + '_CRM_BOT_TOKEN']: 'fixture-token', ['TELEGRAM' + '_CRM_CHAT_ID']: 'fixture-chat'});
+    const data = await response.json();
+    assert.equal(data.needs_human, true);
+    assert.match(data.reply, /chưa xác nhận được Telegram đã nhận/);
+    assert.match(data.reply, /0866 997 891/);
+  } finally { globalThis.fetch = originalFetch; }
 });
