@@ -99,7 +99,7 @@ function isVehicleQuery(value){
 }
 function isWebsiteTopicQuery(value){
   const t=foldVi(value);
-  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jet|aviation|dich vu|services|lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(t);
+  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jet|aviation|lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(t);
 }
 
 function systemPrompt(cars, knowledge) {
