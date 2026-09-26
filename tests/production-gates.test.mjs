@@ -118,3 +118,13 @@ test('production gate: Workers AI falls back when primary returns empty output',
   assert.equal(data.ai_model, '@cf/qwen/qwen3.8-27b');
   assert.deepEqual(calls, ['@cf/zai-org/glm-4.7-flash', '@cf/qwen/qwen3.8-27b']);
 });
+
+
+test('production gate: editorial yachts UTF-8 marker matches the current yachts page', () => {
+  const gate = fs.readFileSync(new URL('../scripts/verify-editorial-production.mjs', import.meta.url), 'utf8');
+  const page = fs.readFileSync(new URL('../public/yachts.html', import.meta.url), 'utf8');
+  const marker = 'Du Thuyền Cao Cấp & Hạng Sang';
+  assert.match(gate, /\["\/yachts","Du Thuyền Cao Cấp & Hạng Sang"\]/);
+  assert.ok(page.includes(marker));
+  assert.ok(page.includes('PHAN THUẦN XTRA'));
+});
