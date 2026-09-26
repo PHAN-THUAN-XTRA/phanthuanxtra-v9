@@ -10,6 +10,7 @@ const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const sha256 = async value => { const bytes = new TextEncoder().encode(value); const hash = await crypto.subtle.digest("SHA-256", bytes); return [...new Uint8Array(hash)].map(x => x.toString(16).padStart(2, "0")).join(""); };
 const autoBotToken = env => env.TELEGRAM_AUTO_BOT_TOKEN || env.TELEGRAM_BOT_TOKEN;
+const AUTO_WEBHOOK_URL = "https://phanthuanxtra.com/api/telegram/webhook";
 async function tg(token, method, payload = {}) { if (!token) throw new Error("Telegram Auto Bot token is not configured"); const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); const data = await response.json().catch(() => ({})); if (!response.ok || !data.ok) throw new Error(clean(data.description || `Telegram ${method} failed`)); return data.result; }
 const pickPhoto = message => Array.isArray(message?.photo) && message.photo.length ? message.photo[message.photo.length - 1] : null;
 export const telegramWebhookReceipt = hasPhoto => hasPhoto ? "📥 ĐÃ NHẬN ẢNH XE\n⏳ Đang kiểm tra và xử lý..." : "📥 ĐÃ NHẬN THÔNG TIN XE\n⏳ Đang chờ ảnh xe để xử lý...";
@@ -175,6 +176,25 @@ async function autoWebhook(request, env, ctx) {
   if (ctx) ctx.waitUntil(task);
   else await task;
   return json({ ok: true, received: true, queued: Boolean(ctx) });
+}
+
+export async function getAutoTelegramWebhookStatus(env, expectedUrl = AUTO_WEBHOOK_URL) {
+  const token = autoBotToken(env);
+  if (!token) return { ok: false, error: "Telegram Auto Bot token is not configured" };
+  try {
+    const info = await tg(token, "getWebhookInfo", {});
+    const actual = clean(info?.url, 2000);
+    return { ok: true, configured: Boolean(actual), url_configured: Boolean(actual), url_matches_expected: actual === expectedUrl, expected_url: expectedUrl, pending_update_count: Number(info?.pending_update_count || 0), last_error_date: info?.last_error_date || null, last_error_message: clean(info?.last_error_message || "", 1000) || null };
+  } catch (error) {
+    return { ok: false, error: clean(error?.message || error, 1000) || "Telegram Auto Bot getWebhookInfo failed" };
+  }
+}
+
+export async function setAutoTelegramWebhook(env, webhookUrl = AUTO_WEBHOOK_URL) {
+  const token = autoBotToken(env);
+  const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post"] };
+  if (env.TELEGRAM_WEBHOOK_SECRET) payload.secret_token = env.TELEGRAM_WEBHOOK_SECRET;
+  return tg(token, "setWebhook", payload);
 }
 
 export async function handleTelegramRouter(request, env, ctx) {
