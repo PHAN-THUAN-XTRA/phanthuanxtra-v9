@@ -57,8 +57,8 @@ jobs:
           visual_status="$(curl --silent --show-error --compressed --retry 3 --retry-delay 1 --max-time 20 \
             --location --proto '=https' --proto-redir '=https' \
             -D "$visual_headers" -o "$visual_body" -w '%{http_code}' \
-            "$SITE_URL/media/editorial/green-energy/pv-ess-3d.webp?asset_gate=$GITHUB_SHA")"
-          echo "/media/editorial/green-energy/pv-ess-3d.webp final HTTP $visual_status"
+            "$SITE_URL/media/editorial/green-energy/green-energy-pv-ess-3d.webp?asset_gate=$GITHUB_SHA")"
+          echo "/media/editorial/green-energy/green-energy-pv-ess-3d.webp final HTTP $visual_status"
           test "$visual_status" = "200"
           grep -Eiq '^content-type:[[:space:]]*image/webp' "$visual_headers"
           test -s "$visual_body"
