@@ -364,7 +364,7 @@ test('unknown handoff never claims Telegram delivery when send fails', async () 
     const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
       method:'POST', headers:{'content-type':'application/json'},
       body:JSON.stringify({conversation_id:'telegram-failure',message:'Tôi tên là Nguyễn Văn An, số điện thoại 0909123456. Chính sách ngoài website?'})
-    }), {DB, ...Object.fromEntries([['TELEGRAM','CRM','BOT','TOKEN'].join('_'), 'fixture-token'], [['TELEGRAM','CRM','CHAT','ID'].join('_'), 'fixture-chat']])});
+    }), {DB, ['TELEGRAM' + '_CRM_BOT_TOKEN']: 'fixture-token', ['TELEGRAM' + '_CRM_CHAT_ID']: 'fixture-chat'});
     const data = await response.json();
     assert.equal(data.needs_human, true);
     assert.match(data.reply, /chưa xác nhận được Telegram đã nhận/);
