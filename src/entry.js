@@ -4,7 +4,7 @@ import { handleTelegramApi } from "./telegram.js";
 import { handleTelegramIngest, setTelegramWebhook, getTelegramWebhookStatus } from "./telegram-ingest.js";
 import { handleMediaApi } from "./media.js";
 import { handleAiChat } from "./ai-chat.js";
-import { handleTelegramRouter } from "./telegram-router.js";
+import { handleTelegramRouter, getAutoTelegramWebhookStatus, setAutoTelegramWebhook } from "./telegram-router.js";
 import { handleVipTelegram, getVipTelegramWebhookStatus, setVipTelegramWebhook } from "./vip-telegram.js";
 import { handleTelegramLookup } from "./telegram-lookup.js";
 import { handleAppApi } from "./app-api.js";
@@ -117,12 +117,12 @@ export default {
   },
   async scheduled(controller, env, ctx) {
     try {
-      const status=await getTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
+      const status=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
       console.log("telegram_webhook_status",JSON.stringify(status));
       if(!status.ok||!status.url_matches_expected){
-        const result=await setTelegramWebhook(env,TELEGRAM_WEBHOOK_URL);
+        const result=await setAutoTelegramWebhook(env,TELEGRAM_WEBHOOK_URL);
         console.log("telegram_webhook_self_heal_ok",JSON.stringify({url:TELEGRAM_WEBHOOK_URL,result,reason:status.ok?"url_mismatch":"status_unavailable"}));
-        const verified=await getTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
+        const verified=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
         console.log("telegram_webhook_post_heal_status",JSON.stringify(verified));
       }
     } catch (error) { console.error("telegram_webhook_self_heal_failed",String(error?.message||error)); }
