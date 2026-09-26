@@ -95,12 +95,15 @@ test('Telegram publish duplicate protection sends only once',async()=>{
 });
 
 
-test('Telegram router source locks complementary bundle pairing and optional plate branding', async()=>{
+test('Telegram router source locks complementary pairing plus full WebP album publishing', async()=>{
   const fs=await import('node:fs');
   const source=fs.readFileSync(new URL('../src/telegram-router.js',import.meta.url),'utf8');
   assert.match(source,/rowHasPhoto && !rowHasText/);
   assert.match(source,/!rowHasPhoto && rowHasText/);
-  assert.match(source,/let publishMediaKey = mediaKey/);
-  assert.match(source,/hasPlate \? "branded" : "ready_to_publish"/);
+  assert.match(source,/const photoRows = rows\.filter\(row => row\.file_id\)/);
+  assert.match(source,/publishMediaKeys = processed\.map/);
+  assert.match(source,/\.webp`/);
+  assert.match(source,/createPtXtraPlateImage\(env, bytes, contentType, plate, publishMediaKey, "image\/webp"\)/);
+  assert.match(source,/promoteDraft\(env, inboxId, ai, publishMediaKeys\[0\], publishMediaKeys\)/);
   assert.match(source,/TỰ ĐĂNG XE/);
 });
