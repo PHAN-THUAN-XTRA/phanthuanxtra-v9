@@ -18,46 +18,60 @@ export const telegramWebhookReceipt = hasPhoto => hasPhoto ? "📥 ĐÃ NHẬN �
 async function processBundle(env, bundleKey, chatId) {
   const token = autoBotToken(env);
   const claim = await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='processing',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(bundleKey).run();
-  if (Number(claim?.meta?.changes || 0) !== 1) return;
+  if (Number(claim?.meta?.changes || 0) < 1) return;
   const rows = (await env.DB.prepare("SELECT * FROM telegram_inbox WHERE bundle_key=? ORDER BY id ASC").bind(bundleKey).all()).results || [];
-  const photoRow = rows.find(row => row.file_id);
+  const photoRows = rows.filter(row => row.file_id);
+  const photoRow = photoRows[0];
   if (!photoRow) return;
   const text = rows.map(row => clean(row.caption)).filter(Boolean).join("\n\n");
   try {
-    const file = await tg(token, "getFile", { file_id: photoRow.file_id });
-    const filePath = clean(file?.file_path, 1000);
-    if (!filePath) throw new Error("Telegram did not return file_path");
-    const image = await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);
-    if (!image.ok) throw new Error(`Telegram file download failed: ${image.status}`);
-    const bytes = await image.arrayBuffer();
-    const contentType = image.headers.get("content-type") || "image/jpeg";
-    const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-    const sourceHash = await sha256(`${chatId}:${photoRow.message_id}:${photoRow.file_unique_id || photoRow.file_id || bundleKey}`);
-    const mediaKey = `vehicles/inbox-${photoRow.id}-${sourceHash.slice(0, 16)}.${extension}`;
-    await env.MEDIA.put(mediaKey, bytes, { httpMetadata: { contentType, cacheControl: "public, max-age=31536000, immutable" } });
-    const ai = await analyzeVehicleImage(env, bytes, contentType, text);
+    const processed = [];
+    let primaryAi = null;
+    for (let index = 0; index < photoRows.length; index++) {
+      const row = photoRows[index];
+      const file = await tg(token, "getFile", { file_id: row.file_id });
+      const filePath = clean(file?.file_path, 1000);
+      if (!filePath) throw new Error("Telegram did not return file_path");
+      const image = await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);
+      if (!image.ok) throw new Error(`Telegram file download failed: ${image.status}`);
+      const bytes = await image.arrayBuffer();
+      const contentType = image.headers.get("content-type") || "image/jpeg";
+      const ai = await analyzeVehicleImage(env, bytes, contentType, text);
+      if (!primaryAi || Number(ai?.confidence || 0) > Number(primaryAi?.confidence || 0)) primaryAi = ai;
+      const sourceHash = await sha256(`${chatId}:${row.message_id}:${row.file_unique_id || row.file_id || bundleKey}`);
+      const publishMediaKey = `vehicles/publish-inbox-${photoRow.id}-${String(index + 1).padStart(2, "0")}-${sourceHash.slice(0, 12)}.webp`;
+      const plate = ai?.plate_bbox;
+      const hasPlate = Boolean(plate && Number(plate.width) > 0 && Number(plate.height) > 0);
+      if (hasPlate) {
+        await createPtXtraPlateImage(env, bytes, contentType, plate, publishMediaKey, "image/webp");
+      } else {
+        if (!env.IMAGES) throw new Error("IMAGES binding is not configured");
+        const result = await env.IMAGES.input(bytes).output({ format: "image/webp", quality: 88, metadata: "none" });
+        const response = result.response({ headers: { "cache-control": "public, max-age=31536000, immutable" } });
+        if (!response.ok || !response.body) throw new Error(`PT Xtra WebP transform failed: ${response.status}`);
+        await env.MEDIA.put(publishMediaKey, response.body, { httpMetadata: { contentType: "image/webp", cacheControl: "public, max-age=31536000, immutable" }, customMetadata: { branding: "none", format: "webp" } });
+      }
+      processed.push({ row, ai, publishMediaKey, hasPlate, filePath });
+      const processedImageUrl = "/media/" + publishMediaKey;
+      await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,file_path=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(processedImageUrl, filePath, Number(row.id)).run();
+    }
+    const ai = primaryAi || {};
     const inboxId = Number(photoRow.id);
-    await env.DB.prepare(`INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'draft', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,confidence=excluded.confidence,missing_fields_json=excluded.missing_fields_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='draft',updated_at=CURRENT_TIMESTAMP`).bind(inboxId, JSON.stringify({ ...ai, media_key: mediaKey, bundle_key: bundleKey }), Number(ai.confidence || 0), JSON.stringify(ai.missing_fields || []), text, filePath).run();
-    await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,bundle_status='done',caption=?,file_path=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(`/media/${mediaKey}`, text, filePath, bundleKey).run();
+    const publishMediaKeys = processed.map(item => item.publishMediaKey);
+    await env.DB.prepare(`INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'draft', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,confidence=excluded.confidence,missing_fields_json=excluded.missing_fields_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='draft',updated_at=CURRENT_TIMESTAMP`).bind(inboxId, JSON.stringify({ ...ai, publish_media_key: publishMediaKeys[0], publish_media_keys: publishMediaKeys, bundle_key: bundleKey, image_count: publishMediaKeys.length }), Number(ai.confidence || 0), JSON.stringify(ai.missing_fields || []), text, processed[0]?.filePath || "").run();
     const label = [ai.brand, ai.model].filter(Boolean).join(" ") || "Chưa xác định tên xe";
     if (!canAutoPublish(ai)) {
+      await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='done',caption=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text, bundleKey).run();
       await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='awaiting_review',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run();
-      await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["⚠️ ĐÃ PHÂN TÍCH XE — CHƯA TỰ ĐĂNG", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, ai.year ? `📅 Năm: ${ai.year}` : null, ai.price != null ? `💰 Giá: ${ai.price}` : null, ai.mileage != null ? `🛣 ODO: ${ai.mileage}` : null, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, "🪪 Chưa đạt điều kiện xác định vùng biển số / độ tin cậy.", "⏳ Xe thật đã được lưu làm bản nháp, không tạo dữ liệu giả.", `🖼 /media/${mediaKey}`].filter(Boolean).join("\n") });
+      await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["⚠️ ĐÃ PHÂN TÍCH XE — CHƯA TỰ ĐĂNG", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, `🖼 Đã xử lý WebP: ${publishMediaKeys.length} ảnh`, "⏳ Xe thật đã được lưu làm bản nháp, không tạo dữ liệu giả."].join("\n") });
       return;
     }
-    let publishMediaKey = mediaKey;
-    const plate = ai?.plate_bbox;
-    const hasPlate = Boolean(plate && Number(plate.width) > 0 && Number(plate.height) > 0);
-    if (hasPlate) {
-      publishMediaKey = `vehicles/publish-inbox-${inboxId}-${sourceHash.slice(0, 16)}.jpg`;
-      await createPtXtraPlateImage(env, bytes, contentType, plate, publishMediaKey);
-    }
-    await env.DB.prepare(`UPDATE vehicle_ai_drafts SET ai_json=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?`).bind(JSON.stringify({ ...ai, media_key: mediaKey, publish_media_key: publishMediaKey, bundle_key: bundleKey, branding: hasPlate ? "PT Xtra" : "none", branding_target: hasPlate ? "license_plate" : null }), hasPlate ? "branded" : "ready_to_publish", inboxId).run();
-    await env.DB.prepare("UPDATE telegram_inbox SET processed_image_url=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(`/media/${publishMediaKey}`, bundleKey).run();
-    const promotion = await promoteDraft(env, inboxId, ai, publishMediaKey);
+    await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='ready_to_publish',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run();
+    const promotion = await promoteDraft(env, inboxId, ai, publishMediaKeys[0], publishMediaKeys);
     if (!promotion?.published) throw new Error(promotion?.reason || "Vehicle publication gate rejected the listing");
-    await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(bundleKey).run();
-    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["🚀 ĐÃ PHÂN TÍCH + TỰ ĐĂNG XE", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, ai.year ? `📅 Năm: ${ai.year}` : null, ai.price != null ? `💰 Giá: ${ai.price}` : null, ai.mileage != null ? `🛣 ODO: ${ai.mileage}` : null, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, hasPlate ? "🪪 Biển số: đã thay bằng PT Xtra" : "🪪 Biển số: không phát hiện — giữ ảnh gốc", `🖼 Ảnh publish: /media/${publishMediaKey}`, "🌐 Website: phanthuanxtra.com", "✅ Bản ảnh publish đã được tạo trong R2 trước khi tạo bản ghi website."].filter(Boolean).join("\n") });
+    await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',caption=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text, bundleKey).run();
+    const brandedCount = processed.filter(item => item.hasPlate).length;
+    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["🚀 ĐÃ PHÂN TÍCH + TỰ ĐĂNG XE", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, `🖼 WebP: ${publishMediaKeys.length}/${photoRows.length} ảnh`, `🪪 Che/thay biển số: ${brandedCount} ảnh`, "🌐 Website: phanthuanxtra.com", "✅ Toàn bộ ảnh publish đã được tạo trong R2 trước khi tạo bản ghi website."].join("\n") });
   } catch (error) {
     const message = clean(error?.message || error);
     await env.DB.prepare("UPDATE telegram_inbox SET status='failed',bundle_status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(message, bundleKey).run().catch(() => {});

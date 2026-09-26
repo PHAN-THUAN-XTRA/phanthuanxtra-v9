@@ -210,3 +210,18 @@ test('production gate: Telegram albums use media_group_id as one stable vehicle 
   assert.match(router, /const partner = mediaGroupId \? null : recent\.find/);
   assert.match(router, /LIMIT 50/);
 });
+
+
+test('production gate: Telegram vehicle albums publish every image as WebP gallery', () => {
+  const router = fs.readFileSync(new URL('../src/telegram-router.js', import.meta.url), 'utf8');
+  const ingest = fs.readFileSync(new URL('../src/telegram-ingest.js', import.meta.url), 'utf8');
+  const branding = fs.readFileSync(new URL('../src/plate-branding.js', import.meta.url), 'utf8');
+  assert.match(router, /const photoRows = rows\.filter\(row => row\.file_id\)/);
+  assert.match(router, /\.webp`/);
+  assert.match(router, /format: "image\/webp"/);
+  assert.match(router, /publish_media_keys: publishMediaKeys/);
+  assert.match(router, /promoteDraft\(env, inboxId, ai, publishMediaKeys\[0\], publishMediaKeys\)/);
+  assert.match(ingest, /images:imageUrls\.length\?imageUrls:\[imageUrl\]/);
+  assert.match(branding, /outputContentType = "image\/jpeg"/);
+  assert.match(branding, /outputContentType === "image\/webp"/);
+});
