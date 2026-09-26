@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - ".github/workflows/live-chat-ai-identity-verify.yml"
+      - "src/ai-chat.js"
+      - "public/index.html"
 
 permissions:
   contents: read
@@ -33,6 +35,31 @@ jobs:
             exit 1
           fi
           echo "No-accent identity response: PASS"
+
+      - name: Verify full-site AI advisory on production
+        shell: bash
+        env:
+          SITE_URL: https://phanthuanxtra.com
+        run: |
+          set -euo pipefail
+          verify_topic() {
+            label="$1"
+            message="$2"
+            required="$3"
+            cid="ci-ai-full-site-${label}-${GITHUB_RUN_ID}"
+            payload="$(jq -nc --arg cid "$cid" --arg message "$message" '{conversation_id:$cid,visitor_id:$cid,message:$message,suppress_crm_notification:true,test_context:"production-smoke"}')"
+            status="$(curl --silent --show-error --max-time 30 -o "/tmp/${label}.json" -w '%{http_code}' -X POST "$SITE_URL/api/ai-chat" -H 'content-type: application/json' --data "$payload")"
+            echo "$label HTTP $status"
+            cat "/tmp/${label}.json"
+            test "$status" = "200"
+            jq -e '.ok == true and .needs_human == false' "/tmp/${label}.json" >/dev/null
+            jq -er '.reply' "/tmp/${label}.json" | grep -Eiq "$required"
+          }
+          verify_topic green-energy "Tư vấn điện mặt trời PV và ESS trên website" "Green Energy|ESS|điện mặt trời|năng lượng"
+          verify_topic yachts "Tôi muốn tư vấn du thuyền theo nội dung website" "du thuyền|yacht|Jeanneau|Prestige|Ferretti|Riva"
+          verify_topic business-jets "Tôi muốn tư vấn chuyên cơ thương gia theo nội dung website" "chuyên cơ|Business Jet|Legacy 600|hàng không"
+          verify_topic contact "Hotline liên hệ chính thức là gì?" "0866 997 891|0866997891"
+          echo "Full-site production AI advisory: PASS"
 
       - name: Verify public vehicle catalog excludes CI records
         shell: bash
