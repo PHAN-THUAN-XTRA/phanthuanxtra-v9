@@ -20,3 +20,11 @@ test('founder article portrait fits narrow columns', () => {
   assert.match(rule('.article-hero img'), /max-width:100%;height:auto/);
   assert.match(css, /@media\(max-width:760px\)\{\.founder-grid\{grid-template-columns:minmax\(0,1fr\)/);
 });
+
+
+test('homepage founder portrait has no hashtag caption below the image', async () => {
+  const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+  const portrait = html.split('<figure class="founder-portrait">')[1]?.split('</figure>')[0];
+  assert.ok(portrait, 'founder portrait exists');
+  assert.doesNotMatch(portrait, /<figcaption|#phanthuanxtra|#PhanThuanXtra/i);
+});
