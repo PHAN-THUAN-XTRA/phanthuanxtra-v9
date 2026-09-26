@@ -210,3 +210,17 @@ test('production gate: Telegram albums use media_group_id as one stable vehicle 
   assert.match(router, /const partner = mediaGroupId \? null : recent\.find/);
   assert.match(router, /LIMIT 50/);
 });
+
+
+test('production gate: Green Energy editorial page carries PV ESS Hybrid SEO contract', () => {
+  const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
+  assert.match(page, /<title>Năng lượng xanh &amp; điện mặt trời \| Phan Thuần Xtra<\/title>/);
+  assert.match(page, /Năng lượng xanh – Điện mặt trời &amp; giải pháp lưu trữ ESS/);
+  assert.match(page, /Energy Storage System/);
+  assert.match(page, />Hòa lưới</);
+  assert.match(page, />Độc lập</);
+  assert.match(page, />Hybrid</);
+  assert.match(page, /Đồng bằng sông Cửu Long/);
+  assert.match(page, /miền Trung/);
+  assert.match(page, /https:\/\/phanthuanxtra\.com\/green-energy/);
+});
