@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAiChat } from '../src/ai-chat.js';
 
-function mockDb(cars = []) {
+function mockDb(cars = [], posts = []) {
   const rows = [];
   const unknown = [];
   return {
@@ -28,10 +28,11 @@ function mockDb(cars = []) {
             async all() {
               if (sql.includes('FROM ai_messages')) return {results: rows.filter(x=>x.type==='message').slice(-12).map(x=>({role:x.role,content:x.content}))};
               if (sql.includes("FROM cars WHERE status <> 'hidden'")) return {results: cars.filter(x=>x.status !== 'hidden')};
+              if (sql.includes("FROM posts WHERE status='published'")) return {results: posts.filter(x=>x.status==='published')};
               return {results:[]};
             },
             async first() {
-              if (sql.includes('FROM ai_unknown_questions')) return unknown.filter(x=>x.status==='pending').at(-1) || null;
+              if (sql.includes('FROM ai_unknown_questions')) return unknown.filter(x=>x.status==='pending'&&(!x.name||!x.phone)).at(-1) || null;
               return null;
             }
           };
@@ -370,4 +371,33 @@ test('unknown handoff never claims Telegram delivery when send fails', async () 
     assert.match(data.reply, /chưa xác nhận được Telegram đã nhận/);
     assert.match(data.reply, /0866 997 891/);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('published Blog listing uses live D1 posts and excludes drafts', async () => {
+  const DB=mockDb([], [
+    {title:'Bài công khai mới',slug:'bai-cong-khai',status:'published',excerpt:'Nội dung công khai'},
+    {title:'Bản nháp nội bộ',slug:'ban-nhap',status:'draft'}
+  ]);
+  const response=await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'blog-live',message:'Bài viết mới nhất trên Blog là gì?'})
+  }),{DB, AI:{async run(){throw new Error('listing should use D1');}}});
+  const data=await response.json();
+  assert.equal(data.needs_human,false);
+  assert.match(data.reply,/Bài công khai mới.*\/blog\/bai-cong-khai/);
+  assert.doesNotMatch(data.reply,/Bản nháp nội bộ/);
+});
+
+test('completed handoff does not trap later Blog questions in unknown flow', async () => {
+  const DB=mockDb([], [{title:'Bài mới',slug:'bai-moi',status:'published'}]);
+  const env={DB};
+  const send=async message=>(await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation_id:'after-handoff',message})
+  }),env)).json();
+  await send('Câu hỏi ngoài website?');
+  await send('Tôi tên là Kiểm Thử, số điện thoại 0900000000');
+  const data=await send('Bài viết mới nhất trên Blog là gì?');
+  assert.equal(data.needs_human,false);
+  assert.match(data.reply,/Bài mới/);
+  assert.equal(DB._unknown.length,1);
 });

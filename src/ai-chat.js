@@ -99,8 +99,9 @@ function isVehicleQuery(value){
 }
 function isWebsiteTopicQuery(value){
   const t=foldVi(value);
-  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jet|aviation|lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(t);
+  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jet|aviation|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
 }
+const isBlogQuery = value => /\b(blog|bai viet|tin tuc|bai dang|news)\b/.test(foldVi(value));
 
 function systemPrompt(cars, knowledge) {
   const catalog = cars.length ? JSON.stringify(cars.map(c => ({ id:c.id,brand:c.brand,model:c.model,year:c.year,mileage:c.mileage,price:c.price,fuel:c.fuel,category:c.category,color:c.color,status:c.status,description:c.description }))) : "[]";
@@ -124,6 +125,12 @@ CATALOG XE HIỆN TẠI:\n${catalog}`;
 }
 
 async function loadCars(env) { if (!env.DB) return []; try { const q = await env.DB.prepare("SELECT id,brand,model,year,mileage,price,fuel,category,color,status,description FROM cars WHERE status <> 'hidden' ORDER BY featured DESC,created_at DESC LIMIT ?").bind(MAX_CARS).all(); return q.results || []; } catch { return []; } }
+async function loadPublishedPosts(env){
+  try {
+    const result=await env.DB.prepare("SELECT title,slug,excerpt,content,category,published_at FROM posts WHERE status='published' ORDER BY COALESCE(published_at,created_at) DESC,id DESC LIMIT 30").bind().all();
+    return result.results||[];
+  } catch(error){console.warn("ai_blog_catalog",String(error?.message||error));return [];}
+}
 
 async function searchKnowledge(env, query) {
   const identity = isIdentityMention(query);
@@ -222,12 +229,12 @@ function deterministicWebsiteReply(message){
 function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
 function handoffReply(contact, sent=false){
   if(contact.name&&contact.phone)return sent ? "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại và gửi yêu cầu qua Telegram/CRM để anh Phan Thuần trực tiếp tư vấn." : "Cảm ơn anh/chị. Tôi đã ghi nhận họ tên, số điện thoại và câu hỏi, nhưng chưa xác nhận được Telegram đã nhận. Anh/chị có thể gọi trực tiếp 0866 997 891 để được hỗ trợ.";
-  if(contact.name)return `Cảm ơn anh/chị ${contact.name}. Tôi chưa có thông tin xác thực để trả lời chắc chắn; vui lòng cho tôi xin thêm **số điện thoại** để chuyển anh Phan Thuần trực tiếp tư vấn.`;
-  if(contact.phone)return "Cảm ơn anh/chị, tôi đã nhận số điện thoại. Vui lòng cho tôi xin thêm **họ tên** để hoàn tất thông tin chuyển anh Phan Thuần trực tiếp tư vấn.";
-  return "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin **họ tên và số điện thoại**, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
+  if(contact.name)return `Cảm ơn anh/chị ${contact.name}. Tôi chưa có thông tin xác thực để trả lời chắc chắn; vui lòng cho tôi xin thêm số điện thoại để chuyển anh Phan Thuần trực tiếp tư vấn.`;
+  if(contact.phone)return "Cảm ơn anh/chị, tôi đã nhận số điện thoại. Vui lòng cho tôi xin thêm họ tên để hoàn tất thông tin chuyển anh Phan Thuần trực tiếp tư vấn.";
+  return "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin họ tên và số điện thoại, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
 }
 async function saveLead(env,conversationId,phone,name,message){if(!phone||!env.DB)return false;const normalized=phone.replace(/\D/g,"");if(normalized.length<9)return false;await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message) VALUES (?,?,?,?)").bind(clean(name,120),clean(phone,30),"",`[AI CHAT ${conversationId}] ${clean(message,1800)}`).run();await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(name,120)||null,clean(phone,30),conversationId).run();return true;}
-async function pendingUnknown(env,cid){try{return await env.DB.prepare("SELECT id,question,name,phone,status FROM ai_unknown_questions WHERE conversation_id=? AND status='pending' ORDER BY id DESC LIMIT 1").bind(cid).first();}catch{return null;}}
+async function pendingUnknown(env,cid){try{return await env.DB.prepare("SELECT id,question,name,phone,status FROM ai_unknown_questions WHERE conversation_id=? AND status='pending' AND (name IS NULL OR phone IS NULL) ORDER BY id DESC LIMIT 1").bind(cid).first();}catch{return null;}}
 async function recordUnknown(env,cid,question,name,phone){const existing=await pendingUnknown(env,cid);if(existing){if(name||phone)await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,phone||null,existing.id).run();return {id:existing.id,created:false};}const r=await env.DB.prepare("INSERT INTO ai_unknown_questions (conversation_id,question,name,phone,notified_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)").bind(cid,clean(question,4000),clean(name,120)||null,clean(phone,30)||null).run();return {id:r?.meta?.last_row_id??null,created:true};}
 
 export async function handleAiChat(request,env){
@@ -238,10 +245,11 @@ export async function handleAiChat(request,env){
   const suppressCrmNotification = body?.suppress_crm_notification === true && /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel); const history=await loadHistory(env,conversationId); const contact=extractContact(message);
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"user",message).run();
-  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message); const websiteTopicQuery=isWebsiteTopicQuery(message);
-  const[cars,knowledge]=await Promise.all([
+  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message); const websiteTopicQuery=isWebsiteTopicQuery(message); const blogQuery=isBlogQuery(message);
+  const[cars,knowledge,posts]=await Promise.all([
     loadCars(env),
-    vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
+    vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message),
+    blogQuery ? loadPublishedPosts(env) : Promise.resolve([])
   ]);
   const pending=await pendingUnknown(env,conversationId);
   const pendingWasComplete=Boolean(pending?.name&&pending?.phone);
@@ -255,7 +263,7 @@ export async function handleAiChat(request,env){
   let reply;
   let aiModel=null;
   if(needsHuman){
-    const unknown=await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
+    const unknown=pending ? {id:pending.id,created:false} : await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
     const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&!pendingWasComplete);
     let sent=false;
     if(contactJustCompleted&&!suppressCrmNotification){
@@ -267,10 +275,15 @@ export async function handleAiChat(request,env){
     const identityFallback=deterministicIdentityReply(message);
     if(vehicleQuery&&!identityQuery&&!cars.length){
       reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
+    } else if(blogQuery && /\b(moi nhat|gan day|latest)\b/.test(foldVi(message))){
+      reply=posts.length ? `Các bài Blog mới nhất đã xuất bản trên website: ${posts.slice(0,5).map(post=>`${post.title} (https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)})`).join('; ')}. Anh/chị muốn tìm hiểu bài nào?` : "Hiện tôi chưa đọc được danh sách bài Blog đã xuất bản. Anh/chị vui lòng để lại họ tên và số điện thoại để được hỗ trợ.";
+    } else if(blogQuery && !posts.length){
+      reply="Hiện tôi chưa đọc được bài Blog đã xuất bản để trả lời chính xác. Anh/chị vui lòng để lại họ tên và số điện thoại để được hỗ trợ.";
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
     } else try{
-      const result=await runAI(env,[...history,{role:"user",content:message}],cars,(vehicleQuery&&!websiteTopicQuery)?BRAND_KNOWLEDGE:knowledge.text);
+      const blogContext=blogQuery ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:post.excerpt,content:clean(post.content,600)}))).slice(0,7000)}` : "";
+      const result=await runAI(env,[...history,{role:"user",content:message}],cars,((vehicleQuery&&!websiteTopicQuery)?BRAND_KNOWLEDGE:knowledge.text)+blogContext);
       reply=result.text;
       aiModel=result.model;
     }catch(error){
