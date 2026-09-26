@@ -245,3 +245,14 @@ test('production gate: Green Energy 3D PV ESS visual uses R2 WebP asset', () => 
   assert.match(page, /width="1536" height="1024"/);
   assert.match(page, /class="energy-visual"/);
 });
+
+
+test('production gate: Green Energy 3D production delivery gate checks WebP response', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/production-asset-gate.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /media\/editorial\/green-energy\/pv-ess-3d\.webp/);
+  assert.match(workflow, /visual_status/);
+  assert.match(workflow, /content-type:\[\[:space:\]\]\*image\/webp/);
+  assert.match(workflow, /Green Energy 3D WebP delivery PASS/);
+  const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(page, /\\\\n\s+\.energy-visual/);
+});
