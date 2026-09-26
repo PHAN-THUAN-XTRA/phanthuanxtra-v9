@@ -63,6 +63,26 @@ Hotline tư vấn: 0866 997 891
 Lĩnh vực chatbot hỗ trợ khách: toàn bộ nội dung chính thức trên website gồm Luxury Automotive/catalog xe, Green Energy, European Yachts, Business Jets, Phan Thuần/PHAN THUẦN XTRA và private appointment/liên hệ.
 `;
 
+const WEBSITE_KNOWLEDGE = `${BRAND_KNOWLEDGE}
+
+# Nội dung website chính thức
+## Green Energy
+- PHAN THUẦN XTRA giới thiệu giải pháp năng lượng xanh và điện mặt trời theo nhu cầu sử dụng, quy mô và mục tiêu dài hạn.
+- Trang Green Energy đang mở rộng nội dung về điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid. Với thông số, chi phí và cấu hình dự án cụ thể phải xác minh theo công trình.
+
+## European Yachts
+- Website tư vấn lựa chọn du thuyền theo số người sử dụng, khu vực hoạt động, nghỉ dưỡng/tốc độ, cabin, tầm hoạt động, nội thất, ngân sách và mức độ cá nhân hóa.
+- Các thương hiệu đang được nội dung website giới thiệu gồm Jeanneau, Prestige, Fountaine Pajot, Alfastreet Marine, Ferretti Yachts, Pershing và Riva; mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm.
+
+## Business Jets
+- Website giới thiệu dịch vụ charter/chuyên cơ thương gia và nội dung về Embraer Legacy 600, nhấn mạnh lịch trình linh hoạt, không gian cabin và nhu cầu di chuyển riêng.
+- Mọi lịch bay, sân bay, sức chứa/cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến; không tự tạo cam kết.
+
+## Liên hệ
+- Hotline chính thức hiển thị trên website: 0866 997 891.
+- Website có khu vực private contact và tiếp nhận nhu cầu tư vấn trực tiếp.
+`;
+
 const PHONE_RE = /(?:\+?84|0)(?:\D*\d){9,10}/;
 const foldVi = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D").toLowerCase();
 const isIdentityMention = value => /phan\s*thuan|phanthuan|phanthuanxtra|xtra intelligence/.test(foldVi(value));
