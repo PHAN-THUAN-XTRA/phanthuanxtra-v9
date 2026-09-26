@@ -273,3 +273,32 @@ test('unknown handoff remembers name then completes when phone arrives in a late
   assert.equal(DB._unknown[0].name, 'Nguyễn Văn An');
   assert.equal(DB._unknown[0].phone, '0909123456');
 });
+
+
+for (const [label, message, expected] of [
+  ['Green Energy', 'Tư vấn điện mặt trời PV và ESS', /Green Energy|ESS|điện mặt trời/i],
+  ['Yachts', 'Tôi muốn tư vấn du thuyền', /yacht|du thuyền|Jeanneau|Prestige/i],
+  ['Business Jets', 'Tư vấn chuyên cơ thương gia', /Business Jets|Legacy 600|chuyên cơ/i],
+  ['Contact', 'Hotline liên hệ là gì?', /0866 997 891/]
+]) {
+  test(`website AI advises published ${label} content without AI Search`, async () => {
+    const DB = mockDb();
+    const env = {
+      DB,
+      AI: { async run(model, payload) {
+        const system = payload.messages.find(x=>x.role==='system')?.content || '';
+        assert.match(system, expected);
+        assert.match(system, /toàn bộ nội dung chính thức/i);
+        return {response: label === 'Contact' ? 'Hotline chính thức là 0866 997 891.' : `Tôi có thể tư vấn ${label} theo nội dung chính thức đang công bố trên website.`};
+      }}
+    };
+    const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body:JSON.stringify({conversation_id:`full-site-${label.replace(/\\s+/g,'-')}`,visitor_id:'coverage-test',message})
+    }), env);
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.ok, true);
+    assert.equal(data.needs_human, false);
+  });
+}

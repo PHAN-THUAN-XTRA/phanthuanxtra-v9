@@ -52,15 +52,35 @@ Website chính thức: https://phanthuanxtra.com/
 Hotline tư vấn: 0866 997 891
 
 ## Phạm vi tư vấn khách hàng hiện hành
-- Trợ lý AI chỉ tư vấn khách hàng về Phan Thuần/PHAN THUẦN XTRA và các xe ĐANG CÓ trên website.
-- Các lĩnh vực Green Energy, European Yachts và Business Jets là thông tin hồ sơ/hệ sinh thái của Phan Thuần; chatbot không chào bán, báo giá hay tư vấn dịch vụ các lĩnh vực này.
+- Trợ lý AI tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website, đồng thời ưu tiên dữ liệu động của catalog xe.
+- Green Energy, European Yachts và Business Jets được tư vấn trong phạm vi nội dung chính thức trên website/knowledge base; không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Khi khách hỏi mua/tư vấn xe, chỉ dùng dữ liệu xe đang có trong D1 catalog của website. Xe không có trong catalog phải nói rõ hiện chưa có trên website.
 - Chat AI góc phải website là kênh tư vấn khách đặc biệt: tư vấn ngắn gọn, lịch sự, ưu tiên đúng nhu cầu xe trong phạm vi website.
 - Khi khách thể hiện quan tâm đến một xe, muốn mua, xem xe, lái thử, hỏi giá, hỏi tình trạng hoặc muốn được tư vấn thêm: sau phần trả lời có căn cứ, chủ động xin HỌ TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp liên hệ tư vấn.
 - Khi đã có số điện thoại, xác nhận thông tin đã được chuyển để anh Phan Thuần trực tiếp tư vấn; không tiếp tục hỏi lại số điện thoại nếu khách đã cung cấp.
 - Hotline liên hệ trực tiếp Phan Thuần/PHAN THUẦN XTRA: 0866 997 891.
 
-Lĩnh vực chatbot hỗ trợ khách: Luxury Automotive trong catalog website; thông tin chính thức về Phan Thuần/PHAN THUẦN XTRA; tiếp nhận private appointment/liên hệ.
+Lĩnh vực chatbot hỗ trợ khách: toàn bộ nội dung chính thức trên website gồm Luxury Automotive/catalog xe, Green Energy, European Yachts, Business Jets, Phan Thuần/PHAN THUẦN XTRA và private appointment/liên hệ.
+`;
+
+const WEBSITE_KNOWLEDGE = `${BRAND_KNOWLEDGE}
+
+# Nội dung website chính thức
+## Green Energy
+- PHAN THUẦN XTRA giới thiệu giải pháp năng lượng xanh và điện mặt trời theo nhu cầu sử dụng, quy mô và mục tiêu dài hạn.
+- Trang Green Energy đang mở rộng nội dung về điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid. Với thông số, chi phí và cấu hình dự án cụ thể phải xác minh theo công trình.
+
+## European Yachts
+- Website tư vấn lựa chọn du thuyền theo số người sử dụng, khu vực hoạt động, nghỉ dưỡng/tốc độ, cabin, tầm hoạt động, nội thất, ngân sách và mức độ cá nhân hóa.
+- Các thương hiệu đang được nội dung website giới thiệu gồm Jeanneau, Prestige, Fountaine Pajot, Alfastreet Marine, Ferretti Yachts, Pershing và Riva; mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm.
+
+## Business Jets
+- Website giới thiệu dịch vụ charter/chuyên cơ thương gia và nội dung về Embraer Legacy 600, nhấn mạnh lịch trình linh hoạt, không gian cabin và nhu cầu di chuyển riêng.
+- Mọi lịch bay, sân bay, sức chứa/cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến; không tự tạo cam kết.
+
+## Liên hệ
+- Hotline chính thức hiển thị trên website: 0866 997 891.
+- Website có khu vực private contact và tiếp nhận nhu cầu tư vấn trực tiếp.
 `;
 
 const PHONE_RE = /(?:\+?84|0)(?:\D*\d){9,10}/;
@@ -77,20 +97,24 @@ function isVehicleQuery(value){
   const t=foldVi(value);
   return /\b(mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup)\b/.test(t);
 }
+function isWebsiteTopicQuery(value){
+  const t=foldVi(value);
+  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jet|aviation|lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(t);
+}
 
 function systemPrompt(cars, knowledge) {
   const catalog = cars.length ? JSON.stringify(cars.map(c => ({ id:c.id,brand:c.brand,model:c.model,year:c.year,mileage:c.mileage,price:c.price,fuel:c.fuel,category:c.category,color:c.color,status:c.status,description:c.description }))) : "[]";
   return `Bạn là XTRA Intelligence, chatbot chính thức của PHAN THUẦN XTRA (Vietnam).
-CHỈ được tư vấn 2 nhóm: (1) thông tin Phan Thuần/PHAN THUẦN XTRA đã có căn cứ trong KNOWLEDGE CONTEXT; (2) xe và nhu cầu automotive dựa trên CATALOG XE HIỆN TẠI.
+Được tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website trong KNOWLEDGE CONTEXT, gồm Phan Thuần/PHAN THUẦN XTRA, Luxury Automotive, Green Energy, European Yachts, Business Jets, dịch vụ và liên hệ/private appointment.
 - Không được tự mở rộng sang chủ đề khác như một trợ lý tổng quát.
 - Mục tiêu tư vấn bán hàng: CHỈ giới thiệu/tư vấn các xe thực sự có trong CATALOG XE HIỆN TẠI. Không tư vấn mua xe ngoài website, không gợi ý mẫu xe không có trong catalog.
-- Green Energy, European Yachts và Business Jets chỉ được nhắc khi khách hỏi về hồ sơ/hệ sinh thái của Phan Thuần; KHÔNG tư vấn bán hàng, giá, cấu hình hay dịch vụ cho các lĩnh vực này.
+- Green Energy, European Yachts và Business Jets: được giải thích và tư vấn theo nội dung website/KNOWLEDGE CONTEXT; không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Với xe: chỉ khẳng định dữ liệu có trong catalog; không bịa giá, ODO, năm, phiên bản, option hoặc tình trạng.
 - Nếu khách hỏi một xe không có trong catalog, nói rõ hiện website chưa có dữ liệu xe đó và không tự tạo thông tin.
 - Với Phan Thuần/XTRA: chỉ nói những gì có căn cứ; không suy đoán tiểu sử, chức danh, tài sản, thành tích hoặc thông tin cá nhân.
 - Phân biệt nguồn: dữ liệu website/D1 và dấu vết công khai đã đối chiếu có thể mô tả như dữ liệu công khai; các tuyên bố chỉ có trong hồ sơ do chủ website cung cấp phải được gắn nhãn "theo hồ sơ/tài liệu chính thức do chủ website cung cấp" khi trả lời.
 - Khi AI Search trả thêm kết quả từ website hoặc nguồn công khai, chỉ dùng nội dung có liên quan trực tiếp đến đúng Phan Thuần/PHAN THUẦN XTRA; bỏ qua kết quả trùng tên hoặc không đủ căn cứ nhận dạng.
-- Nếu câu hỏi thuộc ngoài 2 nhóm hoặc KNOWLEDGE CONTEXT không có căn cứ, phải nói rõ bạn chưa có thông tin xác thực và xin TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp liên hệ.
+- Nếu câu hỏi nằm ngoài nội dung website hoặc KNOWLEDGE CONTEXT không có căn cứ, phải nói rõ bạn chưa có thông tin xác thực và xin TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp liên hệ.
 - Với mọi nhu cầu xe thể hiện ý định quan tâm/mua/xem/lái thử/hỏi giá/hỏi tình trạng/tư vấn thêm, sau khi trả lời bằng CATALOG XE HIỆN TẠI phải chủ động xin HỌ TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp tư vấn.
 - Nếu lịch sử hội thoại hoặc tin nhắn hiện tại đã có số điện thoại, xác nhận đã tiếp nhận/chuyển thông tin cho anh Phan Thuần; không yêu cầu khách cung cấp lại.
 - Khi khách đã cung cấp tên/số điện thoại, xác nhận đã tiếp nhận và không bịa câu trả lời thay người thật.
@@ -103,7 +127,8 @@ async function loadCars(env) { if (!env.DB) return []; try { const q = await env
 
 async function searchKnowledge(env, query) {
   const identity = isIdentityMention(query);
-  if (!env.AI_SEARCH) return { text: BRAND_KNOWLEDGE, evidence: identity, topScore: identity ? 1 : 0 };
+  const websiteTopic = isWebsiteTopicQuery(query);
+  if (!env.AI_SEARCH) return { text: WEBSITE_KNOWLEDGE, evidence: identity || websiteTopic, topScore: (identity || websiteTopic) ? 1 : 0 };
   try {
     const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nLuxury Automotive European Yachts Business Jets Green Energy\nthông tin chính thức về Phan Thuần` : query;
     const result = await env.AI_SEARCH.search({ messages:[{role:"user",content:searchQuery}], ai_search_options:{instance_ids:AI_SEARCH_IDS,retrieval:{retrieval_type:"hybrid",keyword_match_mode:"or",match_threshold:identity?0.2:0.45,max_num_results:MAX_KNOWLEDGE_CHUNKS},reranking:{enabled:true,model:"@cf/baai/bge-reranker-base"}} });
@@ -111,8 +136,8 @@ async function searchKnowledge(env, query) {
     const context = chunks.map(chunk=>chunk.content||chunk.text||"").filter(Boolean).join("\n\n---\n\n");
     const scores = chunks.map(c=>Number(c.score ?? c.relevance_score ?? 0)).filter(Number.isFinite);
     const topScore = scores.length ? Math.max(...scores) : 0;
-    return { text:`${BRAND_KNOWLEDGE}\n\n${context}`.slice(0,MAX_KNOWLEDGE_CONTEXT), evidence:identity || !!context, topScore };
-  } catch (error) { console.warn("ai_search_query",String(error?.message||error)); return { text:BRAND_KNOWLEDGE, evidence:identity, topScore:identity?1:0 }; }
+    return { text:`${WEBSITE_KNOWLEDGE}\n\n${context}`.slice(0,MAX_KNOWLEDGE_CONTEXT), evidence:identity || websiteTopic || !!context, topScore };
+  } catch (error) { console.warn("ai_search_query",String(error?.message||error)); return { text:WEBSITE_KNOWLEDGE, evidence:identity || websiteTopic, topScore:(identity || websiteTopic)?1:0 }; }
 }
 
 async function ensureConversation(env, conversationId, visitorId, channel="website") {
@@ -201,10 +226,10 @@ export async function handleAiChat(request,env){
   const suppressCrmNotification = body?.suppress_crm_notification === true && /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel); const history=await loadHistory(env,conversationId); const contact=extractContact(message);
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"user",message).run();
-  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message);
+  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message); const websiteTopicQuery=isWebsiteTopicQuery(message);
   const[cars,knowledge]=await Promise.all([
     loadCars(env),
-    vehicleQuery&&!identityQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
+    vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
   ]);
   const pending=await pendingUnknown(env,conversationId);
   const effectiveContact={name:contact.name||clean(pending?.name,120),phone:contact.phone||clean(pending?.phone,30)};
@@ -212,8 +237,8 @@ export async function handleAiChat(request,env){
     await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,pending.id).run();
     await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,conversationId).run();
   }
-  const allowed = identityQuery || vehicleQuery;
-  const needsHuman = !allowed || (!identityQuery && !vehicleQuery && !knowledge.evidence);
+  const allowed = identityQuery || vehicleQuery || websiteTopicQuery;
+  const needsHuman = !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
   if(needsHuman){
@@ -228,7 +253,7 @@ export async function handleAiChat(request,env){
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
     } else try{
-      const result=await runAI(env,[...history,{role:"user",content:message}],cars,vehicleQuery?BRAND_KNOWLEDGE:knowledge.text);
+      const result=await runAI(env,[...history,{role:"user",content:message}],cars,(vehicleQuery&&!websiteTopicQuery)?BRAND_KNOWLEDGE:knowledge.text);
       reply=result.text;
       aiModel=result.model;
     }catch(error){
