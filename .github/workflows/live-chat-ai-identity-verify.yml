@@ -1,22 +1,22 @@
 name: Live Chat AI Identity Verify
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/live-chat-ai-identity-verify.yml"
-      - "src/ai-chat.js"
-      - "public/index.html"
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   verify:
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Record deployed production revision
+        run: echo "AI E2E after deploy run ${{ github.event.workflow_run.id }} for SHA ${{ github.event.workflow_run.head_sha }}"
       - name: Verify no-accent Phan Thuan identity response
         shell: bash
         env:
