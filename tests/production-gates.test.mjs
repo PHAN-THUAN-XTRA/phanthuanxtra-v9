@@ -271,3 +271,17 @@ test('production gate: Business Jets uses verified private aviation copy', () =>
   assert.doesNotMatch(page, /AE 3007A1E/);
   assert.equal((page.match(/facebook\.com\/plugins\/video\.php/g) || []).length, 1);
 });
+
+
+test('production gate: Business Jets lead preserves itinerary for Telegram CRM', () => {
+  const script = fs.readFileSync(new URL('../public/script.js', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../src/index.js', import.meta.url), 'utf8');
+  assert.match(script, /f\.get\("origin"\)/);
+  assert.match(script, /f\.get\("destination"\)/);
+  assert.match(script, /f\.get\("flight_date"\)/);
+  assert.match(script, /f\.get\("passengers"\)/);
+  assert.match(script, /"business-jets"/);
+  assert.match(script, /source,message/);
+  assert.match(worker, /source:text\(b\.source\|\|'website-lead',60\)/);
+  assert.doesNotMatch(worker, /source:'test-drive',name:b\.name,phone:p/);
+});
