@@ -127,7 +127,8 @@ async function loadCars(env) { if (!env.DB) return []; try { const q = await env
 
 async function searchKnowledge(env, query) {
   const identity = isIdentityMention(query);
-  if (!env.AI_SEARCH) return { text: BRAND_KNOWLEDGE, evidence: identity, topScore: identity ? 1 : 0 };
+  const websiteTopic = isWebsiteTopicQuery(query);
+  if (!env.AI_SEARCH) return { text: WEBSITE_KNOWLEDGE, evidence: identity || websiteTopic, topScore: (identity || websiteTopic) ? 1 : 0 };
   try {
     const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nLuxury Automotive European Yachts Business Jets Green Energy\nthông tin chính thức về Phan Thuần` : query;
     const result = await env.AI_SEARCH.search({ messages:[{role:"user",content:searchQuery}], ai_search_options:{instance_ids:AI_SEARCH_IDS,retrieval:{retrieval_type:"hybrid",keyword_match_mode:"or",match_threshold:identity?0.2:0.45,max_num_results:MAX_KNOWLEDGE_CHUNKS},reranking:{enabled:true,model:"@cf/baai/bge-reranker-base"}} });
@@ -135,8 +136,8 @@ async function searchKnowledge(env, query) {
     const context = chunks.map(chunk=>chunk.content||chunk.text||"").filter(Boolean).join("\n\n---\n\n");
     const scores = chunks.map(c=>Number(c.score ?? c.relevance_score ?? 0)).filter(Number.isFinite);
     const topScore = scores.length ? Math.max(...scores) : 0;
-    return { text:`${BRAND_KNOWLEDGE}\n\n${context}`.slice(0,MAX_KNOWLEDGE_CONTEXT), evidence:identity || !!context, topScore };
-  } catch (error) { console.warn("ai_search_query",String(error?.message||error)); return { text:BRAND_KNOWLEDGE, evidence:identity, topScore:identity?1:0 }; }
+    return { text:`${WEBSITE_KNOWLEDGE}\n\n${context}`.slice(0,MAX_KNOWLEDGE_CONTEXT), evidence:identity || websiteTopic || !!context, topScore };
+  } catch (error) { console.warn("ai_search_query",String(error?.message||error)); return { text:WEBSITE_KNOWLEDGE, evidence:identity || websiteTopic, topScore:(identity || websiteTopic)?1:0 }; }
 }
 
 async function ensureConversation(env, conversationId, visitorId, channel="website") {
