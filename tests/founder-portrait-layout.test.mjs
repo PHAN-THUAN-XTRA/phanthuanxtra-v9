@@ -24,7 +24,7 @@ test('founder article portrait fits narrow columns', () => {
 
 test('homepage founder portrait has no hashtag caption below the image', async () => {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
-  const portrait = html.match(/<figure class="founder-portrait">([\\s\\S]*?)<\\/figure>/)?.[1];
+  const portrait = html.split('<figure class="founder-portrait">')[1]?.split('</figure>')[0];
   assert.ok(portrait, 'founder portrait exists');
   assert.doesNotMatch(portrait, /<figcaption|#phanthuanxtra|#PhanThuanXtra/i);
 });
