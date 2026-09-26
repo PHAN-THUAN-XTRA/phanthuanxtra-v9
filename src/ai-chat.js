@@ -205,10 +205,10 @@ export async function handleAiChat(request,env){
   const suppressCrmNotification = body?.suppress_crm_notification === true && /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel); const history=await loadHistory(env,conversationId); const contact=extractContact(message);
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"user",message).run();
-  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message);
+  const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message); const websiteTopicQuery=isWebsiteTopicQuery(message);
   const[cars,knowledge]=await Promise.all([
     loadCars(env),
-    vehicleQuery&&!identityQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
+    vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message)
   ]);
   const pending=await pendingUnknown(env,conversationId);
   const effectiveContact={name:contact.name||clean(pending?.name,120),phone:contact.phone||clean(pending?.phone,30)};
@@ -216,8 +216,8 @@ export async function handleAiChat(request,env){
     await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,pending.id).run();
     await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(contact.name||null,contact.phone||null,conversationId).run();
   }
-  const allowed = identityQuery || vehicleQuery;
-  const needsHuman = !allowed || (!identityQuery && !vehicleQuery && !knowledge.evidence);
+  const allowed = identityQuery || vehicleQuery || websiteTopicQuery;
+  const needsHuman = !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
   if(needsHuman){
@@ -232,7 +232,7 @@ export async function handleAiChat(request,env){
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
     } else try{
-      const result=await runAI(env,[...history,{role:"user",content:message}],cars,vehicleQuery?BRAND_KNOWLEDGE:knowledge.text);
+      const result=await runAI(env,[...history,{role:"user",content:message}],cars,(vehicleQuery&&!websiteTopicQuery)?BRAND_KNOWLEDGE:knowledge.text);
       reply=result.text;
       aiModel=result.model;
     }catch(error){
