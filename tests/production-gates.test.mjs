@@ -136,3 +136,10 @@ test('production gate: deploy purge includes every Worker-served editorial route
     assert.ok(workflow.includes(`https://phanthuanxtra.com/${route}`), `missing editorial purge URL: ${route}`);
   }
 });
+
+
+test('production gate: business-jets uses an internal Worker asset path distinct from the public route', () => {
+  const entry = fs.readFileSync(new URL('../src/entry.js', import.meta.url), 'utf8');
+  assert.match(entry, /\["\/business-jets", "\/__ptx_editorial__\/business-jets\.html"\]/);
+  assert.match(entry, /headers\.set\("x-ptx-editorial-utf8", "worker-v3"\)/);
+});
