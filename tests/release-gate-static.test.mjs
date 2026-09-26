@@ -115,7 +115,7 @@ test('Founder category opens a dedicated indexable article', () => {
   assert.match(article, /Năng Lượng Xanh/);
   assert.match(article, /08 6699 7891/);
   assert.match(article, /facebook\.com\/PhanThuanSaigon/);
-  assert.match(article, /phan-thuan-founder-office-2026\.webp/);
+  assert.match(article, /founder-phan-thuan-portrait-2026\.webp/);
 });
 
 test('all editorial category routes are Worker-served as explicit UTF-8 HTML', () => {
