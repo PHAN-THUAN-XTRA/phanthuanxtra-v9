@@ -185,3 +185,18 @@ test('production gate: yachts editorial page preserves all eight verified R2 Web
   assert.equal((page.match(/decoding="async"/g) || []).length, 8);
   assert.equal((page.match(/<img[^>]+alt="[^"]+"[^>]*>/g) || []).length, 8);
 });
+
+
+test('production gate: Auto Bot owns the production Telegram webhook and its token is deployed', () => {
+  const entry = fs.readFileSync(new URL('../src/entry.js', import.meta.url), 'utf8');
+  const router = fs.readFileSync(new URL('../src/telegram-router.js', import.meta.url), 'utf8');
+  const deploy = fs.readFileSync(new URL('../scripts/deploy-cloudflare-api.mjs', import.meta.url), 'utf8');
+  const workflow = fs.readFileSync(new URL('../.github/workflows/deploy-cloudflare.yml', import.meta.url), 'utf8');
+  assert.match(router, /TELEGRAM_AUTO_BOT_TOKEN \|\| env\.TELEGRAM_BOT_TOKEN/);
+  assert.match(router, /getAutoTelegramWebhookStatus/);
+  assert.match(router, /setAutoTelegramWebhook/);
+  assert.match(entry, /getAutoTelegramWebhookStatus\(env,TELEGRAM_WEBHOOK_URL\)/);
+  assert.match(entry, /setAutoTelegramWebhook\(env,TELEGRAM_WEBHOOK_URL\)/);
+  assert.match(deploy, /"TELEGRAM_AUTO_BOT_TOKEN"/);
+  assert.match(workflow, /TELEGRAM_AUTO_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_AUTO_BOT_TOKEN \}\}/);
+});
