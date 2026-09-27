@@ -136,10 +136,13 @@ export default {
         console.log("telegram_vip_webhook_post_heal_status",JSON.stringify(verified));
       }
     } catch (error) { console.error("telegram_vip_webhook_self_heal_failed",String(error?.message||error)); }
-    try {
-      const seo=await reconcileSeo(env);
-      console.log("seo_ai_reconcile",JSON.stringify(seo));
-    } catch (error) { console.error("seo_ai_reconcile_failed",String(error?.message||error)); }
+    // Telegram webhook self-healing stays at five-minute cadence; SEO may wait until hourly.
+    if (controller?.scheduledTime == null || new Date(controller.scheduledTime).getUTCMinutes() === 0) {
+      try {
+        const seo=await reconcileSeo(env);
+        console.log("seo_ai_reconcile",JSON.stringify(seo));
+      } catch (error) { console.error("seo_ai_reconcile_failed",String(error?.message||error)); }
+    }
     try {
       const result=await reconcileTelegramNotifications(env);
       console.log("telegram_notifications_reconcile",JSON.stringify(result));
