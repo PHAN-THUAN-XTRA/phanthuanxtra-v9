@@ -1,31 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DatabaseSync } from 'node:sqlite';
-import fs from 'node:fs';
+import { database } from './helpers/editorial-db.mjs';
 import { vietnamSchedule, parseArticle, parseBatch, submitArticles, publishDueArticles, changePublication, recentPublications } from '../src/editorial-publishing.js';
 import { handleEditorialMessage } from '../src/telegram-editorial.js';
 import { handleTelegramRouter, processTelegramUpdate } from '../src/telegram-router.js';
 import { getPost } from '../src/post-persistence.js';
 
-function database() {
-  const sqlite = new DatabaseSync(':memory:');
-  sqlite.exec('PRAGMA foreign_keys=ON');
-  sqlite.exec(fs.readFileSync('migrations/0002_posts.sql','utf8'));
-  sqlite.exec(fs.readFileSync('migrations/0016_editorial_jobs.sql','utf8'));
-  sqlite.exec('CREATE TABLE cms_audit_log (actor TEXT, action TEXT, resource TEXT, resource_id TEXT, summary TEXT)');
-  const db = { sqlite, prepare(sql) {
-    const make = args => ({ bind(...values) { return make(values); },
-      async all() { return { results: sqlite.prepare(sql).all(...args) }; },
-      async first() { return sqlite.prepare(sql).get(...args) || null; },
-      async run() { const r = sqlite.prepare(sql).run(...args); return { meta: { changes: Number(r.changes),last_row_id:Number(r.lastInsertRowid) } }; },
-      execute() { const r = sqlite.prepare(sql).run(...args); return { meta: { changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid) } }; }
-    }); return make([]);
-  }, async batch(statements) {
-    sqlite.exec('BEGIN');
-    try { const result=statements.map(s=>s.execute()); sqlite.exec('COMMIT'); return result; }
-    catch(error) { sqlite.exec('ROLLBACK'); throw error; }
-  } }; return db;
-}
+
 const now=Date.parse('2026-09-27T13:00:00Z');
 const article={title:'Năng lượng xanh tại Việt Nam',content:'Nội dung tiếng Việt đầy đủ, giữ nguyên thông tin đã cung cấp.'};
 const options={chatId:'123',messageId:1,now};
