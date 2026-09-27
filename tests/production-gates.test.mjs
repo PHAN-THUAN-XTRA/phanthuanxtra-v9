@@ -5,6 +5,7 @@ import { canAutoPublish } from '../src/telegram-ingest.js';
 import { handleAiChat } from '../src/ai-chat.js';
 import { handleAppApi } from '../src/app-api.js';
 import { handleMediaApi } from '../src/media.js';
+import worker from '../src/index.js';
 
 function mockDb(cars = []) {
   const rows = [];
@@ -284,4 +285,33 @@ test('production gate: Business Jets lead preserves itinerary for Telegram CRM',
   assert.match(script, /source,message/);
   assert.match(worker, /source:text\(b\.source\|\|'website-lead',60\)/);
   assert.doesNotMatch(worker, /source:'test-drive',name:b\.name,phone:p/);
+});
+
+test('Business Jets lead stores itinerary in D1 and Telegram accepts correctly classified message', async () => {
+  const rows=[];
+  const DB={prepare(sql){return {bind(...args){return {
+    async run(){if(sql.includes('INSERT INTO leads')){rows.push({id:17,name:args[0],phone:args[1],message:args[3]});return {meta:{last_row_id:17}};}return {meta:{changes:1}};},
+    async all(){return {results:rows};}
+  };}};}};
+  const originalFetch=globalThis.fetch;
+  let telegramText='';
+  globalThis.fetch=async (_url,options)=>{
+    telegramText=JSON.parse(options.body).text;
+    return Response.json({ok:true,result:{message_id:321,chat:{id:-123}}});
+  };
+  try{
+    const message='Business Jets / Private Aviation | Điểm đi: TP.HCM | Điểm đến: Đà Nẵng | Ngày/giờ: 2026-10-02 09:00 | Số khách: 4 | Hành lý: 2 kiện';
+    const response=await worker.fetch(new Request('https://phanthuanxtra.com/api/leads',{
+      method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test'},
+      body:JSON.stringify({source:'business-jets',name:'Kiểm thử Business Jets',phone:'0900000000',message})
+    }),{DB,ADMIN_TOKEN:'test',TELEGRAM_CRM_BOT_TOKEN:'bot',TELEGRAM_CRM_CHAT_ID:'-123'});
+    const data=await response.json();
+    assert.equal(data.stored,true);
+    assert.equal(data.lead_id,17);
+    assert.equal(data.delivery.sent,true);
+    assert.equal(data.delivery.messageId,321);
+    assert.equal(rows[0].message,message);
+    for(const marker of ['SOURCE: BUSINESS JETS','Kiểm thử Business Jets','0900000000','TP.HCM','Đà Nẵng','2026-10-02 09:00','Số khách: 4','Hành lý: 2 kiện'])assert.match(telegramText,new RegExp(marker));
+    assert.doesNotMatch(telegramText,/SOURCE: WEBSITE AI CHAT/);
+  }finally{globalThis.fetch=originalFetch;}
 });

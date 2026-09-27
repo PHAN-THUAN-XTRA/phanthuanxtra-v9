@@ -1,0 +1,40 @@
+name: Business Jets CRM Production E2E
+
+on:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.display_title, 'business-jets')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+    steps:
+      - name: Verify production Business Jets to D1 and Telegram API
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_TOKEN"
+          echo "Deploy run ${{ github.event.workflow_run.id }} SHA ${{ github.event.workflow_run.head_sha }}"
+          marker="CI-BUSINESS-JETS-${GITHUB_RUN_ID}"
+          message="Business Jets / Private Aviation | Điểm đi: TP.HCM | Điểm đến: Đà Nẵng | Ngày/giờ: 2026-10-02 09:00 | Số khách: 4 | Hành lý: 2 kiện | $marker"
+          payload="$(jq -nc --arg name "$marker" --arg message "$message" '{source:"business-jets",name:$name,phone:"0900000000",car_id:"",message:$message}')"
+          status="$(curl --silent --show-error --max-time 60 -o /tmp/jet-lead.json -w '%{http_code}' -X POST "$SITE_URL/api/leads" -H 'content-type: application/json' -H "Authorization: Bearer $ADMIN_TOKEN" --data "$payload")"
+          test "$status" = "200"
+          jq -e --arg marker "$marker" '.ok == true and .stored == true and (.lead_id|type)=="number" and .delivery.sent == true and (.delivery.messageId|type)=="number" and (.delivery.chatId|tostring|length)>0 and (.delivery.text|contains($marker)) and (.delivery.text|contains("SOURCE: BUSINESS JETS")) and (.delivery.text|contains("0900000000")) and (.delivery.text|contains("TP.HCM")) and (.delivery.text|contains("Đà Nẵng")) and (.delivery.text|contains("2026-10-02 09:00")) and (.delivery.text|contains("Số khách: 4")) and (.delivery.text|contains("Hành lý: 2 kiện"))' /tmp/jet-lead.json >/dev/null
+          lead_id="$(jq -r '.lead_id' /tmp/jet-lead.json)"
+          message_id="$(jq -r '.delivery.messageId' /tmp/jet-lead.json)"
+          curl --fail-with-body --silent --show-error --max-time 30 "$SITE_URL/api/admin/leads" -H "Authorization: Bearer $ADMIN_TOKEN" > /tmp/jet-leads.json
+          jq -e --argjson id "$lead_id" --arg marker "$marker" '.leads[] | select(.id == $id and .name == $marker and (.message|contains("TP.HCM")) and (.message|contains("Đà Nẵng")) and (.message|contains("Số khách: 4")))' /tmp/jet-leads.json >/dev/null
+          echo "Business Jets D1 lead $lead_id and Telegram accepted message $message_id: PASS"
+          # Remove only this uniquely named synthetic CI lead after all assertions.
+          curl --fail-with-body --silent --show-error --max-time 30 -X DELETE "$SITE_URL/api/admin/leads" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'content-type: application/json' --data "$(jq -nc --argjson id "$lead_id" '{id:$id}')" | jq -e '.deleted == true' >/dev/null
+          echo "Synthetic lead cleanup: PASS"
