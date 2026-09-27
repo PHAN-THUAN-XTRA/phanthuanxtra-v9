@@ -1,3 +1,4 @@
+import { handlePublishingApi } from "./publishing-api.js";
 import { publishDueArticles } from "./editorial-publishing.js";
 import legacy from "./index.js";
 import { handleCmsApi } from "./cms.js";
@@ -85,6 +86,8 @@ export default {
       }
       const blogResponse = await handleBlog(request, env);
       if (blogResponse) return blogResponse;
+      const publishingResponse = await handlePublishingApi(request, env);
+      if (publishingResponse) return publishingResponse;
       const publishCoreResponse = await handlePublishCore(request, env);
       if (publishCoreResponse) return publishCoreResponse;
       const aiChatResponse = await handleAiChat(request, env);
