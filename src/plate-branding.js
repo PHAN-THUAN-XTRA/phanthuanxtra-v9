@@ -42,7 +42,7 @@ export async function createPtXtraPlateImage(env, sourceBytes, contentType, plat
       env.IMAGES.input(overlayResponse.body).transform({ width: overlayWidth, height: overlayHeight }),
       { left, top }
     )
-    .output({ format: "image/jpeg", quality: 92, metadata: "none" });
+    .output({ format: "image/webp", quality: 86, metadata: "none" });
 
   const response = result.response({
     headers: {
@@ -52,7 +52,7 @@ export async function createPtXtraPlateImage(env, sourceBytes, contentType, plat
   });
   if (!response.ok || !response.body) throw new Error(`PT Xtra image transform failed: ${response.status}`);
   await env.MEDIA.put(outputKey, response.body, {
-    httpMetadata: { contentType: "image/jpeg", cacheControl: "public, max-age=31536000, immutable" },
+    httpMetadata: { contentType: "image/webp", cacheControl: "public, max-age=31536000, immutable" },
     customMetadata: { branding: "PT Xtra", brandingTarget: "license_plate" }
   });
   return outputKey;
