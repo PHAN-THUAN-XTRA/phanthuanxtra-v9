@@ -9,9 +9,10 @@ export async function notifyTelegramCrm(env, payload) {
 
   const unknown = payload.source === "ai-unknown";
   const testDrive = payload.source === "test-drive";
-  const source = testDrive ? "TEST DRIVE FORM" : unknown ? "AI UNKNOWN — CẦN NGƯỜI THẬT" : "WEBSITE AI CHAT";
+  const businessJets = payload.source === "business-jets";
+  const source = businessJets ? "BUSINESS JETS" : testDrive ? "TEST DRIVE FORM" : unknown ? "AI UNKNOWN — CẦN NGƯỜI THẬT" : payload.source === "website-lead" ? "WEBSITE LEAD" : "WEBSITE AI CHAT";
   const lines = [
-    testDrive ? "🚗 LEAD — TRẢI NGHIỆM LÁI THỬ" : unknown ? "⚠️ AI KHÔNG CÓ THÔNG TIN XÁC THỰC" : "🤖 LEAD — AI CHAT",
+    businessJets ? "✈️ LEAD — BUSINESS JETS" : testDrive ? "🚗 LEAD — TRẢI NGHIỆM LÁI THỬ" : unknown ? "⚠️ AI KHÔNG CÓ THÔNG TIN XÁC THỰC" : "🤖 LEAD — AI CHAT",
     `SOURCE: ${source}`,
     unknown && payload.unknownId ? `❓ Unknown ID: ${clean(payload.unknownId, 50)}` : null,
     payload.name ? `👤 Tên: ${clean(payload.name, 120)}` : null,
@@ -36,7 +37,7 @@ export async function notifyTelegramCrm(env, payload) {
       console.warn("telegram_crm_notify", String(data.description || `HTTP ${response.status}`));
       return { sent: false, configured: true };
     }
-    return { sent: true, configured: true };
+    return { sent: true, configured: true, messageId: data.result?.message_id ?? null, chatId: data.result?.chat?.id ?? null, text: lines };
   } catch (error) {
     console.warn("telegram_crm_notify", String(error?.message || error));
     return { sent: false, configured: true };
