@@ -179,6 +179,28 @@ async function ensureCustomDomainRoute() {
   const routes = await api(`/zones/${zoneId}/workers/routes`);
   const wanted = "phanthuanxtra.com/*";
   const current = Array.isArray(routes) ? routes.find((route) => route?.pattern === wanted) : null;
+
+  // Cloudflare chooses the most-specific matching Worker route. A stale API route
+  // can therefore shadow the canonical /* route even when /* points at this Worker.
+  // Reconcile only Blog API routes, whose production contract belongs to this Worker.
+  const blogRoutePatterns = new Set([
+    "phanthuanxtra.com/api/blog/*",
+    "phanthuanxtra.com/api/blog/posts*",
+    "phanthuanxtra.com/api/blog/posts/*",
+  ]);
+  const blogConflicts = Array.isArray(routes)
+    ? routes.filter((route) => blogRoutePatterns.has(route?.pattern) && route?.script !== WORKER)
+    : [];
+  for (const route of blogConflicts) {
+    if (!route?.id) throw new Error(`Blog Worker route conflict has no route id: ${route?.pattern || "unknown"}`);
+    await api(`/zones/${zoneId}/workers/routes/${route.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pattern: route.pattern, script: WORKER }),
+    });
+    console.log(`Route: reconciled shadowing Blog route ${route.pattern} -> ${WORKER}.`);
+  }
+
   if (current?.script === WORKER) {
     console.log(`Route: ${wanted} -> ${WORKER} already configured.`);
     return;
