@@ -20,3 +20,10 @@ test("Detected license plates use privacy-safe transformed publish media",()=>{
   assert.match(ingest,/createPtXtraPlateImage\(env,bytes,contentType,ai\.plate_bbox,publishMediaKey\)/);
   assert.match(plate,/metadata: "none"/);
 });
+
+
+test("Telegram ingestion keeps atomic exactly-once claim semantics",()=>{
+  assert.match(ingest,/status='processing'.*status='received'/);
+  assert.match(ingest,/if\(!\(await claimInbox\(env,inboxId\)\)\) return/);
+  assert.match(ingest,/ON CONFLICT\(inbox_id\) DO UPDATE/);
+});
