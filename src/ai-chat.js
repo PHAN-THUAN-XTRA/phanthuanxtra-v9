@@ -34,11 +34,11 @@ PHAN THUẦN XTRA là thương hiệu/website mà chatbot đang tư vấn. Chatb
 - Phan Thuần/phanthuanxtra được giới thiệu trong hồ sơ truyền thông chính thức như một doanh nhân xây dựng hệ sinh thái đa ngành, kết nối phong cách sống cao cấp với định hướng phát triển bền vững.
 - Nhận diện phanthuanxtra (PhanThuan Xtra) được dùng như bộ nhận diện thương hiệu cá nhân nhất quán trên nền tảng số.
 - Các cách gọi "Phan Thuần", "Phan Thuần Xtra", "PHAN THUẦN XTRA", "phanthuanxtra" và "PhanThuanSaigon" được xem là các cách gọi/nhận diện liên quan trong phạm vi hồ sơ chính thức này; không tự suy diễn đây là tên pháp nhân.
-- Hồ sơ mô tả 3 trụ cột: Luxury Automotive; trải nghiệm cao cấp gồm European Yachts và Business Jets; và Green Energy.
-- Luxury Automotive: gắn với hoạt động Ô tô Xuyên Á tại TP.HCM; hồ sơ mô tả hoạt động kết nối xe sang, siêu xe và xe cao cấp/phiên bản giới hạn, với các thương hiệu được nhắc đến như Rolls-Royce, Porsche, Lexus.
-- European Yachts: hồ sơ mô tả hoạt động môi giới/kết nối du thuyền châu Âu nhập khẩu chính ngạch.
-- Business Jets: hồ sơ mô tả giải pháp/cho thuê chuyên cơ thương gia, với cấu hình được nêu từ 12 đến 13 chỗ.
-- Green Energy: hồ sơ mô tả định hướng năng lượng xanh và năng lượng mặt trời như một hướng phát triển dài hạn.
+- Hồ sơ mô tả 3 trụ cột: Ô tô cao cấp; trải nghiệm cao cấp gồm Du thuyền châu Âu và Chuyên cơ thương gia; và Năng lượng xanh.
+- Ô tô cao cấp: gắn với hoạt động Ô tô Xuyên Á tại TP.HCM; hồ sơ mô tả hoạt động kết nối xe sang, siêu xe và xe cao cấp/phiên bản giới hạn, với các thương hiệu được nhắc đến như Rolls-Royce, Porsche, Lexus.
+- Du thuyền châu Âu: hồ sơ mô tả hoạt động môi giới/kết nối du thuyền châu Âu nhập khẩu chính ngạch.
+- Chuyên cơ thương gia: hồ sơ mô tả giải pháp/cho thuê chuyên cơ thương gia, với cấu hình được nêu từ 12 đến 13 chỗ.
+- Năng lượng xanh: hồ sơ mô tả định hướng năng lượng xanh và năng lượng mặt trời như một hướng phát triển dài hạn.
 - Hồ sơ truyền thông tóm tắt hệ sinh thái gồm xe sang/siêu xe, du thuyền, chuyên cơ tư nhân và năng lượng xanh.
 - Kênh liên hệ do chủ website cung cấp: Hotline 08 6699 7891 / 0866 997 891; Facebook: Phan Thuần (PhanThuanSaigon), https://www.facebook.com/PhanThuanSaigon/; hashtag #phanthuanxtra #PhanThuanXtra.
 - Khi dùng các nội dung ở mục này, nếu nguồn chưa được xác minh độc lập thì phải diễn đạt là "theo hồ sơ/tài liệu chính thức do chủ website cung cấp", không biến thành tuyên bố xác minh độc lập.
@@ -53,28 +53,28 @@ Hotline tư vấn: 0866 997 891
 
 ## Phạm vi tư vấn khách hàng hiện hành
 - Trợ lý AI tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website, đồng thời ưu tiên dữ liệu động của catalog xe.
-- Green Energy, European Yachts và Business Jets được cung cấp ở mức thông tin hồ sơ/nội dung chính thức trên website/knowledge base; không chào bán hay tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
+- Năng lượng xanh, Du thuyền châu Âu và Chuyên cơ thương gia được cung cấp ở mức thông tin hồ sơ/nội dung chính thức trên website/knowledge base; không chào bán hay tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Khi khách hỏi mua/tư vấn xe, chỉ dùng dữ liệu xe đang có trong D1 catalog của website. Xe không có trong catalog phải nói rõ hiện chưa có trên website.
 - Chat AI góc phải website là kênh tư vấn khách đặc biệt: tư vấn ngắn gọn, lịch sự, ưu tiên đúng nhu cầu xe trong phạm vi website.
 - Khi khách thể hiện quan tâm đến một xe, muốn mua, xem xe, lái thử, hỏi giá, hỏi tình trạng hoặc muốn được tư vấn thêm: sau phần trả lời có căn cứ, chủ động xin HỌ TÊN + SỐ ĐIỆN THOẠI để anh Phan Thuần trực tiếp liên hệ tư vấn.
 - Khi đã có số điện thoại, xác nhận thông tin đã được chuyển để anh Phan Thuần trực tiếp tư vấn; không tiếp tục hỏi lại số điện thoại nếu khách đã cung cấp.
 - Hotline liên hệ trực tiếp Phan Thuần/PHAN THUẦN XTRA: 0866 997 891.
 
-Lĩnh vực chatbot hỗ trợ khách: toàn bộ nội dung chính thức trên website gồm Luxury Automotive/catalog xe, Green Energy, European Yachts, Business Jets, Phan Thuần/PHAN THUẦN XTRA và private appointment/liên hệ.
+Lĩnh vực chatbot hỗ trợ khách: toàn bộ nội dung chính thức trên website gồm Ô tô cao cấp/catalog xe, Năng lượng xanh, Du thuyền châu Âu, Chuyên cơ thương gia, Phan Thuần/PHAN THUẦN XTRA và private appointment/liên hệ.
 `;
 
 const WEBSITE_KNOWLEDGE = `${BRAND_KNOWLEDGE}
 
 # Nội dung website chính thức
-## Green Energy
+## Năng lượng xanh
 - PHAN THUẦN XTRA giới thiệu giải pháp năng lượng xanh và điện mặt trời theo nhu cầu sử dụng, quy mô và mục tiêu dài hạn.
-- Trang Green Energy đang mở rộng nội dung về điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid. Với thông số, chi phí và cấu hình dự án cụ thể phải xác minh theo công trình.
+- Trang Năng lượng xanh đang mở rộng nội dung về điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid. Với thông số, chi phí và cấu hình dự án cụ thể phải xác minh theo công trình.
 
-## European Yachts
+## Du thuyền châu Âu
 - Website tư vấn lựa chọn du thuyền theo số người sử dụng, khu vực hoạt động, nghỉ dưỡng/tốc độ, cabin, tầm hoạt động, nội thất, ngân sách và mức độ cá nhân hóa.
 - Các thương hiệu đang được nội dung website giới thiệu gồm Jeanneau, Prestige, Fountaine Pajot, Alfastreet Marine, Ferretti Yachts, Pershing và Riva; mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm.
 
-## Business Jets
+## Chuyên cơ thương gia
 - Website giới thiệu dịch vụ charter/chuyên cơ thương gia và nội dung về Embraer Legacy 600, nhấn mạnh lịch trình linh hoạt, không gian cabin và nhu cầu di chuyển riêng.
 - Mọi lịch bay, sân bay, sức chứa/cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến; không tự tạo cam kết.
 
@@ -111,9 +111,9 @@ function postPlainText(value){
 function editorialPaths(query){
   const t=foldVi(query);
   const paths=[];
-  if(/\b(nang luong|dien mat troi|solar|pv|ess|energy|hybrid|inverter|luu tru)\b/.test(t))paths.push(["Green Energy","/green-energy.html"]);
-  if(/\b(du thuyen|yacht|marine|jeanneau|prestige|ferretti|riva|pershing)\b/.test(t))paths.push(["European Yachts","/yachts.html"]);
-  if(/\b(chuyen co|jet|aviation|aircraft|legacy 600|embraer|praetor|charter)\b/.test(t))paths.push(["Business Jets","/__ptx_editorial__/business-jets.html"]);
+  if(/\b(nang luong|dien mat troi|solar|pv|ess|energy|hybrid|inverter|luu tru)\b/.test(t))paths.push(["Năng lượng xanh","/green-energy.html"]);
+  if(/\b(du thuyen|yacht|marine|jeanneau|prestige|ferretti|riva|pershing)\b/.test(t))paths.push(["Du thuyền châu Âu","/yachts.html"]);
+  if(/\b(chuyen co|jet|aviation|aircraft|legacy 600|embraer|praetor|charter)\b/.test(t))paths.push(["Chuyên cơ thương gia","/__ptx_editorial__/business-jets.html"]);
   if(/\b(phan thuan|phanthuan|thuong hieu|he sinh thai|founder)\b/.test(t))paths.push(["Phan Thuần","/phan-thuan.html"]);
   return paths.slice(0,2);
 }
@@ -139,11 +139,11 @@ async function loadEditorialKnowledge(env,query,origin){
 
 function systemPrompt(cars, knowledge) {
   const catalog = cars.length ? JSON.stringify(cars.map(c => ({ id:c.id,brand:c.brand,model:c.model,year:c.year,mileage:c.mileage,price:c.price,fuel:c.fuel,category:c.category,color:c.color,status:c.status,description:c.description }))) : "[]";
-  return `Bạn là XTRA Intelligence, chatbot chính thức của PHAN THUẦN XTRA (Vietnam).
-Được tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website trong KNOWLEDGE CONTEXT, gồm Phan Thuần/PHAN THUẦN XTRA, Luxury Automotive, Green Energy, European Yachts, Business Jets, dịch vụ và liên hệ/private appointment.
+  return `Bạn là XTRA Intelligence, trợ lý AI chính thức của PHAN THUẦN XTRA (Việt Nam).
+Ưu tiên nội dung hiện hành đọc trực tiếp từ website/D1 trong KNOWLEDGE CONTEXT. Được tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố, gồm Phan Thuần/PHAN THUẦN XTRA, ô tô cao cấp, năng lượng xanh, du thuyền châu Âu, chuyên cơ thương gia, dịch vụ và lịch hẹn/liên hệ riêng.
 - Không được tự mở rộng sang chủ đề khác như một trợ lý tổng quát.
 - Mục tiêu tư vấn bán hàng: CHỈ giới thiệu/tư vấn các xe thực sự có trong CATALOG XE HIỆN TẠI. Không tư vấn mua xe ngoài website, không gợi ý mẫu xe không có trong catalog.
-- Green Energy, European Yachts và Business Jets: chỉ giới thiệu thông tin hồ sơ/nội dung website trong KNOWLEDGE CONTEXT; không tư vấn bán hàng, không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
+- Năng lượng xanh, Du thuyền châu Âu và Chuyên cơ thương gia: chỉ giới thiệu thông tin hồ sơ/nội dung website trong KNOWLEDGE CONTEXT; không tư vấn bán hàng, không tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Với xe: chỉ khẳng định dữ liệu có trong catalog; không bịa giá, ODO, năm, phiên bản, option hoặc tình trạng.
 - Nếu khách hỏi một xe không có trong catalog, nói rõ hiện website chưa có dữ liệu xe đó và không tự tạo thông tin.
 - Với Phan Thuần/XTRA: chỉ nói những gì có căn cứ; không suy đoán tiểu sử, chức danh, tài sản, thành tích hoặc thông tin cá nhân.
@@ -189,7 +189,7 @@ async function searchKnowledge(env, query) {
   const websiteTopic = isWebsiteTopicQuery(query);
   if (!env.AI_SEARCH) return { text: WEBSITE_KNOWLEDGE, evidence: identity || websiteTopic, topScore: (identity || websiteTopic) ? 1 : 0 };
   try {
-    const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nLuxury Automotive European Yachts Business Jets Green Energy\nthông tin chính thức về Phan Thuần` : query;
+    const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nÔ tô cao cấp Du thuyền châu Âu Chuyên cơ thương gia Năng lượng xanh\nthông tin chính thức về Phan Thuần` : query;
     const result = await env.AI_SEARCH.search({ messages:[{role:"user",content:searchQuery}], ai_search_options:{instance_ids:AI_SEARCH_IDS,retrieval:{retrieval_type:"hybrid",keyword_match_mode:"or",match_threshold:identity?0.2:0.45,max_num_results:MAX_KNOWLEDGE_CHUNKS},reranking:{enabled:true,model:"@cf/baai/bge-reranker-base"}} });
     const chunks = result?.chunks || [];
     const context = chunks.map(chunk=>chunk.content||chunk.text||"").filter(Boolean).join("\n\n---\n\n");
@@ -264,20 +264,20 @@ async function runAI(env,messages,cars,knowledge){
 }
 function deterministicIdentityReply(message){
   if(!isIdentityQuery(message))return "";
-  return "Phan Thuần là người gắn với thương hiệu PHAN THUẦN XTRA mà trợ lý đang đại diện hỗ trợ. Theo hồ sơ chính thức do chủ website cung cấp, hệ sinh thái được giới thiệu gồm Luxury Automotive, European Yachts, Business Jets và Green Energy. Dấu vết công khai đã đối chiếu cũng cho thấy tên Phan Thuần Xuyên Á Auto gắn với hoạt động automotive tại TP.HCM. Chatbot chỉ tư vấn bán hàng đối với xe đang có trên website; các lĩnh vực còn lại được cung cấp ở mức thông tin hồ sơ. Hotline: 0866 997 891.";
+  return "Phan Thuần là người gắn với thương hiệu PHAN THUẦN XTRA mà trợ lý đang đại diện hỗ trợ. Theo hồ sơ chính thức do chủ website cung cấp, hệ sinh thái được giới thiệu gồm Ô tô cao cấp, Du thuyền châu Âu, Chuyên cơ thương gia và Năng lượng xanh. Dấu vết công khai đã đối chiếu cũng cho thấy tên Phan Thuần Xuyên Á Auto gắn với hoạt động automotive tại TP.HCM. Chatbot chỉ tư vấn bán hàng đối với xe đang có trên website; các lĩnh vực còn lại được cung cấp ở mức thông tin hồ sơ. Hotline: 0866 997 891.";
 }
 function deterministicWebsiteReply(message){
   const topic=foldVi(message);
   if(/\blegacy 600\b/.test(topic) && /\bpraetor 600e?\b/.test(topic))
-    return "Theo trang Business Jets của PHAN THUẦN XTRA, Legacy 600 và Praetor 600 là hai dòng máy bay khác nhau; Legacy 600 gắn với biến thể EMB-135BJ của Embraer. Website không dùng thông số Praetor 600/600E để mô tả Legacy 600. Cấu hình, điều kiện khai thác và chi phí cụ thể cần xác minh theo từng tàu bay và hành trình. Hotline: 0866 997 891.";
+    return "Theo trang Chuyên cơ thương gia của PHAN THUẦN XTRA, Legacy 600 và Praetor 600 là hai dòng máy bay khác nhau; Legacy 600 gắn với biến thể EMB-135BJ của Embraer. Website không dùng thông số Praetor 600/600E để mô tả Legacy 600. Cấu hình, điều kiện khai thác và chi phí cụ thể cần xác minh theo từng tàu bay và hành trình. Hotline: 0866 997 891.";
   if(/\blegacy 600\b/.test(topic))
-    return "Theo trang Business Jets của PHAN THUẦN XTRA, Legacy 600 là tên thương mại gắn với biến thể EMB-135BJ của Embraer. Cấu hình thực tế, điều kiện khai thác và chi phí cần xác minh theo từng tàu bay và hành trình. Hotline: 0866 997 891.";
+    return "Theo trang Chuyên cơ thương gia của PHAN THUẦN XTRA, Legacy 600 là tên thương mại gắn với biến thể EMB-135BJ của Embraer. Cấu hình thực tế, điều kiện khai thác và chi phí cần xác minh theo từng tàu bay và hành trình. Hotline: 0866 997 891.";
   if(/\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid)\b/.test(topic))
-    return "Theo nội dung website PHAN THUẦN XTRA, Green Energy giới thiệu điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid theo nhu cầu sử dụng. Thông số, chi phí và cấu hình dự án cụ thể cần được xác minh theo từng công trình. Hotline: 0866 997 891.";
+    return "Theo nội dung website PHAN THUẦN XTRA, Năng lượng xanh giới thiệu điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid theo nhu cầu sử dụng. Thông số, chi phí và cấu hình dự án cụ thể cần được xác minh theo từng công trình. Hotline: 0866 997 891.";
   if(/\b(du thuyen|yacht|marine)\b/.test(topic))
-    return "Theo nội dung website PHAN THUẦN XTRA, European Yachts tư vấn du thuyền theo nhu cầu sử dụng, khu vực hoạt động, cabin, tầm hoạt động và ngân sách. Mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm. Hotline: 0866 997 891.";
+    return "Theo nội dung website PHAN THUẦN XTRA, Du thuyền châu Âu tư vấn du thuyền theo nhu cầu sử dụng, khu vực hoạt động, cabin, tầm hoạt động và ngân sách. Mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm. Hotline: 0866 997 891.";
   if(/\b(chuyen co|business jets?|aviation|private jet|praetor 600e?)\b/.test(topic))
-    return "Theo nội dung website PHAN THUẦN XTRA, Business Jets giới thiệu dịch vụ chuyên cơ thương gia theo nhu cầu di chuyển riêng. Lịch bay, sân bay, cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến. Hotline: 0866 997 891.";
+    return "Theo nội dung website PHAN THUẦN XTRA, Chuyên cơ thương gia giới thiệu dịch vụ chuyên cơ thương gia theo nhu cầu di chuyển riêng. Lịch bay, sân bay, cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến. Hotline: 0866 997 891.";
   if(/\b(lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(topic))
     return "Hotline liên hệ chính thức của PHAN THUẦN XTRA: 0866 997 891. Anh/chị cũng có thể gửi nhu cầu qua khu vực liên hệ hoặc private appointment trên website.";
   return "";
