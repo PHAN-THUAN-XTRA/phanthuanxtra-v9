@@ -52,7 +52,7 @@ Website chính thức: https://phanthuanxtra.com/
 Hotline tư vấn: 0866 997 891
 
 ## Phạm vi tư vấn khách hàng hiện hành
-- Trợ lý AI tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website, đồng thời ưu tiên dữ liệu động của catalog xe.
+- Được tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website; trợ lý AI đồng thời ưu tiên dữ liệu động của catalog xe và nội dung website hiện hành.
 - Năng lượng xanh, Du thuyền châu Âu và Chuyên cơ thương gia được cung cấp ở mức thông tin hồ sơ/nội dung chính thức trên website/knowledge base; không chào bán hay tự tạo báo giá, cấu hình, tồn kho, lịch khai thác, cam kết kỹ thuật hoặc điều khoản chưa có nguồn.
 - Khi khách hỏi mua/tư vấn xe, chỉ dùng dữ liệu xe đang có trong D1 catalog của website. Xe không có trong catalog phải nói rõ hiện chưa có trên website.
 - Chat AI góc phải website là kênh tư vấn khách đặc biệt: tư vấn ngắn gọn, lịch sự, ưu tiên đúng nhu cầu xe trong phạm vi website.
