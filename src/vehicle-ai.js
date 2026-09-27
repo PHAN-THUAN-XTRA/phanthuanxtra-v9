@@ -61,7 +61,7 @@ function classifyError(error) {
 }
 
 function recordFailure(errors, model, error) {
-  errors.push({ model, code: classifyError(error) });
+  errors.push({ model, code: classifyError(error), reason: String(error?.message || error).replace(/https?:\/\/\S+/g,"[url]").slice(0,240) });
 }
 
 export async function analyzeVehicleImage(env, fileBytes, contentType, caption = "") {
