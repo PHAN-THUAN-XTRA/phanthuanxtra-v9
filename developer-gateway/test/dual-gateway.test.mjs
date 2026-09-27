@@ -104,3 +104,48 @@ test('Gemini is selected first when configured and Workers AI is not called', as
     globalThis.fetch = originalFetch;
   }
 });
+
+
+test('Gemini HTTP failure exposes only safe diagnostic fields and falls back', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    error: { code: 429, message: 'quota detail must not be propagated', status: 'RESOURCE_EXHAUSTED' }
+  }), { status: 429, headers: { 'content-type': 'application/json' } });
+
+  const aiCalls = [];
+  const env = {
+    GEMINI_ENABLED: 'true',
+    GEMINI_API_KEY: ['unit', 'fixture'].join('-'),
+    AI: {
+      run: async (model) => {
+        aiCalls.push(model);
+        return { response: 'workers fallback' };
+      }
+    }
+  };
+
+  try {
+    const request = new Request('https://gateway.test/v1/ai/unified', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer read-token',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ instruction: 'diagnostic test' })
+    });
+    env.GATEWAY_READ_TOKEN = 'read-token';
+    const response = await worker.fetch(request, env);
+    const body = await response.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.selected_provider, 'cloudflare-workers-ai');
+    assert.equal(body.fallback_used, true);
+    assert.equal(body.fallback_reason, 'gemini_http_failed');
+    assert.equal(body.fallback_status, 429);
+    assert.equal(body.fallback_provider_code, 'RESOURCE_EXHAUSTED');
+    assert.equal(body.production_mutation, false);
+    assert.equal(JSON.stringify(body).includes('quota detail must not be propagated'), false);
+    assert.equal(aiCalls.length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
