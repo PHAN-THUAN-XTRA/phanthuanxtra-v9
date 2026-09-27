@@ -85,7 +85,7 @@ test('Gemini is selected first when configured and Workers AI is not called', as
       ...env,
       GEMINI_ENABLED: 'true',
       GEMINI_API_KEY: ['unit', 'fixture'].join('-'),
-      GEMINI_MODEL: 'gemini-2.5-flash',
+      GEMINI_MODEL: 'gemini-3.5-flash-lite',
       AI: { run: async () => { workersCalls += 1; return { response: 'unexpected' }; } }
     };
     const response = await worker.fetch(new Request('https://gateway.example.com/v1/ai/unified', {
@@ -116,6 +116,7 @@ test('Gemini HTTP failure exposes only safe diagnostic fields and falls back', a
   const env = {
     GEMINI_ENABLED: 'true',
     GEMINI_API_KEY: ['unit', 'fixture'].join('-'),
+    GEMINI_MODEL: 'gemini-3.5-flash-lite',
     AI: {
       run: async (model) => {
         aiCalls.push(model);
@@ -149,4 +150,41 @@ test('Gemini HTTP failure exposes only safe diagnostic fields and falls back', a
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+
+test('Gemini auto discovery selects an available generateContent model before generation', async () => {
+  const originalFetch = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async (url) => {
+    urls.push(String(url));
+    if (String(url).includes('/v1beta/models?')) {
+      return new Response(JSON.stringify({ models: [
+        { name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['countTokens'] },
+        { name: 'models/gemini-3.5-flash-lite', supportedGenerationMethods: ['generateContent'] },
+        { name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] }
+      ] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'discovered-gemini-result' }] } }] }),
+      { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  let workersCalls = 0;
+  try {
+    const readToken = ['unit', 'read', 'discovery'].join('-');
+    const testEnv = { ...env, GATEWAY_READ_TOKEN: readToken, GEMINI_ENABLED: 'true',
+      GEMINI_API_KEY: ['unit', 'gemini', 'fixture'].join('-'), GEMINI_MODEL: 'auto',
+      AI: { run: async () => { workersCalls += 1; return { response: 'unexpected' }; } } };
+    const response = await worker.fetch(new Request('https://gateway.test/v1/ai/unified', {
+      method: 'POST', headers: { Authorization: `Bearer ${readToken}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ instruction: 'test model discovery' })
+    }), testEnv);
+    const body = await response.json();
+    assert.equal(body.selected_provider, 'gemini');
+    assert.equal(body.model, 'gemini-3.5-flash-lite');
+    assert.equal(body.response, 'discovered-gemini-result');
+    assert.equal(body.production_mutation, false);
+    assert.equal(workersCalls, 0);
+    assert.equal(urls.some(url => url.includes('/v1beta/models?')), true);
+    assert.equal(urls.some(url => url.includes('/models/gemini-3.5-flash-lite:generateContent')), true);
+  } finally { globalThis.fetch = originalFetch; }
 });
