@@ -75,7 +75,7 @@ async function uploadWorker() {
       ...(await currentBindings()).filter(binding => !["APK_RATE_LIMITER", "GEMINI_ENABLED", "GEMINI_MODEL"].includes(binding.name)),
       { name: "APK_RATE_LIMITER", type: "ratelimit", namespace_id: "2026092450", simple: { limit: 50, period: 60 } },
       { name: "GEMINI_ENABLED", type: "plain_text", text: "true" },
-      { name: "GEMINI_MODEL", type: "plain_text", text: "gemini-2.5-flash" },
+      { name: "GEMINI_MODEL", type: "plain_text", text: "auto" },
     ],
     annotations: {
       "workers/message": `API gateway deploy ${process.env.GITHUB_SHA || "local"}`,
