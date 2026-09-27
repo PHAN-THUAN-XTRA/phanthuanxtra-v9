@@ -16,7 +16,10 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.doesNotMatch(html,/Xin chào\. Xin chào\./);
   assert.match(html,/Mở trợ lý AI →/);
   assert.match(html,/Anh\/chị đang quan tâm điều gì\?/);
-  assert.match(html,/aria-label="Gửi tin nhắn"/);\n  assert.match(html,/data-filter="sport" type="button">Thể thao<\\/button>/);\n  assert.match(html,/Điện mặt trời • Giải pháp năng lượng xanh/);\n  assert.match(html,/Nhà sáng lập PHAN THUẦN XTRA/);
+  assert.match(html,/aria-label="Gửi tin nhắn"/);
+  assert.match(html,/data-filter="sport" type="button">Thể thao<\/button>/);
+  assert.match(html,/Điện mặt trời • Giải pháp năng lượng xanh/);
+  assert.match(html,/Nhà sáng lập PHAN THUẦN XTRA/);
 });
 
 test("flagship palette preserves obsidian emerald and gold tokens",()=>{
