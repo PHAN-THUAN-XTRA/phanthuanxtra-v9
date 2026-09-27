@@ -9,4 +9,5 @@ test("production deploy binds Blog domain paths explicitly without changing othe
   assert.match(source,/"phanthuanxtra.com\/blog"/);
   assert.match(source,/route\?\.script === WORKER/);
   assert.match(source,/Blog custom-domain route failed: HTTP/);
+  assert.match(source,/Worker custom-domain owners:/);
 });
