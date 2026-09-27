@@ -154,10 +154,28 @@ CATALOG XE HIỆN TẠI:\n${catalog}`;
 }
 
 async function loadCars(env) { if (!env.DB) return []; try { const q = await env.DB.prepare("SELECT id,brand,model,year,mileage,price,fuel,category,color,status,description FROM cars WHERE status <> 'hidden' ORDER BY featured DESC,created_at DESC LIMIT ?").bind(MAX_CARS).all(); return q.results || []; } catch { return []; } }
-async function loadPublishedPosts(env){
+async function loadPublishedPosts(env,query){
   try {
-    const result=await env.DB.prepare("SELECT title,slug,excerpt,content,category,published_at FROM posts WHERE status='published' ORDER BY COALESCE(published_at,created_at) DESC,id DESC LIMIT 30").bind().all();
-    return result.results||[];
+    // Read the published title index on every request. D1 is the publication source;
+    // there is no background reindex or stale vector snapshot to wait for.
+    const index=[];
+    for(let offset=0;offset<10000;offset+=500){
+      const page=await env.DB.prepare("SELECT title,slug,excerpt,category,published_at FROM posts WHERE status='published' ORDER BY COALESCE(published_at,created_at) DESC,id DESC LIMIT 500 OFFSET ?").bind(offset).all();
+      index.push(...(page.results||[]));
+      if((page.results||[]).length<500)break;
+    }
+    const terms=foldVi(query).match(/[a-z0-9]{3,}/g)?.filter(x=>!new Set(['blog','bai','viet','tren','website','phan','thuan','xtra','cho','toi','nhat','moi','gan','day','thong','tin','ve','the','nao','noi','dung','khong','cua','nhung','dieu','này']).has(x))||[];
+    const scored=index.map(post=>{
+      const title=foldVi(post.title),excerpt=foldVi(post.excerpt);
+      const hits=terms.filter(term=>title.includes(term)).length;
+      return {post,score:hits*3+terms.filter(term=>excerpt.includes(term)).length};
+    }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+    const latest=/\b(moi nhat|gan day|latest)\b/.test(foldVi(query));
+    const selected=(latest||!scored.length?index.slice(0,5):scored.slice(0,5).map(x=>x.post));
+    return await Promise.all(selected.map(async post=>{
+      const full=await env.DB.prepare("SELECT title,slug,excerpt,content,category,published_at FROM posts WHERE status='published' AND slug=?").bind(post.slug).first();
+      return full||post;
+    }));
   } catch(error){console.warn("ai_blog_catalog",String(error?.message||error));return [];}
 }
 
@@ -282,7 +300,7 @@ export async function handleAiChat(request,env){
   const[cars,knowledge,posts,editorial]=await Promise.all([
     loadCars(env),
     vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message),
-    blogQuery ? loadPublishedPosts(env) : Promise.resolve([]),
+    loadPublishedPosts(env,message),
     loadEditorialKnowledge(env,message,url.origin)
   ]);
   const pending=await pendingUnknown(env,conversationId);
@@ -292,7 +310,11 @@ export async function handleAiChat(request,env){
     await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,pending.id).run();
     await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,conversationId).run();
   }
-  const allowed = identityQuery || vehicleQuery || websiteTopicQuery || Boolean(editorial);
+  const publishedPostMatch=posts.some(post=>{
+    const title=foldVi(post.title);
+    return title.length>=7 && foldVi(message).includes(title);
+  });
+  const allowed = identityQuery || vehicleQuery || websiteTopicQuery || publishedPostMatch || Boolean(editorial);
   const needsHuman = Boolean(pending) || !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
@@ -316,7 +338,7 @@ export async function handleAiChat(request,env){
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
     } else try{
-      const blogContext=blogQuery ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:post.excerpt,content:clean(post.content,600)}))).slice(0,7000)}` : "";
+      const blogContext=(blogQuery||publishedPostMatch) ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:post.excerpt,content:clean(post.content,1200)}))).slice(0,7000)}` : "";
       const websiteContext=editorial ? `${BRAND_KNOWLEDGE.split("## Hồ sơ truyền thông chính thức")[0]}\n\n${editorial}`.slice(0,MAX_KNOWLEDGE_CONTEXT) : knowledge.text;
       const result=await runAI(env,[...history,{role:"user",content:message}],cars,((vehicleQuery&&!websiteTopicQuery&&!editorial)?BRAND_KNOWLEDGE:websiteContext)+blogContext);
       reply=result.text;
@@ -332,7 +354,7 @@ export async function handleAiChat(request,env){
           reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
         }
       }
-      else{reply=websiteTopicQuery ? deterministicWebsiteReply(message) : ""; if(!reply)reply="Tôi đã nhận được tin nhắn của anh/chị. Anh/chị có thể để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
+      else{reply=websiteTopicQuery ? deterministicWebsiteReply(message) : ""; if(!reply && publishedPostMatch)reply=`Bài đã xuất bản trên website: ${posts.filter(p=>foldVi(message).includes(foldVi(p.title))).map(p=>`${p.title} (https://phanthuanxtra.com/blog/${encodeURIComponent(p.slug)}): ${clean(p.excerpt||p.content,500)}`).join('; ')}. Anh/chị có thể xem nội dung đầy đủ tại liên kết bài viết.`; if(!reply)reply="Tôi đã nhận được tin nhắn của anh/chị. Anh/chị có thể để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
     }
   }
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();
