@@ -21,8 +21,7 @@ Thay `/post` bằng `/draft` để lưu nháp. Bot trả mã bài. Dùng `/publi
 Bài nháp không có URL công khai; có thể sửa nội dung trong Admin trước khi đăng.
 
 Ảnh cover: một ảnh riêng, tối đa 10 MiB; chuyển WebP, bỏ metadata, lưu R2.
-Ảnh bài tổng quát không qua AI nhận dạng xe hay tự che biển số. Hãy gửi bản ảnh
-đã chuẩn bị phù hợp để công khai. Album nhiều ảnh chưa hỗ trợ trong luồng này.
+Ảnh cover mới qua Gemini tìm biển số, phủ kín các vùng tìm được, rồi kiểm tra lại trước khi lưu R2. Lỗi hoặc kết quả không chắc chắn sẽ chặn lưu ảnh. Cần GEMINI_API_KEY và GEMINI_MODEL trên Worker website; cấu hình Gateway riêng không tự cấp quyền cho Worker này. Xem docs/gemini-editorial-privacy.md. Album nhiều ảnh chưa hỗ trợ.
 
 ## Hẹn giờ Việt Nam
 

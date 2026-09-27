@@ -232,7 +232,7 @@ async function syncSecretsAndDeploy() {
     else if (currentBindingNames.has(name)) console.log(`${name}: preserving existing Cloudflare Worker binding.`);
     else throw new Error(`${name} is absent from both GitHub Actions and the existing Cloudflare Worker; refusing production deploy.`);
   }
-  for (const name of ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET", "TELEGRAM_AUTO_PUBLISH_CHAT_IDS"]) {
+  for (const name of ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET", "TELEGRAM_AUTO_PUBLISH_CHAT_IDS", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY"]) {
     const value = process.env[name];
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
   }
@@ -279,6 +279,12 @@ async function verifyApiLineage() {
 
 console.log("=== PHAN THUẦN XTRA — Cloudflare API/SDK production controller ===");
 console.log("Wrangler is intentionally not invoked by this controller.");
+// Check new publishing dependencies before changing migrations, assets or runtime.
+const publishingBindings = (await api(accountPath(`/workers/scripts/${WORKER}/settings`)))?.bindings || [];
+for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY"]) {
+  if (!publishingBindings.some(binding => binding.name === name) && !process.env[name])
+    throw new Error(`${name} is required on the website Worker for editorial publishing; configure it before deployment.`);
+}
 await applyMigrations();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);

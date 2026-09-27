@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 10
     environment: production
     steps:
-      - name: Verify dual Workers AI runtime
+      - name: Verify zero-cost-first runtime
         shell: bash
         env:
           GATEWAY_READ_TOKEN: ${{ secrets.GATEWAY_READ_TOKEN }}
@@ -26,30 +26,23 @@ jobs:
             -X POST \
             -H "Authorization: Bearer $GATEWAY_READ_TOKEN" \
             -H 'Content-Type: application/json' \
-            --data '{"task_id":"gate10-runtime-evidence","mode":"audit","instruction":"Return a concise Gate 10 runtime verification: identify your Deep and Wide Workers AI roles, confirm serialized isolated execution, and confirm production mutation is disabled."}' \
+            --data '{"task_id":"gate10-runtime-evidence","mode":"audit","instruction":"Return a concise runtime verification and confirm production mutation is disabled."}' \
             https://phanthuanxtra-developer-gateway.phanthuanmodelactor.workers.dev/v1/ai/unified)"
           python - "$response" <<'PY'
           import json, sys
           body = json.loads(sys.argv[1])
           assert body.get('ok') is True, body
-          assert body.get('dual_workers_ai') is True, body
-          assert body.get('isolated') is True, body
-          assert body.get('execution') == 'serialized', body
-          assert body.get('runtime_order') == ['wide', 'deep'], body
+          assert body.get('routing_policy') == 'zero-cost-first', body
+          assert body.get('selected_provider') == 'gemini', body
+          assert body.get('fallback_used') is False, body
           assert body.get('production_mutation') is False, body
-          models = body.get('models') or {}
-          assert models.get('deep') == '@cf/nvidia/nemotron-3-120b-a12b', body
-          assert models.get('wide') == '@cf/zai-org/glm-4.7-flash', body
-          assert body.get('peer_results', {}).get('deep'), body
-          assert body.get('peer_results', {}).get('wide'), body
+          assert body.get('response'), body
           print(json.dumps({
               'ok': True,
-              'dual_workers_ai': True,
-              'isolated': True,
-              'execution': 'serialized',
-              'runtime_order': ['wide', 'deep'],
-              'deep_model': models['deep'],
-              'wide_model': models['wide'],
+              'routing_policy': body['routing_policy'],
+              'selected_provider': body['selected_provider'],
+              'fallback_used': body['fallback_used'],
+              'model': body.get('model'),
               'production_mutation': False
           }, separators=(',', ':')))
           PY

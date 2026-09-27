@@ -64,7 +64,7 @@ jobs:
           node --check src/telegram-ingest.js
           node --check src/telegram-router.js
           node --check src/auto-bot-ai.js
-          node --test tests/editorial-publishing.test.mjs tests/publishing-api.test.mjs
+          node --test tests/editorial-publishing.test.mjs tests/publishing-api.test.mjs tests/gemini-plate-privacy.test.mjs
           node --test tests/auto-bot-ai.test.mjs
           node --check src/vip-telegram.js
           node --check src/vip-vehicle-intelligence.js
@@ -145,6 +145,9 @@ jobs:
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
           TELEGRAM_VIP_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_VIP_WEBHOOK_SECRET }}
           TELEGRAM_AUTO_PUBLISH_CHAT_IDS: ${{ secrets.TELEGRAM_AUTO_PUBLISH_CHAT_IDS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_PLATE_MODEL }}
+          PUBLISH_API_KEY: ${{ secrets.PUBLISH_API_KEY }}
         run: node scripts/deploy-cloudflare-api.mjs
       - name: Diagnose Workers AI account allocation
         shell: bash

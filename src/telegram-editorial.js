@@ -1,3 +1,4 @@
+import { preparePrivateCover, requirePrivateCover } from './gemini-plate-privacy.js';
 import { canPublishAutoBlog, parseAutoCommand } from './auto-bot-ai.js';
 import { parseArticle, parseBatch, submitArticles, publishDueArticles, changePublication, recentPublications, localTime, publicationResults, publicationKey, getPublication } from './editorial-publishing.js';
 
@@ -50,15 +51,9 @@ async function download(env, file, max) {
 async function cover(env, photo, requestKey) {
   if (!env.MEDIA || !env.IMAGES) throw new Error('Chưa cấu hình xử lý/lưu ảnh; bài chưa được đăng.');
   const bytes = await download(env,photo,10*1024*1024);
-  const stream = () => new Blob([bytes]).stream();
-  const info = await env.IMAGES.info(stream());
-  if (!info?.width || !info?.height) throw new Error('Ảnh không hợp lệ.');
-  const output = await env.IMAGES.input(stream()).transform({ width: 1800, fit: 'scale-down' })
-    .output({ format: 'image/webp', quality: 85, metadata: 'none' });
-  const response = output.response();
-  if (!response.ok) throw new Error('Không chuyển đổi được ảnh.');
+  const processed = await preparePrivateCover(env,bytes);
   const key = `blog/editorial-${requestKey}.webp`;
-  await env.MEDIA.put(key,response.body,{ httpMetadata: { contentType: 'image/webp', cacheControl: 'public,max-age=31536000,immutable' } });
+  await env.MEDIA.put(key,processed.bytes,{ customMetadata: processed.metadata, httpMetadata: { contentType: 'image/webp', cacheControl: 'public,max-age=31536000,immutable' } });
   return `/media/${key}`;
 }
 function report(job) {
@@ -104,6 +99,7 @@ export async function handleEditorialMessage(env, message, chatId) {
       items = [parseArticle(command.body, command.name === 'schedule' ? 'schedule' : command.name === 'draft' ? 'draft' : 'publish')];
       if (message.photo?.length) items[0].cover_image = await cover(env,message.photo.at(-1),requestKey);
     }
+    for(const item of items)await requirePrivateCover(env,item.cover_image);
     const result = await submitArticles(env.DB,items,{chatId,messageId:message.message_id});
     await publishDueArticles(env,{chatId,requestKey:result.requestKey});
     await reply(env,chatId,(await publicationResults(env.DB,chatId,result.requestKey)).map(report).join('\n\n'));

@@ -1,3 +1,4 @@
+import { geminiResponse } from './helpers/gemini-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { database } from './helpers/editorial-db.mjs';
@@ -9,9 +10,9 @@ import { submitArticles } from '../src/editorial-publishing.js';
 
 function setup() {
   const files=new Map();const key=crypto.randomUUID();
-  const env={DB:database(),PUBLISH_API_KEY:key,ADMIN_PASSWORD:crypto.randomUUID(),
+  const env={GEMINI_API_KEY:crypto.randomUUID(),GEMINI_MODEL:"gemini-test",DB:database(),PUBLISH_API_KEY:key,ADMIN_PASSWORD:crypto.randomUUID(),
     IMAGES:{async info(){return {width:100,height:100};},input(){return {transform(){return this;},async output(o){assert.equal(o.format,'image/webp');return {response:()=>new Response('webp-bytes')};}};}},
-    MEDIA:{async put(k,body){files.set(k,await new Response(body).text());},async head(k){return files.has(k)?{}:null;}}
+    MEDIA:{async put(k,body){files.set(k,await new Response(body).text());},async head(k){return files.has(k)?{customMetadata:{plate_privacy:"gemini-reviewed-v1"}}:null;}}
   };
   const call=async(path='',method='GET',body,credential=key)=>{
     const headers={Authorization:`Bearer ${credential}`};
@@ -30,7 +31,7 @@ test('API denies unauthenticated and unrelated keys before fetching files',async
 });
 test('GPT file -> R2 -> private draft -> publish -> public URL lifecycle',async t=>{
   const {call,files,env}=setup();
-  t.mock.method(globalThis,'fetch',async url=>{assert.equal(new URL(url).hostname,'files.oaiusercontent.com');return new Response('image fixture');});
+  t.mock.method(globalThis,'fetch',async (url,init)=>{if(String(url).includes('generativelanguage.googleapis.com'))return geminiResponse(init);assert.equal(new URL(url).hostname,'files.oaiusercontent.com');return new Response('image fixture');});
   const mediaResponse=await call('/media','POST',{openaiFileIdRefs:[{id:'file-test',download_link:'https://files.oaiusercontent.com/test.png'}]});
   assert.equal(mediaResponse.status,201);const media=await mediaResponse.json();assert.ok(files.has(media.key));
   const input={...payload(),cover_image:media.url};
@@ -72,7 +73,8 @@ test('OpenAI media downloads reject SSRF URLs and redirects to private or unrela
   const response=await call('/media','POST',{openaiFileIdRefs:[{download_link:'https://files.oaiusercontent.com/x'}]});
   assert.equal(response.status,400);assert.equal(count,1);
 });
-test('photo endpoint accepts authenticated binary upload for Admin',async()=>{
+test('photo endpoint accepts authenticated binary upload for Admin',async t=>{
+  t.mock.method(globalThis,'fetch',async(url,init)=>geminiResponse(init));
   const {env,files}=setup();const token=await issueAdminToken(env);
   const response=await handlePublishingApi(new Request('https://phanthuanxtra.com/api/publish/v1/media',{method:'POST',headers:{Authorization:`Bearer ${token}`,'content-type':'image/png'},body:new Uint8Array([1,2,3])}),env);
   assert.equal(response.status,201);assert.equal(files.size,1);

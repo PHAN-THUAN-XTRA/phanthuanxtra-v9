@@ -1,3 +1,4 @@
+import { geminiResponse } from './helpers/gemini-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { database } from './helpers/editorial-db.mjs';
@@ -122,12 +123,13 @@ test('router handles /post and /blog multiline as authored text and reports actu
 test('captioned general photo uses WebP and does not invoke vehicle AI; retry skips upload',async t=>{
   const DB=database();let uploads=0;
   t.mock.method(globalThis,'fetch',async(url,init)=>{
+    if(url.includes('generativelanguage.googleapis.com'))return geminiResponse(init);
     if(url.includes('/getFile'))return Response.json({ok:true,result:{file_path:'photos/test.jpg'}});
     if(url.includes('/file/bot'))return new Response(new Uint8Array([1,2,3]));
     return Response.json({ok:true,result:{}});
   });
   const pipeline={transform(){return this;},async output(opts){assert.equal(opts.format,'image/webp');assert.equal(opts.metadata,'none');return {response:()=>new Response('webp')};}};
-  const e={...env(DB),IMAGES:{async info(){return {width:100,height:100};},input(){return pipeline;}},MEDIA:{async put(key){assert.match(key,/\.webp$/);uploads++;}},AI:{run(){throw Error('AI must not be called');}}};
+  const e={...env(DB),GEMINI_API_KEY:crypto.randomUUID(),GEMINI_MODEL:"gemini-test",IMAGES:{async info(){return {width:100,height:100};},input(){return pipeline;}},MEDIA:{async head(){return {customMetadata:{plate_privacy:"gemini-reviewed-v1"}};},async put(key){assert.match(key,/\.webp$/);uploads++;}},AI:{run(){throw Error('AI must not be called');}}};
   const message={chat:{id:123},message_id:1,caption:'/post Năng lượng xanh\nNội dung đã soạn.',photo:[{file_id:'test'}]};
   await processTelegramUpdate(e,{message},'123');await processTelegramUpdate(e,{message},'123');
   assert.equal(uploads,1);assert.match(DB.sqlite.prepare('SELECT cover_image FROM posts').get().cover_image,/^\/media\/blog\/.+\.webp$/);

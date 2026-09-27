@@ -1,3 +1,4 @@
+import { preparePrivateCover, requirePrivateCover, ImagePrivacyError } from './gemini-plate-privacy.js';
 import { verifyAdminToken } from './admin-auth.js';
 import { getPost, normalizePostPayload } from './post-persistence.js';
 import { submitArticles, validateArticle } from './editorial-publishing.js';
@@ -47,14 +48,10 @@ async function actionImage(refs) {
 export async function storePublishingImage(env,bytes) {
   if(!env.IMAGES||!env.MEDIA)throw new PublishingError('Chưa cấu hình xử lý/lưu ảnh.',503);
   if(!bytes.length)throw new PublishingError('Ảnh rỗng.');
-  const stream=()=>new Blob([bytes]).stream();
-  const info=await env.IMAGES.info(stream());
-  if(!info?.width||!info?.height)throw new PublishingError('Tệp không phải ảnh hợp lệ.');
-  const output=await env.IMAGES.input(stream()).transform({width:1800,fit:'scale-down'}).output({format:'image/webp',quality:85,metadata:'none'});
-  const response=output.response();if(!response.ok)throw new PublishingError('Không chuyển đổi được ảnh.',422);
+  const processed=await preparePrivateCover(env,bytes);
   const digest=await crypto.subtle.digest('SHA-256',bytes);
   const key='admin/editorial-'+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')+'-'+crypto.randomUUID()+'.webp';
-  await env.MEDIA.put(key,response.body,{httpMetadata:{contentType:'image/webp',cacheControl:'public,max-age=31536000,immutable'}});
+  await env.MEDIA.put(key,processed.bytes,{customMetadata:processed.metadata,httpMetadata:{contentType:'image/webp',cacheControl:'public,max-age=31536000,immutable'}});
   return {ok:true,key,url:`/media/${key}`,absolute_url:`https://phanthuanxtra.com/media/${key}`,content_type:'image/webp'};
 }
 async function authentication(request,env) {
@@ -87,6 +84,7 @@ export async function handlePublishingApi(request,env) {
       if(!/^[a-zA-Z0-9_-]{16,100}$/.test(body.request_id||''))throw new PublishingError('request_id cần 16–100 ký tự chữ, số, _ hoặc -. Giữ nguyên khi thử lại.');
       if(body.status && body.status!=='draft')throw new PublishingError('Tạo bản nháp trước, sau đó gọi publish.');
       if(body.cover_image && !(await env.MEDIA?.head(body.cover_image.replace(/^\/media\//,''))))throw new PublishingError('Ảnh cover chưa được lưu.');
+      await requirePrivateCover(env,body.cover_image);
       try { validateArticle({...body,mode:'draft'},Date.now()); } catch(error) { throw new PublishingError(error.message); }
       if(body.cover_image && (!/^\/media\/[A-Za-z0-9/_.-]+$/.test(body.cover_image)||body.cover_image.includes('..')))throw new PublishingError('Ảnh cover không hợp lệ.');
       const saved=await submitArticles(env.DB,[{...body,mode:'draft'}],{chatId:OWNER,submissionId:body.request_id});
@@ -105,6 +103,7 @@ export async function handlePublishingApi(request,env) {
       const parsed=normalizePostPayload({...body,status:'draft'},post);if(parsed.error)throw new PublishingError(parsed.error);
       const p=parsed.value;
       if(p.cover_image && (!/^\/media\/[A-Za-z0-9/_.-]+$/.test(p.cover_image)||p.cover_image.includes('..')||!(await env.MEDIA?.head(p.cover_image.slice(7)))))throw new PublishingError('Ảnh cover không hợp lệ.');
+      await requirePrivateCover(env,p.cover_image);
       const saved=await env.DB.batch([
         env.DB.prepare("UPDATE posts SET title=?,slug=?,excerpt=?,content=?,cover_image=?,category=?,tags_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='draft'")
           .bind(p.title,p.slug,p.excerpt,p.content,p.cover_image,p.category,JSON.stringify(p.tags),post.id),
@@ -115,6 +114,7 @@ export async function handlePublishingApi(request,env) {
     }
     if(request.method==='POST'&&match[2]) {
       if(!['draft','published'].includes(post.status))throw new PublishingError('Không thể xuất bản bài đã lưu trữ.',409);
+      await requirePrivateCover(env,post.cover_image);
       await env.DB.batch([
         env.DB.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) SELECT 'publishing-api','publish','post',CAST(id AS TEXT),title FROM posts WHERE id=? AND status='draft'").bind(post.id),
         env.DB.prepare("UPDATE posts SET status='published',published_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='draft'").bind(new Date().toISOString(),post.id),
@@ -126,7 +126,7 @@ export async function handlePublishingApi(request,env) {
     }
     return json({error:'Method Not Allowed'},405);
   } catch(error) {
-    if(error instanceof PublishingError)return json({error:error.message},error.status);
+    if(error instanceof PublishingError || error instanceof ImagePrivacyError)return json({error:error.message},error.status);
     if(String(error.message).includes('UNIQUE'))return json({error:'Slug đã tồn tại.'},409);
     console.error('publishing_api_failed',error?.name||'Error');
     return json({error:'Chưa hoàn tất yêu cầu. Kiểm tra lại trạng thái với cùng request_id.'},500);
