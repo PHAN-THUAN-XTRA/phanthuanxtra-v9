@@ -71,6 +71,8 @@ jobs:
           node --check src/media.js
           node --check src/ai-chat.js
           node --check src/plate-branding.js
+          node --check public/blog-latest.js
+          node --test test/blog-ui.test.js test/blog-cards.test.js
           node --check public/script.js
           node --test tests/admin-auth.test.mjs tests/admin-password.test.mjs tests/app-admin-contract.test.mjs tests/telegram.test.mjs tests/ai-chat.test.mjs tests/pt-xtra-media.test.mjs tests/pt-xtra-plate.test.mjs tests/plate-branding.test.mjs tests/production-gates.test.mjs tests/vip-vehicle-intelligence.test.mjs
 
