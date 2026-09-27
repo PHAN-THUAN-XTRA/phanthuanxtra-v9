@@ -103,6 +103,35 @@ function isWebsiteTopicQuery(value){
 }
 const isBlogQuery = value => /\b(blog|bai viet|tin tuc|bai dang|news)\b/.test(foldVi(value));
 
+function editorialPaths(query){
+  const t=foldVi(query);
+  const paths=[];
+  if(/\b(nang luong|dien mat troi|solar|pv|ess|energy|hybrid|inverter|luu tru)\b/.test(t))paths.push(["Green Energy","/green-energy.html"]);
+  if(/\b(du thuyen|yacht|marine|jeanneau|prestige|ferretti|riva|pershing)\b/.test(t))paths.push(["European Yachts","/yachts.html"]);
+  if(/\b(chuyen co|jet|aviation|aircraft|legacy 600|embraer|praetor|charter)\b/.test(t))paths.push(["Business Jets","/__ptx_editorial__/business-jets.html"]);
+  if(/\b(phan thuan|phanthuan|thuong hieu|he sinh thai|founder)\b/.test(t))paths.push(["Phan Thuần","/phan-thuan.html"]);
+  return paths.slice(0,2);
+}
+function editorialText(html){
+  const main=html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1]||"";
+  return main.replace(/<(script|style|form|nav|footer|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi," ")
+    .replace(/<[^>]*>/g," ").replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n)))
+    .replace(/&(?:amp|nbsp|quot|lt|gt);/g,m=>({"&amp;":"&","&nbsp;":" ","&quot;":"\"","&lt;":"<","&gt;":">"}[m]))
+    .replace(/\s+/g," ").trim();
+}
+async function loadEditorialKnowledge(env,query,origin){
+  if(!env.ASSETS)return "";
+  const parts=await Promise.all(editorialPaths(query).map(async ([label,path])=>{
+    try{
+      const response=await env.ASSETS.fetch(new Request(new URL(path,origin),{headers:{accept:"text/html"}}));
+      if(!response.ok)return "";
+      const content=editorialText(await response.text()).slice(0,5000);
+      return content?`Trang chính thức ${label}: ${content}`:"";
+    }catch(error){console.warn("ai_editorial_asset",label,String(error?.message||error));return "";}
+  }));
+  return parts.filter(Boolean).join("\n\n").slice(0,7000);
+}
+
 function systemPrompt(cars, knowledge) {
   const catalog = cars.length ? JSON.stringify(cars.map(c => ({ id:c.id,brand:c.brand,model:c.model,year:c.year,mileage:c.mileage,price:c.price,fuel:c.fuel,category:c.category,color:c.color,status:c.status,description:c.description }))) : "[]";
   return `Bạn là XTRA Intelligence, chatbot chính thức của PHAN THUẦN XTRA (Vietnam).
@@ -246,10 +275,11 @@ export async function handleAiChat(request,env){
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel); const history=await loadHistory(env,conversationId); const contact=extractContact(message);
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"user",message).run();
   const identityQuery=isIdentityQuery(message); const vehicleQuery=isVehicleQuery(message); const websiteTopicQuery=isWebsiteTopicQuery(message); const blogQuery=isBlogQuery(message);
-  const[cars,knowledge,posts]=await Promise.all([
+  const[cars,knowledge,posts,editorial]=await Promise.all([
     loadCars(env),
     vehicleQuery&&!identityQuery&&!websiteTopicQuery ? Promise.resolve({text:BRAND_KNOWLEDGE,evidence:false,topScore:0}) : searchKnowledge(env,message),
-    blogQuery ? loadPublishedPosts(env) : Promise.resolve([])
+    blogQuery ? loadPublishedPosts(env) : Promise.resolve([]),
+    loadEditorialKnowledge(env,message,url.origin)
   ]);
   const pending=await pendingUnknown(env,conversationId);
   const pendingWasComplete=Boolean(pending?.name&&pending?.phone);
@@ -258,7 +288,7 @@ export async function handleAiChat(request,env){
     await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,pending.id).run();
     await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,conversationId).run();
   }
-  const allowed = identityQuery || vehicleQuery || websiteTopicQuery;
+  const allowed = identityQuery || vehicleQuery || websiteTopicQuery || Boolean(editorial);
   const needsHuman = Boolean(pending) || !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
@@ -283,7 +313,8 @@ export async function handleAiChat(request,env){
       reply=identityFallback;
     } else try{
       const blogContext=blogQuery ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:post.excerpt,content:clean(post.content,600)}))).slice(0,7000)}` : "";
-      const result=await runAI(env,[...history,{role:"user",content:message}],cars,((vehicleQuery&&!websiteTopicQuery)?BRAND_KNOWLEDGE:knowledge.text)+blogContext);
+      const websiteContext=editorial ? `${BRAND_KNOWLEDGE.split("## Hồ sơ truyền thông chính thức")[0]}\n\n${editorial}`.slice(0,MAX_KNOWLEDGE_CONTEXT) : knowledge.text;
+      const result=await runAI(env,[...history,{role:"user",content:message}],cars,((vehicleQuery&&!websiteTopicQuery&&!editorial)?BRAND_KNOWLEDGE:websiteContext)+blogContext);
       reply=result.text;
       aiModel=result.model;
     }catch(error){
