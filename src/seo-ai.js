@@ -13,16 +13,17 @@ async function generate(env,p){
 export async function reconcileSeo(env){
  if(!env.DB||!env.AI)return{ok:false,reason:"bindings_unavailable",processed:0};
  const q=await env.DB.prepare("SELECT id,title,excerpt,content,updated_at FROM posts WHERE status='published' ORDER BY COALESCE(updated_at,published_at,created_at) DESC LIMIT 20").all();
- let processed=0,unchanged=0,failed=0;
+ let processed=0,unchanged=0,failed=0,attempted=0;
  for(const p of q.results||[]){
   const fingerprint=await digest(JSON.stringify([p.title,p.excerpt,p.content,p.updated_at]));
   const existing=await env.DB.prepare("SELECT content_hash FROM seo_metadata WHERE resource_type='post' AND resource_id=?").bind(String(p.id)).first();
   if(existing?.content_hash===fingerprint){unchanged++;continue}
-  if(processed>=LIMIT)break;
+  if(attempted>=LIMIT)break;
+  attempted++;
   try{const meta=await generate(env,p);if(!meta){failed++;continue}
    await env.DB.prepare(`INSERT INTO seo_metadata(resource_type,resource_id,seo_title,seo_description,content_hash,model,updated_at) VALUES('post',?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(resource_type,resource_id) DO UPDATE SET seo_title=excluded.seo_title,seo_description=excluded.seo_description,content_hash=excluded.content_hash,model=excluded.model,updated_at=CURRENT_TIMESTAMP`).bind(String(p.id),meta.title,meta.description,fingerprint,MODEL).run();processed++;
-  }catch(e){failed++;console.error("seo_ai_post_failed",String(e?.message||e))}
+  }catch(e){failed++;console.error("seo_ai_post_failed",String(e?.message||e));if(/3036|4006|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(e?.message||e)))break}
  }
- return{ok:true,processed,unchanged,failed,model:MODEL,limit:LIMIT}
+ return{ok:true,processed,unchanged,failed,attempted,model:MODEL,limit:LIMIT}
 }
 export async function seoForPost(db,id){if(!db)return null;return db.prepare("SELECT seo_title,seo_description FROM seo_metadata WHERE resource_type='post' AND resource_id=?").bind(String(id)).first()}
