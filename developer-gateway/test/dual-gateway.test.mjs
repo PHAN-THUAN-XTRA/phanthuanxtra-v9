@@ -25,7 +25,10 @@ test('dual Workers AI calls Wide then Deep and stays isolated', async () => {
   const body = await response.json();
   assert.equal(body.ok, true);
   assert.equal(body.dual_workers_ai, true);
-  assert.equal(body.isolated, true);
+  assert.equal(body.routing_policy, 'zero-cost-first');
+  assert.equal(body.selected_provider, 'cloudflare-workers-ai');
+  assert.equal(body.fallback_used, true);
+  assert.equal(body.fallback_reason, 'gemini_disabled');
   assert.equal(body.execution, 'serialized');
   assert.deepEqual(body.runtime_order, ['wide', 'deep']);
   assert.equal(body.production_mutation, false);
@@ -68,4 +71,36 @@ test('dual endpoint returns 429 when APK limiter rejects request', async () => {
   assert.equal(body.error, 'rate_limit_exceeded');
   assert.equal(body.limit, 50);
   assert.equal(body.period_seconds, 60);
+});
+
+
+test('Gemini is selected first when configured and Workers AI is not called', async () => {
+  let workersCalls = 0;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    candidates: [{ content: { parts: [{ text: 'gemini-result' }] } }]
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    const testEnv = {
+      ...env,
+      GEMINI_ENABLED: 'true',
+      GEMINI_API_KEY: ['unit', 'fixture'].join('-'),
+      GEMINI_MODEL: 'gemini-2.5-flash',
+      AI: { run: async () => { workersCalls += 1; return { response: 'unexpected' }; } }
+    };
+    const response = await worker.fetch(new Request('https://gateway.example.com/v1/ai/unified', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instruction: 'test zero cost routing' })
+    }), testEnv);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.selected_provider, 'gemini');
+    assert.equal(body.fallback_used, false);
+    assert.equal(body.production_mutation, false);
+    assert.equal(body.response, 'gemini-result');
+    assert.equal(workersCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
