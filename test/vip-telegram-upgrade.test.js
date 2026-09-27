@@ -27,3 +27,17 @@ test("Scout failure falls back to Qwen; DETR failure leaves analysis available",
   assert.equal(image._ai_model, "@cf/qwen/qwen3.8-27b");
   assert.deepEqual(await detectVehicleObjects(env, new Uint8Array([1]).buffer), []);
 });
+
+// Cloudflare's image-to-text binding validates image as an array of byte values.
+test("LLaVA fallback sends schema-compatible image bytes after multimodal failures", async () => {
+  const seen=[];
+  const env={AI:{async run(model,input){seen.push({model,input});if(model.includes("llava"))return {description:JSON.stringify({brand:null,model:null,confidence:0,missing_fields:["brand","model"]})};throw new Error("4006: daily free allocation exhausted")}}};
+  const result=await analyzeVehicleImage(env,new Uint8Array([255,216,255]).buffer,"image/jpeg");
+  assert.equal(result._ai_model,"@cf/llava-hf/llava-1.5-7b-hf");
+  assert.deepEqual(seen.find(x=>x.model.includes("llava")).input.image,[255,216,255]);
+});
+
+test("Vision quota failures are classified as rate limits", async () => {
+  const env={AI:{async run(){throw new Error("4006: daily free allocation exhausted")}}};
+  await assert.rejects(analyzeVehicleImage(env,new Uint8Array([1]).buffer,"image/jpeg"),error=>error.diagnostics.every(item=>item.code==="RATE_LIMIT"));
+});

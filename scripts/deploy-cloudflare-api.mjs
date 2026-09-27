@@ -180,25 +180,16 @@ async function ensureCustomDomainRoute() {
   const wanted = "phanthuanxtra.com/*";
   const current = Array.isArray(routes) ? routes.find((route) => route?.pattern === wanted) : null;
 
-  // Cloudflare chooses the most-specific matching Worker route. A stale API route
-  // can therefore shadow the canonical /* route even when /* points at this Worker.
-  // Reconcile only Blog API routes, whose production contract belongs to this Worker.
-  const blogRoutePatterns = new Set([
-    "phanthuanxtra.com/api/blog/*",
-    "phanthuanxtra.com/api/blog/posts*",
-    "phanthuanxtra.com/api/blog/posts/*",
-  ]);
-  const blogConflicts = Array.isArray(routes)
-    ? routes.filter((route) => blogRoutePatterns.has(route?.pattern) && route?.script !== WORKER)
-    : [];
-  for (const route of blogConflicts) {
-    if (!route?.id) throw new Error(`Blog Worker route conflict has no route id: ${route?.pattern || "unknown"}`);
-    await api(`/zones/${zoneId}/workers/routes/${route.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pattern: route.pattern, script: WORKER }),
-    });
-    console.log(`Route: reconciled shadowing Blog route ${route.pattern} -> ${WORKER}.`);
+  // Explicit Blog routes outrank broader legacy routes (for example /api/*).
+  // The Worker origin can serve Blog while the zone otherwise returns a plain
+  // text 404 for these paths. Preserve all unrelated route ownership.
+  for (const pattern of ["phanthuanxtra.com/api/blog/*", "phanthuanxtra.com/blog", "phanthuanxtra.com/blog/*"]) {
+    const route = Array.isArray(routes) ? routes.find(item => item?.pattern === pattern) : null;
+    if (route?.script === WORKER) continue;
+    const method = route?.id ? "PUT" : "POST";
+    const endpoint = route?.id ? `/zones/${zoneId}/workers/routes/${route.id}` : `/zones/${zoneId}/workers/routes`;
+    await api(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pattern, script: WORKER }) });
+    console.log(`Route: ${method === "PUT" ? "updated" : "created"} ${pattern} -> ${WORKER}.`);
   }
 
   if (current?.script === WORKER) {
@@ -288,6 +279,11 @@ const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
 await ensureCustomDomainRoute();
+// A deploy is incomplete if the custom domain is still shadowed by an edge route.
+const blogCheck = await fetch("https://phanthuanxtra.com/api/blog/posts?deploy-check=" + encodeURIComponent(process.env.GITHUB_SHA || Date.now()), { headers: { accept: "application/json" } });
+const blogType = blogCheck.headers.get("content-type") || "";
+if (blogCheck.status !== 200 || !blogType.includes("application/json")) throw new Error(`Blog custom-domain route failed: HTTP ${blogCheck.status}, content-type ${blogType}`);
+console.log("Blog custom-domain API route: HTTP 200 JSON.");
 await syncCronSchedules();
 await verifyApiLineage();
 console.log("API/SDK deployment controller completed successfully.");

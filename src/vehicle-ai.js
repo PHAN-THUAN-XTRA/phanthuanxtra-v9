@@ -51,7 +51,7 @@ function parseResult(result) {
 function classifyError(error) {
   const message = String(error?.message || error).toLowerCase();
   if (message.includes("license") || message.includes("agree") || message.includes("acceptable use")) return "LICENSE_REQUIRED";
-  if (message.includes("rate") || message.includes("7505") || message.includes("quota")) return "RATE_LIMIT";
+  if (message.includes("rate") || message.includes("7505") || message.includes("4006") || message.includes("daily free allocation") || message.includes("quota")) return "RATE_LIMIT";
   if (message.includes("7504") || message.includes("validation") || message.includes("invalid") || message.includes("schema")) return "VALIDATION";
   if (message.includes("7502") || message.includes("model not found")) return "MODEL_NOT_FOUND";
   if (message.includes("busy") || message.includes("overload") || message.includes("capacity")) return "BUSY";
@@ -106,7 +106,7 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
   // Legacy image-to-text fallback.
   try {
     const response = await env.AI.run("@cf/llava-hf/llava-1.5-7b-hf", {
-      image: bytes,
+      image: Array.from(bytes),
       prompt,
       max_tokens: 1200
     });
