@@ -302,9 +302,9 @@ test('Business Jets lead stores itinerary in D1 and Telegram accepts correctly c
   try{
     const message='Business Jets / Private Aviation | Điểm đi: TP.HCM | Điểm đến: Đà Nẵng | Ngày/giờ: 2026-10-02 09:00 | Số khách: 4 | Hành lý: 2 kiện';
     const response=await worker.fetch(new Request('https://phanthuanxtra.com/api/leads',{
-      method:'POST',headers:{'content-type':'application/json',authorization:'Bearer gate-secret'},
+      method:'POST',headers:{'content-type':'application/json',authorization:'Bearer test'},
       body:JSON.stringify({source:'business-jets',name:'Kiểm thử Business Jets',phone:'0900000000',message})
-    }),{DB,ADMIN_TOKEN:'gate-secret',TELEGRAM_CRM_BOT_TOKEN:'test-token',TELEGRAM_CRM_CHAT_ID:'-123'});
+    }),{DB,ADMIN_TOKEN:'test',TELEGRAM_CRM_BOT_TOKEN:'bot',TELEGRAM_CRM_CHAT_ID:'-123'});
     const data=await response.json();
     assert.equal(data.stored,true);
     assert.equal(data.lead_id,17);
