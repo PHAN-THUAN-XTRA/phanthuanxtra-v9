@@ -401,3 +401,30 @@ test('completed handoff does not trap later Blog questions in unknown flow', asy
   assert.match(data.reply,/Bài mới/);
   assert.equal(DB._unknown.length,1);
 });
+
+test('AI reads the currently deployed Business Jets page for a detailed aircraft question', async () => {
+  const DB=mockDb();
+  const requested=[];
+  const env={
+    DB,
+    ASSETS:{async fetch(request){
+      requested.push(new URL(request.url).pathname);
+      return new Response('<main><h1>Legacy 600 không phải Praetor 600</h1><p>EMB-135BJ được ghi trong hồ sơ EASA.</p><form><input value="private lead"></form></main>');
+    }},
+    AI:{async run(_model,payload){
+      const system=payload.messages[0].content;
+      assert.match(system,/Legacy 600 không phải Praetor 600/);
+      assert.match(system,/EMB-135BJ/);
+      assert.doesNotMatch(system,/private lead/);
+      return {response:'Theo trang Business Jets, Legacy 600 khác Praetor 600; thông số chuyến bay cần xác minh.'};
+    }}
+  };
+  const response=await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'jets-current-page',message:'Legacy 600 khác Praetor 600 thế nào?'})
+  }),env);
+  const data=await response.json();
+  assert.equal(data.needs_human,false);
+  assert.deepEqual(requested,['/__ptx_editorial__/business-jets.html']);
+  assert.match(data.reply,/Legacy 600 khác Praetor 600/);
+});
