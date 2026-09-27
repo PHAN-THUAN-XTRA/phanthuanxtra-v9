@@ -17,5 +17,5 @@ test("flagship palette preserves obsidian emerald and gold tokens",()=>{
   assert.match(css,/--obsidian:#050706/);
   assert.match(css,/--emerald:#0f5f50/);
   assert.match(css,/--gold:#c7a35a/);
-  assert.match(css,/Flagship tri-color discipline/);\n    assert.match(css,/Vietnamese typography consistency/);\n    assert.doesNotMatch(css,/family=Manrope/);
+  assert.match(css,/Flagship tri-color discipline/);\n    assert.match(css,/Vietnamese typography consistency/);\n    assert.doesNotMatch(css,/family=Manrope/);\n    assert.match(css,/AI chat inherits the same Vietnamese UI typography/);
 });
