@@ -86,7 +86,7 @@ test('APK navigation keeps explicit home exits and product destinations', () => 
 test('Founder profile and customer AI scope stay explicit', () => {
   const index = read('public/index.html');
   const ai = read('src/ai-chat.js');
-  assert.match(index, /THE FOUNDER • PRIVATE CONCIERGE/);
+  assert.match(index, /NHÀ SÁNG LẬP • ĐẶC QUYỀN RIÊNG/);
   assert.match(index, /facebook\.com\/PhanThuanSaigon/);
   assert.doesNotMatch(index, /Theo hồ sơ chính thức do chủ website cung cấp/);
   assert.match(index, /href="\/phan-thuan"/);
