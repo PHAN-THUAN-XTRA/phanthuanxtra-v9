@@ -116,6 +116,7 @@ test('Gemini HTTP failure exposes only safe diagnostic fields and falls back', a
   const env = {
     GEMINI_ENABLED: 'true',
     GEMINI_API_KEY: ['unit', 'fixture'].join('-'),
+    GEMINI_MODEL: 'gemini-3.5-flash-lite',
     AI: {
       run: async (model) => {
         aiCalls.push(model);
