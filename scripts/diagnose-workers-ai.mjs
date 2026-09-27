@@ -2,7 +2,7 @@
 const account = process.env.CLOUDFLARE_ACCOUNT_ID;
 const token = process.env.CLOUDFLARE_WORKERS_AI_TOKEN;
 if (!/^[a-f0-9]{32}$/i.test(account || "") || !token) {
-  console.log("Workers AI diagnostic: dedicated token or account missing");
+  console.log("Workers AI diagnostic: credentials or account missing");
   process.exitCode = 1;
 } else {
   const headers = { Authorization: `Bearer ${token}` };
@@ -13,7 +13,7 @@ if (!/^[a-f0-9]{32}$/i.test(account || "") || !token) {
     headers, signal: AbortSignal.timeout(20000)
   });
   const verified = await safeJson(verify);
-  console.log("Workers AI token verification:", JSON.stringify({
+  console.log("Workers AI credential verification:", JSON.stringify({
     http: verify.status, active: verified.result?.status === "active",
     token_id: verified.result?.id || null
   }));
