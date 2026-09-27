@@ -21,6 +21,14 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/Điện mặt trời • Giải pháp năng lượng xanh/);
   assert.match(html,/Nhà sáng lập PHAN THUẦN XTRA/);
   assert.match(html,/Trợ lý AI tư vấn toàn bộ nội dung chính thức đang có trên website và ưu tiên thông tin hiện hành/);
+  assert.doesNotMatch(html,/id="green-energy"/);
+  assert.doesNotMatch(html,/id="yacht"/);
+  assert.doesNotMatch(html,/id="business-jet"/);
+  assert.doesNotMatch(html,/id="services"/);
+  assert.doesNotMatch(html,/Năng lượng sạch cho tương lai\./);
+  assert.doesNotMatch(html,/Biển rộng\. Trải nghiệm riêng\./);
+  assert.doesNotMatch(html,/Thời gian là tài sản xa xỉ nhất\./);
+  assert.doesNotMatch(html,/Đồng hành từ ý tưởng đến trải nghiệm\./);
 });
 
 test("flagship palette preserves obsidian emerald and gold tokens",()=>{
