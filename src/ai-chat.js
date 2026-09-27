@@ -99,7 +99,7 @@ function isVehicleQuery(value){
 }
 function isWebsiteTopicQuery(value){
   const t=foldVi(value);
-  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jet|aviation|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
+  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
 }
 const isBlogQuery = value => /\b(blog|bai viet|tin tuc|bai dang|news)\b/.test(foldVi(value));
 
@@ -245,11 +245,15 @@ function deterministicIdentityReply(message){
 }
 function deterministicWebsiteReply(message){
   const topic=foldVi(message);
+  if(/\blegacy 600\b/.test(topic) && /\bpraetor 600e?\b/.test(topic))
+    return "Theo trang Business Jets của PHAN THUẦN XTRA, Legacy 600 và Praetor 600 là hai dòng máy bay khác nhau; Legacy 600 gắn với biến thể EMB-135BJ của Embraer. Website không dùng thông số Praetor 600/600E để mô tả Legacy 600. Cấu hình, điều kiện khai thác và chi phí cụ thể cần xác minh theo từng tàu bay và hành trình. Hotline: 0866 997 891.";
+  if(/\blegacy 600\b/.test(topic))
+    return "Theo trang Business Jets của PHAN THUẦN XTRA, Legacy 600 là tên thương mại gắn với biến thể EMB-135BJ của Embraer. Cấu hình thực tế, điều kiện khai thác và chi phí cần xác minh theo từng tàu bay và hành trình. Hotline: 0866 997 891.";
   if(/\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid)\b/.test(topic))
     return "Theo nội dung website PHAN THUẦN XTRA, Green Energy giới thiệu điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid theo nhu cầu sử dụng. Thông số, chi phí và cấu hình dự án cụ thể cần được xác minh theo từng công trình. Hotline: 0866 997 891.";
   if(/\b(du thuyen|yacht|marine)\b/.test(topic))
     return "Theo nội dung website PHAN THUẦN XTRA, European Yachts tư vấn du thuyền theo nhu cầu sử dụng, khu vực hoạt động, cabin, tầm hoạt động và ngân sách. Mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm. Hotline: 0866 997 891.";
-  if(/\b(chuyen co|business jet|aviation|private jet)\b/.test(topic))
+  if(/\b(chuyen co|business jets?|aviation|private jet|praetor 600e?)\b/.test(topic))
     return "Theo nội dung website PHAN THUẦN XTRA, Business Jets giới thiệu dịch vụ chuyên cơ thương gia theo nhu cầu di chuyển riêng. Lịch bay, sân bay, cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến. Hotline: 0866 997 891.";
   if(/\b(lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(topic))
     return "Hotline liên hệ chính thức của PHAN THUẦN XTRA: 0866 997 891. Anh/chị cũng có thể gửi nhu cầu qua khu vực liên hệ hoặc private appointment trên website.";
