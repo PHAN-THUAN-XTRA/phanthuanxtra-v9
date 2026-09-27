@@ -8,7 +8,7 @@ const pipeline=fs.readFileSync("src/media-pipeline.js","utf8");
 
 test("Telegram vehicle media is normalized to WebP before R2 publication",()=>{
   assert.match(ingest,/prepareVehicleWebp/);
-  assert.match(ingest,/inbox-\$\{inboxId\}-\$\{sourceHash\.slice\(0,16\)\}\.webp/);
+  assert.match(ingest,/"vehicles\\/inbox-"\\+inboxId\\+"-"\\+sourceHash\\.slice\\(0,16\\)\\+"\\.webp"/);
   assert.match(ingest,/contentType:"image\/webp"/);
   assert.doesNotMatch(ingest,/publish-inbox-\$\{inboxId\}-\$\{sourceHash\.slice\(0,16\)\}\.jpg/);
   assert.match(plate,/output\(\{ format: "image\/webp"/);
