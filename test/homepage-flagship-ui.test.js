@@ -11,7 +11,7 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/HỆ SINH THÁI XTRA/);
   assert.match(html,/PHAN THUẦN XTRA • VIỆT NAM/);
   assert.match(html,/01 \/ Ô TÔ CAO CẤP/);
-  assert.match(html,/CHUYÊN CƠ THƯƠNG GIA/);
+  assert.match(html,/Chuyên cơ<br>thương gia/);
   assert.match(html,/Xin chào\. Tôi tư vấn/);
   assert.doesNotMatch(html,/Xin chào\. Xin chào\./);
   assert.match(html,/Mở trợ lý AI →/);
