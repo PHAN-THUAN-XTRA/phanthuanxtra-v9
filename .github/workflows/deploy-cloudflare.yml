@@ -147,6 +147,8 @@ jobs:
         run: node scripts/deploy-cloudflare-api.mjs
       - name: Diagnose Workers AI account allocation
         shell: bash
+        env:
+          CLOUDFLARE_WORKERS_AI_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_AI_TOKEN }}
         run: node scripts/diagnose-workers-ai.mjs
       - name: Purge changed Admin HTML cache
         shell: bash
