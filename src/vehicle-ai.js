@@ -64,6 +64,13 @@ function recordFailure(errors, model, error) {
   errors.push({ model, code: classifyError(error), reason: String(error?.message || error).replace(/https?:\/\/\S+/g,"[url]").slice(0,240) });
 }
 
+function stopOnDailyQuota(errors, error) {
+  if (!/3036|4006|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(error?.message || error))) return;
+  const failure = new Error("Workers AI daily allocation exhausted");
+  failure.diagnostics = errors;
+  throw failure;
+}
+
 export async function analyzeVehicleImage(env, fileBytes, contentType, caption = "") {
   if (!env.AI) throw new Error("Workers AI binding AI is not configured");
   const prompt = `Bạn là bộ phận nhập kho xe của Phan Thuần Xtra. Chỉ ghi dữ kiện nhìn thấy hoặc được cung cấp rõ ràng; không bịa. Không suy đoán năm sản xuất, ODO, giá, phiên bản, động cơ, option, màu hoặc xuất xứ. condition chỉ mô tả dấu hiệu ngoại quan nhìn thấy (ví dụ vết xước), không khẳng định tình trạng máy móc hay pháp lý. Nếu không đủ bằng chứng trả null và thêm trường vào missing_fields. origin/origin_country chỉ ghi khi có bằng chứng rõ từ caption, giấy tờ hoặc dữ kiện nhận dạng đáng tin cậy. Phân biệt form hiện tại với xe gốc: form_state=facelift nếu ngoại hình có dấu hiệu facelift nhưng không coi facelift là năm sản xuất; up_form nếu đã đổi ngoại hình sang form đời mới; modified nếu độ/chỉnh sửa; original nếu không thấy dấu hiệu; uncertain nếu thiếu bằng chứng. form_notes phải giải thích ngắn gọn bằng tiếng Việt khi khác original.
@@ -78,7 +85,7 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
   const errors = [];
 
   // Scout supports multimodal image messages. Fall back when its license or capacity is unavailable.
-  try { const response = await env.AI.run("@cf/meta/llama-4-scout-17b-16e-instruct", { messages: [{ role: "system", content: "Trích xuất dữ liệu xe có bằng chứng; chỉ trả JSON, không suy đoán." }, { role: "user", content: [{ type: "image_url", image_url: { url: image } }, { type: "text", text: prompt }] }], max_tokens: 1200, temperature: 0 }); return { ...parseResult(response), _ai_model: "@cf/meta/llama-4-scout-17b-16e-instruct" }; } catch (error) { recordFailure(errors, "@cf/meta/llama-4-scout-17b-16e-instruct", error); }
+  try { const response = await env.AI.run("@cf/meta/llama-4-scout-17b-16e-instruct", { messages: [{ role: "system", content: "Trích xuất dữ liệu xe có bằng chứng; chỉ trả JSON, không suy đoán." }, { role: "user", content: [{ type: "image_url", image_url: { url: image } }, { type: "text", text: prompt }] }], max_tokens: 1200, temperature: 0 }); return { ...parseResult(response), _ai_model: "@cf/meta/llama-4-scout-17b-16e-instruct" }; } catch (error) { recordFailure(errors, "@cf/meta/llama-4-scout-17b-16e-instruct", error); stopOnDailyQuota(errors, error); }
 
   // Prefer the current Cloudflare-hosted Qwen vision model. It accepts
   // OpenAI-compatible multimodal message parts through the Workers AI binding.
@@ -100,7 +107,7 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
     const result = parseResult(response);
     return { ...result, _ai_model: "@cf/qwen/qwen3.8-27b" };
   } catch (error) {
-    recordFailure(errors, "@cf/qwen/qwen3.8-27b", error);
+    recordFailure(errors, "@cf/qwen/qwen3.8-27b", error); stopOnDailyQuota(errors, error);
   }
 
   // Legacy image-to-text fallback.
@@ -114,7 +121,7 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
     const result = parseResult(typeof text === "string" ? text : JSON.stringify(text));
     return { ...result, _ai_model: "@cf/llava-hf/llava-1.5-7b-hf" };
   } catch (error) {
-    recordFailure(errors, "@cf/llava-hf/llava-1.5-7b-hf", error);
+    recordFailure(errors, "@cf/llava-hf/llava-1.5-7b-hf", error); stopOnDailyQuota(errors, error);
   }
 
   // Final fallback. This model can require one-time Meta license acceptance.
@@ -131,7 +138,7 @@ Chỉ trả về một JSON object thuần với đúng các trường: ${Object
     const result = parseResult(response);
     return { ...result, _ai_model: "@cf/meta/llama-3.2-11b-vision-instruct" };
   } catch (error) {
-    recordFailure(errors, "@cf/meta/llama-3.2-11b-vision-instruct", error);
+    recordFailure(errors, "@cf/meta/llama-3.2-11b-vision-instruct", error); stopOnDailyQuota(errors, error);
   }
 
   const failure = new Error("All vehicle vision models failed");
