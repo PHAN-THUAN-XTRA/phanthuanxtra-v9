@@ -206,4 +206,3 @@ export async function handleTelegramRouter(request, env, ctx) {
   if (url.pathname === "/api/telegram/webhook" && request.method === "POST") return autoWebhook(request, env, ctx);
   return null;
 }
-
