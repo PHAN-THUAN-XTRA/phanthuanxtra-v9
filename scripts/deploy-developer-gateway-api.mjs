@@ -72,8 +72,10 @@ async function uploadWorker() {
     compatibility_date: "2026-08-11",
     compatibility_flags: ["nodejs_compat"],
     bindings: [
-      ...(await currentBindings()).filter(binding => binding.name !== "APK_RATE_LIMITER"),
+      ...(await currentBindings()).filter(binding => !["APK_RATE_LIMITER", "GEMINI_ENABLED", "GEMINI_MODEL"].includes(binding.name)),
       { name: "APK_RATE_LIMITER", type: "ratelimit", namespace_id: "2026092450", simple: { limit: 50, period: 60 } },
+      { name: "GEMINI_ENABLED", type: "plain_text", text: "true" },
+      { name: "GEMINI_MODEL", type: "plain_text", text: "gemini-2.5-flash" },
     ],
     annotations: {
       "workers/message": `API gateway deploy ${process.env.GITHUB_SHA || "local"}`,
