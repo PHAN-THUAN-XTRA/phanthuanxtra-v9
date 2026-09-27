@@ -31,7 +31,7 @@ test("Scout failure falls back to Qwen; DETR failure leaves analysis available",
 // Cloudflare's image-to-text binding validates image as an array of byte values.
 test("LLaVA fallback sends schema-compatible image bytes after multimodal failures", async () => {
   const seen=[];
-  const env={AI:{async run(model,input){seen.push({model,input});if(model.includes("llava"))return {description:JSON.stringify({brand:null,model:null,confidence:0,missing_fields:["brand","model"]})};throw new Error("4006: daily free allocation exhausted")}}};
+  const env={AI:{async run(model,input){seen.push({model,input});if(model.includes("llava"))return {description:JSON.stringify({brand:null,model:null,confidence:0,missing_fields:["brand","model"]})};throw new Error("model unavailable")}}};
   const result=await analyzeVehicleImage(env,new Uint8Array([255,216,255]).buffer,"image/jpeg");
   assert.equal(result._ai_model,"@cf/llava-hf/llava-1.5-7b-hf");
   assert.deepEqual(seen.find(x=>x.model.includes("llava")).input.image,[255,216,255]);
