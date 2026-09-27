@@ -28,11 +28,12 @@ function mockDb(cars = [], posts = []) {
             async all() {
               if (sql.includes('FROM ai_messages')) return {results: rows.filter(x=>x.type==='message').slice(-12).map(x=>({role:x.role,content:x.content}))};
               if (sql.includes("FROM cars WHERE status <> 'hidden'")) return {results: cars.filter(x=>x.status !== 'hidden')};
-              if (sql.includes("FROM posts WHERE status='published'")) return {results: posts.filter(x=>x.status==='published')};
+              if (sql.includes("FROM posts WHERE status='published'")) return {results: posts.filter(x=>x.status==='published').slice(args[0]||0,(args[0]||0)+500)};
               return {results:[]};
             },
             async first() {
               if (sql.includes('FROM ai_unknown_questions')) return unknown.filter(x=>x.status==='pending'&&(!x.name||!x.phone)).at(-1) || null;
+              if (sql.includes("FROM posts WHERE status='published' AND slug=?")) return posts.find(x=>x.status==='published'&&x.slug===args[0])||null;
               return null;
             }
           };
@@ -400,6 +401,25 @@ test('published Blog listing uses live D1 posts and excludes drafts', async () =
   assert.equal(data.needs_human,false);
   assert.match(data.reply,/Bài công khai mới.*\/blog\/bai-cong-khai/);
   assert.doesNotMatch(data.reply,/Bản nháp nội bộ/);
+});
+
+test('a newly published article beyond the first 30 is available without reindexing or a blog keyword', async () => {
+  const posts=Array.from({length:40},(_,i)=>({title:`Bài cũ số ${i}`,slug:`bai-cu-${i}`,status:'published',content:'Bài cũ'}));
+  posts.push({title:'Hành trình Xanh Đặc Biệt',slug:'hanh-trinh-xanh-dac-biet',status:'published',excerpt:'Nội dung mới đã công bố',content:'Thông tin cập nhật mới nhất.',published_at:'2026-09-27'});
+  posts.push({title:'Hành trình Xanh Bí Mật',slug:'ban-nhap',status:'draft',content:'Không công bố'});
+  const DB=mockDb([],posts);
+  const response=await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'new-post-41',message:'Hành trình Xanh Đặc Biệt nói gì?'})
+  }),{DB,AI:{async run(_model,payload){
+    const prompt=payload.messages[0].content;
+    assert.match(prompt,/Thông tin cập nhật mới nhất/);
+    assert.doesNotMatch(prompt,/Hành trình Xanh Bí Mật/);
+    return {response:'Bài Hành trình Xanh Đặc Biệt nêu thông tin cập nhật mới nhất.'};
+  }}});
+  const data=await response.json();
+  assert.equal(data.needs_human,false);
+  assert.match(data.reply,/Hành trình Xanh Đặc Biệt/);
 });
 
 test('completed handoff does not trap later Blog questions in unknown flow', async () => {
