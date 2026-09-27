@@ -1,6 +1,6 @@
 // Read-only diagnostic except for one minimal inference charged to the same account as production.
 const account=process.env.CLOUDFLARE_ACCOUNT_ID;
-const tokens=[process.env.CLOUDFLARE_API_TOKEN,process.env.CLOUDFLARE_BACKUP_API_TOKEN].filter(Boolean);
+const tokens=[process.env.CLOUDFLARE_WORKERS_AI_TOKEN,process.env.CLOUDFLARE_API_TOKEN,process.env.CLOUDFLARE_BACKUP_API_TOKEN].filter(Boolean);
 console.log(`Workers AI diagnostic account suffix: ${account?.slice(-8)||"missing"}`);
 for (const token of tokens) {
   try {
