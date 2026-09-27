@@ -10,6 +10,6 @@ for (const token of tokens) {
     });
     const data=await response.json();
     console.log("Workers AI REST probe:",JSON.stringify({http:response.status,success:data.success,error_codes:(data.errors||[]).map(e=>e.code),error_messages:(data.errors||[]).map(e=>String(e.message||"").slice(0,160)),has_result:!!data.result}));
-    if(response.status!==403)break;
+    if(response.status!==401 && response.status!==403)break;
   } catch(error) {console.log("Workers AI REST probe unavailable:",String(error?.message||error).slice(0,120));}
 }
