@@ -358,3 +358,25 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 .ai-widget,.ai-chat,.ai-head,.ai-messages,.ai-msg,.ai-form,.ai-form input,.ai-form button,.ai-open-inline{font-family:"Be Vietnam Pro",Arial,sans-serif}
 .ai-msg{line-height:1.55;letter-spacing:0}
 .ai-form input::placeholder{font-family:"Be Vietnam Pro",Arial,sans-serif}
+
+
+/* Blog shares the flagship Vietnamese typography and layout system */
+.blog-page{margin:0;background:var(--obsidian);color:#f4f5f2;font-family:"Be Vietnam Pro",Arial,sans-serif;min-height:100vh}
+.blog-shell{width:min(1060px,92%);margin:auto;padding:56px 0 96px}
+.blog-back{display:inline-flex;margin-bottom:42px;color:var(--gold-soft);font-size:13px;font-weight:700}
+.blog-page h1,.blog-card h2,.blog-detail h1{font-family:"Noto Serif Display","Be Vietnam Pro",serif;font-weight:600;letter-spacing:-.035em}
+.blog-page h1{font-size:clamp(44px,7vw,72px);line-height:1.02;margin:0 0 16px}
+.blog-lead{color:#aeb7b2;margin:0 0 48px}
+.blog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.blog-card{min-width:0;padding:28px;background:linear-gradient(145deg,#0d1714,#070a09);border:1px solid rgba(199,163,90,.22);box-shadow:0 20px 55px rgba(0,0,0,.14)}
+.blog-card h2{font-size:27px;line-height:1.15;margin:8px 0 14px;overflow-wrap:anywhere}
+.blog-card p:not(.eyebrow){color:#c3cbc7}
+.blog-card small,.blog-meta{color:#9ba7a1}
+.blog-detail{max-width:860px}
+.blog-detail h1{font-size:clamp(38px,7vw,64px);line-height:1.06;margin:8px 0 18px}
+.blog-meta{margin-bottom:28px}
+.blog-cover{display:block;width:100%;max-height:560px;object-fit:cover;border:1px solid rgba(199,163,90,.24);margin:26px 0}
+.blog-excerpt{font-size:20px;color:#d8ddd9}
+.blog-content{font-size:18px;line-height:1.8;color:#eef0ed;overflow-wrap:anywhere}
+.blog-content a,.blog-card a{color:inherit}
+@media(max-width:800px){.blog-shell{padding:38px 0 72px}.blog-grid{grid-template-columns:1fr}.blog-card{padding:22px}.blog-back{margin-bottom:30px}}
