@@ -177,6 +177,11 @@ async function uploadWorker(assetJwt) {
 async function ensureCustomDomainRoute() {
   const zoneId = process.env.CLOUDFLARE_ZONE_ID || "7b2653821ef0d8052bfc91c4cf5008ca";
   const routes = await api(`/zones/${zoneId}/workers/routes`);
+  console.log("Zone Worker routes:", JSON.stringify((Array.isArray(routes) ? routes : []).filter(r => String(r?.pattern||"").includes("phanthuanxtra.com")).map(r => ({pattern:r.pattern,script:r.script||null}))));
+  try {
+    const domains = await api(accountPath("/workers/domains"));
+    console.log("Worker custom-domain owners:", JSON.stringify((Array.isArray(domains) ? domains : []).filter(d => d?.hostname === "phanthuanxtra.com").map(d => ({hostname:d.hostname,service:d.service,environment:d.environment}))));
+  } catch (error) { console.log("Worker custom-domain inventory unavailable:", String(error?.message||error).slice(0,120)); }
   const wanted = "phanthuanxtra.com/*";
   const current = Array.isArray(routes) ? routes.find((route) => route?.pattern === wanted) : null;
 
