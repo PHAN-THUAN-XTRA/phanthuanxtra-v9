@@ -1,3 +1,4 @@
+import { handleEditorialMessage, isEditorialMessage, EDITORIAL_HELP } from "./telegram-editorial.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { createPtXtraPlateImage } from "./plate-branding.js";
 import { canAutoPublish, promoteDraft } from "./telegram-ingest.js";
@@ -97,11 +98,12 @@ export async function processTelegramUpdate(env, update, chatId) {
   const token = autoBotToken(env);
   const message = update?.message || update?.channel_post;
   if (!message?.chat?.id) return;
+  if (await handleEditorialMessage(env, message, chatId)) return;
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — nhập xe theo luồng hiện tại." });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — nhập xe theo luồng hiện tại." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {
@@ -167,6 +169,7 @@ async function autoWebhook(request, env, ctx) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   if (!photo && !caption) return json({ ok: true, ignored: true });
+  if (isEditorialMessage(message) && !secret) return json({ error: "Webhook secret required for editorial publishing" }, 503);
   const chatId = String(message.chat.id);
   const receipt = parseAutoCommand(caption) || (!photo && isAutoChat(caption)) ? "📥 Đã nhận yêu cầu. Đang xử lý..." : telegramWebhookReceipt(Boolean(photo));
   try { await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: receipt }); } catch (error) { console.error("telegram_receipt_failed", clean(error?.message || error)); }
@@ -203,3 +206,4 @@ export async function handleTelegramRouter(request, env, ctx) {
   if (url.pathname === "/api/telegram/webhook" && request.method === "POST") return autoWebhook(request, env, ctx);
   return null;
 }
+
