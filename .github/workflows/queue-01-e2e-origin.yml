@@ -74,7 +74,7 @@ jobs:
             -H "Authorization: Bearer $APP_SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
           echo "Vehicle Vision analyze HTTP $vision_status"
           if [ "$vision_status" != "200" ]; then
-            jq -c '{code,diagnostics}' /tmp/vehicle-vision.json || true
+            jq -c '{error,code,diagnostics}' /tmp/vehicle-vision.json || cat /tmp/vehicle-vision.json
           fi
           test "$vision_status" = "200"
           jq -e '.ok == true and (.analysis|type=="object") and (.analysis._ai_model|type=="string") and (.analysis._ai_model|length>0)' /tmp/vehicle-vision.json >/dev/null
