@@ -51,7 +51,15 @@ export async function runGeminiPeer(env, task) {
     try { payload = JSON.parse(raw); } catch { payload = null; }
 
     if (!response.ok) {
-      return { ok: false, error: 'gemini_http_failed', status: response.status };
+      const providerCode = typeof payload?.error?.status === 'string'
+        ? payload.error.status.slice(0, 80)
+        : null;
+      return {
+        ok: false,
+        error: 'gemini_http_failed',
+        status: response.status,
+        provider_code: providerCode
+      };
     }
 
     const output = textFromGemini(payload);

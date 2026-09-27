@@ -69,6 +69,8 @@ export default { async fetch(request, env) {
       task_id: task.taskId,
       routing_policy: 'zero-cost-first',
       gemini_error: gemini.error,
+      gemini_status: gemini.status || null,
+      gemini_provider_code: gemini.provider_code || null,
       workers_ai_error: result.error
     }, 502, headers);
   }
@@ -81,6 +83,8 @@ export default { async fetch(request, env) {
     selected_provider: 'cloudflare-workers-ai',
     fallback_used: true,
     fallback_reason: gemini.error,
+    fallback_status: gemini.status || null,
+    fallback_provider_code: gemini.provider_code || null,
     engine: result.engine,
     dual_workers_ai: true,
     execution: result.execution,
