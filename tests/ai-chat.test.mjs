@@ -422,6 +422,22 @@ test('a newly published article beyond the first 30 is available without reindex
   assert.match(data.reply,/Hành trình Xanh Đặc Biệt/);
 });
 
+test('article fallback selects the longest matching title and removes embed HTML', async () => {
+  const DB=mockDb([], [
+    {title:'Giao nhanh về Nhà',slug:'giao-nhanh-ve-nha',status:'published',content:'<div><iframe src="https://example.com/embed"></iframe></div>'},
+    {title:'Nhà',slug:'nha',status:'published',content:'Không phải bài cần tìm'}
+  ]);
+  const response=await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'video-post',message:'Bài Giao nhanh về Nhà nói gì?'})
+  }),{DB,AI:{async run(){throw new Error('quota 4006');}}});
+  const data=await response.json();
+  assert.equal(data.needs_human,false);
+  assert.match(data.reply,/Giao nhanh về Nhà.*giao-nhanh-ve-nha/);
+  assert.match(data.reply,/nội dung media/);
+  assert.doesNotMatch(data.reply,/<iframe|\/blog\/nha/);
+});
+
 test('completed handoff does not trap later Blog questions in unknown flow', async () => {
   const DB=mockDb([], [{title:'Bài mới',slug:'bai-moi',status:'published'}]);
   const env={DB};
