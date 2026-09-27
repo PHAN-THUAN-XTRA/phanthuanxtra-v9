@@ -102,6 +102,11 @@ function isWebsiteTopicQuery(value){
   return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
 }
 const isBlogQuery = value => /\b(blog|bai viet|tin tuc|bai dang|news)\b/.test(foldVi(value));
+function postPlainText(value){
+  return String(value??"").replace(/<(script|style|iframe|form)\b[^>]*>[\s\S]*?<\/\1>/gi," ")
+    .replace(/<[^>]*>/g," ").replace(/&(?:amp|nbsp|quot|lt|gt);/g,m=>({"&amp;":"&","&nbsp;":" ","&quot;":"\"","&lt;":"<","&gt;":">"}[m]))
+    .replace(/\s+/g," ").trim();
+}
 
 function editorialPaths(query){
   const t=foldVi(query);
@@ -310,10 +315,9 @@ export async function handleAiChat(request,env){
     await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,pending.id).run();
     await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(effectiveContact.name||null,effectiveContact.phone||null,conversationId).run();
   }
-  const publishedPostMatch=posts.some(post=>{
-    const title=foldVi(post.title);
-    return title.length>=7 && foldVi(message).includes(title);
-  });
+  const matchedPost=posts.filter(post=>foldVi(post.title).length>=7 && foldVi(message).includes(foldVi(post.title)))
+    .sort((a,b)=>b.title.length-a.title.length)[0];
+  const publishedPostMatch=Boolean(matchedPost);
   const allowed = identityQuery || vehicleQuery || websiteTopicQuery || publishedPostMatch || Boolean(editorial);
   const needsHuman = Boolean(pending) || !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
@@ -338,7 +342,7 @@ export async function handleAiChat(request,env){
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
     } else try{
-      const blogContext=(blogQuery||publishedPostMatch) ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:post.excerpt,content:clean(post.content,1200)}))).slice(0,7000)}` : "";
+      const blogContext=(blogQuery||publishedPostMatch) ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:postPlainText(post.excerpt),content:clean(postPlainText(post.content),1200)}))).slice(0,7000)}` : "";
       const websiteContext=editorial ? `${BRAND_KNOWLEDGE.split("## Hồ sơ truyền thông chính thức")[0]}\n\n${editorial}`.slice(0,MAX_KNOWLEDGE_CONTEXT) : knowledge.text;
       const result=await runAI(env,[...history,{role:"user",content:message}],cars,((vehicleQuery&&!websiteTopicQuery&&!editorial)?BRAND_KNOWLEDGE:websiteContext)+blogContext);
       reply=result.text;
@@ -354,7 +358,7 @@ export async function handleAiChat(request,env){
           reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
         }
       }
-      else{reply=websiteTopicQuery ? deterministicWebsiteReply(message) : ""; if(!reply && publishedPostMatch)reply=`Bài đã xuất bản trên website: ${posts.filter(p=>foldVi(message).includes(foldVi(p.title))).map(p=>`${p.title} (https://phanthuanxtra.com/blog/${encodeURIComponent(p.slug)}): ${clean(p.excerpt||p.content,500)}`).join('; ')}. Anh/chị có thể xem nội dung đầy đủ tại liên kết bài viết.`; if(!reply)reply="Tôi đã nhận được tin nhắn của anh/chị. Anh/chị có thể để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
+      else{reply=websiteTopicQuery ? deterministicWebsiteReply(message) : ""; if(!reply && matchedPost){const summary=clean(postPlainText(matchedPost.excerpt||matchedPost.content),500);reply=`Bài đã xuất bản trên website: ${matchedPost.title} (https://phanthuanxtra.com/blog/${encodeURIComponent(matchedPost.slug)}). ${summary||"Bài có nội dung media; vui lòng mở liên kết để xem đầy đủ."}`;} if(!reply)reply="Tôi đã nhận được tin nhắn của anh/chị. Anh/chị có thể để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ ngay.";}
     }
   }
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();
