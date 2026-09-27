@@ -1,3 +1,4 @@
+import { publishDueArticles } from "./editorial-publishing.js";
 import legacy from "./index.js";
 import { handleCmsApi } from "./cms.js";
 import { handleTelegramApi } from "./telegram.js";
@@ -117,6 +118,9 @@ export default {
   },
   async scheduled(controller, env, ctx) {
     try {
+      console.log("editorial_schedule", JSON.stringify(await publishDueArticles(env)));
+    } catch (error) { console.error("editorial_schedule_failed", String(error?.message || error)); }
+    try {
       const status=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
       console.log("telegram_webhook_status",JSON.stringify(status));
       if(!status.ok||!status.url_matches_expected){
@@ -149,3 +153,4 @@ export default {
     } catch (error) { console.error("telegram_notifications_reconcile_failed",String(error?.message||error)); }
   }
 };
+
