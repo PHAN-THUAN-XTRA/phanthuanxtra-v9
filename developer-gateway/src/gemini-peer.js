@@ -1,4 +1,5 @@
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+const DEFAULT_GEMINI_MODEL = 'auto';
+const PREFERRED_GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash'];
 const MAX_TEXT = 12000;
 
 function textFromGemini(payload) {
@@ -11,11 +12,38 @@ export function geminiEnabled(env) {
   return env.GEMINI_ENABLED === 'true';
 }
 
+function normalizedModelName(name) {
+  return String(name || '').replace(/^models\//, '').trim();
+}
+
+async function discoverGeminiModel(env) {
+  const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000', {
+    headers: { 'x-goog-api-key': env.GEMINI_API_KEY }
+  });
+  const raw = await response.text();
+  let payload;
+  try { payload = JSON.parse(raw); } catch { payload = null; }
+  if (!response.ok) {
+    return { ok: false, error: 'gemini_model_discovery_failed', status: response.status,
+      provider_code: typeof payload?.error?.status === 'string' ? payload.error.status.slice(0, 80) : null };
+  }
+  const available = (Array.isArray(payload?.models) ? payload.models : [])
+    .filter(model => Array.isArray(model?.supportedGenerationMethods) && model.supportedGenerationMethods.includes('generateContent'))
+    .map(model => normalizedModelName(model.name)).filter(Boolean);
+  const preferred = PREFERRED_GEMINI_MODELS.find(model => available.includes(model));
+  const fallback = available.find(model => /gemini-.*flash-lite/i.test(model)) || available.find(model => /gemini-.*flash/i.test(model));
+  const model = preferred || fallback || null;
+  return model ? { ok: true, model } : { ok: false, error: 'gemini_no_supported_free_model' };
+}
+
 export async function runGeminiPeer(env, task) {
   if (!geminiEnabled(env)) return { ok: false, skipped: true, error: 'gemini_disabled' };
   if (!env.GEMINI_API_KEY) return { ok: false, skipped: true, error: 'gemini_api_key_not_configured' };
 
-  const model = String(env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL).trim();
+  const configuredModel = String(env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL).trim();
+  const discovery = configuredModel === 'auto' ? await discoverGeminiModel(env) : { ok: true, model: configuredModel };
+  if (!discovery.ok) return discovery;
+  const model = discovery.model;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
 
