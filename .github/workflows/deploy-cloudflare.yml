@@ -145,6 +145,9 @@ jobs:
           TELEGRAM_VIP_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_VIP_WEBHOOK_SECRET }}
           TELEGRAM_AUTO_PUBLISH_CHAT_IDS: ${{ secrets.TELEGRAM_AUTO_PUBLISH_CHAT_IDS }}
         run: node scripts/deploy-cloudflare-api.mjs
+      - name: Diagnose Workers AI account allocation
+        shell: bash
+        run: node scripts/diagnose-workers-ai.mjs
       - name: Purge changed Admin HTML cache
         shell: bash
         env:
