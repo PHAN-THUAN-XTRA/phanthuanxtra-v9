@@ -20,7 +20,7 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/data-filter="sport" type="button">Thể thao<\/button>/);
   assert.match(html,/Điện mặt trời • Giải pháp năng lượng xanh/);
   assert.match(html,/Nhà sáng lập PHAN THUẦN XTRA/);
-  assert.match(html,/Trợ lý AI ưu tiên thông tin hiện hành từ website/);
+  assert.match(html,/Trợ lý AI tư vấn toàn bộ nội dung chính thức đang có trên website và ưu tiên thông tin hiện hành/);
 });
 
 test("flagship palette preserves obsidian emerald and gold tokens",()=>{
