@@ -189,7 +189,7 @@ async function searchKnowledge(env, query) {
   const websiteTopic = isWebsiteTopicQuery(query);
   if (!env.AI_SEARCH) return { text: WEBSITE_KNOWLEDGE, evidence: identity || websiteTopic, topScore: (identity || websiteTopic) ? 1 : 0 };
   try {
-    const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nÔ tô cao cấp Du thuyền châu Âu Chuyên cơ thương gia Năng lượng xanh\nthông tin chính thức về Phan Thuần` : query;
+    const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nLuxury Automotive European Yachts Business Jets Green Energy\nthông tin chính thức về Phan Thuần` : query;
     const result = await env.AI_SEARCH.search({ messages:[{role:"user",content:searchQuery}], ai_search_options:{instance_ids:AI_SEARCH_IDS,retrieval:{retrieval_type:"hybrid",keyword_match_mode:"or",match_threshold:identity?0.2:0.45,max_num_results:MAX_KNOWLEDGE_CHUNKS},reranking:{enabled:true,model:"@cf/baai/bge-reranker-base"}} });
     const chunks = result?.chunks || [];
     const context = chunks.map(chunk=>chunk.content||chunk.text||"").filter(Boolean).join("\n\n---\n\n");
@@ -273,11 +273,11 @@ function deterministicWebsiteReply(message){
   if(/\blegacy 600\b/.test(topic))
     return "Theo trang Chuyên cơ thương gia của PHAN THUẦN XTRA, Legacy 600 là tên thương mại gắn với biến thể EMB-135BJ của Embraer. Cấu hình thực tế, điều kiện khai thác và chi phí cần xác minh theo từng tàu bay và hành trình. Hotline: 0866 997 891.";
   if(/\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid)\b/.test(topic))
-    return "Theo nội dung website PHAN THUẦN XTRA, Năng lượng xanh giới thiệu điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid theo nhu cầu sử dụng. Thông số, chi phí và cấu hình dự án cụ thể cần được xác minh theo từng công trình. Hotline: 0866 997 891.";
+    return "Theo nội dung website PHAN THUẦN XTRA, Green Energy (Năng lượng xanh) giới thiệu điện mặt trời PV, lưu trữ ESS và các mô hình hòa lưới, độc lập, Hybrid theo nhu cầu sử dụng. Thông số, chi phí và cấu hình dự án cụ thể cần được xác minh theo từng công trình. Hotline: 0866 997 891.";
   if(/\b(du thuyen|yacht|marine)\b/.test(topic))
-    return "Theo nội dung website PHAN THUẦN XTRA, Du thuyền châu Âu tư vấn du thuyền theo nhu cầu sử dụng, khu vực hoạt động, cabin, tầm hoạt động và ngân sách. Mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm. Hotline: 0866 997 891.";
+    return "Theo nội dung website PHAN THUẦN XTRA, European Yachts (Du thuyền châu Âu) tư vấn du thuyền theo nhu cầu sử dụng, khu vực hoạt động, cabin, tầm hoạt động và ngân sách. Mẫu, cấu hình và khả năng cung ứng cần xác minh theo thời điểm. Hotline: 0866 997 891.";
   if(/\b(chuyen co|business jets?|aviation|private jet|praetor 600e?)\b/.test(topic))
-    return "Theo nội dung website PHAN THUẦN XTRA, Chuyên cơ thương gia giới thiệu dịch vụ chuyên cơ thương gia theo nhu cầu di chuyển riêng. Lịch bay, sân bay, cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến. Hotline: 0866 997 891.";
+    return "Theo nội dung website PHAN THUẦN XTRA, Business Jets (Chuyên cơ thương gia) giới thiệu dịch vụ chuyên cơ thương gia theo nhu cầu di chuyển riêng. Lịch bay, sân bay, cấu hình thực tế, giá thuê và điều kiện khai thác phải được xác minh cho từng chuyến. Hotline: 0866 997 891.";
   if(/\b(lien he|contact|hotline|zalo|dat lich|appointment)\b/.test(topic))
     return "Hotline liên hệ chính thức của PHAN THUẦN XTRA: 0866 997 891. Anh/chị cũng có thể gửi nhu cầu qua khu vực liên hệ hoặc private appointment trên website.";
   return "";
