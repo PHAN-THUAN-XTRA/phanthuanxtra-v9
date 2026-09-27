@@ -62,23 +62,6 @@ jobs:
           jq -e '.stats and (.stats.cars|type == "number")' /tmp/app-dashboard.json >/dev/null
           echo 'Android App API signed-session login/dashboard: OK'
 
-          # One real Workers AI Vision inference per successful production deploy.
-          # This is intentionally non-destructive: it validates the same authenticated
-          # endpoint used by Android before the D1/R2 lifecycle begins.
-          # Use a repository-owned deterministic JPEG fixture so production evidence
-          # cannot be blocked by an external image host changing/denying the URL.
-          base64 -d tests/fixtures/vehicle-vision-smoke.jpg.b64 > /tmp/vehicle-vision-smoke.jpg
-          test -s /tmp/vehicle-vision-smoke.jpg
-          vision_status="$(curl --silent --show-error --max-time 90 -o /tmp/vehicle-vision.json -w '%{http_code}' \
-            -X POST "$BASE_URL/api/app/v1/vehicle/analyze?caption=Production%20Vision%20smoke%3A%20identify%20the%20vehicle%20conservatively" \
-            -H "Authorization: Bearer $APP_SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
-          echo "Vehicle Vision analyze HTTP $vision_status"
-          if [ "$vision_status" != "200" ]; then
-            jq -c '{error,code,diagnostics}' /tmp/vehicle-vision.json || cat /tmp/vehicle-vision.json
-          fi
-          test "$vision_status" = "200"
-          jq -e '.ok == true and (.analysis|type=="object") and (.analysis._ai_model|type=="string") and (.analysis._ai_model|length>0)' /tmp/vehicle-vision.json >/dev/null
-          echo "Vehicle Vision runtime: PASS model=$(jq -r '.analysis._ai_model' /tmp/vehicle-vision.json)"
           TEST_IMAGE_URL="https://phanthuanxtra.com/media/vehicles/publish-admin-${TEST_CAR_ID}.jpg"
           export TEST_IMAGE_URL
           curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -X POST "$BASE_URL/api/admin/cars" -H "Authorization: Bearer $SESSION" -H 'content-type: application/json' --data "{\"id\":\"$TEST_CAR_ID\",\"brand\":\"PT XTRA TEST\",\"model\":\"CI E2E Origin\",\"year\":2026,\"mileage\":1,\"price\":1,\"fuel\":\"test\",\"category\":\"suv\",\"color\":\"test\",\"status\":\"hidden\",\"description\":\"Queue-01 production E2E; automatically deleted.\",\"features\":[\"e2e\"],\"images\":[\"$TEST_IMAGE_URL\"]}" | tee /tmp/create.json
@@ -108,4 +91,23 @@ jobs:
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-after.json -w '%{http_code}' "$BASE_URL/media/$MEDIA_KEY")"
           echo "R2 read after delete HTTP $status"
           test "$status" = "404"
+          echo 'D1 + R2 lifecycle: PASS'
+
+          # One real Workers AI Vision inference per successful production deploy.
+          # This is intentionally non-destructive: it validates the same authenticated
+          # endpoint used by Android before the D1/R2 lifecycle begins.
+          # Use a repository-owned deterministic JPEG fixture so production evidence
+          # cannot be blocked by an external image host changing/denying the URL.
+          base64 -d tests/fixtures/vehicle-vision-smoke.jpg.b64 > /tmp/vehicle-vision-smoke.jpg
+          test -s /tmp/vehicle-vision-smoke.jpg
+          vision_status="$(curl --silent --show-error --max-time 90 -o /tmp/vehicle-vision.json -w '%{http_code}' \
+            -X POST "$BASE_URL/api/app/v1/vehicle/analyze?caption=Production%20Vision%20smoke%3A%20identify%20the%20vehicle%20conservatively" \
+            -H "Authorization: Bearer $APP_SESSION" -H 'content-type: image/jpeg' --data-binary @/tmp/vehicle-vision-smoke.jpg)"
+          echo "Vehicle Vision analyze HTTP $vision_status"
+          if [ "$vision_status" != "200" ]; then
+            jq -c '{error,code,diagnostics}' /tmp/vehicle-vision.json || cat /tmp/vehicle-vision.json
+          fi
+          test "$vision_status" = "200"
+          jq -e '.ok == true and (.analysis|type=="object") and (.analysis._ai_model|type=="string") and (.analysis._ai_model|length>0)' /tmp/vehicle-vision.json >/dev/null
+          echo "Vehicle Vision runtime: PASS model=$(jq -r '.analysis._ai_model' /tmp/vehicle-vision.json)"
           echo 'QUEUE-01 PRODUCTION E2E: ADMIN + APP API SIGNED SESSION + DASHBOARD + D1 CRUD + R2 WRITE/READ/DELETE = PASS'
