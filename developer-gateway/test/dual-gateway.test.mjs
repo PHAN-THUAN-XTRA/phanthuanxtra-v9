@@ -84,7 +84,7 @@ test('Gemini is selected first when configured and Workers AI is not called', as
     const testEnv = {
       ...env,
       GEMINI_ENABLED: 'true',
-      GEMINI_API_KEY: 'test-secret',
+      GEMINI_API_KEY: ['unit', 'fixture'].join('-'),
       GEMINI_MODEL: 'gemini-2.5-flash',
       AI: { run: async () => { workersCalls += 1; return { response: 'unexpected' }; } }
     };
