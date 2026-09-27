@@ -70,7 +70,7 @@ jobs:
           if [ "$status" != "200" ]; then
             jq -c '{error,post}' /tmp/public.json || cat /tmp/public.json
             echo 'Public Blog domain response headers:'
-            curl --silent --show-error --max-time 20 -D - -o /tmp/domain-blog.json "$SITE_URL/api/blog/posts/$SLUG?diagnostic=$GITHUB_RUN_ID" | grep -Ei '^(HTTP/|content-type:|server:|cf-ray:|cache-control:)' || true
+            curl --silent --show-error --max-time 20 -D - -o /tmp/domain-blog.json "$SITE_URL/api/blog/posts/$SLUG?diagnostic=$GITHUB_RUN_ID" | grep -Ei '^(HTTP/|content-type:|server:|cf-ray:)' || true
             echo 'Public Blog Worker origin:'
             curl --silent --show-error --max-time 20 -w '\nHTTP %{http_code}\n' "https://phanthuanxtra-v2.phanthuanmodelactor.workers.dev/api/blog/posts/$SLUG?diagnostic=$GITHUB_RUN_ID" | head -c 500 || true
             curl --silent --show-error --max-time 20 "$SITE_URL/api/blog/posts?diagnostic=$GITHUB_RUN_ID" | jq -c --arg slug "$SLUG" '{count:(.posts|length), matching:[.posts[]?|select(.slug==$slug)|{id,slug,status}]}' || true
