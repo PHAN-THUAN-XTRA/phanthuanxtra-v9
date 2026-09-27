@@ -14,7 +14,7 @@
     "AI_PEER_POLICY_VERSION": "3",
     "UNIFIED_AI_ENABLED": "true",
     "DUAL_AI_ENABLED": "true",
-    "GEMINI_ENABLED": "false",
+    "GEMINI_ENABLED": "true",
     "GEMINI_MODEL": "gemini-2.5-flash",
     "DUAL_AI_DEEP_MODEL": "@cf/nvidia/nemotron-3-120b-a12b",
     "DUAL_AI_WIDE_MODEL": "@cf/zai-org/glm-4.7-flash",
