@@ -41,7 +41,7 @@ export function parseBatch(body) {
     throw new Error(`Mỗi lô cần từ 1 đến ${MAX_BATCH} bài.`);
   return items;
 }
-function validateItem(item, now) {
+export function validateArticle(item, now) {
   if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Bài viết không hợp lệ.');
   const mode = item.mode || 'draft';
   if (!['draft', 'publish', 'schedule'].includes(mode)) throw new Error('mode phải là draft, publish hoặc schedule.');
@@ -59,15 +59,16 @@ export async function publicationResults(db, chatId, requestKey) {
     JOIN posts p ON p.id=j.post_id WHERE j.chat_id=? AND j.request_key LIKE ? ORDER BY j.id`)
     .bind(String(chatId), `${requestKey}:%`).all()).results || [];
 }
-export async function submitArticles(db, items, { chatId, messageId, now = Date.now() }) {
-  if (!Number.isSafeInteger(Number(messageId)) || Number(messageId) <= 0) throw new Error('Thiếu mã tin nhắn Telegram.');
-  const requestKey = await publicationKey(`${chatId}:${messageId}`);
+export async function submitArticles(db, items, { chatId, messageId, submissionId, now = Date.now() }) {
+  if (submissionId != null && !/^[a-zA-Z0-9_-]{16,100}$/.test(submissionId)) throw new Error('Mã yêu cầu không hợp lệ.');
+  if (submissionId == null && (!Number.isSafeInteger(Number(messageId)) || Number(messageId) <= 0)) throw new Error('Thiếu mã tin nhắn Telegram.');
+  const requestKey = await publicationKey(`${chatId}:${submissionId ?? messageId}`);
   const existing = await publicationResults(db, chatId, requestKey);
   if (existing.length) return { duplicate: true, requestKey, jobs: existing };
   if (!Array.isArray(items) || !items.length || items.length > MAX_BATCH) throw new Error(`Tối đa ${MAX_BATCH} bài mỗi lô.`);
   // Validate the entire batch before any write. A failed item never leaves a partial batch.
   const parsed = items.map((item, index) => {
-    try { return validateItem(item, now); } catch (error) { throw new Error(`Bài ${index + 1}: ${error.message}`); }
+    try { return validateArticle(item, now); } catch (error) { throw new Error(`Bài ${index + 1}: ${error.message}`); }
   });
   const statements = [];
   for (const [index, item] of parsed.entries()) {
