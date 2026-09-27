@@ -203,6 +203,20 @@ test('ASCII Vietnamese identity question "phan thuan la ai" is answered without 
   assert.equal(aiCalls, 0);
 });
 
+test('Legacy 600 versus Praetor 600 remains answerable when Workers AI is unavailable', async () => {
+  const DB = mockDb();
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'legacy-praetor',message:'Legacy 600 có phải Praetor 600 không? Trang Business Jets nói gì về hai mẫu này?'})
+  }), {DB, AI:{async run(){throw new Error('quota 4006');}}});
+  const data=await response.json();
+  assert.equal(response.status,200);
+  assert.equal(data.needs_human,false);
+  assert.match(data.reply,/hai dòng máy bay khác nhau/);
+  assert.match(data.reply,/EMB-135BJ/);
+  assert.equal(DB._unknown.length,0);
+});
+
 test('ASCII Vietnamese vehicle query uses only visible website catalog when Workers AI is unavailable', async () => {
   const DB = mockDb([
     {id:'lexus-live',brand:'Lexus',model:'LX 600',year:2025,mileage:100,status:'available',price:1,category:'suv'},
