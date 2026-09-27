@@ -685,3 +685,83 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - After a WebP replacement is verified and no required reference remains, remove the superseded JPG/PNG and add the smallest targeted regression coverage required by the pre-deploy audit.
 - Founder article `/phan-thuan` uses `/images/phan-thuan-founder-office-2026.webp`; the replaced Founder JPEG has been removed.
 - PR #465 removed `gx460-luxury.jpg`, `lx600-urban.jpg`, and `porsche-718-boxster.jpg` with targeted regression coverage. Final production status remains evidence-driven; do not mark GREEN from documentation alone.
+
+## 20. GPT DEEP RESEARCH FREE-TIER AUDIT — 2026-09-27
+
+### 20.1 Scope and immutable operating constraints
+- Audit target: exact main SHA `ae6342d35879407b1be0ec859710da5e39b66d4e`.
+- Cost policy: preserve Cloudflare Workers Free + Workers AI daily free allocation; do not introduce a paid dependency to make a gate green.
+- Production deployment remains GitHub Actions -> Cloudflare API/SDK. **Wrangler is prohibited for this execution path and was not used by this audit.**
+- S21 Ultra + Termux is an operator console for `gh`, `curl`, artifact retrieval and physical-device APK regression; it is not the canonical Android build server.
+- Production status remains evidence-driven. No AI judgment, documentation edit, skipped assertion, or quota bypass can produce GREEN.
+
+### 20.2 Exact-SHA production evidence
+- Deploy Cloudflare Worker run `36306448263`: SUCCESS on `ae6342d`.
+- Production Smoke Gate-15 run `36306448290`: SUCCESS on `ae6342d`.
+- Android APK MVP run `36306448276`: SUCCESS on `ae6342d`.
+- Production Asset Delivery Gate run `36306448310`: SUCCESS.
+- Production Credential Safety run `36306448282`: SUCCESS.
+- Release Gate Static Audit run `36306448275`: SUCCESS.
+- Admin PT Xtra Pipeline run `36306448256`: SUCCESS.
+- Homepage Canonical Verify run `36306448252`: SUCCESS.
+- Admin Redirect Verify run `36306448246`: SUCCESS.
+- Stage 3 Production Reconciliation run `36306448232`: SUCCESS.
+- Blog CMS Production E2E run `36306493189`: SUCCESS.
+- Live Chat AI Identity Verify run `36306493200`: SUCCESS.
+- QUEUE-01 Production E2E Origin run `36306493199`: FAILURE only at Vehicle Vision inference after the independent D1/R2 lifecycle passed.
+- QUEUE-01 runtime evidence: D1 delete -> 404 PASS; R2 upload 200 -> read OK -> delete 200 -> read-after-delete 404; workflow emitted `D1 + R2 lifecycle: PASS`.
+- Vehicle Vision then returned HTTP 503 with diagnostic `RATE_LIMIT` / Cloudflare code `4006`: daily free allocation of 10,000 neurons exhausted.
+- Therefore D1/R2 are not the current QUEUE-01 root cause. Do not weaken or bypass their assertions.
+- Business Jets CRM Production E2E was skipped in the observed workflow_run chain and must be refreshed after the blocking dependency is healthy.
+
+### 20.3 Deep Research findings — Free-tier budgets
+- Cloudflare Workers Free: 100,000 requests/day, 10 ms CPU per HTTP invocation, 50 external subrequests/request, 5 Cron Triggers/account.
+- Workers AI Free allocation: 10,000 neurons/day; resets at 00:00 UTC. Exceeding the allocation is a quota condition, not proof of an application defect.
+- Cloudflare Workers AI error taxonomy distinguishes daily account limit `3036`/HTTP 429 from temporary capacity `3040`; application retry/fallback policy must keep these classes separate.
+- D1 Free: 5 million rows read/day and 100,000 rows written/day.
+- R2 Standard free tier: 10 GB-month storage, 1 million Class A operations/month, 10 million Class B operations/month, free Internet egress.
+- AI Gateway core features are available on Free and include analytics, caching and rate limiting. Use these controls before adding paid capacity.
+- GitHub Actions standard hosted runners are free for public repositories. For private GitHub Free repositories the included allowance is 2,000 minutes/month and 500 MB artifact storage; keep workflows efficient regardless of visibility.
+- GitHub workflow/artifact retention defaults to 90 days and can be shortened. APK artifacts should use deliberately short retention unless a release artifact is explicitly required.
+
+### 20.4 Source audit — neuron conservation
+- `src/seo-ai.js` uses `@cf/meta/llama-3.1-8b-instruct-fast`, a hard attempt cap of 3, content fingerprints for idempotency, AI Gateway `default`, cache enabled with TTL 86400, and `cf-aig-metadata` surface `seo-cron`.
+- SEO reconciliation stops immediately on recognized `3036/4006` daily quota exhaustion. PR #518 also reduced SEO reconciliation from every five-minute scheduler tick to hourly while retaining Telegram self-healing cadence.
+- `src/vehicle-ai.js` records per-model diagnostics and `stopOnDailyQuota()` terminates the fallback chain immediately when daily allocation is exhausted. Run `36306493199` proves this behavior in production: only the first Vision model is reported before the gate exits.
+- Keep these fail-fast rules. Do not add blind retries on daily quota exhaustion.
+
+### 20.5 Optimized FREE roadmap
+**P0 — protect the 10k-neuron daily pool**
+1. Treat `3036/4006` as a circuit-breaker condition until the next 00:00 UTC reset; no same-request model fallback and no automated retry storm.
+2. Reserve production Vision inference for real user flows and one controlled release verification. Deterministic CI/unit tests must mock provider responses rather than spend neurons.
+3. Keep SEO hourly + max 3 attempts, but skip AI completely when all recent published posts have matching fingerprints.
+4. Use AI Gateway Free analytics/rate limiting/caching to separate `surface=seo-cron`, chat and vehicle-vision usage and identify the surface consuming the daily pool.
+5. Do not move to Paid merely to make QUEUE-01 green. Paid is outside this roadmap unless the owner explicitly changes the cost policy.
+
+**P1 — GitHub Actions efficiency**
+1. Add/retain workflow-level concurrency for push/deploy/E2E families so superseded commits do not run duplicate expensive gates.
+2. Make deterministic CI a prerequisite; trigger production E2E only after successful exact-SHA deployment rather than duplicating AI checks across independent workflows.
+3. Keep APK compilation in GitHub Actions; S21 Ultra is for install/runtime regression. Do not build the canonical APK in Termux.
+4. Set short artifact retention for debug APKs and transient diagnostics; preserve only intentional release artifacts.
+5. Keep production deployment API/SDK-based. No Wrangler dependency or Wrangler auth path.
+
+**P2 — Android/S21 Ultra operating model**
+1. GitHub Actions produces the signed/approved APK artifact; Android packages must remain signed for install/update.
+2. APK must call PHAN THUẦN XTRA server APIs over secure HTTPS and must not embed GitHub or Cloudflare administrative tokens.
+3. Termux may use the operator's authenticated `gh` session to inspect/rerun Actions and retrieve artifacts; those credentials stay outside the APK.
+4. Physical regression on S21 Ultra should cover launch/login, API health, image selection/camera, Vehicle Vision success when quota is available, graceful quota-exhausted UX, and no plaintext-secret exposure.
+5. Record APK run ID, artifact digest/version and physical-device result in this MASTER before final release closure.
+
+### 20.6 Current decision and next execution checkpoint
+- Current exact-SHA deployment, Gate-15, Android build, Blog E2E, D1 and R2 evidence are GREEN.
+- **QUEUE-01 remains RED for one external resource boundary: Workers AI daily free neuron allocation.**
+- This is intentionally not patched around. The correct Free-tier recovery is to wait for the daily allocation reset, execute one controlled failed-job rerun, and require Vehicle Vision HTTP 200/model assertion.
+- After QUEUE-01 succeeds, refresh the skipped Business Jets CRM Production E2E dependency and record its result.
+- Final production GREEN remains locked until the required current-lineage E2E set is complete and the S21 Ultra physical APK regression required by the release policy is recorded.
+
+### 20.7 Research sources used for this checkpoint
+- Cloudflare Workers AI pricing and errors documentation.
+- Cloudflare Workers platform limits/pricing and R2 pricing documentation.
+- Cloudflare AI Gateway pricing/features and Workers AI prompt caching documentation.
+- GitHub Actions billing, concurrency and artifact/log retention documentation.
+- Android Developers release signing and security guidance.

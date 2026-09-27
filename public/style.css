@@ -331,3 +331,20 @@ footer{
 
 /* Founder editorial page */
 .founder-article{background:#050706;color:#ddd;min-height:100vh;padding:70px 0}.article-shell{max-width:1040px}.article-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,280px);gap:50px;align-items:center;padding:50px 0;border-bottom:1px solid rgba(199,163,90,.3)}.article-hero h1{font:600 clamp(36px,5vw,64px)/1.08 "Noto Serif Display",serif;color:#f5e8bd;margin:12px 0}.article-hero img{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:3/4;object-fit:contain;border:1px solid rgba(199,163,90,.4);box-shadow:0 24px 70px rgba(0,0,0,.4)}.article-body{max-width:780px;margin:45px auto;font-size:17px;line-height:1.85}.article-body h2{font-family:"Noto Serif Display",serif;color:#e8d39a;margin-top:42px}.article-body a{color:#2d9a82}.article-body li{margin:12px 0}.article-contact{margin-top:48px;padding:28px;border:1px solid rgba(199,163,90,.35);background:rgba(15,95,80,.12)}.founder-article-link{margin-top:22px}@media(max-width:760px){.article-hero{grid-template-columns:1fr}.article-hero img{max-width:360px}.founder-article{padding-top:30px}}
+
+
+/* Flagship tri-color discipline: Obsidian / Emerald / Gold */
+:root{
+  --bg:#f3f1eb;
+  --ink:#070908;
+  --dark:#030504;
+  --accent:#c7a35a;
+  --accent-bright:#e8d39a;
+}
+.hero-xtra,.dark,.ai-section,footer{background-color:var(--obsidian)}
+.section:not(.marine-section):not(.test-drive):not(.founder-section):not(.dark):not(.ai-section){background-color:#f3f1eb}
+.btn.primary{background:var(--emerald-deep);border-color:var(--emerald-deep);color:#fff}
+.btn.primary:hover{background:var(--emerald);border-color:var(--emerald)}
+.hero .btn.primary{background:linear-gradient(135deg,var(--gold-pale),var(--gold));color:#07100d;border-color:var(--gold)}
+.contact .btn.primary{background:#07100d;border-color:#07100d;color:var(--gold-pale)}
+::selection{background:var(--emerald);color:#fff}
