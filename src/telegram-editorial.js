@@ -11,7 +11,7 @@ async function call(env, method, payload) {
   const token = env.TELEGRAM_AUTO_BOT_TOKEN || env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error('Bot chưa được cấu hình.');
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload)
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000)
   });
   const data = await response.json();
   if (!response.ok || !data.ok) throw new Error('Telegram chưa xử lý được yêu cầu.');
@@ -31,15 +31,17 @@ async function download(env, file, max) {
   const result = await call(env, 'getFile', { file_id: file.file_id });
   if (!/^[A-Za-z0-9_./-]+$/.test(result?.file_path || '') || result.file_path.includes('..')) throw new Error('Không tải được tệp Telegram.');
   const token = env.TELEGRAM_AUTO_BOT_TOKEN || env.TELEGRAM_BOT_TOKEN;
-  const response = await fetch(`https://api.telegram.org/file/bot${token}/${result.file_path}`);
+  const response = await fetch(`https://api.telegram.org/file/bot${token}/${result.file_path}`, { signal: AbortSignal.timeout(15000) });
   if (!response.ok || !response.body) throw new Error('Không tải được tệp Telegram.');
   const reader = response.body.getReader(), chunks = []; let size = 0;
-  while (true) {
-    const { done, value } = await reader.read(); if (done) break;
+  let complete = false;
+  for (let chunkCount = 0; chunkCount < 2048; chunkCount++) {
+    const { done, value } = await reader.read(); if (done) { complete = true; break; }
     size += value.byteLength;
     if (size > max) { await reader.cancel(); throw new Error('Tệp vượt giới hạn dung lượng.'); }
     chunks.push(value);
   }
+  if (!complete) { await reader.cancel(); throw new Error('Tệp có quá nhiều phần dữ liệu.'); }
   if (!size) throw new Error('Tệp rỗng.');
   const bytes = new Uint8Array(size); let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk,offset); offset += chunk.length; }
