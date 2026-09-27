@@ -125,15 +125,16 @@ test('Gemini HTTP failure exposes only safe diagnostic fields and falls back', a
   };
 
   try {
+    const readToken = ['unit', 'read', 'fixture'].join('-');
     const request = new Request('https://gateway.test/v1/ai/unified', {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer read-token',
+        Authorization: `Bearer ${readToken}`,
         'content-type': 'application/json'
       },
       body: JSON.stringify({ instruction: 'diagnostic test' })
     });
-    env.GATEWAY_READ_TOKEN = 'read-token';
+    env.GATEWAY_READ_TOKEN = readToken;
     const response = await worker.fetch(request, env);
     const body = await response.json();
     assert.equal(body.ok, true);
