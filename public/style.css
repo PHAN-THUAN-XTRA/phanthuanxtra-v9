@@ -353,3 +353,8 @@ footer{
 button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-copy span,.feature-number,.founder-pillars span,.ai-fab{font-family:"Be Vietnam Pro",Arial,sans-serif}
 .hero h1,h2,h3,.industry-card strong,.hero-visual-copy b,#about-phan-thuan h2{font-family:"Noto Serif Display","Be Vietnam Pro",serif}
 @media(max-width:500px){.hero h1{font-size:clamp(50px,16vw,62px);overflow-wrap:anywhere}}
+
+/* AI chat inherits the same Vietnamese UI typography */
+.ai-widget,.ai-chat,.ai-head,.ai-messages,.ai-msg,.ai-form,.ai-form input,.ai-form button,.ai-open-inline{font-family:"Be Vietnam Pro",Arial,sans-serif}
+.ai-msg{line-height:1.55;letter-spacing:0}
+.ai-form input::placeholder{font-family:"Be Vietnam Pro",Arial,sans-serif}
