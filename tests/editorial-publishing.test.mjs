@@ -37,7 +37,7 @@ function telegram(t) {
     return Response.json({ok:true,result:{message_id:messages.length}});
   }); return messages;
 }
-function env(DB) { return {DB,TELEGRAM_AUTO_BOT_TOKEN:'test',TELEGRAM_AUTO_PUBLISH_CHAT_IDS:'123',TELEGRAM_WEBHOOK_SECRET:'test-secret'}; }
+function env(DB) { return {DB,TELEGRAM_AUTO_BOT_TOKEN:'test',TELEGRAM_AUTO_PUBLISH_CHAT_IDS:'123',TELEGRAM_WEBHOOK_SECRET:crypto.randomUUID()}; }
 
 test('Vietnam time roundtrip rejects rollover, past time and missing timezone format',()=>{
   assert.equal(vietnamSchedule('2026-09-27 21:30',now),'2026-09-27T14:30:00.000Z');
