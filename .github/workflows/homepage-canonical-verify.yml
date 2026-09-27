@@ -18,14 +18,25 @@ jobs:
         run: |
           set -euo pipefail
           SITE_URL="https://phanthuanxtra.com/"
-          meta="$(curl --silent --show-error --location --max-redirs 5 --connect-timeout 10 --max-time 30             -D /tmp/home.headers -o /tmp/home.html             -w '%{http_code}|%{url_effective}|%{num_redirects}' "$SITE_URL")"
+          meta="$(curl --silent --show-error --location --compressed --max-redirs 5 --connect-timeout 10 --max-time 30             -D /tmp/home.headers -o /tmp/home.html             -w '%{http_code}|%{url_effective}|%{num_redirects}' "$SITE_URL")"
           IFS='|' read -r status final_url redirects <<< "$meta"
           echo "Homepage HTTP $status"
           echo "Homepage final URL $final_url"
           echo "Homepage redirects $redirects"
           test "$status" = "200"
           test "$redirects" -le 2
+          grep -Eiq '^content-type: *text/html([^;]*;)? *charset *= *utf-8' /tmp/home.headers
           grep -Fq "PHAN THUẦN XTRA" /tmp/home.html
+          grep -Fq "Vượt trên" /tmp/home.html
+          grep -Fq "xa xỉ." /tmp/home.html
+          grep -Fq "BỘ SƯU TẬP RIÊNG" /tmp/home.html
+          grep -Fq "NHÀ SÁNG LẬP • ĐẶC QUYỀN RIÊNG" /tmp/home.html
+          grep -Fq "Xin chào. Tôi tư vấn" /tmp/home.html
+          if grep -Fq "Xin chào. Xin chào." /tmp/home.html || grep -Fq "PHAN THUáº¦N XTRA" /tmp/home.html || grep -Fq "ÄÄƒng nháº­p Admin" /tmp/home.html; then
+            echo "Homepage contains duplicated greeting or UTF-8 mojibake."
+            exit 1
+          fi
+          echo "Homepage flagship UI/UTF-8 fingerprint: PASS"
           if grep -Eiq "God.?s Eye View|XTRA WORLD INTELLIGENCE|bilawalsidhu|gods-eye-view" /tmp/home.html; then
             echo "Retired God's Eye View content is still present in production."
             exit 1
