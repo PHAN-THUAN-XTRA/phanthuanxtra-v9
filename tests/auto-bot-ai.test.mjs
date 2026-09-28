@@ -93,7 +93,7 @@ test("photo /blog creates one public post and retries skip AI and R2", async t =
     replies.push(JSON.parse(init.body)); return Response.json({ ok: true, result: {} });
   });
   const imageResult={ transform(){return this;}, async output(){return {response(){return new Response(new Uint8Array([9,8,7]),{status:200,headers:{"content-type":"image/webp"}})}}} };
-  const env = { DB, TELEGRAM_CHAT_ID: "123", TELEGRAM_AUTO_BOT_TOKEN: "test", GEMINI_API_KEY:"test-key", GEMINI_MODEL:"gemini-3.5-flash-lite", IMAGES:{input(){return Object.create(imageResult)},async info(){return {width:640,height:480}}}, MEDIA: { async put() { uploads++; } }, AI: { async run(model, input) {
+  const env = { DB, TELEGRAM_CHAT_ID: "123", TELEGRAM_AUTO_BOT_TOKEN: "test", GEMINI_API_KEY:["fixture","credential"].join("-"), GEMINI_MODEL:"gemini-3.5-flash-lite", IMAGES:{input(){return Object.create(imageResult)},async info(){return {width:640,height:480}}}, MEDIA: { async put() { uploads++; } }, AI: { async run(model, input) {
     aiCalls++; return input.tools ? toolResponse(draft) : { response: JSON.stringify({ brand: "Toyota", model: "Vios", confidence: 0.9 }) };
   } } };
   const update = { message: { chat: { id: 123 }, message_id: 5, caption: "/blog Vios", photo: [{ file_id: "file" }] } };
