@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderPostCard, postDate } from '../public/blog-cards.js';
+import { renderPostCard, postDate } from '../src/blog-cards.js';
 import { handleBlog } from '../src/blog.js';
 
 const post = {slug:'giao-nhanh',title:'Giao nhanh về Nhà',category:'Danh gia & Trai nghiem',author:'Phan Thuan',published_at:'2026-09-25T00:00:00Z',cover_image:'/images/car.jpg'};

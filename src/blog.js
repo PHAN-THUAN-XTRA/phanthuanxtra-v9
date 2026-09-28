@@ -1,4 +1,4 @@
-import { renderPostCard, displayText } from "../public/blog-cards.js";
+import { renderPostCard, displayText } from "./blog-cards.js";
 import { listPosts,getPost } from "./post-persistence.js";
 import { seoForPost } from "./seo-ai.js";
 const SEC={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"};

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const blog=fs.readFileSync("src/blog.js","utf8");
-const cards=fs.readFileSync("public/blog-cards.js","utf8");
+const cards=fs.readFileSync("src/blog-cards.js","utf8");
 const css=fs.readFileSync("public/style.css","utf8");
 
 test("Blog uses shared Vietnamese flagship typography and accented labels",()=>{

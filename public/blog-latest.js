@@ -1,4 +1,4 @@
-import { displayText } from './blog-cards.js';
+const displayText = value => String(value ?? '').replace(/Danh gia & Trai nghiem/gi, 'Đánh giá & Trải nghiệm').replace(/Phan Thuan/gi, 'Phan Thuần');
 
 const grid = document.querySelector('#latest-posts');
 function element(tag, className, text) {
