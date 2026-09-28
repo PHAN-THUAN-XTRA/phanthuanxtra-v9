@@ -25,3 +25,24 @@ test('preparePrivateCover rejects missing Images binding without persisting sour
     error => error instanceof ImagePrivacyError && error.status === 422
   );
 });
+
+
+test('preparePrivateCover uses supported Images output options during normalize', async () => {
+  let outputOptions;
+  const env = {
+    IMAGES: {
+      input() {
+        return {
+          transform() { return this; },
+          output(options) {
+            outputOptions=options;
+            throw new TypeError('stop after capturing output contract');
+          }
+        };
+      }
+    }
+  };
+  await assert.rejects(preparePrivateCover(env,new Uint8Array([1])),ImagePrivacyError);
+  assert.deepEqual(outputOptions,{format:'image/webp',quality:85});
+  assert.equal(Object.hasOwn(outputOptions,'metadata'),false);
+});
