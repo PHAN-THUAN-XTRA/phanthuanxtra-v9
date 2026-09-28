@@ -18,7 +18,7 @@ test("production publishing verifier locks canonical WebP plus cache-safe AVIF/W
   assert.match(verifier,/Accept:'image\/jpeg'/);
   assert.match(verifier,/\?format=webp/);
   assert.match(verifier,/\?format=avif/);
-  assert.match(verifier,/x-pt-xtra-image-format/);
+  assert.match(verifier,/content-type/);
   assert.match(verifier,/canonical WebP \+ explicit cache-safe AVIF\/WebP variants/);
 });
 
