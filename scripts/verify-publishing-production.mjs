@@ -25,7 +25,9 @@ try{
   assert.equal(upload.status,201,`Authenticated image upload: HTTP ${upload.status} ${uploadText.slice(0,500)}`);
   const media=JSON.parse(uploadText);mediaKey=media.key;
   assert.equal(media.content_type,'image/webp');
-  const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);\n  const webp=await request(media.url,{headers:{Accept:'image/webp'}});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);assert.equal(webp.headers.get('vary'),'Accept');assert.equal(webp.headers.get('x-pt-xtra-image-format'),'image/webp');\n  const avif=await request(media.url,{headers:{Accept:'image/avif,image/webp;q=0.8'}});assert.equal(avif.status,200);assert.match(avif.headers.get('content-type'),/image\/avif/);assert.equal(avif.headers.get('vary'),'Accept');assert.equal(avif.headers.get('x-pt-xtra-image-format'),'image/avif');
+  const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);
+  const webp=await request(media.url,{headers:{Accept:'image/webp'}});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);assert.equal(webp.headers.get('vary'),'Accept');assert.equal(webp.headers.get('x-pt-xtra-image-format'),'image/webp');
+  const avif=await request(media.url,{headers:{Accept:'image/avif,image/webp;q=0.8'}});assert.equal(avif.status,200);assert.match(avif.headers.get('content-type'),/image\/avif/);assert.equal(avif.headers.get('vary'),'Accept');assert.equal(avif.headers.get('x-pt-xtra-image-format'),'image/avif');
   const input={request_id:crypto.randomUUID(),title:'PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
   const draft=await data('/api/publish/v1/posts','POST',input);postId=draft.id;
   assert.equal(draft.post.status,'draft');assert.equal(draft.public_url,null);
