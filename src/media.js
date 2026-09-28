@@ -9,7 +9,7 @@ export async function storeMedia(env,key,body,contentType="application/octet-str
   return key;
 }
 
-async function brandedVehicleResponse(request,env,object){
+async function brandedVehicleResponse(request,env,object,privateAccess=false){
   if(!env.IMAGES)return json({ok:false,error:"IMAGES binding is not configured"},503);
   if(!env.ASSETS)return json({ok:false,error:"ASSETS binding is not configured"},503);
   const overlayResponse=await env.ASSETS.fetch(new Request(new URL("/branding/pt-xtra-plate.svg",request.url)));
@@ -17,7 +17,7 @@ async function brandedVehicleResponse(request,env,object){
   const result=await env.IMAGES.input(object.body)
     .draw(env.IMAGES.input(overlayResponse.body).transform({width:260}),{bottom:18})
     .output({format:"image/jpeg",quality:90});
-  return result.response({headers:{"cache-control":"public, max-age=31536000, immutable","x-pt-xtra-branding":"display-overlay"}});
+  return result.response({headers:{"cache-control":privateAccess?"private, no-store":"public, max-age=31536000, immutable","x-pt-xtra-branding":"display-overlay"}});
 }
 
 function decodeMediaKey(pathname){
@@ -36,6 +36,26 @@ async function isAuthorized(request,env){
   );
 }
 
+async function publicMediaReference(env,key){
+  if(!env.DB)return false;
+  const url=`/media/${key}`;
+  try {
+    const row=await env.DB.prepare(`SELECT 1 AS found FROM posts WHERE status='published' AND cover_image=?
+      UNION SELECT 1 FROM cars WHERE status!='hidden' AND cover_image=?
+      UNION SELECT 1 FROM car_images i JOIN cars c ON c.id=i.car_id WHERE c.status!='hidden' AND i.url=? LIMIT 1`)
+      .bind(url,url,url).first();
+    return !!row;
+  } catch(error){console.error('media_public_reference_failed',error?.name||'Error');return false;}
+}
+
+async function privateMediaAccess(request,env,key,object){
+  const privateKey=/^admin\//.test(key)||/^blog\//.test(key)||/^vehicles\/inbox-/.test(key);
+  const markedDraft=object.customMetadata?.privacy==='draft';
+  if(!privateKey&&!markedDraft)return {allowed:true,private:false};
+  if(await publicMediaReference(env,key))return {allowed:true,private:false};
+  return {allowed:await isAuthorized(request,env),private:true};
+}
+
 export async function handleMediaApi(request,env){
   const url=new URL(request.url);
   if(!url.pathname.startsWith("/media/"))return null;
@@ -50,11 +70,13 @@ export async function handleMediaApi(request,env){
   }
   const object=await env.MEDIA.get(key);
   if(!object)return json({ok:false,error:"Not Found"},404);
-  if(url.searchParams.get("branding")==="pt-xtra"&&request.method==="GET")return brandedVehicleResponse(request,env,object);
+  const access=await privateMediaAccess(request,env,key,object);
+  if(!access.allowed)return json({ok:false,error:"Not Found"},404);
+  if(url.searchParams.get("branding")==="pt-xtra"&&request.method==="GET")return brandedVehicleResponse(request,env,object,access.private);
   const headers=new Headers();
   object.writeHttpMetadata(headers);
   headers.set("etag",object.httpEtag);
-  if(String(key).startsWith("admin/"))headers.set("cache-control","no-store");
+  if(access.private)headers.set("cache-control","private, no-store");
   else headers.set("cache-control",headers.get("cache-control")||"public, max-age=31536000, immutable");
   return request.method==="HEAD"?new Response(null,{headers}):new Response(object.body,{headers});
 }

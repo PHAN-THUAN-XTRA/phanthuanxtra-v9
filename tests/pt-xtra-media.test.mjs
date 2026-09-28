@@ -80,3 +80,25 @@ test("media delete retains direct admin token compatibility", async () => {
   assert.equal(deleted.status, 200);
   assert.deepEqual(calls, [["delete", "vehicles/test.jpg"]]);
 });
+
+test('draft media is private for GET, HEAD and branding, while published references remain public',async()=>{
+  const {env}=mockEnv();
+  const original=env.MEDIA.get;
+  env.MEDIA.get=async key=>key==='admin/editorial-draft.webp'||key==='vehicles/inbox-1.webp'||key==='blog/draft.webp'
+    ? {body:new Blob(['WEBP']).stream(),httpEtag:'draft',customMetadata:{privacy:'draft'},writeHttpMetadata(h){h.set('content-type','image/webp');}} : original(key);
+  env.DB={prepare(){return {bind(...args){return {async first(){return args[0]==='/media/admin/editorial-draft.webp'&&published?{found:1}:null;}};}};}};
+  let published=false;
+  for(const key of ['admin/editorial-draft.webp','vehicles/inbox-1.webp','blog/draft.webp']) {
+    for(const [method,query] of [['GET',''],['HEAD',''],['GET','?branding=pt-xtra'],['GET','?source=1']]) {
+      const response=await handleMediaApi(new Request(`https://phanthuanxtra.com/media/${key}${query}`,{method}),env);
+      assert.equal(response.status,404,`${method} ${key}${query}`);
+      assert.equal(response.headers.get('cache-control'),'no-store');
+    }
+  }
+  const token=await issueAdminToken(env);
+  const admin=await handleMediaApi(new Request('https://phanthuanxtra.com/media/admin/editorial-draft.webp',{headers:{Authorization:`Bearer ${token}`}}),env);
+  assert.equal(admin.status,200);assert.equal(admin.headers.get('cache-control'),'private, no-store');
+  published=true;
+  const publicResponse=await handleMediaApi(new Request('https://phanthuanxtra.com/media/admin/editorial-draft.webp'),env);
+  assert.equal(publicResponse.status,200);
+});
