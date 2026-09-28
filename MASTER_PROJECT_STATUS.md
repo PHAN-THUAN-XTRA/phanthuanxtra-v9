@@ -1,5 +1,18 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 CURRENT CHECKPOINT — 2026-09-28 (UTC+7)
+- Issue #569 media P0/P1 remediation is source-complete through PR #577 and PR #578.
+- PR #577 merged P0 Telegram/blog image privacy pipeline as main lineage `c5fddfac2a33098f106cb1f6694e8fe946f9e634`.
+- PR #578 merged as main SHA `16e3f5892a0fcdc934a7ad1079c6133740d11a4b`.
+- PR #578 required `CI / Validate` passed on head `682df7e1cf886238d1811bf054899ed507dc9202`; AI Pre-Deploy Audit #252 also passed after restoring the existing AVIF/WebP delivery contract behind the privacy-aware media handler.
+- PR #578 source result: `/media/*` routes through privacy-aware authorization; Admin media upload uses the shared 15 MB bounded canonical WebP/privacy/metadata pipeline; vehicle image persistence enforces `MEDIA_POLICY.image.maxPerArticle` (20) instead of silently accepting 30.
+- Audit caught and corrected a regression before merge: replacing the old index media path initially removed AVIF/WebP negotiation. The final branch preserves explicit AVIF, WebP negotiation, loop guard/source path, privacy cache behavior, and targeted regression coverage.
+- Merge was performed only after the repository required status check reported success. No force merge was used.
+- Production/runtime closure for exact merge SHA `16e3f589...` is **PENDING FRESH POST-MERGE WORKFLOW EVIDENCE** at this checkpoint. Do not claim issue #569 production GREEN until the exact merged lineage has a successful Cloudflare deploy and affected runtime/R2/media privacy checks.
+- Canonical PR: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/578
+- Required-check run: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/36405743432
+- AI Pre-Deploy Audit #252: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/36405743471
+
 > **DUY NHẤT — CANONICAL PROJECT STATUS / HANDOFF**
 > Date: 2026-09-25 (UTC+7)
 > Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`
