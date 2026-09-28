@@ -21,3 +21,9 @@ test("production publishing verifier locks canonical WebP plus adaptive AVIF/Web
   assert.match(verifier,/x-pt-xtra-image-format/);
   assert.match(verifier,/canonical WebP \+ adaptive AVIF\/WebP delivery/);
 });
+
+
+test("production publishing verifier contains no escaped statement separators",()=>{
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.doesNotMatch(verifier,/;\\n\s+const (?:webp|avif)=/);
+});
