@@ -25,6 +25,11 @@ async function data(path,method,body) {
 }
 try{
   const login=await data('/api/admin/login','POST',{password:process.env.ADMIN_PASSWORD});session=login.token;assert.ok(session);
+  try{
+    const diagnostic=await request('/api/publish/v1/diagnostics/gemini',{timeoutMs:12000});
+    if(diagnostic.ok)console.log('Publishing Gemini model metadata (generation unverified): '+JSON.stringify(await diagnostic.json()).slice(0,1000));
+    else console.log('Publishing Gemini model metadata unavailable: HTTP '+diagnostic.status);
+  }catch{console.log('Publishing Gemini model metadata probe unavailable.');}
   const bytes=Buffer.from((await readFile('tests/fixtures/vehicle-vision-smoke.jpg.b64','utf8')).trim(),'base64');
   assert.ok(bytes.length>256 && bytes[0]===0xff && bytes[1]===0xd8 && bytes.at(-2)===0xff && bytes.at(-1)===0xd9,'Publishing fixture must be a complete JPEG');
   let upload,uploadText;

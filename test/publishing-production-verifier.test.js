@@ -31,6 +31,7 @@ function runVerifier(t,{failures=[],anonymousStatus=404}={}) {
       return new Response('webp',{headers:{'content-type':'image/webp'}});
     }
     assert.equal(authorization,`Bearer ${session}`);
+    if(path==='/api/publish/v1/diagnostics/gemini')return Response.json({model:'gemini-3.5-flash-lite',generation_verified:false});
     if(method==='DELETE') {
       assert.ok(path==='/api/admin/posts/123'||path==='/api/admin/media/'+encodeURIComponent(media.key));
       state.deletes.push(path);return Response.json({ok:true});

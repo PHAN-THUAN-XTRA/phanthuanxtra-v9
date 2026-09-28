@@ -4,6 +4,7 @@ import { getPost, normalizePostPayload } from './post-persistence.js';
 import { submitArticles, validateArticle } from './editorial-publishing.js';
 import { imageInputLimit, MEDIA_POLICY } from './media-policy.js';
 import { videoEditorialError } from './blog-video.js';
+import { inspectGeminiProvider } from './gemini-provider-diagnostics.js';
 
 const BASE = '/api/publish/v1';
 const OWNER = 'gpt-publisher';
@@ -81,6 +82,11 @@ export async function handlePublishingApi(request,env) {
   if(!url.pathname.startsWith(BASE+'/'))return null;
   const auth=await authentication(request,env);if(!auth)return json({error:'Unauthorized'},401);
   try {
+    if(url.pathname===BASE+'/diagnostics/gemini') {
+      if(!auth.admin)return json({error:'Forbidden'},403);
+      if(request.method!=='GET')return json({error:'Method Not Allowed'},405);
+      return json(await inspectGeminiProvider(env));
+    }
     if(!env.DB)throw new PublishingError('D1 chưa được kết nối.',503);
     if(url.pathname===BASE+'/media'&&request.method==='POST') {
       const type=request.headers.get('content-type')||'';
