@@ -78,5 +78,33 @@ export async function handleMediaApi(request,env){
   headers.set("etag",object.httpEtag);
   if(access.private)headers.set("cache-control","private, no-store");
   else headers.set("cache-control",headers.get("cache-control")||"public, max-age=31536000, immutable");
-  return request.method==="HEAD"?new Response(null,{headers}):new Response(object.body,{headers});
+  if(request.method==="HEAD")return new Response(null,{headers});
+
+  const requested=url.searchParams.get('format');
+  if(requested==='avif'&&url.searchParams.get('source')!=='1'){
+    const originalUrl=new URL(request.url);
+    originalUrl.searchParams.delete('format');
+    originalUrl.searchParams.set('source','1');
+    const transformed=await fetch(new Request(originalUrl.toString(),{headers:request.headers}),{cf:{image:{format:'avif',quality:76}}});
+    if(!transformed.ok)return transformed;
+    const transformedHeaders=new Headers(transformed.headers);
+    transformedHeaders.set("cache-control",access.private?"private, no-store":"public, max-age=31536000, immutable");
+    transformedHeaders.delete("vary");
+    return new Response(transformed.body,{status:transformed.status,statusText:transformed.statusText,headers:transformedHeaders});
+  }
+  if(url.searchParams.get('source')==='1')return new Response(object.body,{status:200,headers});
+  if(request.method==="GET"&&env.IMAGES&&String(headers.get("content-type")||"").startsWith("image/")){
+    const accept=request.headers.get("Accept")||"";
+    const format=requested==='webp'?'image/webp':/image\/webp/i.test(accept)?'image/webp':null;
+    if(format){
+      const result=await env.IMAGES.input(object.body).output({format,quality:82});
+      const optimized=await result.response();
+      const optimizedHeaders=new Headers(optimized.headers);
+      optimizedHeaders.set("cache-control",access.private?"private, no-store":"public, max-age=31536000, immutable");
+      if(!requested)optimizedHeaders.set('vary','Accept');else optimizedHeaders.delete("vary");
+      return new Response(optimized.body,{status:optimized.status,statusText:optimized.statusText,headers:optimizedHeaders});
+    }
+  }
+  if(!requested)headers.set('vary','Accept');
+  return new Response(object.body,{status:200,headers});
 }
