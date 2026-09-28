@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { buildCaption } from '../src/telegram.js';
 import { canAutoPublish, promoteDraft } from '../src/telegram-ingest.js';
 import { telegramWebhookReceipt } from '../src/telegram-router.js';
