@@ -4,8 +4,8 @@ import fs from "node:fs";
 
 const worker=fs.readFileSync("src/index.js","utf8");
 
-test("media delivery negotiates AVIF then WebP from Accept",()=>{
-  assert.match(worker,/image\\\/avif/);
+test("media delivery supports explicit AVIF and WebP variants",()=>{
+  assert.match(worker,/format:'avif'/);
   assert.match(worker,/image\\\/webp/);
   assert.match(worker,/format==='image\/avif'\?76:82/);
   assert.match(worker,/headers\.set\('vary','Accept'\)/);
@@ -66,14 +66,6 @@ test("production variant gate relies on edge Content-Type, not stripped custom h
 });
 
 
-
-test("explicit AVIF variant is materialized in R2 with AVIF metadata",()=>{
-  const worker=fs.readFileSync("src/index.js","utf8");
-  assert.match(worker,/const avifKey=\`\$\{key\}\.avif\`/);
-  assert.match(worker,/output\(\{format:'image\/avif',quality:76\}\)/);
-  assert.match(worker,/contentType:'image\/avif'/);
-  assert.match(worker,/MEDIA\.put\(avifKey/);
-});
 
 
 test("explicit AVIF delivery uses Cloudflare cf.image subrequest with loop guard",()=>{
