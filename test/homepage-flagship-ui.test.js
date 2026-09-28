@@ -4,6 +4,7 @@ import fs from "node:fs";
 
 const html=fs.readFileSync("public/index.html","utf8");
 const css=fs.readFileSync("public/style.css","utf8");
+const canonicalGate=fs.readFileSync(".github/workflows/homepage-canonical-verify.yml","utf8");
 
 test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/Vượt trên<br><em>xa xỉ\.<\/em>/);
@@ -45,4 +46,12 @@ test("flagship palette preserves obsidian emerald and gold tokens",()=>{
   assert.match(css,/Vietnamese typography consistency/);
   assert.doesNotMatch(css,/Manrope/);
   assert.match(css,/AI chat inherits the same Vietnamese UI typography/);
+});
+
+test("production homepage gate checks all four current hero sectors",()=>{
+  for (const sector of ['auto','yacht','jet','energy']) {
+    assert.match(canonicalGate,new RegExp(`hero-slide-${sector}`));
+  }
+  assert.doesNotMatch(canonicalGate,/BỘ SƯU TẬP RIÊNG/);
+  assert.match(canonicalGate,/PHAN THUáº¦N XTRA/);
 });
