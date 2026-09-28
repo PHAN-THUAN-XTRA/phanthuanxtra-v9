@@ -158,3 +158,11 @@ test('cron transaction failure rolls back publication and pending job retries su
   assert.equal((await recentPublications(DB,'123'))[0].status,'pending');
   DB.sqlite.exec('DROP TRIGGER fail_audit');assert.equal((await publishDueArticles({DB},{now})).published,1);
 });
+
+
+test('publication request prefix queries avoid D1 LIKE pattern evaluation', async () => {
+  const source=await (await import('node:fs/promises')).readFile(new URL('../src/editorial-publishing.js',import.meta.url),'utf8');
+  assert.doesNotMatch(source,/request_key LIKE \?/);
+  assert.match(source,/instr\(j\.request_key,\?\)=1/);
+  assert.match(source,/instr\(request_key,\?\)=1/);
+});
