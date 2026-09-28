@@ -88,3 +88,11 @@ test('Gemini privacy provider retries transient timeout and remains fail-closed'
   assert.match(source,/750\*\(attempt\+1\)/);
   assert.match(source,/throw new ImagePrivacyError/);
 });
+
+
+test('Gemini semantic privacy rejection preserves detect and verify stages', async () => {
+  const source=await (await import('node:fs/promises')).readFile(new URL('../src/gemini-plate-privacy.js',import.meta.url),'utf8');
+  assert.match(source,/complete!==true[^\n]+reject\('gemini-detect'\)/);
+  assert.match(source,/box\.length!==4[^\n]+reject\('gemini-detect'\)/);
+  assert.match(source,/safe!==true\|\|verification\?\.certain!==true\)reject\('gemini-verify'\)/);
+});
