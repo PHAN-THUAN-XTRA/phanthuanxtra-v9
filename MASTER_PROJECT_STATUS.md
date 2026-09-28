@@ -985,3 +985,45 @@ Production deploy #1499, run `36378458772`, exact merge SHA `cbd50868187bddb5cf4
 - **R2 lifecycle: GREEN.**
 - **UTF-8 public/Admin/editorial boundaries: GREEN.**
 - **Plate privacy fail-closed behavior: unchanged.**
+
+
+---
+
+## 25. 2026-09-28 — Telegram E2E notification suppression completed
+
+### 25.1 Incident
+Telegram received create/update/delete notifications for automation records. The earlier #548 suppression covered Stage3/CI IDs such as `stage3-*`, `ci-e2e-*` and `ci-origin-e2e-*`, but production publishing E2E uses legacy numeric car audit IDs. Examples observed by the operator included numeric IDs 91/92 from publishing lifecycle tests.
+
+### 25.2 Root cause and fix
+- `src/telegram-notifications.js` previously identified automation only from prefixed `resource_id`.
+- Publishing E2E audit rows use `resource="car"` with numeric IDs, so they bypassed the prefix filter.
+- PR #561 adds an explicit `PTX-E2E` marker to the production publishing test title.
+- The Telegram reconciler suppresses only car audit rows with known automation ID prefixes or an exact `PTX-E2E` summary marker.
+- Suppressed audit rows still advance `telegram_notification_cursor`, preventing replay.
+- Real vehicle notifications remain unchanged.
+- PR #561 also fixes the suppressed-path `processed` counter that had been incremented twice.
+
+### 25.3 Production evidence
+PR #561 auto-merged as `e6e06540c1a63ee9057ec209c37015441c1f0aaa`.
+
+Deploy Cloudflare Worker #1502, run `36379209171`:
+- API/SDK deployment: PASS
+- public/editorial/Admin UTF-8: PASS
+- R2 GET -> DELETE -> 404: PASS
+- canonical WebP: PASS
+- explicit WebP: PASS
+- AVIF preference with documented WebP fallback: PASS
+- publishing lifecycle + cleanup: PASS
+- deployment completed: PASS
+- Wrangler production deployment path: NOT USED
+
+Stage 3 Production Reconciliation #315, run `36379209250`: PASS on the same lineage.
+
+### 25.4 Evidence boundary
+GitHub Actions proves the suppression code is merged and deployed and that both publishing E2E and Stage3 complete successfully. It does not by itself prove absence of a Telegram message from the independently scheduled notification reconciler. Treat direct bot silence / reconciler suppression logs as the final observational confirmation if needed; do not claim that observation without evidence.
+
+### 25.5 Status
+- **Known Stage3/CI Telegram automation spam suppression: GREEN.**
+- **Publishing E2E numeric-ID suppression path: MERGED + DEPLOYED.**
+- **Production deploy #1502: GREEN.**
+- **Stage3 #315: GREEN.**
