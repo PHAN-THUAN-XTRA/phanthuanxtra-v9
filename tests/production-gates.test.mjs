@@ -77,6 +77,18 @@ test('production gate: malformed car ID is rejected with 400, not an uncaught Wo
   assert.equal(data.error, 'ID xe không hợp lệ');
 });
 
+
+test('production gate: index routes media through privacy-aware handler and shared media policy', () => {
+  const src = fs.readFileSync(new URL('../src/index.js', import.meta.url),'utf8');
+  assert.match(src,/import \{ handleMediaApi \} from "\.\/media\.js"/);
+  assert.match(src,/return handleMediaApi\(r,e\)/);
+  assert.match(src,/imageInputLimit\(\)/);
+  assert.match(src,/storePublishingImage\(e,bytes\)/);
+  assert.match(src,/MEDIA_POLICY\.image\.maxPerArticle/);
+  assert.doesNotMatch(src,/12\*1024\*1024/);
+  assert.doesNotMatch(src,/slice\(0,30\)/);
+});
+
 test('production gate: malformed media key is rejected with 400, not an uncaught Worker 500', async () => {
   let getCalled = false;
   const response = await handleMediaApi(new Request('https://phanthuanxtra.com/media/%E0%A4%A'), {
