@@ -6,6 +6,9 @@ import { submitArticles, validateArticle } from './editorial-publishing.js';
 const BASE = '/api/publish/v1';
 const OWNER = 'gpt-publisher';
 const json = (body,status=200) => Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
+function safeFailureReason(error) {
+  return String(error?.message||error?.name||'Error').replace(/https?:\/\/\S+/gi,'[url]').replace(/[A-Za-z0-9_-]{24,}/g,'[redacted]').replace(/[^\p{L}\p{N} .,:;_()\/-]/gu,'').slice(0,180);
+}
 export class PublishingError extends Error { constructor(message,status=400) { super(message);this.status=status; } }
 export async function boundedBytes(body,max) {
   if (!body) throw new PublishingError('Nội dung rỗng.');
@@ -130,6 +133,6 @@ export async function handlePublishingApi(request,env) {
     if(error instanceof ImagePrivacyError)return json({error:error.message,stage:error.stage,...(error.reason?{reason:error.reason}:{})},error.status);
     if(String(error.message).includes('UNIQUE'))return json({error:'Slug đã tồn tại.'},409);
     console.error('publishing_api_failed',error?.name||'Error');
-    return json({error:'Chưa hoàn tất yêu cầu. Kiểm tra lại trạng thái với cùng request_id.'},500);
+    return json({error:'Chưa hoàn tất yêu cầu. Kiểm tra lại trạng thái với cùng request_id.',reason:safeFailureReason(error)},500);
   }
 }
