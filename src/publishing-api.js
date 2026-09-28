@@ -2,6 +2,7 @@ import { preparePrivateCover, requirePrivateCover, ImagePrivacyError } from './g
 import { verifyAdminToken } from './admin-auth.js';
 import { getPost, normalizePostPayload } from './post-persistence.js';
 import { submitArticles, validateArticle } from './editorial-publishing.js';
+import { imageInputLimit, MEDIA_POLICY } from './media-policy.js';
 
 const BASE = '/api/publish/v1';
 const OWNER = 'gpt-publisher';
@@ -44,18 +45,22 @@ async function actionImage(refs) {
     const response=await fetch(link,{redirect:'manual',signal:AbortSignal.timeout(15000)});
     if([301,302,303,307,308].includes(response.status)) { link=new URL(response.headers.get('location')||'',link).href;continue; }
     if(!response.ok)throw new PublishingError('Ảnh ChatGPT đã hết hạn hoặc không tải được. Gửi lại ảnh.',422);
-    return boundedBytes(response.body,10*1024*1024);
+    return boundedBytes(response.body,imageInputLimit());
   }
   throw new PublishingError('Ảnh chuyển hướng quá nhiều lần.');
 }
 export async function storePublishingImage(env,bytes) {
+  if(bytes.length>imageInputLimit())throw new PublishingError('Ảnh vượt giới hạn 15 MB.',413);
   if(!env.IMAGES||!env.MEDIA)throw new PublishingError('Chưa cấu hình xử lý/lưu ảnh.',503);
   if(!bytes.length)throw new PublishingError('Ảnh rỗng.');
   const processed=await preparePrivateCover(env,bytes);
   const digest=await crypto.subtle.digest('SHA-256',bytes);
   const key='admin/editorial-'+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')+'-'+crypto.randomUUID()+'.webp';
+  const url=`/media/${key}`,size=processed.bytes.byteLength;
   await env.MEDIA.put(key,processed.bytes,{customMetadata:processed.metadata,httpMetadata:{contentType:'image/webp',cacheControl:'public,max-age=31536000,immutable'}});
-  return {ok:true,key,url:`/media/${key}`,absolute_url:`https://phanthuanxtra.com/media/${key}`,content_type:'image/webp'};
+  if(env.DB) await env.DB.prepare("INSERT OR IGNORE INTO media_assets (r2_key,url,media_type,content_type,size_bytes,width,height,duration_ms,canonical_format,privacy_status) VALUES (?,?,?,?,?,?,?,?,?,?)")
+    .bind(key,url,'image','image/webp',size,processed.width||null,processed.height||null,null,MEDIA_POLICY.image.canonicalFormat,'verified').run();
+  return {ok:true,key,url,absolute_url:`https://phanthuanxtra.com/media/${key}`,content_type:'image/webp',media_type:'image',size_bytes:size,width:processed.width||null,height:processed.height||null,duration_ms:null,canonical_format:MEDIA_POLICY.image.canonicalFormat,delivery_formats:MEDIA_POLICY.image.deliveryFormats,privacy_status:'verified'};
 }
 async function authentication(request,env) {
   if((await verifyAdminToken(request,env)).ok)return {admin:true};
@@ -78,7 +83,7 @@ export async function handlePublishingApi(request,env) {
     if(!env.DB)throw new PublishingError('D1 chưa được kết nối.',503);
     if(url.pathname===BASE+'/media'&&request.method==='POST') {
       const type=request.headers.get('content-type')||'';
-      const bytes=type.startsWith('application/json')?await actionImage((await readJson(request)).openaiFileIdRefs):await boundedBytes(request.body,10*1024*1024);
+      const bytes=type.startsWith('application/json')?await actionImage((await readJson(request)).openaiFileIdRefs):await boundedBytes(request.body,imageInputLimit());
       return json(await storePublishingImage(env,bytes),201);
     }
     if(url.pathname===BASE+'/posts'&&request.method==='POST') {
