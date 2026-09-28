@@ -182,9 +182,15 @@ jobs:
           test "$status" = "200"
           MEDIA_KEY="$(jq -r '.key // empty' /tmp/media-upload.json)"
           test -n "$MEDIA_KEY"
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$SITE_URL/media/$MEDIA_KEY" -o /tmp/xtra-e2e-download.png
+          for path in "$SITE_URL/media/$MEDIA_KEY" "$SITE_URL/media/$MEDIA_KEY?branding=pt-xtra" "$SITE_URL/media/$MEDIA_KEY?source=1"; do
+            status="$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' "$path")"
+            test "$status" = "404"
+          done
+          status="$(curl --silent --show-error --max-time 20 -I -o /dev/null -w '%{http_code}' "$SITE_URL/media/$MEDIA_KEY")"
+          test "$status" = "404"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "X-Admin-Token: $ADMIN_TOKEN" "$SITE_URL/media/$MEDIA_KEY" -o /tmp/xtra-e2e-download.png
           cmp /tmp/xtra-e2e.png /tmp/xtra-e2e-download.png
-          echo 'R2 write/read: OK'
+          echo 'R2 draft public GET/HEAD/variants denied; authenticated read: OK'
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-delete.json -w '%{http_code}' -X DELETE "$SITE_URL/api/admin/media/$MEDIA_KEY" -H "X-Admin-Token: $ADMIN_TOKEN")"
           echo "R2 delete HTTP $status"
           test "$status" = "200"

@@ -5,7 +5,8 @@ import { canAutoPublish, promoteDraft } from "./telegram-ingest.js";
 import { savePost } from "./post-persistence.js";
 import { getPost } from "./post-persistence.js";
 import { answerAutoCustomer, autoBlogSlug, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
-import { storePublishingImage } from "./publishing-api.js";
+import { boundedBytes, storePublishingImage } from "./publishing-api.js";
+import { imageInputLimit } from "./media-policy.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
@@ -68,7 +69,7 @@ async function processBundle(env, bundleKey, chatId) {
 }
 
 function blogCommand(caption){const raw=clean(caption,12000);if(!/^\/(blog|news)\b/i.test(raw))return null;const body=raw.replace(/^\/(blog|news)\b/i,"").trim();if(!body)return null;const lines=body.split(/\r?\n/).map(x=>x.trim());const title=clean(lines.shift(),240);const content=clean(lines.join("\n"),100000);return title&&content?{title,content,excerpt:clean(content,500),category:"Tin tức",status:"published"}:null}
-async function publishTelegramBlog(env,message,chatId){const token=autoBotToken(env),draft=blogCommand(message?.caption||message?.text);if(!draft)return false;const photo=pickPhoto(message);if(photo){const file=await tg(token,"getFile",{file_id:photo.file_id});const path=clean(file?.file_path,1000);const image=await fetch(`https://api.telegram.org/file/bot${token}/${path}`);if(!image.ok)throw new Error(`Telegram blog image download failed: ${image.status}`);const bytes=await image.arrayBuffer(),type=image.headers.get("content-type")||"image/jpeg",ext=type.includes("png")?"png":type.includes("webp")?"webp":"jpg",key=`blog/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.${ext}`;await env.MEDIA.put(key,bytes,{httpMetadata:{contentType:type,cacheControl:"public,max-age=31536000,immutable"}});draft.cover_image=`/media/${key}`}
+async function publishTelegramBlog(env,message,chatId){const token=autoBotToken(env),draft=blogCommand(message?.caption||message?.text);if(!draft)return false;const photo=pickPhoto(message);if(photo){if(Number(photo.file_size||0)>imageInputLimit())throw new Error('Ảnh vượt giới hạn 15 MB.');const file=await tg(token,"getFile",{file_id:photo.file_id});const path=clean(file?.file_path,1000);if(!/^[A-Za-z0-9_./-]+$/.test(path)||path.includes('..'))throw new Error('Đường dẫn ảnh Telegram không hợp lệ.');const image=await fetch(`https://api.telegram.org/file/bot${token}/${path}`);if(!image.ok||!image.body)throw new Error(`Telegram blog image download failed: ${image.status}`);if(Number(image.headers.get('content-length')||0)>imageInputLimit())throw new Error('Ảnh vượt giới hạn 15 MB.');const bytes=await boundedBytes(image.body,imageInputLimit());draft.cover_image=(await storePublishingImage(env,bytes)).url}
  const saved=await savePost(env.DB,draft,{mode:"create",actor:"telegram-auto-bot"});if(!saved.ok)throw new Error(saved.error);await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📰 ĐÃ ĐĂNG BÀI WEBSITE\n${saved.post.title}\n🌐 https://phanthuanxtra.com/blog/${saved.post.slug}`});return true}
 
 async function publishAiPhotoBlog(env, message, chatId, caption) {
@@ -82,8 +83,8 @@ async function publishAiPhotoBlog(env, message, chatId, caption) {
     if (!file?.file_path) throw new Error("Không tải được ảnh Telegram.");
     const image = await fetch(`https://api.telegram.org/file/bot${token}/${file.file_path}`);
     if (!image.ok) throw new Error("Không tải được ảnh Telegram.");
-    const bytes = await image.arrayBuffer();
-    if (bytes.byteLength > 10 * 1024 * 1024) throw new Error("Vui lòng gửi ảnh nhỏ hơn 10 MB.");
+    if (Number(photo.file_size||0)>imageInputLimit()||Number(image.headers.get('content-length')||0)>imageInputLimit()) throw new Error("Ảnh vượt giới hạn 15 MB.");
+    const bytes = await boundedBytes(image.body,imageInputLimit());
     const type = image.headers.get("content-type") || "image/jpeg";
     const generated = await generateVehicleBlog(env, bytes, type, caption);
     // Reuse the same fail-closed privacy + canonical WebP storage contract as

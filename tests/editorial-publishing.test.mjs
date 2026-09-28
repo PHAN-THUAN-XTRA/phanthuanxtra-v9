@@ -129,10 +129,22 @@ test('captioned general photo uses WebP and does not invoke vehicle AI; retry sk
     return Response.json({ok:true,result:{}});
   });
   const pipeline={transform(){return this;},async output(opts){assert.deepEqual(opts,{format:'image/webp',quality:85});return {response:()=>new Response('webp')};}};
-  const e={...env(DB),GEMINI_API_KEY:crypto.randomUUID(),GEMINI_MODEL:"gemini-test",IMAGES:{async info(){return {width:100,height:100};},input(){return pipeline;}},MEDIA:{async head(){return {customMetadata:{plate_privacy:"gemini-reviewed-v1"}};},async put(key){assert.match(key,/\.webp$/);uploads++;}},AI:{run(){throw Error('AI must not be called');}}};
+  const e={...env(DB),GEMINI_API_KEY:crypto.randomUUID(),GEMINI_MODEL:"gemini-test",IMAGES:{async info(){return {width:100,height:100};},input(){return pipeline;}},MEDIA:{async head(){return {customMetadata:{plate_privacy:"gemini-reviewed-v1"}};},async put(key,bytes,options){assert.match(key,/\.webp$/);assert.equal(options.httpMetadata.contentType,'image/webp');assert.equal(options.customMetadata.plate_privacy,'gemini-reviewed-v1');uploads++;}},AI:{run(){throw Error('AI must not be called');}}};
   const message={chat:{id:123},message_id:1,caption:'/post Năng lượng xanh\nNội dung đã soạn.',photo:[{file_id:'test'}]};
   await processTelegramUpdate(e,{message},'123');await processTelegramUpdate(e,{message},'123');
-  assert.equal(uploads,1);assert.match(DB.sqlite.prepare('SELECT cover_image FROM posts').get().cover_image,/^\/media\/blog\/.+\.webp$/);
+  assert.equal(uploads,1);assert.match(DB.sqlite.prepare('SELECT cover_image FROM posts').get().cover_image,/^\/media\/admin\/editorial-.+\.webp$/);
+  assert.equal(DB.sqlite.prepare("SELECT content_type,privacy_status FROM media_assets").get().content_type,'image/webp');
+});
+test('Telegram photo over 15 MB cannot create a post or write R2',async t=>{
+  const DB=database();let uploads=0,downloads=0;
+  t.mock.method(globalThis,'fetch',async url=>{
+    if(String(url).includes('/getFile')){downloads++;return Response.json({ok:true,result:{file_path:'photos/test.jpg'}});}
+    return Response.json({ok:true,result:{}});
+  });
+  const e={...env(DB),IMAGES:{},MEDIA:{async put(){uploads++;}}};
+  await processTelegramUpdate(e,{message:{chat:{id:123},message_id:52,caption:'/post Kiểm tra\nNội dung.',photo:[{file_id:'big',file_size:15*1024*1024+1}]}},'123');
+  assert.equal(downloads,0);assert.equal(uploads,0);
+  assert.equal(DB.sqlite.prepare('SELECT COUNT(*) n FROM posts').get().n,0);
 });
 test('batch UTF-8 document is downloaded and all posts saved',async t=>{
   const DB=database();
