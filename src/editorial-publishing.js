@@ -56,8 +56,8 @@ export function validateArticle(item, now) {
 }
 export async function publicationResults(db, chatId, requestKey) {
   return (await db.prepare(`SELECT j.*,p.title,p.slug,p.status AS post_status FROM editorial_jobs j
-    JOIN posts p ON p.id=j.post_id WHERE j.chat_id=? AND j.request_key LIKE ? ORDER BY j.id`)
-    .bind(String(chatId), `${requestKey}:%`).all()).results || [];
+    JOIN posts p ON p.id=j.post_id WHERE j.chat_id=? AND instr(j.request_key,?)=1 ORDER BY j.id`)
+    .bind(String(chatId), `${requestKey}:`).all()).results || [];
 }
 export async function submitArticles(db, items, { chatId, messageId, submissionId, now = Date.now() }) {
   if (submissionId != null && !/^[a-zA-Z0-9_-]{16,100}$/.test(submissionId)) throw new Error('Mã yêu cầu không hợp lệ.');
@@ -94,7 +94,7 @@ export async function publishDueArticles(env, { now = Date.now(), chatId = null,
   const db = env.DB, iso = new Date(now).toISOString();
   let sql = "SELECT id FROM editorial_jobs WHERE status='pending' AND scheduled_at<=?", args = [iso];
   if (chatId !== null) { sql += ' AND chat_id=?'; args.push(String(chatId)); }
-  if (requestKey !== null) { sql += ' AND request_key LIKE ?'; args.push(`${requestKey}:%`); }
+  if (requestKey !== null) { sql += ' AND instr(request_key,?)=1'; args.push(`${requestKey}:`); }
   const rows = (await db.prepare(sql + ' ORDER BY scheduled_at,id LIMIT 20').bind(...args).all()).results || [];
   let published = 0;
   for (const { id } of rows) {
