@@ -1,3 +1,5 @@
+import { handlePublishingApi } from "./publishing-api.js";
+import { publishDueArticles } from "./editorial-publishing.js";
 import legacy from "./index.js";
 import { handleCmsApi } from "./cms.js";
 import { handleTelegramApi } from "./telegram.js";
@@ -84,6 +86,8 @@ export default {
       }
       const blogResponse = await handleBlog(request, env);
       if (blogResponse) return blogResponse;
+      const publishingResponse = await handlePublishingApi(request, env);
+      if (publishingResponse) return publishingResponse;
       const publishCoreResponse = await handlePublishCore(request, env);
       if (publishCoreResponse) return publishCoreResponse;
       const aiChatResponse = await handleAiChat(request, env);
@@ -116,6 +120,9 @@ export default {
     }
   },
   async scheduled(controller, env, ctx) {
+    try {
+      console.log("editorial_schedule", JSON.stringify(await publishDueArticles(env)));
+    } catch (error) { console.error("editorial_schedule_failed", String(error?.message || error)); }
     try {
       const status=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
       console.log("telegram_webhook_status",JSON.stringify(status));
