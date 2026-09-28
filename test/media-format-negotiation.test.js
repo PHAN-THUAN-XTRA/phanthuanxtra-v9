@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const worker=fs.readFileSync("src/index.js","utf8");
+const worker=fs.readFileSync("src/index.js","utf8");\nconst media=fs.readFileSync("src/media.js","utf8");
 
 test("media delivery supports explicit AVIF and WebP variants",()=>{
-  assert.match(worker,/format:'avif'/);
+  assert.match(media,/format:'avif'/);
   assert.match(worker,/image\\\/webp/);
-  assert.match(worker,/quality:76/);
+  assert.match(media,/quality:76/);
   assert.match(worker,/headers\.set\('vary','Accept'\)/);
 });
 
@@ -31,18 +31,18 @@ test("production publishing verifier contains no escaped statement separators",(
 test("adaptive WebP response reconstructs optimized response with negotiation headers",()=>{
   const worker=fs.readFileSync("src/index.js","utf8");
   assert.match(worker,/const optimized=await result\.response\(\)/);
-  assert.match(worker,/new Headers\(optimized\.headers\)/);
-  assert.match(worker,/optimizedHeaders\.set\(['"]vary['"],['"]Accept['"]\)/);
-  assert.match(worker,/new Response\(optimized\.body/);
+  assert.match(media,/new Headers\(optimized\.headers\)/);
+  assert.match(media,/optimizedHeaders\.set\(['"]vary['"],['"]Accept['"]\)/);
+  assert.match(media,/new Response\(optimized\.body/);
 });
 
 
 test("free-tier image variants use explicit format query keys",()=>{
   const worker=fs.readFileSync("src/index.js","utf8");
   const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
-  assert.match(worker,/searchParams\.get\(['"]format['"]\)/);
-  assert.match(worker,/requested===['"]avif['"]/);
-  assert.match(worker,/requested===['"]webp['"]\?['"]image\/webp['"]/);
+  assert.match(media,/searchParams\.get\(['"]format['"]\)/);
+  assert.match(media,/requested===['"]avif['"]/);
+  assert.match(media,/requested===['"]webp['"]\?['"]image\/webp['"]/);
   assert.match(verifier,/\?format=webp/);
   assert.match(verifier,/\?format=avif/);
 });
@@ -70,9 +70,9 @@ test("production variant gate relies on edge Content-Type, not stripped custom h
 
 test("explicit AVIF delivery uses Cloudflare cf.image subrequest with loop guard",()=>{
   const worker=fs.readFileSync("src/index.js","utf8");
-  assert.match(worker,/source['"],['"]1['"]/);
-  assert.match(worker,/cf:\{image:\{format:'avif',quality:76\}\}/);
-  assert.match(worker,/searchParams\.get\(['"]source['"]\)===['"]1['"]/);
+  assert.match(media,/source['"],['"]1['"]/);
+  assert.match(media,/cf:\{image:\{format:'avif',quality:76\}\}/);
+  assert.match(media,/searchParams\.get\(['"]source['"]\)===['"]1['"]/);
 });
 
 
