@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { preparePrivateCover, ImagePrivacyError } from '../src/gemini-plate-privacy.js';
+import { storePublishingImage } from '../src/publishing-api.js';
 
 test('preparePrivateCover fails closed with normalize stage when Images input throws', async () => {
   const env = {
@@ -98,20 +99,62 @@ test('Gemini semantic privacy rejection preserves detect and verify stages', asy
 });
 
 
-test('Gemini request-level rejection preserves caller stage', async () => {
-  const source=await (await import('node:fs/promises')).readFile(new URL('../src/gemini-plate-privacy.js',import.meta.url),'utf8');
-  assert.match(source,/ask\(env,bytes,prompt,schema,stageName='privacy'\)/);
-  assert.match(source,/finishReason!=='STOP'\)reject\(stageName\)/);
-  assert.match(source,/catch \{ reject\(stageName\); \}/);
-  assert.match(source,/\},'gemini-detect'\)\)/);
-  assert.match(source,/\},'gemini-verify'\)\)/);
-});
+function privacyEnvironment() {
+  const writes=[];
+  const pipeline={
+    transform(){return this;},
+    async output(){return {response:()=>new Response('normalized-webp')};}
+  };
+  return {writes,env:{
+    GEMINI_API_KEY:crypto.randomUUID(),GEMINI_MODEL:'gemini-test',
+    IMAGES:{input(){return pipeline;},async info(){return {width:1000,height:500};}},
+    MEDIA:{async put(...args){writes.push(args);}}
+  }};
+}
 
+const diagnostics=[
+  ['HTTP rejection',()=>new Response('provider content must stay private',{status:403}),'Gemini HTTP 403'],
+  ['non-STOP completion',()=>Response.json({candidates:[{finishReason:'MAX_TOKENS'}]}),'Gemini finishReason MAX_TOKENS'],
+  ['missing candidate',()=>Response.json({}),'Gemini finishReason missing'],
+  ['malformed structured JSON',()=>Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:'private malformed model content'}]}}]}),'Gemini structured JSON parse failed'],
+  ['missing content parts',()=>Response.json({candidates:[{finishReason:'STOP',content:{}}]}),'Gemini structured JSON parse failed']
+];
+for(const stageName of ['gemini-detect','gemini-verify']) {
+  for(const [name,response,reason] of diagnostics) {
+    test(`${stageName}: ${name} keeps its diagnostic and prevents R2 writes`,async t=>{
+      const {env,writes}=privacyEnvironment();let calls=0;
+      t.mock.method(globalThis,'fetch',async()=>{
+        calls++;
+        if(stageName==='gemini-verify'&&calls===1)
+          return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({complete:true,boxes:[]})}]}}]});
+        return response();
+      });
+      await assert.rejects(storePublishingImage(env,new Uint8Array([1])),error=>{
+        assert.ok(error instanceof ImagePrivacyError);
+        assert.equal(error.status,422);
+        assert.equal(error.stage,stageName);
+        assert.equal(error.reason,reason);
+        assert.doesNotMatch(error.reason,/private|provider content/);
+        return true;
+      });
+      assert.equal(calls,stageName==='gemini-detect'?1:2);
+      assert.equal(writes.length,0);
+    });
+  }
+}
 
-test('Gemini request diagnostics expose only bounded non-secret failure class', async () => {
-  const source=await (await import('node:fs/promises')).readFile(new URL('../src/gemini-plate-privacy.js',import.meta.url),'utf8');
-  assert.match(source,/Gemini HTTP \$\{response\.status\}/);
-  assert.match(source,/Gemini finishReason \$\{candidate\?\.finishReason\|\|'missing'\}/);
-  assert.match(source,/Gemini structured JSON parse failed/);
-  assert.match(source,/safeReason\(reason\)/);
+test('string diagnostics redact URLs and credential-like values and remain bounded',async t=>{
+  const {env,writes}=privacyEnvironment();
+  const finishReason='SAFETY https://example.invalid/private token_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 '+ 'detail '.repeat(40);
+  t.mock.method(globalThis,'fetch',async()=>Response.json({candidates:[{finishReason}]}));
+  await assert.rejects(storePublishingImage(env,new Uint8Array([1])),error=>{
+    assert.equal(error.stage,'gemini-detect');
+    assert.match(error.reason,/^Gemini finishReason SAFETY/);
+    assert.match(error.reason,/url/);
+    assert.match(error.reason,/redacted/);
+    assert.doesNotMatch(error.reason,/https:|example\.invalid|ABCDEFGHIJKLMNOPQRSTUVWXYZ/);
+    assert.ok(error.reason.length<=180);
+    return true;
+  });
+  assert.equal(writes.length,0);
 });

@@ -3,7 +3,7 @@ const stream = bytes => new Blob([bytes]).stream();
 export class ImagePrivacyError extends Error { constructor(message,stage='privacy',reason='') { super(message);this.status=422;this.stage=stage;this.reason=reason; } }
 function reject(stage='privacy',reason='') { throw new ImagePrivacyError('Chưa xác minh được ảnh che biển số; ảnh chưa được lưu.',stage,safeReason(reason)); }
 function safeReason(error) {
-  const raw=String(error?.message||error?.name||'Error');
+  const raw=String(typeof error==='string'?error:(error?.message||error?.name||'Error'));
   return raw.replace(/https?:\/\/\S+/gi,'[url]').replace(/[A-Za-z0-9_-]{24,}/g,'[redacted]').replace(/[^\p{L}\p{N} .,:;_()\/-]/gu,'').slice(0,180);
 }
 async function stage(name,fn) {
