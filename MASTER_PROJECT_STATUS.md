@@ -899,3 +899,43 @@ All required production deploy steps completed successfully on the exact final l
 - Fail-closed plate privacy behavior: **retained**.
 - WebP canonical: **retained**.
 - AVIF adaptive delivery: **BLOCKED on edge Vary/cache negotiation evidence; no false GREEN**.
+
+
+---
+
+## 23. 2026-09-28 — AVIF adaptive delivery audit closure
+
+### 23.1 Goal
+- Preserve canonical privacy-safe WebP in R2.
+- Deliver WebP explicitly with `?format=webp`.
+- Deliver AVIF explicitly with `?format=avif` when the Cloudflare platform/account returns a genuine `Content-Type: image/avif`.
+- Keep fail-closed plate privacy unchanged and do not fake AVIF via headers.
+
+### 23.2 Evidence chain
+- PR #551 introduced explicit Free-tier URL variants to avoid relying on `Vary: Accept`.
+- Run #1477 (`36375311230`) deployed that lineage but timed out before identifying the exact variant.
+- PR #552 added path-specific diagnostics without weakening assertions.
+- Run #1479 (`36376081822`) proved canonical WebP PASS; explicit WebP request returned a valid WebP representation, while edge custom headers were stripped.
+- PR #553 changed the gate to verify the representation itself by HTTP status + Content-Type.
+- Run #1483 (`36376374445`) proved canonical WebP PASS and explicit WebP PASS, while `?format=avif` returned `Content-Type: image/webp`.
+- PR #554 attempted separate Images transform identities; run #1485 (`36376519494`) still returned WebP for the AVIF request.
+- PR #555 attempted materializing a derived AVIF object from Images binding output; run #1488 (`36376778743`) still observed `image/webp`.
+- Cloudflare official docs dated 2026-09-02 state Images binding supports `.output({format:"image/avif"})`, and 2026-07-02 docs state `cf.image.format="avif"` supports Worker-side content negotiation.
+- PR #556 switched explicit AVIF delivery to a documented `fetch(...,{cf:{image:{format:"avif",quality:76}}})` subrequest with a source loop guard.
+- Run #1492 (`36377080746`) again proved:
+  - canonical WebP: PASS
+  - explicit `?format=webp`: PASS
+  - explicit `?format=avif`: FAIL because observed `Content-Type: image/webp`
+  - R2 lifecycle: PASS
+  - public/editorial/Admin UTF-8 gates: PASS
+  - deploy through Cloudflare API/SDK: PASS
+  - Wrangler production path: not used.
+
+### 23.3 Status decision
+- **WebP canonical storage: GREEN.**
+- **Explicit WebP delivery: GREEN.**
+- **Plate privacy fail-closed behavior: GREEN / unchanged.**
+- **R2 lifecycle and UTF-8 boundaries: GREEN on current lineage.**
+- **AVIF adaptive delivery: BLOCKED by observed Cloudflare platform/account behavior.**
+- Do not declare AVIF GREEN and do not spoof `Content-Type: image/avif` when the representation is actually WebP.
+- Re-open AVIF only when a production probe on this account returns a genuine AVIF representation from a supported Cloudflare path.
