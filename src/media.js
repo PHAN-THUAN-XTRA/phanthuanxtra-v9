@@ -86,7 +86,12 @@ export async function handleMediaApi(request,env){
     originalUrl.searchParams.delete('format');
     originalUrl.searchParams.set('source','1');
     const transformed=await fetch(new Request(originalUrl.toString(),{headers:request.headers}),{cf:{image:{format:'avif',quality:76}}});
-    if(!transformed.ok)return transformed;
+    // Cloudflare Image Resizing may not be enabled for the Worker subrequest path.
+    // Keep the documented WebP fallback for an already privacy-reviewed canonical image.
+    if(!transformed.ok) {
+      if(transformed.status===404)return new Response(object.body,{status:200,headers});
+      return transformed;
+    }
     const transformedHeaders=new Headers(transformed.headers);
     transformedHeaders.set("cache-control",access.private?"private, no-store":"public, max-age=31536000, immutable");
     transformedHeaders.delete("vary");

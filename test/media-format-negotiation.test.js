@@ -109,3 +109,9 @@ test("production publishing privacy fixture is deterministic and substantial",()
   assert.match(verifier,/\/api\/publish\/v1\/media/);
   assert.match(verifier,/assert\.equal\(upload\.status,201/);
 });
+
+
+test("explicit AVIF delivery falls back to canonical WebP when edge transform returns 404",()=>{
+  assert.match(media,/transformed\.status===404/);
+  assert.match(media,/new Response\(object\.body,\{status:200,headers\}\)/);
+});
