@@ -14,6 +14,7 @@ test('preparePrivateCover fails closed with normalize stage when Images input th
       assert.equal(error.stage, 'normalize');
       assert.match(error.message, /normalize/);
       assert.doesNotMatch(error.message, /simulated images failure/);
+      assert.equal(error.reason,'simulated images failure');
       return true;
     }
   );
@@ -45,4 +46,18 @@ test('preparePrivateCover uses supported Images output options during normalize'
   await assert.rejects(preparePrivateCover(env,new Uint8Array([1])),ImagePrivacyError);
   assert.deepEqual(outputOptions,{format:'image/webp',quality:85});
   assert.equal(Object.hasOwn(outputOptions,'metadata'),false);
+});
+
+
+test('image privacy diagnostic reason redacts credential-like tokens and URLs', async () => {
+  const env={IMAGES:{input(){throw new Error('failed https://example.invalid/path token_ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890');}}};
+  await assert.rejects(preparePrivateCover(env,new Uint8Array([1])),error=>{
+    assert.ok(error instanceof ImagePrivacyError);
+    assert.equal(error.stage,'normalize');
+    assert.doesNotMatch(error.reason,/https:\/\//);
+    assert.doesNotMatch(error.reason,/ABCDEFGHIJKLMNOPQRSTUVWXYZ/);
+    assert.match(error.reason,/\[url\]|redacted/);
+    assert.ok(error.reason.length<=180);
+    return true;
+  });
 });
