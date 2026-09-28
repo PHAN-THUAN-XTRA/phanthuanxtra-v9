@@ -96,3 +96,16 @@ test("production publishing retries only transient fail-closed Gemini privacy fa
   assert.match(verifier,/timeout\|aborted/);
   assert.match(verifier,/assert\.equal\(upload\.status,201/);
 });
+
+
+test("production publishing privacy fixture is deterministic and substantial",()=>{
+  const encoded=fs.readFileSync("tests/fixtures/vehicle-vision-smoke.jpg.b64","utf8").trim();
+  const bytes=Buffer.from(encoded,"base64");
+  assert.ok(bytes.length>500);
+  assert.deepEqual([...bytes.subarray(0,2)],[0xff,0xd8]);
+  assert.deepEqual([...bytes.subarray(-2)],[0xff,0xd9]);
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(verifier,/vehicle-vision-smoke\.jpg\.b64/);
+  assert.match(verifier,/\/api\/publish\/v1\/media/);
+  assert.match(verifier,/assert\.equal\(upload\.status,201/);
+});
