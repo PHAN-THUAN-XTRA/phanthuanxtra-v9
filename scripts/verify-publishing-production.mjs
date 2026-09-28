@@ -41,9 +41,17 @@ try{
   assert.equal(upload.status,201,`Authenticated image upload: HTTP ${upload.status} ${uploadText.slice(0,500)}`);
   const media=JSON.parse(uploadText);mediaKey=media.key;
   assert.equal(media.content_type,'image/webp');
-  const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);console.log('Publishing image canonical WebP: PASS');
-  const webp=await request(media.url+'?format=webp',{timeoutMs:45000});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);console.log('Publishing image explicit WebP variant: PASS');
-  const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);const avifType=avif.headers.get('content-type')||'';assert.match(avifType,/image\/(?:avif|webp)/,'Cloudflare AVIF preference must return AVIF or its documented WebP fallback');console.log(`Publishing image AVIF preference: PASS (${avifType==='image/avif'?'AVIF':'documented WebP fallback'})`);
+  const denyDraft=async (url,label) => {
+    const response=await fetch(url,{signal:AbortSignal.timeout(45000)});
+    assert.ok([401,403,404].includes(response.status),`${label} must deny anonymous draft media; HTTP ${response.status}`);
+  };
+  await denyDraft(media.url,'Canonical');
+  await denyDraft(media.url+'?format=webp','WebP variant');
+  await denyDraft(media.url+'?format=avif','AVIF variant');
+  console.log('Publishing draft media anonymous canonical/WebP/AVIF: DENIED');
+  const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);console.log('Publishing authenticated image canonical WebP: PASS');
+  const webp=await request(media.url+'?format=webp',{timeoutMs:45000});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);console.log('Publishing authenticated image explicit WebP variant: PASS');
+  const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);const avifType=avif.headers.get('content-type')||'';assert.match(avifType,/image\/(?:avif|webp)/,'Cloudflare AVIF preference must return AVIF or its documented WebP fallback');console.log(`Publishing authenticated image AVIF preference: PASS (${avifType==='image/avif'?'AVIF':'documented WebP fallback'})`);
   const input={request_id:crypto.randomUUID(),title:'PTX-E2E — PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
   const draft=await data('/api/publish/v1/posts','POST',input);postId=draft.id;
   assert.equal(draft.post.status,'draft');assert.equal(draft.public_url,null);
