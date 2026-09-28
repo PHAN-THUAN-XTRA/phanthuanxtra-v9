@@ -33,16 +33,26 @@ try{
     uploadText=await upload.text();
     if(upload.status===201)break;
     let transient=false;
-    if(upload.status===422){try{const failure=JSON.parse(uploadText);transient=/^gemini-(?:detect|verify)$/.test(failure.stage||'')&&/timeout|aborted/i.test(failure.reason||'');}catch{}}
+    if(upload.status===422){
+      try{
+        const failure=JSON.parse(uploadText);
+        const unavailable=/^Gemini HTTP (?:429|5\d{2})$/.test(failure.reason||'');
+        transient=/^gemini-(?:detect|verify)$/.test(failure.stage||'')&&(/timeout|aborted/i.test(failure.reason||'')||unavailable);
+      }catch{}
+    }
     if(!transient||attempt===3)break;
-    console.log(`Publishing privacy provider transient failure; retrying upload (attempt ${attempt+1}/3).`);
-    await new Promise(resolve=>setTimeout(resolve,3000));
+    // A classified 422 is fail-closed: no media has been persisted to duplicate.
+    const delayMs=10000*2**(attempt-1);
+    console.log(`Publishing privacy provider transient failure; retrying upload after ${delayMs/1000}s (attempt ${attempt+1}/3).`);
+    await new Promise(resolve=>setTimeout(resolve,delayMs));
   }
   assert.equal(upload.status,201,`Authenticated image upload: HTTP ${upload.status} ${uploadText.slice(0,500)}`);
   const media=JSON.parse(uploadText);mediaKey=media.key;
   assert.equal(media.content_type,'image/webp');
   const denyDraft=async (url,label) => {
-    const response=await fetch(url,{signal:AbortSignal.timeout(45000)});
+    const target=new URL(url,base);
+    assert.equal(target.origin,base,'Draft media must use the production origin');
+    const response=await fetch(target,{redirect:'manual',signal:AbortSignal.timeout(45000)});
     assert.ok([401,403,404].includes(response.status),`${label} must deny anonymous draft media; HTTP ${response.status}`);
   };
   await denyDraft(media.url,'Canonical');
