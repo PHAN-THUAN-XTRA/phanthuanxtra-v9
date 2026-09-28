@@ -57,3 +57,22 @@ test('transient Gemini timeout retries once and still requires independent revie
   await storePublishingImage(env,new Uint8Array([1]));
   assert.equal(count,3);assert.equal(writes.length,1);
 });
+
+test('Gemini 503 recovery still requires complete detection and independent verification before R2',async t=>{
+  const {env,writes}=setup();
+  t.mock.method(globalThis,'setTimeout',callback=>{queueMicrotask(callback);return 0;});
+  const count=mock(t,[new Response('',{status:503}),new Response('',{status:503}),{complete:true,boxes:[]},{safe:true,certain:true}]);
+  await storePublishingImage(env,new Uint8Array([1]));
+  assert.equal(count(),4);assert.equal(writes.length,1);
+});
+
+test('four Gemini 503 failures preserve the reason and never persist source bytes',async t=>{
+  const {env,writes}=setup();
+  t.mock.method(globalThis,'setTimeout',callback=>{queueMicrotask(callback);return 0;});
+  const count=mock(t,Array.from({length:4},()=>new Response('',{status:503})));
+  await assert.rejects(storePublishingImage(env,new Uint8Array([1])),error=>{
+    assert.equal(error.status,422);assert.equal(error.stage,'gemini-detect');
+    assert.equal(error.reason,'Gemini HTTP 503');return true;
+  });
+  assert.equal(count(),4);assert.equal(writes.length,0);
+});
