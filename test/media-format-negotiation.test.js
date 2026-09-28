@@ -13,13 +13,13 @@ test("media delivery negotiates AVIF then WebP from Accept",()=>{
 });
 
 
-test("production publishing verifier locks canonical WebP plus adaptive AVIF/WebP",()=>{
+test("production publishing verifier locks canonical WebP plus cache-safe AVIF/WebP variants",()=>{
   const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
   assert.match(verifier,/Accept:'image\/jpeg'/);
-  assert.match(verifier,/Accept:'image\/webp'/);
-  assert.match(verifier,/Accept:'image\/avif,image\/webp;q=0\.8'/);
+  assert.match(verifier,/\?format=webp/);
+  assert.match(verifier,/\?format=avif/);
   assert.match(verifier,/x-pt-xtra-image-format/);
-  assert.match(verifier,/canonical WebP \+ adaptive AVIF\/WebP delivery/);
+  assert.match(verifier,/canonical WebP \+ explicit cache-safe AVIF\/WebP variants/);
 });
 
 
@@ -36,4 +36,15 @@ test("adaptive image response reconstructs optimized response with negotiation h
   assert.match(worker,/optimizedHeaders\.set\(['"]vary['"],['"]Accept['"]\)/);
   assert.match(worker,/optimizedHeaders\.set\(['"]x-pt-xtra-image-format['"],format\)/);
   assert.match(worker,/new Response\(optimized\.body/);
+});
+
+
+test("free-tier image variants use explicit format query keys",()=>{
+  const worker=fs.readFileSync("src/index.js","utf8");
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(worker,/searchParams\.get\(['"]format['"]\)/);
+  assert.match(worker,/requested===['"]avif['"]\?['"]image\/avif['"]/);
+  assert.match(worker,/requested===['"]webp['"]\?['"]image\/webp['"]/);
+  assert.match(verifier,/\?format=webp/);
+  assert.match(verifier,/\?format=avif/);
 });
