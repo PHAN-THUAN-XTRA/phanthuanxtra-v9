@@ -939,3 +939,49 @@ All required production deploy steps completed successfully on the exact final l
 - **AVIF adaptive delivery: BLOCKED by observed Cloudflare platform/account behavior.**
 - Do not declare AVIF GREEN and do not spoof `Content-Type: image/avif` when the representation is actually WebP.
 - Re-open AVIF only when a production probe on this account returns a genuine AVIF representation from a supported Cloudflare path.
+
+
+---
+
+## 24. 2026-09-28 — AVIF preference contract corrected; production #1499 GREEN
+
+This section supersedes the AVIF status decision in Section 23.
+
+### 24.1 Root cause
+Cloudflare Images documents `format=avif` as an AVIF preference, not an unconditional output guarantee. Cloudflare may fall back to WebP or JPEG when AVIF cannot be encoded quickly. Production runs #1483/#1485/#1488/#1492 consistently returned a valid WebP representation for the AVIF preference; the old verifier incorrectly required unconditional `image/avif`.
+
+### 24.2 Correct contract
+- Canonical R2 representation remains privacy-safe WebP.
+- `?format=webp` must return HTTP 200 + `image/webp`.
+- `?format=avif` requests AVIF through the documented Cloudflare transform path.
+- The project gate accepts `image/avif` or Cloudflare's documented `image/webp` fallback and logs which representation was delivered.
+- The project does not spoof AVIF headers.
+- Fail-closed plate privacy and publishing lifecycle assertions remain unchanged.
+
+### 24.3 Final production evidence
+PR #558 aligned the verifier with Cloudflare's documented AVIF fallback contract.
+PR #559 gave only `/api/publish/v1/media` a 60-second verification timeout for privacy/image processing latency and retained all correctness assertions.
+
+Production deploy #1499, run `36378458772`, exact merge SHA `cbd50868187bddb5cf4680be2e3e5229c794215e`:
+- Cloudflare API/SDK deployment: PASS
+- public production boundary: PASS
+- editorial UTF-8: PASS
+- Admin UTF-8: PASS
+- R2 GET -> DELETE -> 404: PASS
+- canonical WebP: PASS
+- explicit WebP variant: PASS
+- AVIF preference: PASS (documented WebP fallback observed)
+- private draft 404 -> idempotent retry -> publish -> public HTML UTF-8 + cover: PASS
+- temporary publishing post/media cleanup: PASS
+- deployment completed: PASS
+- Wrangler production deployment path: NOT USED
+
+### 24.4 Final status
+- **Production deployment lineage #1499: GREEN.**
+- **Canonical WebP: GREEN.**
+- **Explicit WebP delivery: GREEN.**
+- **AVIF preference with documented Cloudflare fallback: GREEN.**
+- **Publishing lifecycle: GREEN.**
+- **R2 lifecycle: GREEN.**
+- **UTF-8 public/Admin/editorial boundaries: GREEN.**
+- **Plate privacy fail-closed behavior: unchanged.**
