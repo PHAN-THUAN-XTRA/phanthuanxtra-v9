@@ -7,7 +7,7 @@ const media=fs.readFileSync("src/media.js","utf8");
 
 test("media delivery supports explicit AVIF and WebP variants",()=>{
   assert.match(media,/format:[\'\"]avif[\'\"]/);
-  assert.match(worker,/image\\\/webp/);
+  assert.match(media,/image\\\/webp/);
   assert.match(media,/quality:76/);
   assert.match(media,/headers\.set\([\'\"]vary[\'\"],[\'\"]Accept[\'\"]\)/);
 });
