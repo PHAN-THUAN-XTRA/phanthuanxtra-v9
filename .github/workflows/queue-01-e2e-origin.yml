@@ -82,9 +82,13 @@ jobs:
           MEDIA_KEY="$(jq -r '.key // empty' /tmp/media-upload.json)"
           test -n "$MEDIA_KEY"
           export MEDIA_KEY
-          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 "$BASE_URL/media/$MEDIA_KEY" -o /tmp/read.png
+          status="$(curl --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' "$BASE_URL/media/$MEDIA_KEY")"
+          test "$status" = "404"
+          status="$(curl --silent --show-error --max-time 20 -I -o /dev/null -w '%{http_code}' "$BASE_URL/media/$MEDIA_KEY")"
+          test "$status" = "404"
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 -H "Authorization: Bearer $SESSION" "$BASE_URL/media/$MEDIA_KEY" -o /tmp/read.png
           cmp /tmp/xtra-e2e.png /tmp/read.png
-          echo 'R2 Worker route write/read: OK'
+          echo 'R2 private draft denial and authenticated read: OK'
           status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/media-delete.json -w '%{http_code}' -X DELETE "$BASE_URL/api/admin/media/$MEDIA_KEY" -H "Authorization: Bearer $SESSION")"
           echo "R2 delete HTTP $status"
           test "$status" = "200"

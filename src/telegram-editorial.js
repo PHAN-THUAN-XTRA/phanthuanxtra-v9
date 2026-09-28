@@ -1,4 +1,6 @@
-import { preparePrivateCover, requirePrivateCover } from './gemini-plate-privacy.js';
+import { requirePrivateCover } from './gemini-plate-privacy.js';
+import { storePublishingImage } from './publishing-api.js';
+import { imageInputLimit } from './media-policy.js';
 import { canPublishAutoBlog, parseAutoCommand } from './auto-bot-ai.js';
 import { parseArticle, parseBatch, submitArticles, publishDueArticles, changePublication, recentPublications, localTime, publicationResults, publicationKey, getPublication } from './editorial-publishing.js';
 
@@ -48,13 +50,11 @@ async function download(env, file, max) {
   for (const chunk of chunks) { bytes.set(chunk,offset); offset += chunk.length; }
   return bytes;
 }
-async function cover(env, photo, requestKey) {
+async function cover(env, photo) {
   if (!env.MEDIA || !env.IMAGES) throw new Error('Chưa cấu hình xử lý/lưu ảnh; bài chưa được đăng.');
-  const bytes = await download(env,photo,10*1024*1024);
-  const processed = await preparePrivateCover(env,bytes);
-  const key = `blog/editorial-${requestKey}.webp`;
-  await env.MEDIA.put(key,processed.bytes,{ customMetadata: processed.metadata, httpMetadata: { contentType: 'image/webp', cacheControl: 'public,max-age=31536000,immutable' } });
-  return `/media/${key}`;
+  const bytes = await download(env,photo,imageInputLimit());
+  const media = await storePublishingImage(env,bytes);
+  return media.url;
 }
 function report(job) {
   const states = { draft: 'BẢN NHÁP', pending: 'ĐÃ HẸN', published: 'ĐÃ XUẤT BẢN', cancelled: 'ĐÃ HỦY' };
@@ -97,7 +97,7 @@ export async function handleEditorialMessage(env, message, chatId) {
     } else {
       if (message.media_group_id) throw new Error('Gửi một ảnh cover riêng kèm /post; album nhiều ảnh chưa được hỗ trợ cho bài tổng quát.');
       items = [parseArticle(command.body, command.name === 'schedule' ? 'schedule' : command.name === 'draft' ? 'draft' : 'publish')];
-      if (message.photo?.length) items[0].cover_image = await cover(env,message.photo.at(-1),requestKey);
+      if (message.photo?.length) items[0].cover_image = await cover(env,message.photo.at(-1));
     }
     for(const item of items)await requirePrivateCover(env,item.cover_image);
     const result = await submitArticles(env.DB,items,{chatId,messageId:message.message_id});
