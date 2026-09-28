@@ -10,6 +10,7 @@ function database() {
   return { posts, get writes() { return writes; }, prepare(sql) { return { bind(...args) { return {
     async first() { return sql.includes("WHERE slug=") ? posts.get(args[0]) || null : [...posts.values()].find(p => p.id === args[0]) || null; },
     async run() {
+      if (sql.includes("INTO media_assets")) return { meta: { changes: 1 } };
       if (sql.startsWith("INSERT INTO posts")) {
         if (posts.has(args[1])) throw new Error("UNIQUE constraint failed: posts.slug");
         const post = { id: posts.size + 1, title: args[0], slug: args[1], content: args[3], cover_image: args[4], status: args[7] };

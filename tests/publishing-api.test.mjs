@@ -83,3 +83,14 @@ test('invalid batch payload gives a user error, not an internal server error',as
   const {call}=setup();const response=await call('/posts','POST',{...payload(),content:''});
   assert.equal(response.status,400);
 });
+
+
+test('publishing media policy keeps WebP canonical with flexible AVIF delivery',async()=>{
+  const {MEDIA_POLICY}=await import('../src/media-policy.js');
+  assert.equal(MEDIA_POLICY.image.maxInputBytes,15*1024*1024);
+  assert.equal(MEDIA_POLICY.image.maxPerArticle,20);
+  assert.equal(MEDIA_POLICY.image.canonicalFormat,'webp');
+  assert.deepEqual(MEDIA_POLICY.image.deliveryFormats,['webp','avif']);
+  assert.equal(MEDIA_POLICY.video.maxSimpleUploadBytes,100*1024*1024);
+  assert.equal(MEDIA_POLICY.video.multipartAboveBytes,100*1024*1024);
+});
