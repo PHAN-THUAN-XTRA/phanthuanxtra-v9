@@ -4,12 +4,12 @@ export const validPostSlug=v=>/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(String(v
 export function slugify(v){return text(v,160).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,120)}
 function tags(v){if(Array.isArray(v))return v.slice(0,30).map(x=>text(x,80)).filter(Boolean);try{const x=JSON.parse(v||"[]");return Array.isArray(x)?x:[]}catch{return[]}}
 export function normalizePostPayload(body={},existing={}){
- const title=text(body.title??existing.title,240),content=text(body.content??existing.content,100000),slug=slugify(body.slug??existing.slug??title);
+ const title=text(body.title??existing.title,240),content=text(body.content??existing.content,100000),slug=slugify(text(body.slug)||existing.slug||title);
  const status=text(body.status??existing.status??"draft",20).toLowerCase();
  if(!title)return{error:"title là bắt buộc"};if(!content)return{error:"content là bắt buộc"};if(!validPostSlug(slug))return{error:"slug không hợp lệ"};if(!STATUSES.has(status))return{error:"status phải là draft, published hoặc archived"};
  return{value:{title,slug,excerpt:text(body.excerpt??existing.excerpt,800),content,cover_image:text(body.cover_image??existing.cover_image,2000),category:text(body.category??existing.category,100),tags:tags(body.tags??body.tags_json??existing.tags_json),status}};
 }
-export function postView(row){if(!row)return null;return{...row,tags:tags(row.tags_json)}}
+export function postView(row){if(!row)return null;return{...row,tags:tags(row.tags_json),url:row.status==="published"?`https://phanthuanxtra.com/blog/${row.slug}`:null}}
 export async function listPosts(db,{status="",q="",limit=100,publicOnly=false}={}){
  let sql="SELECT * FROM posts WHERE 1=1",args=[];if(publicOnly){sql+=" AND status='published'"}else if(status){sql+=" AND status=?";args.push(status)}
  if(q){sql+=" AND (title LIKE ? OR excerpt LIKE ? OR content LIKE ? OR category LIKE ?)";const x=`%${text(q,120)}%`;args.push(x,x,x,x)}

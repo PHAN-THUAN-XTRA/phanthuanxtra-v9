@@ -6,13 +6,12 @@ Last reviewed: 2026-09-27
 Use Gemini Developer API only when the current Google project/API key actually exposes a suitable free-tier model. Cloudflare Workers AI remains the automatic fallback. Do not repeatedly deploy guessed Gemini model IDs.
 
 ## Current production evidence
-- Routing policy: `zero-cost-first`.
-- Gemini is enabled.
-- Gate 10 production returned `gemini_http_failed`, HTTP `404`, provider code `NOT_FOUND`.
-- Workers AI fallback succeeded.
-- `production_mutation=false`.
+- Main commit: `f1f7b59a8e533f57b395b26ef5c7e7253d129dbe`.
+- Gate 10 run: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/36327468899
+- Runtime result: `ok=true`, `routing_policy=zero-cost-first`, `selected_provider=gemini`, `fallback_used=false`, `model=gemini-3.5-flash-lite`, `production_mutation=false`.
+- Developer Gateway deployment and website deployment both succeeded on this commit.
 
-Interpretation: current failure is model/API availability, not `gemini_disabled` and not quota exhaustion.
+The earlier HTTP 404 was resolved by model discovery in PR #532. This evidence verifies Gateway text generation; it does not verify website image redaction or the private ChatGPT publishing Action.
 
 ## Internet research conclusion
 Google currently limits Gemini 2.5 access to users/projects that actively used 2.5 in the past. 2.5 is not deprecated, but Google recommends newer models for new projects. Therefore `gemini-2.5-flash` is not a safe default for this new project.
@@ -95,4 +94,4 @@ Fallback verification requires:
 - https://ai.google.dev/gemini-api/docs/troubleshooting
 
 ## Next engineering action
-Implement a secret-safe deployment preflight using `models.list`: verify `generateContent`, select an approved free-tier model from the actual returned set, and fall back safely to Workers AI if none is available.
+Model discovery is implemented and production-verified in PR #532. Follow up by caching discovery and bounding its request timeout; discovery currently runs per auto-model request. Verify image publishing separately under docs/gemini-editorial-privacy.md.
