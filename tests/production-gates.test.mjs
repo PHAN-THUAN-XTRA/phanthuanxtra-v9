@@ -344,3 +344,13 @@ test('production gate: Telegram albums publish every image only through verified
   assert.match(router, /promoteDraft\(env, inboxId, ai, publishMediaKeys\[0\], publishMediaKeys\)/);
   assert.match(ingest, /images:imageUrls\.length\?imageUrls:\[imageUrl\]/);
 });
+
+
+test('production gate: failed Telegram albums clean already-persisted verified media', () => {
+  const router = fs.readFileSync(new URL('../src/telegram-router.js', import.meta.url), 'utf8');
+  assert.match(router, /const processed = \[\];\s*try \{/);
+  assert.match(router, /for \(const item of processed\)/);
+  assert.match(router, /env\.MEDIA\?\.delete\(key\)/);
+  assert.match(router, /DELETE FROM media_assets WHERE r2_key=\?/);
+  assert.match(router, /UPDATE telegram_inbox SET status='failed',bundle_status='failed'/);
+});

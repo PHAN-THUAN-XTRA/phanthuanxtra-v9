@@ -27,8 +27,8 @@ async function processBundle(env, bundleKey, chatId) {
   const photoRow = photoRows[0];
   if (!photoRow) return;
   const text = rows.map(row => clean(row.caption)).filter(Boolean).join("\n\n");
+  const processed = [];
   try {
-    const processed = [];
     let primaryAi = null;
     for (const row of photoRows) {
       const file = await tg(token, "getFile", { file_id: row.file_id });
@@ -64,6 +64,15 @@ async function processBundle(env, bundleKey, chatId) {
     await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',caption=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text, bundleKey).run();
     await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["🚀 ĐÃ PHÂN TÍCH + TỰ ĐĂNG XE", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, `🖼 Gallery: ${publishMediaKeys.length} ảnh WebP đã xác minh privacy`, "🌐 Website: phanthuanxtra.com"].join("\n") });
   } catch (error) {
+    // A later album image can fail after earlier privacy-verified images were
+    // persisted. Roll those partial writes back so failed bundles leave no
+    // orphan R2 objects or media_assets rows.
+    for (const item of processed) {
+      const key = clean(item?.media?.key, 1000);
+      if (!key) continue;
+      await env.MEDIA?.delete(key).catch(() => {});
+      await env.DB?.prepare("DELETE FROM media_assets WHERE r2_key=?").bind(key).run().catch(() => {});
+    }
     const message = clean(error?.message || error);
     await env.DB.prepare("UPDATE telegram_inbox SET status='failed',bundle_status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(message, bundleKey).run().catch(() => {});
     await tg(token, "sendMessage", { chat_id: chatId, text: `❌ Không xử lý được gói ảnh + thông tin\n📦 Bundle: ${bundleKey}\n⚠️ ${message}` }).catch(() => {});
