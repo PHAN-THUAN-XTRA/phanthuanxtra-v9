@@ -19,7 +19,9 @@ try{
   const login=await data('/api/admin/login','POST',{password:process.env.ADMIN_PASSWORD});session=login.token;assert.ok(session);
   const bytes=Buffer.from((await readFile('tests/fixtures/vehicle-vision-smoke.jpg.b64','utf8')).trim(),'base64');
   const upload=await request('/api/publish/v1/media',{method:'POST',headers:{'content-type':'image/jpeg'},body:bytes});
-  assert.equal(upload.status,201,'Authenticated image upload');const media=await upload.json();mediaKey=media.key;
+  const uploadText=await upload.text();
+  assert.equal(upload.status,201,`Authenticated image upload: HTTP ${upload.status} ${uploadText.slice(0,500)}`);
+  const media=JSON.parse(uploadText);mediaKey=media.key;
   assert.equal(media.content_type,'image/webp');
   const image=await request(media.url);assert.equal(image.status,200);assert.match(image.headers.get('content-type'),/image\/webp/);
   const input={request_id:crypto.randomUUID(),title:'PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
