@@ -11,3 +11,13 @@ test("media delivery negotiates AVIF then WebP from Accept",()=>{
   assert.match(worker,/headers\.set\('vary','Accept'\)/);
   assert.match(worker,/'x-pt-xtra-image-format':format/);
 });
+
+
+test("production publishing verifier locks canonical WebP plus adaptive AVIF/WebP",()=>{
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(verifier,/Accept:'image\/jpeg'/);
+  assert.match(verifier,/Accept:'image\/webp'/);
+  assert.match(verifier,/Accept:'image\/avif,image\/webp;q=0\.8'/);
+  assert.match(verifier,/x-pt-xtra-image-format/);
+  assert.match(verifier,/canonical WebP \+ adaptive AVIF\/WebP delivery/);
+});
