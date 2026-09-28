@@ -61,3 +61,10 @@ test('image privacy diagnostic reason redacts credential-like tokens and URLs', 
     return true;
   });
 });
+
+
+test('production publishing verifier keeps bounded API failure evidence', async () => {
+  const source=await (await import('node:fs/promises')).readFile(new URL('../scripts/verify-publishing-production.mjs',import.meta.url),'utf8');
+  assert.match(source,/const text=await response\.text\(\)/);
+  assert.match(source,/text\.slice\(0,500\)/);
+});
