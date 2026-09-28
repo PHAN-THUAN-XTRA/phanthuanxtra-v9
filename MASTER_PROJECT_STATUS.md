@@ -765,3 +765,55 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Cloudflare AI Gateway pricing/features and Workers AI prompt caching documentation.
 - GitHub Actions billing, concurrency and artifact/log retention documentation.
 - Android Developers release signing and security guidance.
+
+
+---
+
+## 21. 2026-09-28 — Publishing image lifecycle production GREEN (run #1460)
+
+### 21.1 Scope and deployment policy
+- Website Worker production deployment remains **GitHub Actions -> Cloudflare API/SDK only**.
+- Wrangler production deployment path remains **NOT USED**.
+- Final production lineage for this checkpoint: main merge SHA `07224d939714629d28c1186a76e8bcd4804d5b31`.
+- Deploy Cloudflare Worker run `36373328943` (#1460): **SUCCESS**.
+
+### 21.2 Audit trail and root-cause isolation
+- PR #536 `fix: use supported Cloudflare Images output contract` auto-merged as `f9052c7f2b6b7ba54f98eaf930642946806be842`.
+- During PR #536 audit, an existing editorial publishing regression test failed because its Images mock still asserted the retired `metadata: 'none'` output option. The mock was updated to assert the supported contract `{format:'image/webp', quality:85}`; required checks then passed before auto-merge.
+- Production run `36372377834` (#1447) deployed successfully through API/SDK and passed public boundary, editorial UTF-8, Admin UTF-8 and R2 E2E, but publishing image lifecycle still failed closed at `normalize` with HTTP 422.
+- PR #537 `fix: expose sanitized Images normalize reason` added bounded/sanitized authenticated diagnostics. URLs and credential-like long tokens are redacted; image bytes and secrets are not returned.
+- PR #537 auto-merged as `6383be188eb1da4c4a68c444b0220529e9f7b1e0`.
+- Production run `36372529016` (#1449) produced the exact Cloudflare Images root cause: `IMAGES_TRANSFORM_ERROR 9516` — JPEG decode failed because the smoke fixture was incomplete/damaged.
+- Therefore the Images binding itself was not the blocker, and D1/R2 were not the blocker. The production gate fixture was invalid.
+- PR #542 `test: use decodable JPEG for publishing production gate` replaced only the damaged Base64 JPEG smoke fixture with a freshly encoded baseline JPEG, preserving the real Images normalize -> WebP path and all fail-closed privacy assertions.
+- PR #542 required `CI / Validate` and `AI Pre-Deploy Audit / Validate` passed and auto-merge completed as `07224d939714629d28c1186a76e8bcd4804d5b31`.
+
+### 21.3 Final production evidence — run 36373328943 (#1460)
+All required production deploy steps completed successfully on the exact final lineage:
+- Deploy and migrate through Cloudflare API/SDK: **PASS**
+- Diagnose Workers AI account allocation: **PASS**
+- Purge changed Admin HTML cache: **PASS**
+- Verify public production boundary: **PASS**
+- Verify editorial production UTF-8: **PASS**
+- Verify Admin UTF-8 asset delivery: **PASS**
+- R2 Worker E2E GET -> DELETE -> cache-busted GET: **PASS** (`200 -> 200 -> 404`)
+- Verify publishing draft image public URL lifecycle: **PASS**
+- Deployment completed: **PASS**
+- Publishing E2E log: `image WebP -> private draft 404 -> idempotent retry -> publish -> public HTML UTF-8 + cover PASS.`
+- Temporary publishing post/media cleanup: **PASS**
+- Deployment log explicitly confirms: `Wrangler production deployment path: NOT USED`.
+
+### 21.4 Status decision
+- **Images Binding / WebP conversion: GREEN in production.**
+- **Publishing API image upload + draft -> publish -> public URL lifecycle: GREEN in production.**
+- **R2 GET -> DELETE -> 404: GREEN on the same deployment lineage.**
+- **HTML/Admin/editorial UTF-8 gates: GREEN on the same deployment lineage.**
+- This closes the publishing-image production blocker that began with the earlier HTTP 500/422 normalize failures.
+- Do not reuse the damaged historical JPEG fixture.
+- Keep the sanitized stage diagnostic and fail-closed image privacy behavior as regression protection.
+
+### 21.5 Next product-level work
+- Configure/test the private ChatGPT GPT Action against the now-green publishing API.
+- Run one real attached-image GPT flow: upload -> Gemini privacy processing -> draft -> explicit publish -> exact public URL.
+- Run live Telegram general-article draft/publish/schedule/batch checks.
+- Keep secrets out of chat and out of APK/client code.
