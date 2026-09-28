@@ -1069,3 +1069,59 @@ Deploy Cloudflare Worker #1512, run `36380553663`, exact SHA `83afab602c7228b83c
 - **Telegram AI photo-blog privacy/storage path: merged and deployed on the unified contract.**
 - **Admin remains an authorized publishing surface on the same D1/R2 backend.**
 - **Automatic publishing must remain gated by authorization and fail-closed image privacy; provider uncertainty must not publish the original image.**
+
+
+---
+
+## 27. 2026-09-28 — Flexible media policy production audit (#567 / #1517)
+
+### Merged implementation
+PR #567 `feat: add flexible publishing media policy and metadata` merged as `c227b60408adf9b43d1dc42a69a18db03b1cd5b4`.
+
+The shared publishing media policy now records:
+- image input limit: 15 MiB;
+- gallery policy ceiling: 20 images/article (policy only; gallery endpoint/E2E is not yet claimed complete);
+- canonical image storage: WebP;
+- delivery formats: WebP plus AVIF preference/fallback contract;
+- video policy: simple-upload ceiling 100 MiB and multipart above that threshold (policy only; MP4 upload/transcode endpoint/E2E is not yet claimed complete);
+- D1 `media_assets` metadata: `r2_key`, `url`, `media_type`, `content_type`, `size_bytes`, `width`, `height`, `duration_ms`, `canonical_format`, `privacy_status`;
+- fail-closed Gemini license-plate privacy remains required before an image is stored by the publishing path.
+
+### Exact production evidence
+Deploy Cloudflare Worker #1517, run `36382157834`, exact SHA `c227b60408adf9b43d1dc42a69a18db03b1cd5b4`: **SUCCESS**.
+- D1 migration `0017_media_assets.sql`: applied.
+- Cloudflare API/SDK deployment: PASS.
+- public/editorial/Admin UTF-8 gates: PASS.
+- R2 GET -> DELETE -> 404: PASS.
+- publishing canonical WebP: PASS.
+- explicit WebP: PASS.
+- AVIF preference: PASS with documented WebP fallback.
+- private draft -> idempotent retry -> publish -> public HTML UTF-8 + cover: PASS.
+- publishing cleanup: PASS.
+- Wrangler production deployment path: NOT USED.
+
+Additional same-SHA evidence:
+- CI #906: SUCCESS.
+- Stage 3 Production Reconciliation #321: SUCCESS.
+- Production Smoke Gate-15 #401: SUCCESS.
+- Release Gate Static Audit #1067: SUCCESS.
+- Android APK MVP #1546: SUCCESS.
+- Blog CMS Production E2E #378: SUCCESS.
+
+### Audit exception — do not mark the entire project all-green
+QUEUE-01 Production E2E Origin #748, run `36382295549`: **FAILURE**.
+- authenticated Admin/App sessions: PASS;
+- D1 CRUD lifecycle: PASS;
+- R2 write/read/delete/404 lifecycle: PASS;
+- failure occurs only at the real Workers AI Vision inference;
+- production response: HTTP 503, `VEHICLE_AI_UNAVAILABLE`, diagnostic `RATE_LIMIT`, Cloudflare code 4006: daily free allocation of 10,000 neurons exhausted.
+
+This is an external account-allocation blocker, not evidence of a regression in PR #567's publishing media policy. Do not weaken or skip the AI/privacy checks to manufacture a green result.
+
+### Current status
+- **Flexible WebP/AVIF publishing image policy: PRODUCTION GREEN.**
+- **D1 media metadata migration: PRODUCTION GREEN.**
+- **15 MiB image limit: DEPLOYED.**
+- **Gallery 20-image policy: DEFINED, endpoint/E2E still pending.**
+- **Video 100 MiB/multipart policy: DEFINED, MP4/transcode/upload E2E still pending.**
+- **Whole-project all-green claim: BLOCKED by Workers AI daily quota in QUEUE-01 #748.**
