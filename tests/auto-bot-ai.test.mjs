@@ -86,9 +86,14 @@ test("photo /blog creates one public post and retries skip AI and R2", async t =
   t.mock.method(globalThis, "fetch", async (url, init) => {
     if (url.includes("/getFile")) return Response.json({ ok: true, result: { file_path: "photos/image.jpg" } });
     if (url.includes("/file/bot")) return new Response(new Uint8Array([1, 2]), { headers: { "content-type": "image/jpeg" } });
+    if (url.includes("generativelanguage.googleapis.com")) {
+      const prompt=JSON.parse(init.body).contents[0].parts.at(-1).text;
+      return Response.json({ candidates:[{ finishReason:"STOP", content:{ parts:[{ text: prompt.startsWith("Privacy review") ? '{"safe":true,"certain":true}' : '{"complete":true,"boxes":[]}' }] } }] });
+    }
     replies.push(JSON.parse(init.body)); return Response.json({ ok: true, result: {} });
   });
-  const env = { DB, TELEGRAM_CHAT_ID: "123", TELEGRAM_AUTO_BOT_TOKEN: "test", MEDIA: { async put() { uploads++; } }, AI: { async run(model, input) {
+  const imageResult={ transform(){return this;}, async output(){return {response(){return new Response(new Uint8Array([9,8,7]),{status:200,headers:{"content-type":"image/webp"}})}}} };
+  const env = { DB, TELEGRAM_CHAT_ID: "123", TELEGRAM_AUTO_BOT_TOKEN: "test", GEMINI_API_KEY:["fixture","credential"].join("-"), GEMINI_MODEL:"gemini-3.5-flash-lite", IMAGES:{input(){return Object.create(imageResult)},async info(){return {width:640,height:480}}}, MEDIA: { async put() { uploads++; } }, AI: { async run(model, input) {
     aiCalls++; return input.tools ? toolResponse(draft) : { response: JSON.stringify({ brand: "Toyota", model: "Vios", confidence: 0.9 }) };
   } } };
   const update = { message: { chat: { id: 123 }, message_id: 5, caption: "/blog Vios", photo: [{ file_id: "file" }] } };

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { buildCaption } from '../src/telegram.js';
 import { canAutoPublish, promoteDraft } from '../src/telegram-ingest.js';
 import { telegramWebhookReceipt } from '../src/telegram-router.js';
@@ -103,4 +104,12 @@ test('Telegram router source locks complementary bundle pairing and optional pla
   assert.match(source,/let publishMediaKey = mediaKey/);
   assert.match(source,/hasPlate \? "branded" : "ready_to_publish"/);
   assert.match(source,/TỰ ĐĂNG XE/);
+});
+
+
+test("AI photo blog reuses unified publishing privacy media contract",()=>{
+  const source=fs.readFileSync("src/telegram-router.js","utf8");
+  assert.match(source,/storePublishingImage\(env, new Uint8Array\(bytes\)\)/);
+  assert.match(source,/coverImage: media\.url/);
+  assert.doesNotMatch(source,/const key = `blog\/\$\{slug\}\.\$\{extension\}`/);
 });
