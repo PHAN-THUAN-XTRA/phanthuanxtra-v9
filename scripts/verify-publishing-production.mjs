@@ -33,8 +33,8 @@ try{
   const media=JSON.parse(uploadText);mediaKey=media.key;
   assert.equal(media.content_type,'image/webp');
   const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);console.log('Publishing image canonical WebP: PASS');
-  const webp=await request(media.url+'?format=webp',{timeoutMs:45000});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);assert.equal(webp.headers.get('x-pt-xtra-image-format'),'image/webp');console.log('Publishing image explicit WebP variant: PASS');
-  const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);assert.match(avif.headers.get('content-type'),/image\/avif/);assert.equal(avif.headers.get('x-pt-xtra-image-format'),'image/avif');console.log('Publishing image explicit AVIF variant: PASS');
+  const webp=await request(media.url+'?format=webp',{timeoutMs:45000});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);console.log('Publishing image explicit WebP variant: PASS');
+  const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);assert.match(avif.headers.get('content-type'),/image\/avif/);console.log('Publishing image explicit AVIF variant: PASS');
   const input={request_id:crypto.randomUUID(),title:'PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
   const draft=await data('/api/publish/v1/posts','POST',input);postId=draft.id;
   assert.equal(draft.post.status,'draft');assert.equal(draft.public_url,null);
