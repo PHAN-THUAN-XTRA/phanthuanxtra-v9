@@ -400,3 +400,24 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 /* Shared subpage navigation stays available without JavaScript on narrow screens. */
 .subpage-header .nav{gap:24px}
 @media(max-width:800px){.subpage-header .nav{min-height:68px;flex-wrap:wrap;gap:0;padding:10px 0}.subpage-header nav{display:flex;position:static;flex-direction:row;flex-wrap:wrap;gap:4px;width:100%;margin:6px 0 0;padding:0;background:none;border:0}.subpage-header nav a{padding:7px 10px;min-height:40px}.subpage-header .hotline{display:none}}
+
+/* Four editorial images replace the decorative panel in the homepage hero. */
+.hero-carousel{isolation:isolate;min-height:500px}
+.hero-carousel::before,.hero-carousel::after{display:none}
+.hero-slide{position:absolute;inset:0;background:#10211d}
+.hero-slide[hidden]{display:none!important}
+.hero-slide img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.hero-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,8,7,.06) 22%,rgba(2,8,7,.53) 55%,rgba(2,8,7,.94) 100%);pointer-events:none}
+.hero-slide-content{position:absolute;z-index:1;left:32px;right:32px;bottom:72px;color:#fff}
+.hero-slide-content>span{font:800 10px "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.2em;color:var(--gold-soft)}
+.hero-slide-content h2{font:600 clamp(27px,3vw,39px)/1.08 "Noto Serif Display",serif;letter-spacing:-.025em;margin:10px 0}
+.hero-slide-content p{font-size:13px;line-height:1.5;max-width:390px;margin:0 0 15px;color:#e1e7e3}
+.hero-slide-link{display:inline-block;padding:10px 14px;border:1px solid var(--gold-soft);color:#fff;font-size:12px;font-weight:800;background:rgba(3,18,14,.62)}
+.hero-slide-link:hover,.hero-slide-link:focus-visible{background:var(--gold-soft);color:#07100d}
+.hero-slide-content small{display:block;margin-top:10px;font-size:9px;color:#d1d8d3}
+.hero-slide-content small a{text-decoration:underline;text-underline-offset:2px}
+.hero-carousel-controls{position:absolute;z-index:2;left:32px;right:32px;bottom:23px;display:flex;gap:8px}
+.hero-carousel-controls button{flex:1;min-height:32px;border:1px solid rgba(234,210,154,.55);background:rgba(2,8,7,.7);color:#eee;font:700 11px "Be Vietnam Pro",Arial,sans-serif;cursor:pointer}
+.hero-carousel-controls button.is-active{background:var(--gold-soft);color:#07100d}
+.hero-carousel-controls button:focus-visible,.hero-slide-link:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(max-width:800px){.hero-carousel{min-height:420px}.hero-slide-content{left:22px;right:22px;bottom:66px}.hero-carousel-controls{left:22px;right:22px;bottom:18px}}
