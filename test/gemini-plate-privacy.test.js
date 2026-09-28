@@ -96,3 +96,13 @@ test('Gemini semantic privacy rejection preserves detect and verify stages', asy
   assert.match(source,/box\.length!==4[^\n]+reject\('gemini-detect'\)/);
   assert.match(source,/safe!==true\|\|verification\?\.certain!==true\)reject\('gemini-verify'\)/);
 });
+
+
+test('Gemini request-level rejection preserves caller stage', async () => {
+  const source=await (await import('node:fs/promises')).readFile(new URL('../src/gemini-plate-privacy.js',import.meta.url),'utf8');
+  assert.match(source,/ask\(env,bytes,prompt,schema,stageName='privacy'\)/);
+  assert.match(source,/finishReason!=='STOP'\)reject\(stageName\)/);
+  assert.match(source,/catch \{ reject\(stageName\); \}/);
+  assert.match(source,/\},'gemini-detect'\)\)/);
+  assert.match(source,/\},'gemini-verify'\)\)/);
+});
