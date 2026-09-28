@@ -82,3 +82,10 @@ test("production AVIF preference accepts only AVIF or documented WebP fallback",
   assert.match(verifier,/documented WebP fallback/);
   assert.doesNotMatch(verifier,/image\\\/jpeg.*AVIF preference/);
 });
+
+
+test("production publishing upload allows privacy pipeline latency without weakening assertions",()=>{
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(verifier,/\/api\/publish\/v1\/media.*timeoutMs:60000/);
+  assert.match(verifier,/Publishing image AVIF preference: PASS/);
+});
