@@ -50,7 +50,7 @@ test("flagship palette preserves obsidian emerald and gold tokens",()=>{
 
 test("production homepage gate checks all four current hero sectors",()=>{
   for (const sector of ['auto','yacht','jet','energy']) {
-    assert.match(canonicalGate,new RegExp(`hero-slide-${sector}`));
+    assert.ok(canonicalGate.includes(`grep -Fq 'id="hero-slide-${sector}"' /tmp/home.html`));
   }
   assert.doesNotMatch(canonicalGate,/BỘ SƯU TẬP RIÊNG/);
   assert.match(canonicalGate,/PHAN THUáº¦N XTRA/);

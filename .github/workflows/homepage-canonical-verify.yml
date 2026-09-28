@@ -29,10 +29,10 @@ jobs:
           grep -Fq "PHAN THUẦN XTRA" /tmp/home.html
           grep -Fq "Vượt trên" /tmp/home.html
           grep -Fq "xa xỉ." /tmp/home.html
-          grep -Fq "id="hero-slide-auto"" /tmp/home.html
-          grep -Fq "id="hero-slide-yacht"" /tmp/home.html
-          grep -Fq "id="hero-slide-jet"" /tmp/home.html
-          grep -Fq "id="hero-slide-energy"" /tmp/home.html
+          grep -Fq 'id="hero-slide-auto"' /tmp/home.html
+          grep -Fq 'id="hero-slide-yacht"' /tmp/home.html
+          grep -Fq 'id="hero-slide-jet"' /tmp/home.html
+          grep -Fq 'id="hero-slide-energy"' /tmp/home.html
           grep -Fq "NHÀ SÁNG LẬP • ĐẶC QUYỀN RIÊNG" /tmp/home.html
           grep -Fq "Xin chào. Tôi tư vấn" /tmp/home.html
           if grep -Fq "Xin chào. Xin chào." /tmp/home.html || grep -Fq "PHAN THUáº¦N XTRA" /tmp/home.html || grep -Fq "ÄÄƒng nháº­p Admin" /tmp/home.html; then
