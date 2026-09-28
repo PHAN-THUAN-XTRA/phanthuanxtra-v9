@@ -48,3 +48,12 @@ test("free-tier image variants use explicit format query keys",()=>{
   assert.match(verifier,/\?format=webp/);
   assert.match(verifier,/\?format=avif/);
 });
+
+
+test("production variant verifier emits path-specific timeout evidence",()=>{
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(verifier,/Timed out after \$\{timeoutMs\}ms: \$\{path\}/);
+  assert.match(verifier,/\?format=webp',{timeoutMs:45000}/);
+  assert.match(verifier,/\?format=avif',{timeoutMs:45000}/);
+  assert.match(verifier,/explicit AVIF variant: PASS/);
+});
