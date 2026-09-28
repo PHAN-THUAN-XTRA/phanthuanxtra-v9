@@ -7,7 +7,10 @@ const css=fs.readFileSync("public/style.css","utf8");
 
 test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/Vượt trên<br><em>xa xỉ\.<\/em>/);
-  assert.match(html,/BỘ SƯU TẬP RIÊNG/);
+  assert.match(html,/hero-carousel/);
+  for (const sector of ['auto','yacht','jet','energy']) assert.match(html,new RegExp(`id="hero-slide-${sector}"`));
+  assert.match(html,/href="#test-drive">Đặt lịch tư vấn xe/);
+  assert.match(html,/href="\/business-jets#flight-request">Gửi yêu cầu chuyến bay/);
   assert.match(html,/HỆ SINH THÁI XTRA/);
   assert.match(html,/PHAN THUẦN XTRA • VIỆT NAM/);
   assert.match(html,/01 \/ Ô TÔ CAO CẤP/);
