@@ -52,7 +52,7 @@ test("production variant verifier emits path-specific timeout evidence",()=>{
   assert.match(verifier,/Timed out after \$\{timeoutMs\}ms: \$\{path\}/);
   assert.match(verifier,/\?format=webp',{timeoutMs:45000}/);
   assert.match(verifier,/\?format=avif',{timeoutMs:45000}/);
-  assert.match(verifier,/Publishing image AVIF preference: PASS/);
+  assert.match(verifier,/Publishing authenticated image AVIF preference: PASS/);
 });
 
 
@@ -85,7 +85,7 @@ test("production AVIF preference accepts only AVIF or documented WebP fallback",
 test("production publishing upload allows privacy pipeline latency without weakening assertions",()=>{
   const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
   assert.match(verifier,/\/api\/publish\/v1\/media.*timeoutMs:120000/);
-  assert.match(verifier,/Publishing image AVIF preference: PASS/);
+  assert.match(verifier,/Publishing authenticated image AVIF preference: PASS/);
 });
 
 
