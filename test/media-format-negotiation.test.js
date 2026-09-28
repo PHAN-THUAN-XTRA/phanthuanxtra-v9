@@ -89,3 +89,12 @@ test("production publishing upload allows privacy pipeline latency without weake
   assert.match(verifier,/\/api\/publish\/v1\/media.*timeoutMs:120000/);
   assert.match(verifier,/Publishing image AVIF preference: PASS/);
 });
+
+
+test("production publishing retries only transient fail-closed Gemini privacy failures",()=>{
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(verifier,/attempt<=3/);
+  assert.match(verifier,/\^gemini-\(\?:detect\|verify\)\$/);
+  assert.match(verifier,/timeout\|aborted/);
+  assert.match(verifier,/assert\.equal\(upload\.status,201/);
+});
