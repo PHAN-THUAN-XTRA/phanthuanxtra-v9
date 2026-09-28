@@ -173,6 +173,8 @@ jobs:
             while [ "$attempt" -le 4 ]; do
               if [ "$method" = "DELETE" ]; then
                 status="$(curl --silent --show-error --max-time 30 -o "$out" -w '%{http_code}' -X DELETE "$url" -H "Authorization: Bearer ${token}")" || true
+              elif [ "$method" = "AUTH_GET" ]; then
+                status="$(curl --silent --show-error --max-time 30 -o "$out" -w '%{http_code}' "$url" -H "Authorization: Bearer ${token}")" || true
               else
                 status="$(curl --silent --show-error --max-time 30 -o "$out" -w '%{http_code}' "$url")" || true
               fi
@@ -182,7 +184,12 @@ jobs:
             done
             R2_LAST_STATUS="429"; return 1
           }
-          r2_request GET "${SITE_URL}/media/${encoded_key}" /tmp/r2-get-before-delete
+          r2_request GET "${SITE_URL}/media/${encoded_key}" /tmp/r2-get-anonymous
+          case "$R2_LAST_STATUS" in
+            401|403|404) ;;
+            *) echo "Draft media unexpectedly public: HTTP $R2_LAST_STATUS" >&2; exit 1 ;;
+          esac
+          r2_request AUTH_GET "${SITE_URL}/media/${encoded_key}" /tmp/r2-get-before-delete
           test "$R2_LAST_STATUS" = "200"
           r2_request DELETE "${SITE_URL}/media/${encoded_key}" /tmp/r2-delete
           test "$R2_LAST_STATUS" = "200"
