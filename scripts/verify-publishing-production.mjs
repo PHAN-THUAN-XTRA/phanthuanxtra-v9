@@ -34,7 +34,7 @@ try{
   assert.equal(media.content_type,'image/webp');
   const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);console.log('Publishing image canonical WebP: PASS');
   const webp=await request(media.url+'?format=webp',{timeoutMs:45000});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);console.log('Publishing image explicit WebP variant: PASS');
-  const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);assert.match(avif.headers.get('content-type'),/image\/avif/);console.log('Publishing image explicit AVIF variant: PASS');
+  const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);const avifType=avif.headers.get('content-type')||'';assert.match(avifType,/image\/(?:avif|webp)/,'Cloudflare AVIF preference must return AVIF or its documented WebP fallback');console.log(`Publishing image AVIF preference: PASS (${avifType==='image/avif'?'AVIF':'documented WebP fallback'})`);
   const input={request_id:crypto.randomUUID(),title:'PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
   const draft=await data('/api/publish/v1/posts','POST',input);postId=draft.id;
   assert.equal(draft.post.status,'draft');assert.equal(draft.public_url,null);
@@ -45,7 +45,7 @@ try{
   const page=await request('/blog/'+published.post.slug+'?publishing_e2e='+Date.now());assert.equal(page.status,200);assert.match(page.headers.get('content-type'),/text\/html.*charset=utf-8/i);
   const html=await page.text();assert.ok(html.includes(input.title));assert.ok(html.includes(media.url));assert.ok(!html.includes('PHAN THUáº¦N'));
   const again=await data(`/api/publish/v1/posts/${postId}/publish`,'POST',{});assert.equal(again.post.published_at,published.post.published_at);
-  console.log('Publishing E2E: canonical WebP + explicit cache-safe AVIF/WebP variants -> private draft 404 -> idempotent retry -> publish -> public HTML UTF-8 + cover PASS.');
+  console.log('Publishing E2E: canonical WebP + explicit WebP + AVIF-preference with documented fallback -> private draft 404 -> idempotent retry -> publish -> public HTML UTF-8 + cover PASS.');
 }finally{
   const errors=[];
   if(postId){try{const r=await request(`/api/admin/posts/${postId}`,{method:'DELETE'});assert.equal(r.status,200);}catch(e){errors.push(e);}}
