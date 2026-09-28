@@ -9,7 +9,6 @@ test("media delivery negotiates AVIF then WebP from Accept",()=>{
   assert.match(worker,/image\\\/webp/);
   assert.match(worker,/format==='image\/avif'\?76:82/);
   assert.match(worker,/headers\.set\('vary','Accept'\)/);
-  assert.match(worker,/optimizedHeaders\.set\(['\"]x-pt-xtra-image-format['\"],format\)/);
 });
 
 
@@ -29,12 +28,11 @@ test("production publishing verifier contains no escaped statement separators",(
 });
 
 
-test("adaptive image response reconstructs optimized response with negotiation headers",()=>{
+test("adaptive WebP response reconstructs optimized response with negotiation headers",()=>{
   const worker=fs.readFileSync("src/index.js","utf8");
   assert.match(worker,/const optimized=await result\.response\(\)/);
   assert.match(worker,/new Headers\(optimized\.headers\)/);
   assert.match(worker,/optimizedHeaders\.set\(['"]vary['"],['"]Accept['"]\)/);
-  assert.match(worker,/optimizedHeaders\.set\(['"]x-pt-xtra-image-format['"],format\)/);
   assert.match(worker,/new Response\(optimized\.body/);
 });
 
@@ -43,7 +41,7 @@ test("free-tier image variants use explicit format query keys",()=>{
   const worker=fs.readFileSync("src/index.js","utf8");
   const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
   assert.match(worker,/searchParams\.get\(['"]format['"]\)/);
-  assert.match(worker,/requested===['"]avif['"]\?['"]image\/avif['"]/);
+  assert.match(worker,/requested===['"]avif['"]/);
   assert.match(worker,/requested===['"]webp['"]\?['"]image\/webp['"]/);
   assert.match(verifier,/\?format=webp/);
   assert.match(verifier,/\?format=avif/);
@@ -68,9 +66,11 @@ test("production variant gate relies on edge Content-Type, not stripped custom h
 });
 
 
-test("explicit image variants receive distinct transform pipeline identities",()=>{
+
+test("explicit AVIF variant is materialized in R2 with AVIF metadata",()=>{
   const worker=fs.readFileSync("src/index.js","utf8");
-  assert.match(worker,/requested===['"]avif['"].*transform\(\{rotate:0\}\)/s);
-  assert.match(worker,/requested===['"]webp['"].*transform\(\{rotate:0\}\)/s);
-  assert.match(worker,/output\(\{format,quality:/);
+  assert.match(worker,/const avifKey=\`\$\{key\}\.avif\`/);
+  assert.match(worker,/output\(\{format:'image\/avif',quality:76\}\)/);
+  assert.match(worker,/contentType:'image\/avif'/);
+  assert.match(worker,/MEDIA\.put\(avifKey/);
 });
