@@ -83,7 +83,7 @@ export async function preparePrivateCover(env,source) {
     type:'OBJECT',properties:{safe:{type:'BOOLEAN'},certain:{type:'BOOLEAN'}},required:['safe','certain']
   }));
   if(verification?.safe!==true||verification?.certain!==true)reject();
-  return {bytes,metadata:{plate_privacy:'gemini-reviewed-v1',plate_count:String(boxes.length),plate_model:env.GEMINI_MODEL}};
+  return {bytes,width:info.width,height:info.height,metadata:{plate_privacy:'gemini-reviewed-v1',plate_count:String(boxes.length),plate_model:env.GEMINI_MODEL}};
 }
 
 export async function requirePrivateCover(env,url) {
