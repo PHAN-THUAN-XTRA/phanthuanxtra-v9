@@ -27,3 +27,13 @@ test("production publishing verifier contains no escaped statement separators",(
   const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
   assert.doesNotMatch(verifier,/;\\n\s+const (?:webp|avif)=/);
 });
+
+
+test("adaptive image response reconstructs optimized response with negotiation headers",()=>{
+  const worker=fs.readFileSync("src/index.js","utf8");
+  assert.match(worker,/const optimized=await result\.response\(\)/);
+  assert.match(worker,/new Headers\(optimized\.headers\)/);
+  assert.match(worker,/optimizedHeaders\.set\(['"]vary['"],['"]Accept['"]\)/);
+  assert.match(worker,/optimizedHeaders\.set\(['"]x-pt-xtra-image-format['"],format\)/);
+  assert.match(worker,/new Response\(optimized\.body/);
+});
