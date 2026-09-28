@@ -27,3 +27,12 @@ test('blog route renders the same card and filters published posts', async () =>
   const html = await response.text();
   assert.ok(html.includes(renderPostCard({...post,tags:[]})));
 });
+test('blog detail uses Vietnamese date and provides routes to blog and home', async () => {
+  const db = {prepare() {return {bind() {return {first:async()=>({...post,id:1,content:'Nội dung',status:'published',tags_json:'[]'})}}}}};
+  const response = await handleBlog(new Request('https://phanthuanxtra.com/blog/giao-nhanh'), {DB:db});
+  const html = await response.text();
+  assert.match(html, /<time datetime="2026-09-25T00:00:00.000Z">25\/9\/2026<\/time>/);
+  assert.match(html, /href="\/">Trang chủ<\/a>/);
+  assert.match(html, /href="\/blog" aria-current="page">Blog<\/a>/);
+  assert.doesNotMatch(html, /2026-09-25T00:00:00Z<\/p>/);
+});

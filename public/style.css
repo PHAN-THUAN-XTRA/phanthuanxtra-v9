@@ -396,3 +396,7 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 .blog-latest .section-head .btn{flex-shrink:0}
 .blog-status{grid-column:1/-1}
 @media(max-width:800px){.blog-card{padding:0}.blog-card-body{padding:22px}.blog-latest .section-head{align-items:flex-start;flex-direction:column;gap:24px}.blog-latest h2{font-size:clamp(32px,8vw,46px);line-height:1.2}}
+
+/* Shared subpage navigation stays available without JavaScript on narrow screens. */
+.subpage-header .nav{gap:24px}
+@media(max-width:800px){.subpage-header .nav{min-height:68px;flex-wrap:wrap;gap:0;padding:10px 0}.subpage-header nav{display:flex;position:static;flex-direction:row;flex-wrap:wrap;gap:4px;width:100%;margin:6px 0 0;padding:0;background:none;border:0}.subpage-header nav a{padding:7px 10px;min-height:40px}.subpage-header .hotline{display:none}}
