@@ -5,6 +5,7 @@ import { canAutoPublish, promoteDraft } from "./telegram-ingest.js";
 import { savePost } from "./post-persistence.js";
 import { getPost } from "./post-persistence.js";
 import { answerAutoCustomer, autoBlogSlug, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
+import { storePublishingImage } from "./publishing-api.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
@@ -85,10 +86,10 @@ async function publishAiPhotoBlog(env, message, chatId, caption) {
     if (bytes.byteLength > 10 * 1024 * 1024) throw new Error("Vui lòng gửi ảnh nhỏ hơn 10 MB.");
     const type = image.headers.get("content-type") || "image/jpeg";
     const generated = await generateVehicleBlog(env, bytes, type, caption);
-    const extension = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
-    const key = `blog/${slug}.${extension}`;
-    await env.MEDIA.put(key, bytes, { httpMetadata: { contentType: type, cacheControl: "public,max-age=31536000,immutable" } });
-    ({ post } = await createBlogPost(env, generated.draft, { chatId, slug, coverImage: `/media/${key}` }));
+    // Reuse the same fail-closed privacy + canonical WebP storage contract as
+    // ChatGPT publishing. Never persist the raw Telegram photo as a blog cover.
+    const media = await storePublishingImage(env, new Uint8Array(bytes));
+    ({ post } = await createBlogPost(env, generated.draft, { chatId, slug, coverImage: media.url }));
     console.log("telegram_auto_blog_created", { model: generated.model, vision_model: generated.visionModel });
   }
   await tg(token, "sendMessage", { chat_id: chatId, text: `📰 BÀI BLOG\n${post.title}\nhttps://phanthuanxtra.com/blog/${post.slug}` });
