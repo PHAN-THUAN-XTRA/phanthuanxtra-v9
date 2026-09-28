@@ -1,9 +1,9 @@
 // Only processed bytes leave this module; callers must never persist the original.
 const stream = bytes => new Blob([bytes]).stream();
 export class ImagePrivacyError extends Error { constructor(message,stage='privacy',reason='') { super(message);this.status=422;this.stage=stage;this.reason=reason; } }
-function reject(stage='privacy') { throw new ImagePrivacyError('Chưa xác minh được ảnh che biển số; ảnh chưa được lưu.',stage); }
+function reject(stage='privacy',reason='') { throw new ImagePrivacyError('Chưa xác minh được ảnh che biển số; ảnh chưa được lưu.',stage,safeReason(reason)); }
 function safeReason(error) {
-  const raw=String(error?.message||error?.name||'Error');
+  const raw=String(typeof error==='string'?error:(error?.message||error?.name||'Error'));
   return raw.replace(/https?:\/\/\S+/gi,'[url]').replace(/[A-Za-z0-9_-]{24,}/g,'[redacted]').replace(/[^\p{L}\p{N} .,:;_()\/-]/gu,'').slice(0,180);
 }
 async function stage(name,fn) {
@@ -31,17 +31,17 @@ async function ask(env,bytes,prompt,schema,stageName='privacy') {
     try {
       response=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(25000),body:payload});
       if(response.ok)break;
-      if(!(response.status===429||response.status>=500)||attempt===3)reject(stageName);
+      if(!(response.status===429||response.status>=500)||attempt===3)reject(stageName,`Gemini HTTP ${response.status}`);
     } catch(error) {
       if((error?.name!=='TimeoutError'&&error?.name!=='AbortError')||attempt===3)throw error;
     }
     await new Promise(resolve=>setTimeout(resolve,750*(attempt+1)));
   }
-  if(!response?.ok)reject(stageName);
+  if(!response?.ok)reject(stageName,'Gemini request exhausted without an OK response');
   const data=await response.json(),candidate=data.candidates?.[0];
-  if(candidate?.finishReason!=='STOP')reject(stageName);
+  if(candidate?.finishReason!=='STOP')reject(stageName,`Gemini finishReason ${candidate?.finishReason||'missing'}`);
   try { return JSON.parse(candidate.content.parts.filter(p=>typeof p.text==='string'&&!p.thought).map(p=>p.text).join('')); }
-  catch { reject(stageName); }
+  catch { reject(stageName,'Gemini structured JSON parse failed'); }
 }
 export function checkedBoxes(value) {
   if(value?.complete!==true || !Array.isArray(value.boxes)||value.boxes.length>30)reject('gemini-detect');
