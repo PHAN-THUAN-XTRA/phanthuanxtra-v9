@@ -10,7 +10,10 @@ async function tg(env,method,payload={}){
 
 function isAutomationAudit(event){
   if(event?.resource!=="car")return false;
-  return /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(String(event.resource_id||""));
+  const id=String(event.resource_id||"");
+  const summary=String(event.summary||"");
+  return /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(id)
+    || /\bPTX-E2E(?:\b|[-_:])/i.test(summary);
 }
 
 function textFor(event,car){
@@ -33,7 +36,6 @@ export async function reconcileTelegramNotifications(env){
       lastId=Number(event.id);
       processed++;
       await env.DB.prepare("UPDATE telegram_notification_cursor SET last_audit_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=1").bind(lastId).run();
-      processed++;
       console.log("telegram_notification_e2e_suppressed",event.resource_id);
       continue;
     }
