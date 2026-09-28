@@ -101,8 +101,10 @@ test('Telegram router source locks complementary bundle pairing and optional pla
   const source=fs.readFileSync(new URL('../src/telegram-router.js',import.meta.url),'utf8');
   assert.match(source,/rowHasPhoto && !rowHasText/);
   assert.match(source,/!rowHasPhoto && rowHasText/);
-  assert.match(source,/let publishMediaKey = mediaKey/);
-  assert.match(source,/hasPlate \? "branded" : "ready_to_publish"/);
+  assert.match(source,/const photoRows = rows\.filter\(row => row\.file_id\)/);
+  assert.match(source,/storePublishingImage\(env, new Uint8Array\(bytes\)\)/);
+  assert.match(source,/publish_media_keys: publishMediaKeys/);
+  assert.match(source,/promoteDraft\(env, inboxId, ai, publishMediaKeys\[0\], publishMediaKeys\)/);
   assert.match(source,/TỰ ĐĂNG XE/);
 });
 
