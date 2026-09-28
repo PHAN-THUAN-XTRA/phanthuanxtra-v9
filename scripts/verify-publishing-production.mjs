@@ -27,8 +27,17 @@ try{
   const login=await data('/api/admin/login','POST',{password:process.env.ADMIN_PASSWORD});session=login.token;assert.ok(session);
   const bytes=Buffer.from((await readFile('tests/fixtures/vehicle-vision-smoke.jpg.b64','utf8')).trim(),'base64');
   assert.ok(bytes.length>256 && bytes[0]===0xff && bytes[1]===0xd8 && bytes.at(-2)===0xff && bytes.at(-1)===0xd9,'Publishing fixture must be a complete JPEG');
-  const upload=await request('/api/publish/v1/media',{method:'POST',headers:{'content-type':'image/jpeg'},body:bytes,timeoutMs:120000});
-  const uploadText=await upload.text();
+  let upload,uploadText;
+  for(let attempt=1;attempt<=3;attempt++){
+    upload=await request('/api/publish/v1/media',{method:'POST',headers:{'content-type':'image/jpeg'},body:bytes,timeoutMs:120000});
+    uploadText=await upload.text();
+    if(upload.status===201)break;
+    let transient=false;
+    if(upload.status===422){try{const failure=JSON.parse(uploadText);transient=/^gemini-(?:detect|verify)$/.test(failure.stage||'')&&/timeout|aborted/i.test(failure.reason||'');}catch{}}
+    if(!transient||attempt===3)break;
+    console.log(`Publishing privacy provider transient failure; retrying upload (attempt ${attempt+1}/3).`);
+    await new Promise(resolve=>setTimeout(resolve,3000));
+  }
   assert.equal(upload.status,201,`Authenticated image upload: HTTP ${upload.status} ${uploadText.slice(0,500)}`);
   const media=JSON.parse(uploadText);mediaKey=media.key;
   assert.equal(media.content_type,'image/webp');
