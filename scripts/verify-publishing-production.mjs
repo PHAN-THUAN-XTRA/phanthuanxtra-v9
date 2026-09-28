@@ -35,7 +35,7 @@ try{
   const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);console.log('Publishing image canonical WebP: PASS');
   const webp=await request(media.url+'?format=webp',{timeoutMs:45000});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);console.log('Publishing image explicit WebP variant: PASS');
   const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);const avifType=avif.headers.get('content-type')||'';assert.match(avifType,/image\/(?:avif|webp)/,'Cloudflare AVIF preference must return AVIF or its documented WebP fallback');console.log(`Publishing image AVIF preference: PASS (${avifType==='image/avif'?'AVIF':'documented WebP fallback'})`);
-  const input={request_id:crypto.randomUUID(),title:'PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
+  const input={request_id:crypto.randomUUID(),title:'PTX-E2E — PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
   const draft=await data('/api/publish/v1/posts','POST',input);postId=draft.id;
   assert.equal(draft.post.status,'draft');assert.equal(draft.public_url,null);
   assert.equal((await request('/blog/'+draft.post.slug)).status,404,'Draft must stay private');
