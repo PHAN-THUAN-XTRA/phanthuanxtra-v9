@@ -66,3 +66,11 @@ test("production variant gate relies on edge Content-Type, not stripped custom h
   assert.match(verifier,/content-type/);
   assert.doesNotMatch(verifier,/headers\.get\(['"]x-pt-xtra-image-format['"]\)/);
 });
+
+
+test("explicit image variants receive distinct transform pipeline identities",()=>{
+  const worker=fs.readFileSync("src/index.js","utf8");
+  assert.match(worker,/requested===['"]avif['"].*transform\(\{rotate:0\}\)/s);
+  assert.match(worker,/requested===['"]webp['"].*transform\(\{rotate:0\}\)/s);
+  assert.match(worker,/output\(\{format,quality:/);
+});
