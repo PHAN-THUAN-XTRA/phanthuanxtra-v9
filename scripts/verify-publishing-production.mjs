@@ -13,7 +13,8 @@ async function request(path,options={}) {
 }
 async function data(path,method,body) {
   const response=await request(path,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)});
-  assert.ok(response.ok,`${method} ${path}: HTTP ${response.status}`);return response.json();
+  const text=await response.text();
+  assert.ok(response.ok,`${method} ${path}: HTTP ${response.status} ${text.slice(0,500)}`);return JSON.parse(text);
 }
 try{
   const login=await data('/api/admin/login','POST',{password:process.env.ADMIN_PASSWORD});session=login.token;assert.ok(session);
