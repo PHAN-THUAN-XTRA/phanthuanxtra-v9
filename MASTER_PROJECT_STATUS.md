@@ -1,5 +1,19 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0A ISSUE #569 — AUTO-MERGE AUDIT CHECKPOINT (2026-09-28 UTC+7)
+- Read-only Cloudflare audit confirms production Worker binding `MEDIA -> phanthuanxtra-media` and D1 `8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d`; `phanthuanxtra-images` is not the production Worker binding. No binding mutation is authorized by this checkpoint.
+- GitHub merge audit confirms PR #576 merged as `3028d4f9244faa42b74f9b05365a2a6d975d44a9`, PR #577 as `c5fddfac2a33098f106cb1f6694e8fe946f9e634`, PR #578 as `16e3f5892a0fcdc934a7ad1079c6133740d11a4b`, and docs PR #579 as `41e21c8d5cabf84ff040b2aebe16eb7dfa16427c`.
+- Source-level P0/P1 remediation for #569 is merged: draft-media authorization, Telegram /blog canonical bounded WebP/privacy pipeline, shared Admin media policy, and server-side 20-image ceiling.
+- Audit rule: do not re-merge or create duplicate implementation PRs for #569. Any remaining work must be evidence closure only.
+- Production status remains **NOT FINAL GREEN** until fresh exact-lineage deployment/runtime evidence proves anonymous draft GET/HEAD/variant denial, published-media compatibility, Telegram /blog behavior, D1/R2 metadata consistency, and required production gates.
+- Cloudflare Dashboard-only settings (public access/custom domains/CORS/lifecycle) remain observational evidence unless independently captured; no secret/token values belong in this file.
+- Issue: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/569
+- P0 privacy PR: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/576
+- P0 Telegram PR: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/577
+- P1 policy PR: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/578
+- Prior MASTER checkpoint PR: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/579
+
+
 ## 0.0 CURRENT CHECKPOINT — 2026-09-28 (UTC+7)
 - Issue #569 media P0/P1 remediation is source-complete through PR #577 and PR #578.
 - PR #577 merged P0 Telegram/blog image privacy pipeline as main lineage `c5fddfac2a33098f106cb1f6694e8fe946f9e634`.
