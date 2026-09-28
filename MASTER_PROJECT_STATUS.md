@@ -765,3 +765,43 @@ Read this MASTER first; read current main SHA and recent Actions; compare eviden
 - Cloudflare AI Gateway pricing/features and Workers AI prompt caching documentation.
 - GitHub Actions billing, concurrency and artifact/log retention documentation.
 - Android Developers release signing and security guidance.
+
+
+---
+
+## 21. Admin/GPT publishing + Gemini cover privacy — production closure (2026-09-28)
+
+### 21.1 Scope and deployment policy
+- Feature lineage began with PR #527, merge SHA `720f18b58ef033f7b0baec60b8201d19d1333e1f`.
+- Production deployment remains **GitHub Actions -> Cloudflare API/SDK only**. Wrangler was not used as the production deployment mechanism.
+- Required release boundary: authenticated image upload -> Gemini plate privacy -> WebP/R2 -> private draft -> idempotent retry -> publish -> public UTF-8 HTML + cover -> cleanup.
+
+### 21.2 Evidence and root-cause chain
+- Run #1440 / `36369563500`: deployment and UTF-8/R2 gates passed; publishing image upload returned HTTP 500. PR #535 added fail-closed stage diagnostics and bounded production evidence.
+- Run #1444 / `36371943585`: exact failure isolated to image stage `normalize`, HTTP 422.
+- PR #536 removed unsupported Images output metadata and aligned regression mocks. Run #1447 / `36372377834` still failed at normalize, proving this was not the sole root cause.
+- PR #537 added bounded/sanitized Images exception evidence. Run #1449 / `36372529016` identified Cloudflare Images error 9516: the JPEG smoke fixture was incomplete/damaged.
+- PR #538 replaced the damaged JPEG fixture with a complete JPEG and added a pre-upload JPEG completeness guard.
+- Run #1451 / `36372689334`: image normalize/privacy/WebP path passed; blocker moved to `POST /api/publish/v1/posts` HTTP 500.
+- PR #539 exposed bounded API failure response. PR #540 exposed bounded/sanitized runtime reason.
+- Run #1456 / `36373119562`: exact D1 root cause identified: `D1_ERROR: LIKE or GLOB pattern too complex: SQLITE_ERROR`.
+- PR #541 replaced request-key wildcard prefix matching with deterministic `instr(request_key, prefix)=1` checks and added regression coverage.
+
+### 21.3 Final production evidence — GREEN
+- PR #541 auto-merged to main at merge SHA `9bc79f8b8008823b483abffc0394f4435ee38459`.
+- Deploy Cloudflare Worker **#1458**, run `36373260032`, completed **SUCCESS** on that exact main SHA.
+- Deploy and migrate through Cloudflare API/SDK: PASS.
+- Public production boundary: PASS.
+- Editorial production UTF-8: PASS.
+- Admin UTF-8 asset delivery: PASS.
+- R2 Worker E2E: upload -> authenticated GET 200 -> DELETE 200 -> cache-busted GET 404: PASS.
+- Publishing E2E: **image WebP -> private draft 404 -> idempotent retry -> publish -> public HTML UTF-8 + cover: PASS.**
+- Publishing temporary post/media cleanup: PASS.
+- Deployment completed: PASS.
+- Final deployment log explicitly states: `Wrangler production deployment path: NOT USED`.
+
+### 21.4 Status decision
+- **Admin/GPT publishing production lifecycle: GREEN on run #1458.**
+- **Gemini cover privacy + Cloudflare Images + R2 publishing path: GREEN on run #1458.**
+- This closes the publishing deployment blocker tracked from runs #1440/#1444/#1447/#1449/#1451/#1454/#1456.
+- Telegram live-command verification, private GPT Action configuration, and device-specific Android release checks remain separate follow-up scopes and must not be inferred GREEN from this publishing deployment result.
