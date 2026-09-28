@@ -8,6 +8,11 @@ async function tg(env,method,payload={}){
   return true;
 }
 
+function isAutomationAudit(event){
+  if(event?.resource!=="car")return false;
+  return /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(String(event.resource_id||""));
+}
+
 function textFor(event,car){
   const name=[event.summary?.split(" ")?.[0],event.summary?.split(" ")?.slice(1).join(" ")].filter(Boolean).join(" ")||event.resource_id;
   if(event.action==="delete")return `🗑️ ĐÃ XOÁ BÀI XE KHỎI WEBSITE\n🚗 ${name}\n🆔 ${event.resource_id}\n🌐 phanthuanxtra.com\n✅ Đã ghi audit: xoá xe.`;
@@ -22,7 +27,16 @@ export async function reconcileTelegramNotifications(env){
   let lastId=Number(cursor?.last_audit_id||0);
   const events=(await env.DB.prepare("SELECT id,action,resource,resource_id,summary,created_at FROM cms_audit_log WHERE id>? AND action IN ('create','update','delete') ORDER BY id ASC LIMIT 25").bind(lastId).all()).results||[];
   if(!events.length)return {ok:true,processed:0,last_audit_id:lastId};
+  let processed=0;
   for(const event of events){
+    if(isAutomationAudit(event)){
+      lastId=Number(event.id);
+      processed++;
+      await env.DB.prepare("UPDATE telegram_notification_cursor SET last_audit_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=1").bind(lastId).run();
+      processed++;
+      console.log("telegram_notification_e2e_suppressed",event.resource_id);
+      continue;
+    }
     let car=null;
     if(event.resource==="car"&&event.action!=="delete")car=await env.DB.prepare("SELECT id,brand,model,status FROM cars WHERE id=?").bind(event.resource_id).first();
     try{
@@ -34,5 +48,5 @@ export async function reconcileTelegramNotifications(env){
       break;
     }
   }
-  return {ok:true,processed:events.findIndex(e=>Number(e.id)>lastId)+1||events.length,last_audit_id:lastId};
+  return {ok:true,processed,last_audit_id:lastId};
 }
