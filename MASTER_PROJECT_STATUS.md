@@ -856,3 +856,46 @@ All required production deploy steps completed successfully on the exact final l
 - **Gemini cover privacy + Cloudflare Images + R2 publishing path: GREEN on run #1458.**
 - This closes the publishing deployment blocker tracked from runs #1440/#1444/#1447/#1449/#1451/#1454/#1456.
 - Telegram live-command verification, private GPT Action configuration, and device-specific Android release checks remain separate follow-up scopes and must not be inferred GREEN from this publishing deployment result.
+
+
+---
+
+## 22. 2026-09-28 — Telegram CI/Stage3 notification spam suppression + adaptive image audit
+
+### 22.1 Telegram notification spam root cause
+- Production Stage3/CI E2E creates and deletes temporary car rows such as `stage3-*`, `ci-e2e-*`, and `ci-origin-e2e-*`.
+- Those CRUD operations correctly write `cms_audit_log` rows.
+- `reconcileTelegramNotifications()` previously forwarded every car create/update/delete audit row to the real Telegram chat, so routine production reconciliation produced repeated “ĐÃ TẠO/ĐÃ XOÁ BÀI XE” messages.
+- The problem was notification filtering, not D1 CRUD correctness.
+
+### 22.2 Fix — PR #548
+- PR #548 `fix: stop CI and Stage3 Telegram notification spam` passed required `CI / Validate` and `AI Pre-Deploy Audit / Validate`, then auto-merged normally.
+- Merge SHA: `4767ebb9fb11a887ec61cd14a46d41d91878345b`.
+- Notification reconciler now suppresses only car audit IDs with known automation prefixes:
+  - `stage3-`
+  - `ci-e2e-`
+  - `ci-origin-e2e-`
+- Suppressed rows still advance `telegram_notification_cursor.last_audit_id`, preventing backlog/replay.
+- Real vehicle create/update/delete notifications remain unchanged.
+- Targeted regression tests verify the suppression prefixes and that filtering is scoped to car audit events.
+- Production run #1470 (`36374686793`) successfully completed the API/SDK deploy step for this merge, so the suppression code reached the website Worker.
+- Stage3 run #302 on the same merge lineage completed successfully.
+- No Wrangler production deployment was introduced.
+
+### 22.3 Separate adaptive image delivery audit
+- PR #546 added exact production assertions for canonical WebP plus AVIF/WebP content negotiation.
+- PR #547 repaired verifier syntax; no runtime image behavior change.
+- Production #1468 reached the adaptive gate and exposed missing `Vary: Accept`.
+- PR #549 `fix: preserve AVIF/WebP negotiation headers` passed required checks and auto-merged as `434a71af8e5dff44f532f1a67a7c08399c1f637c`.
+- Production #1473 (`36374899466`) successfully deployed that exact SHA through Cloudflare API/SDK; public boundary, editorial UTF-8, Admin UTF-8, and R2 `200 -> 200 -> 404` all passed.
+- Publishing cleanup passed, but adaptive publishing verification still failed because the edge response observed `Vary: null` instead of `Vary: Accept`.
+- Therefore **WebP canonical remains the stable storage contract**, while **AVIF adaptive delivery is NOT yet declared GREEN**.
+- Do not weaken/remove this gate merely to obtain a green workflow. Cloudflare Vary/cache configuration must be reconciled with the Worker response behavior before declaring adaptive caching complete.
+
+### 22.4 Current decision
+- Telegram CI/Stage3 audit-message suppression: **MERGED + DEPLOYED**.
+- D1 production reconciliation: **PASS**.
+- R2 lifecycle on current lineage: **PASS**.
+- Fail-closed plate privacy behavior: **retained**.
+- WebP canonical: **retained**.
+- AVIF adaptive delivery: **BLOCKED on edge Vary/cache negotiation evidence; no false GREEN**.
