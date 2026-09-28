@@ -5,6 +5,7 @@ export function database() {
   sqlite.exec('PRAGMA foreign_keys=ON');
   sqlite.exec(fs.readFileSync('migrations/0002_posts.sql','utf8'));
   sqlite.exec(fs.readFileSync('migrations/0016_editorial_jobs.sql','utf8'));
+  sqlite.exec(fs.readFileSync('migrations/0017_media_assets.sql','utf8'));
   sqlite.exec('CREATE TABLE cms_audit_log (actor TEXT, action TEXT, resource TEXT, resource_id TEXT, summary TEXT)');
   const db = { sqlite, prepare(sql) {
     const make = args => ({ bind(...values) { return make(values); },
