@@ -332,3 +332,15 @@ test('Business Jets lead stores itinerary in D1 and Telegram accepts correctly c
     assert.doesNotMatch(telegramText,/SOURCE: WEBSITE AI CHAT/);
   }finally{globalThis.fetch=originalFetch;}
 });
+
+
+test('production gate: Telegram albums publish every image only through verified privacy storage', () => {
+  const router = fs.readFileSync(new URL('../src/telegram-router.js', import.meta.url), 'utf8');
+  const ingest = fs.readFileSync(new URL('../src/telegram-ingest.js', import.meta.url), 'utf8');
+  assert.match(router, /const photoRows = rows\.filter\(row => row\.file_id\)/);
+  assert.match(router, /storePublishingImage\(env, new Uint8Array\(bytes\)\)/);
+  assert.match(router, /publish_media_keys: publishMediaKeys/);
+  assert.match(router, /privacy_status: "verified"/);
+  assert.match(router, /promoteDraft\(env, inboxId, ai, publishMediaKeys\[0\], publishMediaKeys\)/);
+  assert.match(ingest, /images:imageUrls\.length\?imageUrls:\[imageUrl\]/);
+});
