@@ -68,3 +68,12 @@ test('production publishing verifier keeps bounded API failure evidence', async 
   assert.match(source,/const text=await response\.text\(\)/);
   assert.match(source,/text\.slice\(0,500\)/);
 });
+
+
+test('publishing runtime diagnostic stays bounded and redacts URL/token patterns', async () => {
+  const source=await (await import('node:fs/promises')).readFile(new URL('../src/publishing-api.js',import.meta.url),'utf8');
+  assert.match(source,/function safeFailureReason/);
+  assert.match(source,/slice\(0,180\)/);
+  assert.match(source,/\[redacted\]/);
+  assert.match(source,/reason:safeFailureReason\(error\)/);
+});
