@@ -9,7 +9,7 @@ test("media delivery negotiates AVIF then WebP from Accept",()=>{
   assert.match(worker,/image\\\/webp/);
   assert.match(worker,/format==='image\/avif'\?76:82/);
   assert.match(worker,/headers\.set\('vary','Accept'\)/);
-  assert.match(worker,/'x-pt-xtra-image-format':format/);
+  assert.match(worker,/optimizedHeaders\.set\(['\"]x-pt-xtra-image-format['\"],format\)/);
 });
 
 
