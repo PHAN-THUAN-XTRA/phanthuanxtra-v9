@@ -1,3 +1,4 @@
+import { videoEditorialError } from './blog-video.js';
 const text=(v,n=20000)=>String(v??"").trim().slice(0,n);
 const STATUSES=new Set(["draft","published","archived"]);
 export const validPostSlug=v=>/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(String(v??""));
@@ -7,6 +8,7 @@ export function normalizePostPayload(body={},existing={}){
  const title=text(body.title??existing.title,240),content=text(body.content??existing.content,100000),slug=slugify(text(body.slug)||existing.slug||title);
  const status=text(body.status??existing.status??"draft",20).toLowerCase();
  if(!title)return{error:"title là bắt buộc"};if(!content)return{error:"content là bắt buộc"};if(!validPostSlug(slug))return{error:"slug không hợp lệ"};if(!STATUSES.has(status))return{error:"status phải là draft, published hoặc archived"};
+ if(status==='published') { const error=videoEditorialError({title,slug,content},existing);if(error)return{error}; }
  return{value:{title,slug,excerpt:text(body.excerpt??existing.excerpt,800),content,cover_image:text(body.cover_image??existing.cover_image,2000),category:text(body.category??existing.category,100),tags:tags(body.tags??body.tags_json??existing.tags_json),status}};
 }
 export function postView(row){if(!row)return null;return{...row,tags:tags(row.tags_json),url:row.status==="published"?`https://phanthuanxtra.com/blog/${row.slug}`:null}}

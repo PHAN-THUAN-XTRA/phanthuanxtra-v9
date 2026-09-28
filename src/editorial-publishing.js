@@ -1,4 +1,5 @@
 import { normalizePostPayload, slugify } from './post-persistence.js';
+import { videoEditorialError } from './blog-video.js';
 
 export const MAX_BATCH = 20;
 export function vietnamSchedule(value, now = Date.now()) {
@@ -52,6 +53,7 @@ export function validateArticle(item, now) {
     throw new Error('Ảnh cover phải là đường dẫn /media/ đã lưu trên website.');
   const parsed = normalizePostPayload({ ...item, slug: 'validated-post', status: 'draft', category: item.category || 'Tin tức' });
   if (parsed.error) throw new Error(parsed.error);
+  if (mode !== 'draft') { const error=videoEditorialError({...parsed.value,slug:slugify(parsed.value.title)});if(error)throw new Error(error); }
   return { ...parsed.value, mode, due: mode === 'schedule' ? vietnamSchedule(item.schedule, now) : mode === 'publish' ? new Date(now).toISOString() : null };
 }
 export async function publicationResults(db, chatId, requestKey) {
@@ -98,6 +100,11 @@ export async function publishDueArticles(env, { now = Date.now(), chatId = null,
   const rows = (await db.prepare(sql + ' ORDER BY scheduled_at,id LIMIT 20').bind(...args).all()).results || [];
   let published = 0;
   for (const { id } of rows) {
+    const candidate = await db.prepare('SELECT p.title,p.slug,p.content FROM posts p JOIN editorial_jobs j ON j.post_id=p.id WHERE j.id=?').bind(id).first();
+    if (candidate && videoEditorialError(candidate)) {
+      await db.prepare("UPDATE editorial_jobs SET status='draft',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'").bind(id).run();
+      continue;
+    }
     const results = await db.batch([
       db.prepare(`UPDATE posts SET status='published',published_at=?,updated_at=CURRENT_TIMESTAMP
         WHERE status='draft' AND id=(SELECT post_id FROM editorial_jobs WHERE id=? AND status='pending' AND scheduled_at<=?)`).bind(iso,id,iso),

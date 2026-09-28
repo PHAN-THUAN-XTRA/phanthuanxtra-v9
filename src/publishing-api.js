@@ -3,6 +3,7 @@ import { verifyAdminToken } from './admin-auth.js';
 import { getPost, normalizePostPayload } from './post-persistence.js';
 import { submitArticles, validateArticle } from './editorial-publishing.js';
 import { imageInputLimit, MEDIA_POLICY } from './media-policy.js';
+import { videoEditorialError } from './blog-video.js';
 
 const BASE = '/api/publish/v1';
 const OWNER = 'gpt-publisher';
@@ -122,6 +123,7 @@ export async function handlePublishingApi(request,env) {
     }
     if(request.method==='POST'&&match[2]) {
       if(!['draft','published'].includes(post.status))throw new PublishingError('Không thể xuất bản bài đã lưu trữ.',409);
+      const editorialError=videoEditorialError(post);if(editorialError)throw new PublishingError(editorialError,422);
       await requirePrivateCover(env,post.cover_image);
       await env.DB.batch([
         env.DB.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) SELECT 'publishing-api','publish','post',CAST(id AS TEXT),title FROM posts WHERE id=? AND status='draft'").bind(post.id),
