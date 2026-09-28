@@ -74,3 +74,11 @@ test("explicit AVIF variant is materialized in R2 with AVIF metadata",()=>{
   assert.match(worker,/contentType:'image\/avif'/);
   assert.match(worker,/MEDIA\.put\(avifKey/);
 });
+
+
+test("explicit AVIF delivery uses Cloudflare cf.image subrequest with loop guard",()=>{
+  const worker=fs.readFileSync("src/index.js","utf8");
+  assert.match(worker,/source['"],['"]1['"]/);
+  assert.match(worker,/cf:\{image:\{format:'avif',quality:76\}\}/);
+  assert.match(worker,/searchParams\.get\(['"]source['"]\)===['"]1['"]/);
+});
