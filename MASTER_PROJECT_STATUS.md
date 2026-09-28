@@ -1027,3 +1027,45 @@ GitHub Actions proves the suppression code is merged and deployed and that both 
 - **Publishing E2E numeric-ID suppression path: MERGED + DEPLOYED.**
 - **Production deploy #1502: GREEN.**
 - **Stage3 #315: GREEN.**
+
+
+---
+
+## 26. 2026-09-28 — Unified ChatGPT / Telegram / Admin publishing pipeline
+
+### Architecture
+- ChatGPT, Telegram and Admin converge on the same website publishing backend and D1/R2 data plane.
+- GitHub is code/deployment/audit only; article images are not committed to GitHub.
+- `/api/publish/v1/media` remains the shared ChatGPT/Admin media contract.
+- Telegram AI photo-blog now reuses `storePublishingImage()`: Gemini plate detection -> fail-closed redaction/review -> canonical WebP -> Cloudflare R2 -> article.
+- The legacy Telegram AI-blog path that wrote the raw Telegram JPEG/PNG directly to R2 has been removed.
+- OpenAPI remains at `/openapi/publishing.json` for the private GPT Action.
+
+### Changes
+- PR #563: unified Telegram AI photo-blog with the privacy-safe publishing media pipeline; merged `bef9615998aef9045b3fabca8f0e0e645829a595`.
+- Production #1507 deployed the unified code but correctly failed closed when Gemini detection timed out; no unverified image was stored.
+- PR #564: bounded one-time retry for transient Gemini timeout/AbortError/429/5xx; privacy remains fail-closed; merged `ad500662a93647c32929032acff1cf1f1824e183`.
+- Production #1510 reached Gemini verification but still failed closed on provider timeout.
+- PR #565: production verifier retries the whole upload only for explicit transient Gemini detect/verify timeout failures; all other failures remain immediate.
+- PR #565 merged `83afab602c7228b83c43433cd183b0b793b75693`.
+
+### Final production evidence
+Deploy Cloudflare Worker #1512, run `36380553663`, exact SHA `83afab602c7228b83c43433cd183b0b793b75693`:
+- API/SDK deployment: PASS
+- public/editorial/Admin UTF-8: PASS
+- R2 GET -> DELETE -> 404: PASS
+- privacy-processed publishing image upload: PASS
+- canonical WebP: PASS
+- explicit WebP: PASS
+- AVIF preference with documented WebP fallback: PASS
+- private draft 404 -> idempotent retry -> publish -> public HTML UTF-8 + cover: PASS
+- temporary post/media cleanup: PASS
+- deployment completed: PASS
+- Wrangler production deployment path: NOT USED
+
+### Status
+- **Unified publishing backend/media contract: GREEN in production.**
+- **ChatGPT publishing API/OpenAPI: production backend GREEN; account-side GPT Action connection still requires the owner to configure the private Action with PUBLISH_API_KEY.**
+- **Telegram AI photo-blog privacy/storage path: merged and deployed on the unified contract.**
+- **Admin remains an authorized publishing surface on the same D1/R2 backend.**
+- **Automatic publishing must remain gated by authorization and fail-closed image privacy; provider uncertainty must not publish the original image.**
