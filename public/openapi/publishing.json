@@ -26,7 +26,7 @@
     "/api/publish/v1/media": {
       "post": {
         "operationId": "uploadCover",
-        "summary": "Store one conversation image as canonical WebP in R2",
+        "summary": "Store one conversation image (max 15 MB) as privacy-verified canonical WebP in R2; AVIF may be delivered adaptively",
         "requestBody": {
           "required": true,
           "content": {
@@ -41,7 +41,7 @@
                     },
                     "minItems": 1,
                     "maxItems": 1,
-                    "description": "Exactly one JPG, PNG or WebP image uploaded by the user or generated in this conversation."
+                    "description": "Exactly one JPG, PNG or WebP image, maximum 15 MB. Storage is canonical WebP; delivery may negotiate AVIF with WebP fallback."
                   }
                 },
                 "required": [
