@@ -126,7 +126,8 @@ export async function handlePublishingApi(request,env) {
     }
     return json({error:'Method Not Allowed'},405);
   } catch(error) {
-    if(error instanceof PublishingError || error instanceof ImagePrivacyError)return json({error:error.message},error.status);
+    if(error instanceof PublishingError)return json({error:error.message},error.status);
+    if(error instanceof ImagePrivacyError)return json({error:error.message,stage:error.stage,...(error.reason?{reason:error.reason}:{})},error.status);
     if(String(error.message).includes('UNIQUE'))return json({error:'Slug đã tồn tại.'},409);
     console.error('publishing_api_failed',error?.name||'Error');
     return json({error:'Chưa hoàn tất yêu cầu. Kiểm tra lại trạng thái với cùng request_id.'},500);

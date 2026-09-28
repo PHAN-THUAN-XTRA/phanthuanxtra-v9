@@ -1,13 +1,18 @@
 // Only processed bytes leave this module; callers must never persist the original.
 const stream = bytes => new Blob([bytes]).stream();
-export class ImagePrivacyError extends Error { constructor(message,stage='privacy') { super(message);this.status=422;this.stage=stage; } }
+export class ImagePrivacyError extends Error { constructor(message,stage='privacy',reason='') { super(message);this.status=422;this.stage=stage;this.reason=reason; } }
 function reject(stage='privacy') { throw new ImagePrivacyError('Chưa xác minh được ảnh che biển số; ảnh chưa được lưu.',stage); }
+function safeReason(error) {
+  const raw=String(error?.message||error?.name||'Error');
+  return raw.replace(/https?:\/\/\S+/gi,'[url]').replace(/[A-Za-z0-9_-]{24,}/g,'[redacted]').replace(/[^\p{L}\p{N} .,:;_()\/-]/gu,'').slice(0,180);
+}
 async function stage(name,fn) {
   try { return await fn(); }
   catch(error) {
     if(error instanceof ImagePrivacyError)throw error;
+    const reason=safeReason(error);
     console.error('image_privacy_stage_failed',name,error?.name||'Error');
-    throw new ImagePrivacyError(`Không thể hoàn tất bước xử lý ảnh (${name}); ảnh chưa được lưu.`,name);
+    throw new ImagePrivacyError(`Không thể hoàn tất bước xử lý ảnh (${name}); ảnh chưa được lưu.`,name,reason);
   }
 }
 function base64(bytes) {
