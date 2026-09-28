@@ -27,15 +27,15 @@ async function ask(env,bytes,prompt,schema) {
   const payload=JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'image/webp',data:base64(bytes)}},{text:prompt}]}],
     generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:4096}});
   let response;
-  for(let attempt=0;attempt<2;attempt++) {
+  for(let attempt=0;attempt<4;attempt++) {
     try {
       response=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(25000),body:payload});
       if(response.ok)break;
-      if(!(response.status===429||response.status>=500)||attempt===1)reject();
+      if(!(response.status===429||response.status>=500)||attempt===3)reject();
     } catch(error) {
-      if((error?.name!=='TimeoutError'&&error?.name!=='AbortError')||attempt===1)throw error;
+      if((error?.name!=='TimeoutError'&&error?.name!=='AbortError')||attempt===3)throw error;
     }
-    await new Promise(resolve=>setTimeout(resolve,750));
+    await new Promise(resolve=>setTimeout(resolve,750*(attempt+1)));
   }
   if(!response?.ok)reject();
   const data=await response.json(),candidate=data.candidates?.[0];

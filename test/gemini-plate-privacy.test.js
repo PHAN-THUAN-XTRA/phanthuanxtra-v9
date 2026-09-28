@@ -77,3 +77,14 @@ test('publishing runtime diagnostic stays bounded and redacts URL/token patterns
   assert.match(source,/\[redacted\]/);
   assert.match(source,/reason:safeFailureReason\(error\)/);
 });
+
+
+test('Gemini privacy provider retries transient timeout and remains fail-closed', async () => {
+  const source=await (await import('node:fs/promises')).readFile(new URL('../src/gemini-plate-privacy.js',import.meta.url),'utf8');
+  assert.match(source,/for\(let attempt=0;attempt<4;attempt\+\+\)/);
+  assert.match(source,/response\.status===429\|\|response\.status>=500/);
+  assert.match(source,/TimeoutError.*AbortError/);
+  assert.match(source,/attempt===3/);
+  assert.match(source,/750\*\(attempt\+1\)/);
+  assert.match(source,/throw new ImagePrivacyError/);
+});
