@@ -128,7 +128,7 @@ test('captioned general photo uses WebP and does not invoke vehicle AI; retry sk
     if(url.includes('/file/bot'))return new Response(new Uint8Array([1,2,3]));
     return Response.json({ok:true,result:{}});
   });
-  const pipeline={transform(){return this;},async output(opts){assert.equal(opts.format,'image/webp');assert.equal(opts.metadata,'none');return {response:()=>new Response('webp')};}};
+  const pipeline={transform(){return this;},async output(opts){assert.deepEqual(opts,{format:'image/webp',quality:85});return {response:()=>new Response('webp')};}};
   const e={...env(DB),GEMINI_API_KEY:crypto.randomUUID(),GEMINI_MODEL:"gemini-test",IMAGES:{async info(){return {width:100,height:100};},input(){return pipeline;}},MEDIA:{async head(){return {customMetadata:{plate_privacy:"gemini-reviewed-v1"}};},async put(key){assert.match(key,/\.webp$/);uploads++;}},AI:{run(){throw Error('AI must not be called');}}};
   const message={chat:{id:123},message_id:1,caption:'/post Năng lượng xanh\nNội dung đã soạn.',photo:[{file_id:'test'}]};
   await processTelegramUpdate(e,{message},'123');await processTelegramUpdate(e,{message},'123');

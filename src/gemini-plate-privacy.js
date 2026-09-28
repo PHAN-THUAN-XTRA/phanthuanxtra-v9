@@ -37,7 +37,7 @@ export function checkedBoxes(value) {
   return value.boxes;
 }
 async function outputBytes(image) {
-  const response=(await image.output({format:'image/webp',quality:85,metadata:'none'})).response();
+  const response=(await image.output({format:'image/webp',quality:85})).response();
   if(!response.ok)reject();
   const bytes=new Uint8Array(await response.arrayBuffer());
   if(!bytes.length||bytes.length>10*1024*1024)reject();
