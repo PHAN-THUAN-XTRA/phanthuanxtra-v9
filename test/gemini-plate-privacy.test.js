@@ -4,9 +4,7 @@ import { preparePrivateCover, ImagePrivacyError } from '../src/gemini-plate-priv
 
 test('preparePrivateCover fails closed with normalize stage when Images input throws', async () => {
   const env = {
-    IMAGES: { input() { throw new TypeError('simulated images failure'); } },
-    GEMINI_API_KEY: 'test-only',
-    GEMINI_MODEL: 'gemini-test'
+    IMAGES: { input() { throw new TypeError('simulated images failure'); } }
   };
   await assert.rejects(
     preparePrivateCover(env, new Uint8Array([1,2,3])),
