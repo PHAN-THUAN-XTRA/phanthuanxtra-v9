@@ -74,3 +74,12 @@ test("explicit image variants receive distinct transform pipeline identities",()
   assert.match(worker,/requested===['"]webp['"].*transform\(\{rotate:0\}\)/s);
   assert.match(worker,/output\(\{format,quality:/);
 });
+
+
+test("explicit AVIF variant is materialized in R2 with AVIF metadata",()=>{
+  const worker=fs.readFileSync("src/index.js","utf8");
+  assert.match(worker,/const avifKey=\`\$\{key\}\.avif\`/);
+  assert.match(worker,/output\(\{format:'image\/avif',quality:76\}\)/);
+  assert.match(worker,/contentType:'image\/avif'/);
+  assert.match(worker,/MEDIA\.put\(avifKey/);
+});
