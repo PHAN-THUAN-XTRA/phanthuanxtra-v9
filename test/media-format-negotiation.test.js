@@ -18,7 +18,7 @@ test("production publishing verifier locks canonical WebP plus cache-safe AVIF/W
   assert.match(verifier,/\?format=webp/);
   assert.match(verifier,/\?format=avif/);
   assert.match(verifier,/content-type/);
-  assert.match(verifier,/canonical WebP \+ explicit cache-safe AVIF\/WebP variants/);
+  assert.match(verifier,/canonical WebP \+ explicit WebP \+ AVIF-preference with documented fallback/);
 });
 
 
@@ -53,7 +53,7 @@ test("production variant verifier emits path-specific timeout evidence",()=>{
   assert.match(verifier,/Timed out after \$\{timeoutMs\}ms: \$\{path\}/);
   assert.match(verifier,/\?format=webp',{timeoutMs:45000}/);
   assert.match(verifier,/\?format=avif',{timeoutMs:45000}/);
-  assert.match(verifier,/explicit AVIF variant: PASS/);
+  assert.match(verifier,/Publishing image AVIF preference: PASS/);
 });
 
 
@@ -73,4 +73,12 @@ test("explicit AVIF delivery uses Cloudflare cf.image subrequest with loop guard
   assert.match(worker,/source['"],['"]1['"]/);
   assert.match(worker,/cf:\{image:\{format:'avif',quality:76\}\}/);
   assert.match(worker,/searchParams\.get\(['"]source['"]\)===['"]1['"]/);
+});
+
+
+test("production AVIF preference accepts only AVIF or documented WebP fallback",()=>{
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(verifier,/image\\\/\(\?:avif\|webp\)/);
+  assert.match(verifier,/documented WebP fallback/);
+  assert.doesNotMatch(verifier,/image\\\/jpeg.*AVIF preference/);
 });
