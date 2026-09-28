@@ -106,3 +106,12 @@ test('Gemini request-level rejection preserves caller stage', async () => {
   assert.match(source,/\},'gemini-detect'\)\)/);
   assert.match(source,/\},'gemini-verify'\)\)/);
 });
+
+
+test('Gemini request diagnostics expose only bounded non-secret failure class', async () => {
+  const source=await (await import('node:fs/promises')).readFile(new URL('../src/gemini-plate-privacy.js',import.meta.url),'utf8');
+  assert.match(source,/Gemini HTTP \$\{response\.status\}/);
+  assert.match(source,/Gemini finishReason \$\{candidate\?\.finishReason\|\|'missing'\}/);
+  assert.match(source,/Gemini structured JSON parse failed/);
+  assert.match(source,/safeReason\(reason\)/);
+});
