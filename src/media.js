@@ -95,7 +95,7 @@ export async function handleMediaApi(request,env){
   if(url.searchParams.get('source')==='1')return new Response(object.body,{status:200,headers});
   if(request.method==="GET"&&env.IMAGES&&String(headers.get("content-type")||"").startsWith("image/")){
     const accept=request.headers.get("Accept")||"";
-    const format=requested==='webp'?'image/webp':/image\\/webp/i.test(accept)?'image/webp':null;
+    const format=requested==='webp'?'image/webp':/image\/webp/i.test(accept)?'image/webp':null;
     if(format){
       const result=await env.IMAGES.input(object.body).output({format,quality:82});
       const optimized=await result.response();
