@@ -37,3 +37,14 @@ test("adaptive image response reconstructs optimized response with negotiation h
   assert.match(worker,/optimizedHeaders\.set\(['"]x-pt-xtra-image-format['"],format\)/);
   assert.match(worker,/new Response\(optimized\.body/);
 });
+
+
+test("free-tier image variants use explicit format query keys",()=>{
+  const worker=fs.readFileSync("src/index.js","utf8");
+  const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
+  assert.match(worker,/searchParams\.get\(['"]format['"]\)/);
+  assert.match(worker,/requested===['"]avif['"]\?['"]image\/avif['"]/);
+  assert.match(worker,/requested===['"]webp['"]\?['"]image\/webp['"]/);
+  assert.match(verifier,/\?format=webp/);
+  assert.match(verifier,/\?format=avif/);
+});
