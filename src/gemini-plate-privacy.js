@@ -23,12 +23,21 @@ function base64(bytes) {
 async function ask(env,bytes,prompt,schema) {
   if(!env.GEMINI_API_KEY || !/^gemini-[a-z0-9.-]+$/.test(env.GEMINI_MODEL||''))
     throw new ImagePrivacyError('Cần cấu hình GEMINI_API_KEY và GEMINI_MODEL để kiểm tra biển số.');
-  const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`,{
-    method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(25000),
-    body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'image/webp',data:base64(bytes)}},{text:prompt}]}],
-      generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:4096}})
-  });
-  if(!response.ok)reject();
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`;
+  const payload=JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'image/webp',data:base64(bytes)}},{text:prompt}]}],
+    generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:4096}});
+  let response;
+  for(let attempt=0;attempt<2;attempt++) {
+    try {
+      response=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(25000),body:payload});
+      if(response.ok)break;
+      if(!(response.status===429||response.status>=500)||attempt===1)reject();
+    } catch(error) {
+      if((error?.name!=='TimeoutError'&&error?.name!=='AbortError')||attempt===1)throw error;
+    }
+    await new Promise(resolve=>setTimeout(resolve,750));
+  }
+  if(!response?.ok)reject();
   const data=await response.json(),candidate=data.candidates?.[0];
   if(candidate?.finishReason!=='STOP')reject();
   try { return JSON.parse(candidate.content.parts.filter(p=>typeof p.text==='string'&&!p.thought).map(p=>p.text).join('')); }

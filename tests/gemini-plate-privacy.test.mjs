@@ -44,3 +44,16 @@ test('missing key fails closed without provider or R2 calls',async t=>{
   const {env,writes}=setup();delete env.GEMINI_API_KEY;const count=mock(t,[]);
   await assert.rejects(()=>storePublishingImage(env,new Uint8Array([1])));assert.equal(count(),0);assert.equal(writes.length,0);
 });
+
+
+test('transient Gemini timeout retries once and still requires independent review',async t=>{
+  const {env,writes}=setup();let count=0;
+  t.mock.method(globalThis,'fetch',async()=>{
+    count++;
+    if(count===1){const error=new Error('transient');error.name='TimeoutError';throw error;}
+    const value=count===2?{complete:true,boxes:[]}:{safe:true,certain:true};
+    return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(value)}]}}]});
+  });
+  await storePublishingImage(env,new Uint8Array([1]));
+  assert.equal(count,3);assert.equal(writes.length,1);
+});
