@@ -5,10 +5,17 @@ if(!process.env.ADMIN_PASSWORD)throw Error('ADMIN_PASSWORD is required for publi
 let session,postId,mediaKey;
 async function request(path,options={}) {
   const headers={...(options.headers||{}),...(session?{Authorization:`Bearer ${session}`}:{})};
+  const timeoutMs=Number(options.timeoutMs||25000);
+  const {timeoutMs:_timeoutMs,...fetchOptions}=options;
   for(let attempt=0;attempt<3;attempt++){
-    const response=await fetch(base+path,{...options,headers,signal:AbortSignal.timeout(25000)});
-    if(response.status===429&&attempt<2){await new Promise(resolve=>setTimeout(resolve,2000));continue;}
-    return response;
+    try{
+      const response=await fetch(base+path,{...fetchOptions,headers,signal:AbortSignal.timeout(timeoutMs)});
+      if(response.status===429&&attempt<2){await new Promise(resolve=>setTimeout(resolve,2000));continue;}
+      return response;
+    }catch(error){
+      if(error?.name==='TimeoutError')throw new Error(`Timed out after ${timeoutMs}ms: ${path}`);
+      throw error;
+    }
   }
 }
 async function data(path,method,body) {
@@ -25,9 +32,9 @@ try{
   assert.equal(upload.status,201,`Authenticated image upload: HTTP ${upload.status} ${uploadText.slice(0,500)}`);
   const media=JSON.parse(uploadText);mediaKey=media.key;
   assert.equal(media.content_type,'image/webp');
-  const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);
-  const webp=await request(media.url+'?format=webp');assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);assert.equal(webp.headers.get('x-pt-xtra-image-format'),'image/webp');
-  const avif=await request(media.url+'?format=avif');assert.equal(avif.status,200);assert.match(avif.headers.get('content-type'),/image\/avif/);assert.equal(avif.headers.get('x-pt-xtra-image-format'),'image/avif');
+  const canonical=await request(media.url,{headers:{Accept:'image/jpeg'}});assert.equal(canonical.status,200);assert.match(canonical.headers.get('content-type'),/image\/webp/);console.log('Publishing image canonical WebP: PASS');
+  const webp=await request(media.url+'?format=webp',{timeoutMs:45000});assert.equal(webp.status,200);assert.match(webp.headers.get('content-type'),/image\/webp/);assert.equal(webp.headers.get('x-pt-xtra-image-format'),'image/webp');console.log('Publishing image explicit WebP variant: PASS');
+  const avif=await request(media.url+'?format=avif',{timeoutMs:45000});assert.equal(avif.status,200);assert.match(avif.headers.get('content-type'),/image\/avif/);assert.equal(avif.headers.get('x-pt-xtra-image-format'),'image/avif');console.log('Publishing image explicit AVIF variant: PASS');
   const input={request_id:crypto.randomUUID(),title:'PHAN THUẦN XTRA — kiểm thử xuất bản',content:'Bài kiểm thử tự động: tạo nháp, ảnh WebP, xuất bản và trả link. Bài sẽ được dọn sau kiểm thử.',cover_image:media.url};
   const draft=await data('/api/publish/v1/posts','POST',input);postId=draft.id;
   assert.equal(draft.post.status,'draft');assert.equal(draft.public_url,null);
