@@ -95,7 +95,8 @@ test('draft media is private for GET, HEAD and branding, while published referen
       assert.equal(response.headers.get('cache-control'),'no-store');
     }
   }
-  const admin=await handleMediaApi(new Request('https://phanthuanxtra.com/media/admin/editorial-draft.webp',{headers:{Authorization:'Bearer test-admin-token'}}),env);
+  const token=await issueAdminToken(env);
+  const admin=await handleMediaApi(new Request('https://phanthuanxtra.com/media/admin/editorial-draft.webp',{headers:{Authorization:`Bearer ${token}`}}),env);
   assert.equal(admin.status,200);assert.equal(admin.headers.get('cache-control'),'private, no-store');
   published=true;
   const publicResponse=await handleMediaApi(new Request('https://phanthuanxtra.com/media/admin/editorial-draft.webp'),env);
