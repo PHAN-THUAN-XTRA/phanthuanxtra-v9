@@ -194,13 +194,13 @@ test('production gate: yachts editorial page preserves all eight verified R2 Web
     'yachts-08-phu-quoc-sailing.webp',
   ];
   assert.ok(page.includes('Du Thuyền Cao Cấp &amp; Hạng Sang'));
-  assert.equal((page.match(/\/media\/editorial\/yachts\/yachts-/g) || []).length, 8);
+  assert.equal((page.match(/<img[^>]+src="\/media\/editorial\/yachts\/yachts-/g) || []).length, 8);
   for (const file of files) {
     assert.ok(page.includes('/media/editorial/yachts/' + file), 'missing yacht image: ' + file);
   }
   assert.match(page, /yachts-02-marina-sunset\.webp[^>]+fetchpriority="high"/);
-  assert.equal((page.match(/loading="lazy"/g) || []).length, 7);
-  assert.equal((page.match(/decoding="async"/g) || []).length, 8);
+  assert.equal((page.match(/<img[^>]+loading="lazy"/g) || []).length, 7);
+  assert.equal((page.match(/<img[^>]+decoding="async"/g) || []).length, 8);
   assert.equal((page.match(/<img[^>]+alt="[^"]+"[^>]*>/g) || []).length, 8);
 });
 
@@ -359,4 +359,28 @@ test('production gate: failed Telegram albums clean already-persisted verified m
 test('production gate: Android application rejects cleartext traffic', () => {
   const manifest = fs.readFileSync(new URL('../android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
   assert.match(manifest, /android:usesCleartextTraffic="false"/);
+});
+
+
+test('production gate: sitemap covers all canonical public verticals', () => {
+  const sitemap = fs.readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+  for (const route of ['/', '/phan-thuan', '/green-energy', '/yachts', '/business-jets', '/blog']) {
+    assert.ok(sitemap.includes('<loc>https://phanthuanxtra.com' + route + '</loc>'), 'missing sitemap route: ' + route);
+  }
+});
+
+test('production gate: editorial pages expose mobile nav and complete social metadata', () => {
+  for (const file of ['phan-thuan.html','green-energy.html','yachts.html','business-jets.html']) {
+    const page = fs.readFileSync(new URL('../public/' + file, import.meta.url), 'utf8');
+    assert.match(page, /class="menu-toggle"/, file + ' missing mobile menu');
+    assert.match(page, /property="og:image"/, file + ' missing og:image');
+    assert.match(page, /name="twitter:image"/, file + ' missing twitter:image');
+    assert.match(page, /application\/ld\+json/, file + ' missing structured data');
+  }
+});
+
+test('production gate: Business Jets CRM E2E runs after every successful main production deploy', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/business-jets-crm-production-e2e.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.doesNotMatch(workflow, /contains\(github\.event\.workflow_run\.display_title, 'business-jets'\)/);
 });

@@ -1,21 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-<url>
-<loc>https://phanthuanxtra.com/</loc>
-</url>
-
-<url>
-<loc>https://phanthuanxtra.com/car-lx600.html</loc>
-</url>
-
-<url>
-<loc>https://phanthuanxtra.com/car-gx460.html</loc>
-</url>
-
-<url>
-<loc>https://phanthuanxtra.com/car-boxster.html</loc>
-</url>
-
+  <url><loc>https://phanthuanxtra.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://phanthuanxtra.com/phan-thuan</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://phanthuanxtra.com/green-energy</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://phanthuanxtra.com/yachts</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://phanthuanxtra.com/business-jets</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://phanthuanxtra.com/blog</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://phanthuanxtra.com/car-lx600.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://phanthuanxtra.com/car-gx460.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://phanthuanxtra.com/car-boxster.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>
