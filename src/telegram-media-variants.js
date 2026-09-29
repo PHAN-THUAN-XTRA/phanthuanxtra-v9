@@ -2,9 +2,10 @@ const clean=v=>String(v??"").trim();
 
 async function encode(env,bytes,format,quality){
   if(!env.IMAGES)throw new Error("Cloudflare Images Free binding is not configured");
-  const response=await env.IMAGES.input(new Blob([bytes]).stream())
+  const output=await env.IMAGES.input(new Blob([bytes]).stream())
     .transform({width:1200,fit:"scale-down"})
-    .output({format,quality}).response();
+    .output({format,quality});
+  const response=output.response();
   if(!response.ok)throw new Error("Cloudflare image transform failed: "+response.status);
   return new Uint8Array(await response.arrayBuffer());
 }
