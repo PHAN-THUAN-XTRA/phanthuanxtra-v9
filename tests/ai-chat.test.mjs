@@ -165,7 +165,7 @@ test('Phan Thuần ecosystem lookup expands AI Search with official aliases and 
     AI: { async run(model, payload) {
       const system = payload.messages.find(x => x.role === 'system')?.content || '';
       assert.match(system, /Du thuyền châu Âu/);
-      assert.match(system, /Business Jets/);
+      assert.match(system, /Chuyên cơ thương gia/);
       assert.match(system, /Green Energy/);
       return { response: 'Theo hồ sơ chính thức do chủ website cung cấp, Phan Thuần/PHAN THUẦN XTRA được giới thiệu với Luxury Automotive, European Yachts, Business Jets và Green Energy.' };
     } }
