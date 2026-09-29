@@ -79,7 +79,7 @@ test('website AI chat uses visible D1 catalog and GLM -> Qwen fallback without A
   assert.equal(data.needs_human, false);
   assert.equal(data.ai_model, '@cf/qwen/qwen3.8-27b');
   assert.equal(searchCalls, 0);
-  assert.deepEqual(modelCalls, ['@cf/zai-org/glm-4.7-flash','@cf/qwen/qwen3.8-27b']);
+  assert.deepEqual(modelCalls, ['@cf/zai-org/glm-4.7-flash','@cf/nvidia/nemotron-3-120b-a12b','@cf/qwen/qwen3.8-27b']);
   assert.ok(DB._rows.some(x=>x.type==='message' && x.role==='user'));
   assert.ok(DB._rows.some(x=>x.type==='message' && x.role==='assistant'));
 });
