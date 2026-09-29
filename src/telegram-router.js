@@ -39,8 +39,18 @@ async function processBundle(env, bundleKey, chatId) {
       if (Number(image.headers.get("content-length") || 0) > imageInputLimit()) throw new Error("Ảnh vượt giới hạn 15 MB.");
       const bytes = await boundedBytes(image.body, imageInputLimit());
       const contentType = image.headers.get("content-type") || "image/jpeg";
-      const ai = await analyzeVehicleImage(env, bytes, contentType, text);
-      if (!primaryAi || Number(ai?.confidence || 0) > Number(primaryAi?.confidence || 0)) primaryAi = ai;
+      // Vision is optional for Telegram intake. Run it only once per vehicle bundle:
+      // 20+ gallery images must not burn the Workers AI Free daily neuron allocation.
+      // Quota exhaustion (or another Vision failure) must never block AVIF/WebP + R2 draft creation.
+      let ai = null;
+      if (!primaryAi && processed.length === 0) {
+        try { ai = await analyzeVehicleImage(env, bytes, contentType, text); }
+        catch (error) {
+          console.warn("telegram_vehicle_vision_optional_failed", clean(error?.message || error));
+          ai = { confidence: 0, missing_fields: [], description: text, _ai_status: /daily allocation exhausted|quota/i.test(clean(error?.message || error)) ? "free_quota_exhausted" : "unavailable" };
+        }
+        primaryAi = ai;
+      }
       // Telegram vehicle intake is format-only: no plate masking, watermark or other image editing.
       // Cloudflare Images Free performs two encodes and the durable AVIF/WebP pair is stored in R2.
       const media = await storeTelegramVehicleVariants(env,new Uint8Array(bytes),"telegram-"+row.id+"-"+(await sha256(String(row.file_id))).slice(0,16));
@@ -58,7 +68,7 @@ async function processBundle(env, bundleKey, chatId) {
     await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(photoRow.message_id||0),text:[
       "📝 BẢN NHÁP XE — CHỜ DUYỆT",`📦 Inbox: ${inboxId}`,`🚗 Xe: ${label}`,
       ai.year?`📅 Năm: ${ai.year}`:null,ai.mileage!=null?`🛣 ODO: ${ai.mileage}`:null,ai.price!=null?`💰 Giá: ${ai.price}`:null,
-      `🖼 Gallery: ${publishMediaKeys.length} cặp AVIF + WebP trên R2`,"🎨 Ảnh: chỉ chuyển định dạng; không che biển số/watermark/chế biến sơ.",
+      `🖼 Gallery: ${publishMediaKeys.length} cặp AVIF + WebP trên R2`,ai._ai_status==="free_quota_exhausted"?"🟡 Workers AI hết quota Free; draft vẫn được tạo từ nội dung Telegram.":null,"🎨 Ảnh: chỉ chuyển định dạng; không che biển số/watermark/chế biến sơ.",
       "⛔ Chưa đăng website. Dùng /carpublish "+inboxId+" sau khi kiểm tra bản nháp."
     ].filter(Boolean).join("\n")});
   } catch (error) {
@@ -172,7 +182,20 @@ export async function processTelegramUpdate(env, update, chatId) {
     const rowHasText = Boolean(clean(row.caption));
     return isPhoto ? (!rowHasPhoto && rowHasText) : (rowHasPhoto && !rowHasText);
   });
-  const bundleKey = mediaGroupId ? `${chatId}:album:${mediaGroupId}` : (partner?.bundle_key || `${chatId}:${message.message_id}`);
+  let bundleKey = mediaGroupId ? `${chatId}:album:${mediaGroupId}` : (partner?.bundle_key || `${chatId}:${message.message_id}`);
+  // A vehicle listing may arrive as several Telegram albums (Telegram caps one media
+  // group below the gallery size we support). A following text-only message closes
+  // the intake window: fold every recent pending photo-only bundle into one draft.
+  if(!mediaGroupId&&!isPhoto&&caption){
+    const pendingPhotoRows=recent.filter(row=>Boolean(row.file_id)&&!clean(row.caption));
+    if(pendingPhotoRows.length){
+      bundleKey=`${chatId}:vehicle:${message.message_id}`;
+      const pendingKeys=[...new Set(pendingPhotoRows.map(row=>clean(row.bundle_key,500)).filter(Boolean))];
+      for(const key of pendingKeys){
+        await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND bundle_key=? AND bundle_status='pending'").bind(bundleKey,chatId,key).run();
+      }
+    }
+  }
   await env.DB.prepare("INSERT INTO telegram_inbox (source_hash,chat_id,message_id,file_id,file_unique_id,file_path,caption,status,bundle_key,bundle_status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'received',?,'pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(source_hash) DO NOTHING").bind(sourceHash, chatId, Number(message.message_id || 0), photo?.file_id || "", photo?.file_unique_id || "", "", caption, bundleKey).run();
   if(mediaGroupId){
     // Telegram emits one webhook update per album item. Wait until this media_group
@@ -185,9 +208,9 @@ export async function processTelegramUpdate(env, update, chatId) {
     if(hasPhoto&&hasText){
       await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ALBUM XE — ${rows.filter(row=>row.file_id).length} ẢNH\n⏳ Đang tạo bản nháp AVIF + WebP...`}).catch(()=>{});
       await processBundle(env,bundleKey,chatId);
-    }else{
-      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:"📥 Đã nhận album ảnh. Gửi phần thông tin xe trong một tin nhắn tiếp theo để ghép tự động."}).catch(()=>{});
     }
+    // Photo-only albums stay silent and pending. This lets 20+ photos arrive across
+    // multiple media_group_id values without one Telegram receipt per album.
     return;
   }
   const rows = (await env.DB.prepare("SELECT id,file_id,caption,bundle_status FROM telegram_inbox WHERE bundle_key=? ORDER BY id").bind(bundleKey).all()).results || [];

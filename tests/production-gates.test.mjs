@@ -224,7 +224,9 @@ test('production gate: Telegram albums use media_group_id as one stable vehicle 
   const router = fs.readFileSync(new URL('../src/telegram-router.js', import.meta.url), 'utf8');
   assert.match(router, /message\.media_group_id/);
   assert.match(router, /:album:\$\{mediaGroupId\}/);
-  assert.match(router, /const bundleKey = mediaGroupId \? `\$\{chatId\}:album:\$\{mediaGroupId\}`/);
+  assert.match(router, /let bundleKey = mediaGroupId \? `\$\{chatId\}:album:\$\{mediaGroupId\}`/);
+  assert.match(router, /pendingPhotoRows=recent\.filter/);
+  assert.match(router, /UPDATE telegram_inbox SET bundle_key=\?,updated_at=CURRENT_TIMESTAMP/);
   assert.match(router, /const partner = mediaGroupId \? null : recent\.find/);
   assert.match(router, /LIMIT 50/);
 });
