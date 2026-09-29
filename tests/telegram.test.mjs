@@ -96,16 +96,19 @@ test('Telegram publish duplicate protection sends only once',async()=>{
 });
 
 
-test('Telegram router source locks complementary bundle pairing and optional plate branding', async()=>{
+test('Telegram router locks bundle pairing, dual formats and human approval', async()=>{
   const fs=await import('node:fs');
   const source=fs.readFileSync(new URL('../src/telegram-router.js',import.meta.url),'utf8');
   assert.match(source,/rowHasPhoto && !rowHasText/);
   assert.match(source,/!rowHasPhoto && rowHasText/);
   assert.match(source,/const photoRows = rows\.filter\(row => row\.file_id\)/);
-  assert.match(source,/storePublishingImage\(env, new Uint8Array\(bytes\)\)/);
+  assert.match(source,/storeTelegramVehicleVariants/);
   assert.match(source,/publish_media_keys: publishMediaKeys/);
-  assert.match(source,/promoteDraft\(env, inboxId, ai, publishMediaKeys\[0\], publishMediaKeys\)/);
-  assert.match(source,/TỰ ĐĂNG XE/);
+  assert.match(source,/avif_media_keys: avifMediaKeys/);
+  assert.match(source,/approval_required: true/);
+  assert.match(source,/status='awaiting_review'/);
+  assert.match(source,/\/carpublish/);
+  assert.doesNotMatch(source.slice(source.indexOf("async function processBundle"),source.indexOf("function blogCommand")),/TỰ ĐĂNG XE/);
 });
 
 
