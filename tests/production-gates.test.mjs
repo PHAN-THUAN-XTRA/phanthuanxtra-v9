@@ -384,3 +384,25 @@ test('production gate: Business Jets CRM E2E runs after every successful main pr
   assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'success'/);
   assert.doesNotMatch(workflow, /contains\(github\.event\.workflow_run\.display_title, 'business-jets'\)/);
 });
+
+
+test('performance gate: homepage hero reserves layout and lazy-loads non-LCP slides', () => {
+  const page = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  assert.match(page, /hero-slide-auto[\s\S]*fetchpriority="high"[\s\S]*width="1280" height="853"/);
+  for (const id of ['hero-slide-yacht','hero-slide-jet','hero-slide-energy']) {
+    const start = page.indexOf('id="' + id + '"');
+    const end = page.indexOf('</article>', start);
+    const slide = page.slice(start, end);
+    assert.match(slide, /loading="lazy"/, id + ' must lazy-load');
+    assert.match(slide, /width="1280" height="853"/, id + ' must reserve image geometry');
+  }
+});
+
+test('performance gate: static homepage scripts use immutable caching', () => {
+  const headers = fs.readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
+  for (const asset of ['/script.js','/hero-carousel.js','/blog-latest.js']) {
+    const start = headers.indexOf(asset);
+    assert.ok(start >= 0, 'missing cache policy for ' + asset);
+    assert.match(headers.slice(start, start + 120), /max-age=31536000, immutable/);
+  }
+});
