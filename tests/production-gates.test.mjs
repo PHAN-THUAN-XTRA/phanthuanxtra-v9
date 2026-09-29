@@ -128,8 +128,8 @@ test('production gate: Workers AI falls back when primary returns empty output',
   assert.equal(response.status, 200);
   assert.equal(data.ok, true);
   assert.equal(data.reply, 'FALLBACK_OK');
-  assert.equal(data.ai_model, '@cf/qwen/qwen3.8-27b');
-  assert.deepEqual(calls, ['@cf/zai-org/glm-4.7-flash', '@cf/qwen/qwen3.8-27b']);
+  assert.equal(data.ai_model, '@cf/nvidia/nemotron-3-120b-a12b');
+  assert.deepEqual(calls, ['@cf/zai-org/glm-4.7-flash', '@cf/nvidia/nemotron-3-120b-a12b']);
 });
 
 

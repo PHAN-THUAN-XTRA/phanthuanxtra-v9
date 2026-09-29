@@ -2,8 +2,8 @@ import { notifyTelegramCrm } from "./telegram-crm-notify.js";
 
 const MODEL_PRIMARY = "@cf/zai-org/glm-4.7-flash";
 const MODEL_FALLBACKS = Object.freeze([
-  "@cf/qwen/qwen3.8-27b",
-  "@cf/nvidia/nemotron-3-120b-a12b"
+  "@cf/nvidia/nemotron-3-120b-a12b",
+  "@cf/qwen/qwen3.8-27b"
 ]);
 const AI_SEARCH_IDS = ["ai-search-mcp", "ai-search-auto"];
 const MAX_MESSAGE = 4000;
@@ -11,7 +11,7 @@ const MAX_HISTORY = 8;
 const MAX_CARS = 20;
 const MAX_KNOWLEDGE_CHUNKS = 5;
 const MAX_KNOWLEDGE_CONTEXT = 8000;
-const MAX_OUTPUT_TOKENS = 500;
+const MAX_OUTPUT_TOKENS = 350;
 const AI_CACHE_TTL_MS = 60_000;
 const AI_CACHE_MAX = 64;
 const aiResponseCache = new Map();

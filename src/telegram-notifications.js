@@ -13,15 +13,34 @@ function isAutomationAudit(event){
   const id=String(event.resource_id||"");
   const summary=String(event.summary||"");
   return /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(id)
-    || /\bPTX-E2E(?:\b|[-_:])/i.test(summary);
+    || /\bPTX-E2E(?:\b|[-_:])/i.test(summary)
+    || /\bPHAN THUẦN XTRA Blog E2E\b/i.test(summary);
 }
 
 function textFor(event,car){
   const name=[event.summary?.split(" ")?.[0],event.summary?.split(" ")?.slice(1).join(" ")].filter(Boolean).join(" ")||event.resource_id;
-  if(event.action==="delete")return `🗑️ ĐÃ XOÁ BÀI XE KHỎI WEBSITE\n🚗 ${name}\n🆔 ${event.resource_id}\n🌐 phanthuanxtra.com\n✅ Đã ghi audit: xoá xe.`;
-  if(car?.status==="sold")return `🏁 XE ĐÃ BÁN — ĐÃ CẬP NHẬT WEBSITE\n🚗 ${name}\n🆔 ${event.resource_id}\n📌 Trạng thái: SOLD\n🌐 phanthuanxtra.com\n✅ Không còn ở danh sách xe đang bán.`;
-  if(event.action==="update")return `✏️ ĐÃ CẬP NHẬT BÀI XE TRÊN WEBSITE\n🚗 ${name}\n🆔 ${event.resource_id}\n📌 Trạng thái: ${clean(car?.status)||"đã cập nhật"}\n🌐 phanthuanxtra.com\n✅ Thay đổi đã ghi vào D1.`;
-  return `🆕 ĐÃ TẠO BÀI XE TRÊN WEBSITE\n🚗 ${name}\n🆔 ${event.resource_id}\n🌐 phanthuanxtra.com\n✅ Bài đã ghi vào D1.`;
+  if(event.action==="delete")return `🗑️ ĐÃ XOÁ BÀI XE KHỎI WEBSITE
+🚗 ${name}
+🆔 ${event.resource_id}
+🌐 phanthuanxtra.com
+✅ Đã ghi audit: xoá xe.`;
+  if(car?.status==="sold")return `🏁 XE ĐÃ BÁN — ĐÃ CẬP NHẬT WEBSITE
+🚗 ${name}
+🆔 ${event.resource_id}
+📌 Trạng thái: SOLD
+🌐 phanthuanxtra.com
+✅ Không còn ở danh sách xe đang bán.`;
+  if(event.action==="update")return `✏️ ĐÃ CẬP NHẬT BÀI XE TRÊN WEBSITE
+🚗 ${name}
+🆔 ${event.resource_id}
+📌 Trạng thái: ${clean(car?.status)||"đã cập nhật"}
+🌐 phanthuanxtra.com
+✅ Thay đổi đã ghi vào D1.`;
+  return `🆕 ĐÃ TẠO BÀI XE TRÊN WEBSITE
+🚗 ${name}
+🆔 ${event.resource_id}
+🌐 phanthuanxtra.com
+✅ Bài đã ghi vào D1.`;
 }
 
 export async function reconcileTelegramNotifications(env){

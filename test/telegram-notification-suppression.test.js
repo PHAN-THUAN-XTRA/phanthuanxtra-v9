@@ -27,3 +27,7 @@ test("Telegram notification reconciler suppresses publishing E2E numeric car IDs
 test("suppression marker is explicit and does not suppress arbitrary numeric car IDs",()=>{
   assert.doesNotMatch(source,/^\s*return\s+\/\\d/m);
 });
+
+test("Telegram notification reconciler suppresses Blog production E2E audit titles",()=>{
+  assert.match(source,/PHAN THUẦN XTRA Blog E2E/);
+});
