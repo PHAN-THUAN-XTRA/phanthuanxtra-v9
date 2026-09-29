@@ -354,3 +354,9 @@ test('production gate: failed Telegram albums clean already-persisted verified m
   assert.match(router, /DELETE FROM media_assets WHERE r2_key=\?/);
   assert.match(router, /UPDATE telegram_inbox SET status='failed',bundle_status='failed'/);
 });
+
+
+test('production gate: Android application rejects cleartext traffic', () => {
+  const manifest = fs.readFileSync(new URL('../android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
+  assert.match(manifest, /android:usesCleartextTraffic="false"/);
+});
