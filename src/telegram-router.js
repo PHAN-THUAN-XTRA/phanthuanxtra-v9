@@ -103,6 +103,19 @@ async function publishAiPhotoBlog(env, message, chatId, caption) {
   await tg(token, "sendMessage", { chat_id: chatId, text: `📰 BÀI BLOG\n${post.title}\nhttps://phanthuanxtra.com/blog/${post.slug}` });
 }
 
+async function publishReviewedCar(env,chatId,inboxId){
+  if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền publish.");
+  const row=await env.DB.prepare("SELECT d.ai_json,d.status,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=? LIMIT 1").bind(inboxId).first();
+  if(!row||String(row.chat_id)!==String(chatId))throw new Error("Không tìm thấy bản nháp xe của chat này.");
+  if(row.status!=="awaiting_review")throw new Error("Bản nháp không ở trạng thái chờ duyệt.");
+  const ai=JSON.parse(row.ai_json||"{}"),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
+  if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
+  const promotion=await promoteDraft(env,Number(inboxId),ai,keys[0],keys);
+  if(!promotion?.published)throw new Error(promotion?.reason||"Publish gate rejected listing");
+  await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(inboxId).run();
+  return promotion;
+}
+
 export async function processTelegramUpdate(env, update, chatId) {
   const token = autoBotToken(env);
   const message = update?.message || update?.channel_post;
@@ -111,8 +124,14 @@ export async function processTelegramUpdate(env, update, chatId) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  const carPublish=/^\/carpublish\s+(\d+)\s*$/i.exec(caption);
+  if(carPublish){
+    try{const result=await publishReviewedCar(env,chatId,Number(carPublish[1]));await tg(token,"sendMessage",{chat_id:chatId,text:`🚀 ĐÃ DUYỆT + ĐĂNG XE\n📦 Inbox: ${carPublish[1]}\n🚗 ID: ${result.car_id}\n🌐 https://phanthuanxtra.com/`});}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa đăng xe: "+clean(error?.message||error)});}
+    return;
+  }
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — nhập xe theo luồng hiện tại." + EDITORIAL_HELP });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carpublish <Inbox ID> — duyệt và đăng xe sau khi kiểm tra." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {
