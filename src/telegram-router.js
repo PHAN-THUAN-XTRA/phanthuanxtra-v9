@@ -174,14 +174,28 @@ export async function processTelegramUpdate(env, update, chatId) {
   });
   const bundleKey = mediaGroupId ? `${chatId}:album:${mediaGroupId}` : (partner?.bundle_key || `${chatId}:${message.message_id}`);
   await env.DB.prepare("INSERT INTO telegram_inbox (source_hash,chat_id,message_id,file_id,file_unique_id,file_path,caption,status,bundle_key,bundle_status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'received',?,'pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(source_hash) DO NOTHING").bind(sourceHash, chatId, Number(message.message_id || 0), photo?.file_id || "", photo?.file_unique_id || "", "", caption, bundleKey).run();
+  if(mediaGroupId){
+    // Telegram emits one webhook update per album item. Wait until this media_group
+    // has been quiet long enough, then let exactly one waiter claim/process the bundle.
+    await sleep(2200);
+    const latest=await env.DB.prepare("SELECT message_id,caption,bundle_status FROM telegram_inbox WHERE bundle_key=? ORDER BY id DESC LIMIT 1").bind(bundleKey).first();
+    if(Number(latest?.message_id||0)!==Number(message.message_id||0)||latest?.bundle_status!=="pending")return;
+    const rows=(await env.DB.prepare("SELECT id,file_id,caption FROM telegram_inbox WHERE bundle_key=? ORDER BY id").bind(bundleKey).all()).results||[];
+    const hasPhoto=rows.some(row=>Boolean(row.file_id)),hasText=rows.some(row=>clean(row.caption));
+    if(hasPhoto&&hasText){
+      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ALBUM XE — ${rows.filter(row=>row.file_id).length} ẢNH\n⏳ Đang tạo bản nháp AVIF + WebP...`}).catch(()=>{});
+      await processBundle(env,bundleKey,chatId);
+    }else{
+      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:"📥 Đã nhận album ảnh. Gửi phần thông tin xe trong một tin nhắn tiếp theo để ghép tự động."}).catch(()=>{});
+    }
+    return;
+  }
   const rows = (await env.DB.prepare("SELECT id,file_id,caption,bundle_status FROM telegram_inbox WHERE bundle_key=? ORDER BY id").bind(bundleKey).all()).results || [];
   const hasPhoto = rows.some(row => Boolean(row.file_id));
   const hasText = rows.some(row => clean(row.caption));
   if (hasPhoto && hasText) {
-    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: "📥 ĐÃ GHÉP ẢNH + THÔNG TIN XE\n⏳ Đang phân tích AI và kiểm tra publish..." }).catch(() => {});
-    await sleep(1200);
-    const status = (await env.DB.prepare("SELECT bundle_status FROM telegram_inbox WHERE bundle_key=? LIMIT 1").bind(bundleKey).first())?.bundle_status;
-    if (status === "pending") await processBundle(env, bundleKey, chatId);
+    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: "📥 ĐÃ GHÉP ẢNH + THÔNG TIN XE\n⏳ Đang tạo bản nháp..." }).catch(() => {});
+    if ((await env.DB.prepare("SELECT bundle_status FROM telegram_inbox WHERE bundle_key=? LIMIT 1").bind(bundleKey).first())?.bundle_status === "pending") await processBundle(env, bundleKey, chatId);
   } else {
     await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: photo ? "📥 Đã nhận ảnh. Chờ phần thông tin xe để ghép tự động." : "📥 Đã nhận thông tin. Chờ ảnh xe để ghép tự động." }).catch(() => {});
   }
@@ -199,8 +213,12 @@ async function autoWebhook(request, env, ctx) {
   if (!photo && !caption) return json({ ok: true, ignored: true });
   if (isEditorialMessage(message) && !secret) return json({ error: "Webhook secret required for editorial publishing" }, 503);
   const chatId = String(message.chat.id);
-  const receipt = parseAutoCommand(caption) || (!photo && isAutoChat(caption)) ? "📥 Đã nhận yêu cầu. Đang xử lý..." : telegramWebhookReceipt(Boolean(photo));
-  try { await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: receipt }); } catch (error) { console.error("telegram_receipt_failed", clean(error?.message || error)); }
+  // Album items are acknowledged once by the debounced media_group processor below.
+  // Non-album updates retain the immediate receipt.
+  if(!message.media_group_id){
+    const receipt = parseAutoCommand(caption) || (!photo && isAutoChat(caption)) ? "📥 Đã nhận yêu cầu. Đang xử lý..." : telegramWebhookReceipt(Boolean(photo));
+    try { await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: receipt }); } catch (error) { console.error("telegram_receipt_failed", clean(error?.message || error)); }
+  }
   const task = processTelegramUpdate(env, update, chatId).catch(async () => {
     console.error("telegram_update_failed");
     await tg(token, "sendMessage", { chat_id: chatId, text: "Chưa xử lý được yêu cầu. Vui lòng thử lại sau; không gửi lại liên tục." }).catch(() => {});
