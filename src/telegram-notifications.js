@@ -13,7 +13,7 @@ function isAutomationAudit(event){
   const id=String(event.resource_id||"");
   const summary=String(event.summary||"");
   return /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(id)
-    || /\bPTX-E2E(?:\b|[-_:])/i.test(summary);
+    || /\bPTX-E2E(?:\b|[-_:])/i.test(summary)\n    || /\bPHAN THUẦN XTRA Blog E2E\b/i.test(summary);
 }
 
 function textFor(event,car){
