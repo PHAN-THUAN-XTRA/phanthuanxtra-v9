@@ -360,3 +360,27 @@ test('production gate: Android application rejects cleartext traffic', () => {
   const manifest = fs.readFileSync(new URL('../android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
   assert.match(manifest, /android:usesCleartextTraffic="false"/);
 });
+
+
+test('production gate: sitemap covers all canonical public verticals', () => {
+  const sitemap = fs.readFileSync(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+  for (const route of ['/', '/phan-thuan', '/green-energy', '/yachts', '/business-jets', '/blog']) {
+    assert.ok(sitemap.includes('<loc>https://phanthuanxtra.com' + route + '</loc>'), 'missing sitemap route: ' + route);
+  }
+});
+
+test('production gate: editorial pages expose mobile nav and complete social metadata', () => {
+  for (const file of ['phan-thuan.html','green-energy.html','yachts.html','business-jets.html']) {
+    const page = fs.readFileSync(new URL('../public/' + file, import.meta.url), 'utf8');
+    assert.match(page, /class="menu-toggle"/, file + ' missing mobile menu');
+    assert.match(page, /property="og:image"/, file + ' missing og:image');
+    assert.match(page, /name="twitter:image"/, file + ' missing twitter:image');
+    assert.match(page, /application\/ld\+json/, file + ' missing structured data');
+  }
+});
+
+test('production gate: Business Jets CRM E2E runs after every successful main production deploy', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/business-jets-crm-production-e2e.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.doesNotMatch(workflow, /contains\(github\.event\.workflow_run\.display_title, 'business-jets'\)/);
+});
