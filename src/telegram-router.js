@@ -110,7 +110,7 @@ async function publishReviewedCar(env,chatId,inboxId){
   if(row.status!=="awaiting_review")throw new Error("Bản nháp không ở trạng thái chờ duyệt.");
   const ai=JSON.parse(row.ai_json||"{}"),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
   if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
-  const promotion=await promoteDraft(env,Number(inboxId),ai,keys[0],keys);
+  const promotion=await promoteDraft(env,Number(inboxId),ai,keys[0],keys,true);
   if(!promotion?.published)throw new Error(promotion?.reason||"Publish gate rejected listing");
   await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(inboxId).run();
   return promotion;
