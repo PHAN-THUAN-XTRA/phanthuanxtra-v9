@@ -22,5 +22,6 @@ test("photo-only albums stay silent so 20+ photos do not spam receipts",()=>{
 test("captioned single album still processes immediately",()=>{
   assert.match(handler,/if\(hasPhoto&&hasText\)/);
   assert.match(handler,/ĐÃ NHẬN ALBUM XE/);
-  assert.match(handler,/await processBundle\(env,bundleKey,chatId\)/);
+  assert.match(handler,/bundle_status='queued'/);
+  assert.doesNotMatch(handler,/await processBundle\(env,bundleKey,chatId\)/);
 });

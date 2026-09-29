@@ -1,0 +1,30 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const router=fs.readFileSync("src/telegram-router.js","utf8");
+const entry=fs.readFileSync("src/entry.js","utf8");
+const jobs=fs.readFileSync("src/telegram-draft-jobs.js","utf8");
+
+test("Telegram webhook queues vehicle bundles instead of processing the gallery inline",()=>{
+  const update=router.slice(router.indexOf("export async function processTelegramUpdate"),router.indexOf("async function autoWebhook"));
+  assert.match(update,/bundle_status='queued'/);
+  assert.doesNotMatch(update,/await processBundle\(env/);
+});
+
+test("durable gallery worker checkpoints only three pending photos per batch",()=>{
+  assert.match(jobs,/\.slice\(0,3\)/);
+  assert.match(jobs,/status='analyzed',processed_image_url=/);
+  assert.match(jobs,/bundle_status='queued'/);
+  assert.match(jobs,/bundle_status='done'/);
+});
+
+test("scheduled worker reconciles durable Telegram vehicle drafts",()=>{
+  assert.match(entry,/reconcileTelegramVehicleDrafts/);
+  assert.match(entry,/telegram_vehicle_draft_jobs/);
+});
+
+test("stale processing bundles are recovered for retry",()=>{
+  assert.match(jobs,/bundle_status='processing'/);
+  assert.match(jobs,/datetime\('now','-3 minutes'\)/);
+});

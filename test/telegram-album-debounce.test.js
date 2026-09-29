@@ -17,7 +17,8 @@ test("Telegram media_group waits for quiet period and only latest item processes
   assert.match(handler,/ORDER BY id DESC LIMIT 1/);
   assert.match(handler,/Number\(latest\?\.message_id\|\|0\)!==Number\(message\.message_id\|\|0\)/);
   assert.match(handler,/ĐÃ NHẬN ALBUM XE/);
-  assert.match(handler,/await processBundle\(env,bundleKey,chatId\)/);
+  assert.match(handler,/bundle_status='queued'/);
+  assert.doesNotMatch(handler,/await processBundle\(env,bundleKey,chatId\)/);
 });
 
 test("album processor does not emit legacy per-photo waiting receipt",()=>{
