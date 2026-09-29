@@ -21,7 +21,7 @@ test("ID-prefix suppression stays scoped to car audits while explicit E2E summar
 
 test("Telegram notification reconciler suppresses publishing E2E numeric car IDs by explicit summary marker",()=>{
   assert.match(source,/PTX-E2E/);
-  assert.match(source,/String\(event\.summary\|\|""\)/);
+  assert.match(source,/String\(event\?\.summary\|\|""\)/);
   const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
   assert.match(verifier,/title:'PTX-E2E — PHAN THUẦN XTRA — kiểm thử xuất bản'/);
 });
