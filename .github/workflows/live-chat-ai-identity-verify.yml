@@ -56,11 +56,11 @@ jobs:
             jq -e '.ok == true and .needs_human == false' "/tmp/${label}.json" >/dev/null
             jq -er '.reply' "/tmp/${label}.json" | grep -Eiq "$required"
           }
+          # Keep exactly one representative live Workers AI inference per deploy.
+          # Identity above is deterministic and the remaining vertical behavior is covered
+          # by repository tests, avoiding repeated consumption of the 10k/day Free quota.
           verify_topic green-energy "Tư vấn điện mặt trời PV và ESS trên website" "Green Energy|ESS|điện mặt trời|năng lượng" 1
-          verify_topic yachts "Tôi muốn tư vấn du thuyền theo nội dung website" "du thuyền|yacht|Jeanneau|Prestige|Ferretti|Riva" 2
-          verify_topic business-jets "Tôi muốn tư vấn chuyên cơ thương gia theo nội dung website" "chuyên cơ|Business Jet|Legacy 600|hàng không" 3
-          verify_topic contact "Hotline liên hệ chính thức là gì?" "0866 997 891|0866997891" 4
-          echo "Full-site production AI advisory: PASS"
+          echo "Representative production AI advisory: PASS (1 live inference)"
 
       - name: Verify public vehicle catalog excludes CI records
         shell: bash
