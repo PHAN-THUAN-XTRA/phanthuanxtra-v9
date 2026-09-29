@@ -39,8 +39,18 @@ async function processBundle(env, bundleKey, chatId) {
       if (Number(image.headers.get("content-length") || 0) > imageInputLimit()) throw new Error("Ảnh vượt giới hạn 15 MB.");
       const bytes = await boundedBytes(image.body, imageInputLimit());
       const contentType = image.headers.get("content-type") || "image/jpeg";
-      const ai = await analyzeVehicleImage(env, bytes, contentType, text);
-      if (!primaryAi || Number(ai?.confidence || 0) > Number(primaryAi?.confidence || 0)) primaryAi = ai;
+      // Vision is optional for Telegram intake. Run it only once per vehicle bundle:
+      // 20+ gallery images must not burn the Workers AI Free daily neuron allocation.
+      // Quota exhaustion (or another Vision failure) must never block AVIF/WebP + R2 draft creation.
+      let ai = null;
+      if (!primaryAi && processed.length === 0) {
+        try { ai = await analyzeVehicleImage(env, bytes, contentType, text); }
+        catch (error) {
+          console.warn("telegram_vehicle_vision_optional_failed", clean(error?.message || error));
+          ai = { confidence: 0, missing_fields: [], description: text, _ai_status: /daily allocation exhausted|quota/i.test(clean(error?.message || error)) ? "free_quota_exhausted" : "unavailable" };
+        }
+        primaryAi = ai;
+      }
       // Telegram vehicle intake is format-only: no plate masking, watermark or other image editing.
       // Cloudflare Images Free performs two encodes and the durable AVIF/WebP pair is stored in R2.
       const media = await storeTelegramVehicleVariants(env,new Uint8Array(bytes),"telegram-"+row.id+"-"+(await sha256(String(row.file_id))).slice(0,16));
@@ -58,7 +68,7 @@ async function processBundle(env, bundleKey, chatId) {
     await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(photoRow.message_id||0),text:[
       "📝 BẢN NHÁP XE — CHỜ DUYỆT",`📦 Inbox: ${inboxId}`,`🚗 Xe: ${label}`,
       ai.year?`📅 Năm: ${ai.year}`:null,ai.mileage!=null?`🛣 ODO: ${ai.mileage}`:null,ai.price!=null?`💰 Giá: ${ai.price}`:null,
-      `🖼 Gallery: ${publishMediaKeys.length} cặp AVIF + WebP trên R2`,"🎨 Ảnh: chỉ chuyển định dạng; không che biển số/watermark/chế biến sơ.",
+      `🖼 Gallery: ${publishMediaKeys.length} cặp AVIF + WebP trên R2`,ai._ai_status==="free_quota_exhausted"?"🟡 Workers AI hết quota Free; draft vẫn được tạo từ nội dung Telegram.":null,"🎨 Ảnh: chỉ chuyển định dạng; không che biển số/watermark/chế biến sơ.",
       "⛔ Chưa đăng website. Dùng /carpublish "+inboxId+" sau khi kiểm tra bản nháp."
     ].filter(Boolean).join("\n")});
   } catch (error) {
