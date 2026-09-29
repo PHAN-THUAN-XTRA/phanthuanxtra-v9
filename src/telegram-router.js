@@ -210,7 +210,7 @@ export async function processTelegramUpdate(env, update, chatId) {
     const hasPhoto=rows.some(row=>Boolean(row.file_id)),hasText=rows.some(row=>clean(row.caption));
     if(hasPhoto&&hasText){
       await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ALBUM XE — ${rows.filter(row=>row.file_id).length} ẢNH\n⏳ Đang tạo bản nháp AVIF + WebP...`}).catch(()=>{});
-      await processBundle(env,bundleKey,chatId);
+      await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(bundleKey).run();
     }
     // Photo-only albums stay silent and pending. This lets 20+ photos arrive across
     // multiple media_group_id values without one Telegram receipt per album.
@@ -221,7 +221,7 @@ export async function processTelegramUpdate(env, update, chatId) {
   const hasText = rows.some(row => clean(row.caption));
   if (hasPhoto && hasText) {
     await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: "📥 ĐÃ GHÉP ẢNH + THÔNG TIN XE\n⏳ Đang tạo bản nháp..." }).catch(() => {});
-    if ((await env.DB.prepare("SELECT bundle_status FROM telegram_inbox WHERE bundle_key=? LIMIT 1").bind(bundleKey).first())?.bundle_status === "pending") await processBundle(env, bundleKey, chatId);
+    if ((await env.DB.prepare("SELECT bundle_status FROM telegram_inbox WHERE bundle_key=? LIMIT 1").bind(bundleKey).first())?.bundle_status === "pending") await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(bundleKey).run();
   } else {
     await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: photo ? "📥 Đã nhận ảnh. Chờ phần thông tin xe để ghép tự động." : "📥 Đã nhận thông tin. Chờ ảnh xe để ghép tự động." }).catch(() => {});
   }
