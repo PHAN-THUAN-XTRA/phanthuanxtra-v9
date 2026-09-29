@@ -39,11 +39,12 @@ async function isAuthorized(request,env){
 async function publicMediaReference(env,key){
   if(!env.DB)return false;
   const url=`/media/${key}`;
+  const fallbackUrl=/\.avif$/i.test(key)?`/media/${key.replace(/\.avif$/i,'.webp')}`:url;
   try {
     const row=await env.DB.prepare(`SELECT 1 AS found FROM posts WHERE status='published' AND cover_image=?
       UNION SELECT 1 FROM cars WHERE status!='hidden' AND cover_image=?
       UNION SELECT 1 FROM car_images i JOIN cars c ON c.id=i.car_id WHERE c.status!='hidden' AND i.url=? LIMIT 1`)
-      .bind(url,url,url).first();
+      .bind(fallbackUrl,fallbackUrl,fallbackUrl).first();
     return !!row;
   } catch(error){console.error('media_public_reference_failed',error?.name||'Error');return false;}
 }
@@ -82,6 +83,17 @@ export async function handleMediaApi(request,env){
 
   const requested=url.searchParams.get('format');
   if(requested==='avif'&&url.searchParams.get('source')!=='1'){
+    const siblingKey=/\.webp$/i.test(key)?key.replace(/\.webp$/i,'.avif'):null;
+    if(siblingKey){
+      const sibling=await env.MEDIA.get(siblingKey);
+      if(sibling){
+        const siblingHeaders=new Headers();
+        sibling.writeHttpMetadata(siblingHeaders);
+        siblingHeaders.set('etag',sibling.httpEtag);
+        siblingHeaders.set('cache-control',access.private?'private, no-store':'public, max-age=31536000, immutable');
+        return new Response(sibling.body,{status:200,headers:siblingHeaders});
+      }
+    }
     const originalUrl=new URL(request.url);
     originalUrl.searchParams.delete('format');
     originalUrl.searchParams.set('source','1');
