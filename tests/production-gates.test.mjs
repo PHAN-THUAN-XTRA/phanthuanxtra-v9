@@ -384,3 +384,10 @@ test('production gate: Business Jets CRM E2E runs after every successful main pr
   assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'success'/);
   assert.doesNotMatch(workflow, /contains\(github\.event\.workflow_run\.display_title, 'business-jets'\)/);
 });
+
+
+test('performance gate: critical stylesheet has no render-blocking remote font import', () => {
+  const css = fs.readFileSync(new URL('../public/style.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(css, /@import\s+url\(["']?https:\/\/fonts\.googleapis\.com/i);
+  assert.doesNotMatch(css, /fonts\.gstatic\.com/i);
+});
