@@ -194,13 +194,13 @@ test('production gate: yachts editorial page preserves all eight verified R2 Web
     'yachts-08-phu-quoc-sailing.webp',
   ];
   assert.ok(page.includes('Du Thuyền Cao Cấp &amp; Hạng Sang'));
-  assert.equal((page.match(/\/media\/editorial\/yachts\/yachts-/g) || []).length, 8);
+  assert.equal((page.match(/<img[^>]+src="\/media\/editorial\/yachts\/yachts-/g) || []).length, 8);
   for (const file of files) {
     assert.ok(page.includes('/media/editorial/yachts/' + file), 'missing yacht image: ' + file);
   }
   assert.match(page, /yachts-02-marina-sunset\.webp[^>]+fetchpriority="high"/);
-  assert.equal((page.match(/loading="lazy"/g) || []).length, 7);
-  assert.equal((page.match(/decoding="async"/g) || []).length, 8);
+  assert.equal((page.match(/<img[^>]+loading="lazy"/g) || []).length, 7);
+  assert.equal((page.match(/<img[^>]+decoding="async"/g) || []).length, 8);
   assert.equal((page.match(/<img[^>]+alt="[^"]+"[^>]*>/g) || []).length, 8);
 });
 
