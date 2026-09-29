@@ -19,5 +19,11 @@
 /script.js
   Cache-Control: public, max-age=31536000, immutable
 
+/hero-carousel.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/blog-latest.js
+  Cache-Control: public, max-age=31536000, immutable
+
 /data/*
   Cache-Control: public, max-age=300
