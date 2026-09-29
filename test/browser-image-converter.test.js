@@ -7,7 +7,7 @@ const ui=fs.readFileSync("public/admin-control.html","utf8");
 const media=fs.readFileSync("src/media.js","utf8");
 
 test("vehicle media accepts only browser-converted AVIF/WebP and stores directly in R2",()=>{
-  assert.match(admin,/image\\\/(?:avif|webp)/);
+  assert.ok(admin.includes('/^image\\/(?:avif|webp)$/.test(type)'));
   assert.match(admin,/processing:"browser-format-only"/);
   const handler=admin.slice(admin.indexOf("async function handleVehicleMedia"),admin.indexOf("async function handleVehicleAnalyze"));
   assert.doesNotMatch(handler,/env\.IMAGES|analyzeVehicleImage|prepareVehicleWebp/);
