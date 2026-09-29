@@ -1,12 +1,12 @@
 import { handleEditorialMessage, isEditorialMessage, EDITORIAL_HELP } from "./telegram-editorial.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
-import { createPtXtraPlateImage } from "./plate-branding.js";
-import { canAutoPublish, promoteDraft } from "./telegram-ingest.js";
+import { promoteDraft } from "./telegram-ingest.js";
 import { savePost } from "./post-persistence.js";
 import { getPost } from "./post-persistence.js";
 import { answerAutoCustomer, autoBlogSlug, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
 import { boundedBytes, storePublishingImage } from "./publishing-api.js";
 import { imageInputLimit } from "./media-policy.js";
+import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
@@ -41,37 +41,33 @@ async function processBundle(env, bundleKey, chatId) {
       const contentType = image.headers.get("content-type") || "image/jpeg";
       const ai = await analyzeVehicleImage(env, bytes, contentType, text);
       if (!primaryAi || Number(ai?.confidence || 0) > Number(primaryAi?.confidence || 0)) primaryAi = ai;
-      // Reuse the publishing privacy pipeline for every album image. This is
-      // fail-closed: no gallery image is persisted unless privacy verification passes.
-      const media = await storePublishingImage(env, new Uint8Array(bytes));
+      // Telegram vehicle intake is format-only: no plate masking, watermark or other image editing.
+      // Cloudflare Images Free performs two encodes and the durable AVIF/WebP pair is stored in R2.
+      const media = await storeTelegramVehicleVariants(env,new Uint8Array(bytes),"telegram-"+row.id+"-"+(await sha256(String(row.file_id))).slice(0,16));
       processed.push({ row, ai, media, filePath });
       await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,file_path=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(media.url, filePath, Number(row.id)).run();
     }
     const ai = primaryAi || {};
     const inboxId = Number(photoRow.id);
-    const publishMediaKeys = processed.map(item => item.media.key);
-    await env.DB.prepare(`INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'draft', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,confidence=excluded.confidence,missing_fields_json=excluded.missing_fields_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='draft',updated_at=CURRENT_TIMESTAMP`).bind(inboxId, JSON.stringify({ ...ai, publish_media_key: publishMediaKeys[0], publish_media_keys: publishMediaKeys, bundle_key: bundleKey, image_count: publishMediaKeys.length, privacy_status: "verified" }), Number(ai.confidence || 0), JSON.stringify(ai.missing_fields || []), text, processed[0]?.filePath || "").run();
+    const publishMediaKeys = processed.map(item => item.media.webp_key);
+    const avifMediaKeys = processed.map(item => item.media.avif_key);
+    await env.DB.prepare(`INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'draft', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,confidence=excluded.confidence,missing_fields_json=excluded.missing_fields_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='draft',updated_at=CURRENT_TIMESTAMP`).bind(inboxId, JSON.stringify({ ...ai, publish_media_key: publishMediaKeys[0], publish_media_keys: publishMediaKeys, avif_media_keys: avifMediaKeys, bundle_key: bundleKey, image_count: publishMediaKeys.length, image_processing: "format-only", approval_required: true }), Number(ai.confidence || 0), JSON.stringify(ai.missing_fields || []), text, processed[0]?.filePath || "").run();
     const label = [ai.brand, ai.model].filter(Boolean).join(" ") || "Chưa xác định tên xe";
-    if (!canAutoPublish(ai)) {
-      await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='done',caption=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text, bundleKey).run();
-      await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='awaiting_review',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run();
-      await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["⚠️ ĐÃ PHÂN TÍCH XE — CHƯA TỰ ĐĂNG", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, `🖼 Đã xác minh privacy: ${publishMediaKeys.length} ảnh WebP`, "⏳ Chưa đạt ngưỡng identity/confidence để publish."].join("\n") });
-      return;
-    }
-    await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='ready_to_publish',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run();
-    const promotion = await promoteDraft(env, inboxId, ai, publishMediaKeys[0], publishMediaKeys);
-    if (!promotion?.published) throw new Error(promotion?.reason || "Vehicle publication gate rejected the listing");
-    await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',caption=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text, bundleKey).run();
-    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(photoRow.message_id || 0), text: ["🚀 ĐÃ PHÂN TÍCH + TỰ ĐĂNG XE", `📦 Inbox: ${inboxId}`, `🚗 Xe: ${label}`, `🎯 AI: ${Math.round(Number(ai.confidence || 0) * 100)}%`, `🖼 Gallery: ${publishMediaKeys.length} ảnh WebP đã xác minh privacy`, "🌐 Website: phanthuanxtra.com"].join("\n") });
+    await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='done',caption=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text,bundleKey).run();
+    await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='awaiting_review',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run();
+    await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(photoRow.message_id||0),text:[
+      "📝 BẢN NHÁP XE — CHỜ DUYỆT",`📦 Inbox: ${inboxId}`,`🚗 Xe: ${label}`,
+      ai.year?`📅 Năm: ${ai.year}`:null,ai.mileage!=null?`🛣 ODO: ${ai.mileage}`:null,ai.price!=null?`💰 Giá: ${ai.price}`:null,
+      `🖼 Gallery: ${publishMediaKeys.length} cặp AVIF + WebP trên R2`,"🎨 Ảnh: chỉ chuyển định dạng; không che biển số/watermark/chế biến sơ.",
+      "⛔ Chưa đăng website. Dùng /carpublish "+inboxId+" sau khi kiểm tra bản nháp."
+    ].filter(Boolean).join("\n")});
   } catch (error) {
     // A later album image can fail after earlier privacy-verified images were
     // persisted. Roll those partial writes back so failed bundles leave no
     // orphan R2 objects or media_assets rows.
     for (const item of processed) {
-      const key = clean(item?.media?.key, 1000);
-      if (!key) continue;
-      await env.MEDIA?.delete(key).catch(() => {});
-      await env.DB?.prepare("DELETE FROM media_assets WHERE r2_key=?").bind(key).run().catch(() => {});
+      const keys=[item?.media?.webp_key,item?.media?.avif_key].map(key=>clean(key,1000)).filter(Boolean);
+      for(const key of keys){await env.MEDIA?.delete(key).catch(()=>{});await env.DB?.prepare("DELETE FROM media_assets WHERE r2_key=?").bind(key).run().catch(()=>{});}
     }
     const message = clean(error?.message || error);
     await env.DB.prepare("UPDATE telegram_inbox SET status='failed',bundle_status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(message, bundleKey).run().catch(() => {});
