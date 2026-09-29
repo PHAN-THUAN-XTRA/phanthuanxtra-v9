@@ -16,6 +16,7 @@ import { reconcileTelegramNotifications } from "./telegram-notifications.js";
 import { handlePublishCore } from "./publish-core.js";
 import { handleBlog } from "./blog.js";
 import { reconcileSeo } from "./seo-ai.js";
+import { reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
 
@@ -120,6 +121,10 @@ export default {
     }
   },
   async scheduled(controller, env, ctx) {
+    try {
+      const drafts=await reconcileTelegramVehicleDrafts(env);
+      console.log("telegram_vehicle_draft_jobs",JSON.stringify(drafts));
+    } catch (error) { console.error("telegram_vehicle_draft_jobs_failed",String(error?.message||error)); }
     try {
       console.log("editorial_schedule", JSON.stringify(await publishDueArticles(env)));
     } catch (error) { console.error("editorial_schedule_failed", String(error?.message || error)); }
