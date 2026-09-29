@@ -1,4 +1,3 @@
-import { preparePrivateCover, requirePrivateCover, ImagePrivacyError } from './gemini-plate-privacy.js';
 import { verifyAdminToken } from './admin-auth.js';
 import { getPost, normalizePostPayload } from './post-persistence.js';
 import { submitArticles, validateArticle } from './editorial-publishing.js';
@@ -55,15 +54,52 @@ export async function storePublishingImage(env,bytes) {
   if(bytes.length>imageInputLimit())throw new PublishingError('Ảnh vượt giới hạn 15 MB.',413);
   if(!env.IMAGES||!env.MEDIA)throw new PublishingError('Chưa cấu hình xử lý/lưu ảnh.',503);
   if(!bytes.length)throw new PublishingError('Ảnh rỗng.');
-  const processed=await preparePrivateCover(env,bytes);
+  const info=await env.IMAGES.info(new Blob([bytes]).stream());
+  const width=Number(info?.width||0),height=Number(info?.height||0);
+  if(!width||!height)throw new PublishingError('Không đọc được kích thước ảnh.',422);
   const digest=await crypto.subtle.digest('SHA-256',bytes);
-  const key='admin/editorial-'+[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('')+'-'+crypto.randomUUID()+'.webp';
-  const url=`/media/${key}`,size=processed.bytes.byteLength;
-  await env.MEDIA.put(key,processed.bytes,{customMetadata:processed.metadata,httpMetadata:{contentType:'image/webp',cacheControl:'public,max-age=31536000,immutable'}});
-  if(env.DB) await env.DB.prepare("INSERT OR IGNORE INTO media_assets (r2_key,url,media_type,content_type,size_bytes,width,height,duration_ms,canonical_format,privacy_status) VALUES (?,?,?,?,?,?,?,?,?,?)")
-    .bind(key,url,'image','image/webp',size,processed.width||null,processed.height||null,null,MEDIA_POLICY.image.canonicalFormat,'verified').run();
-  return {ok:true,key,url,absolute_url:`https://phanthuanxtra.com/media/${key}`,content_type:'image/webp',media_type:'image',size_bytes:size,width:processed.width||null,height:processed.height||null,duration_ms:null,canonical_format:MEDIA_POLICY.image.canonicalFormat,delivery_formats:MEDIA_POLICY.image.deliveryFormats,privacy_status:'verified'};
+  const hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const base='admin/editorial-'+hash+'-'+crypto.randomUUID();
+  const encode=async(format,quality)=>{
+    let image=env.IMAGES.input(new Blob([bytes]).stream());
+    if(width>MEDIA_POLICY.image.maxWidth)image=image.transform({width:MEDIA_POLICY.image.maxWidth,fit:'scale-down'});
+    const response=await image.output({format,quality}).response();
+    if(!response.ok)throw new PublishingError('Không thể chuyển ảnh sang '+format+'.',422);
+    return new Uint8Array(await response.arrayBuffer());
+  };
+  const [avif,webp]=await Promise.all([
+    encode('image/avif',MEDIA_POLICY.image.avifQuality),
+    encode('image/webp',MEDIA_POLICY.image.webpQuality)
+  ]);
+  const avifKey=base+'.avif',webpKey=base+'.webp';
+  const metadata={variant_pair:base,processing:'format-only-v1'};
+  try {
+    await env.MEDIA.put(avifKey,avif,{customMetadata:metadata,httpMetadata:{contentType:'image/avif',cacheControl:'public,max-age=31536000,immutable'}});
+    await env.MEDIA.put(webpKey,webp,{customMetadata:metadata,httpMetadata:{contentType:'image/webp',cacheControl:'public,max-age=31536000,immutable'}});
+  } catch(error) {
+    await Promise.allSettled([env.MEDIA.delete?.(avifKey),env.MEDIA.delete?.(webpKey)]);
+    throw error;
+  }
+  if(env.DB) await env.DB.batch([
+    env.DB.prepare("INSERT OR IGNORE INTO media_assets (r2_key,url,media_type,content_type,size_bytes,width,height,duration_ms,canonical_format,privacy_status) VALUES (?,?,?,?,?,?,?,?,?,?)")
+      .bind(avifKey,`/media/${avifKey}`,'image','image/avif',avif.byteLength,width,height,null,'avif','not_applicable'),
+    env.DB.prepare("INSERT OR IGNORE INTO media_assets (r2_key,url,media_type,content_type,size_bytes,width,height,duration_ms,canonical_format,privacy_status) VALUES (?,?,?,?,?,?,?,?,?,?)")
+      .bind(webpKey,`/media/${webpKey}`,'image','image/webp',webp.byteLength,width,height,null,'webp','not_applicable')
+  ]);
+  return {ok:true,key:webpKey,url:`/media/${webpKey}`,absolute_url:`https://phanthuanxtra.com/media/${webpKey}`,
+    avif_key:avifKey,avif_url:`/media/${avifKey}`,avif_absolute_url:`https://phanthuanxtra.com/media/${avifKey}`,
+    webp_key:webpKey,webp_url:`/media/${webpKey}`,webp_absolute_url:`https://phanthuanxtra.com/media/${webpKey}`,
+    content_type:'image/webp',media_type:'image',size_bytes:webp.byteLength,width,height,duration_ms:null,
+    canonical_format:'avif',delivery_formats:['avif','webp'],processing:'format-only'};
 }
+async function requireDualFormatCover(env,url) {
+  if(!url)return;
+  if(!/^\/media\/[A-Za-z0-9/_.-]+\.webp$/.test(url)||url.includes('..'))throw new PublishingError('Ảnh cover WebP không hợp lệ.');
+  const webpKey=url.slice(7),avifKey=webpKey.replace(/\.webp$/i,'.avif');
+  const [webp,avif]=await Promise.all([env.MEDIA?.head(webpKey),env.MEDIA?.head(avifKey)]);
+  if(!webp||!avif)throw new PublishingError('Ảnh cover cần đủ cặp AVIF + WebP.',422);
+}
+
 async function authentication(request,env) {
   if((await verifyAdminToken(request,env)).ok)return {admin:true};
   const header=request.headers.get('authorization')||'';
@@ -99,7 +135,7 @@ export async function handlePublishingApi(request,env) {
       if(!/^[a-zA-Z0-9_-]{16,100}$/.test(body.request_id||''))throw new PublishingError('request_id cần 16–100 ký tự chữ, số, _ hoặc -. Giữ nguyên khi thử lại.');
       if(body.status && body.status!=='draft')throw new PublishingError('Tạo bản nháp trước, sau đó gọi publish.');
       if(body.cover_image && !(await env.MEDIA?.head(body.cover_image.replace(/^\/media\//,''))))throw new PublishingError('Ảnh cover chưa được lưu.');
-      await requirePrivateCover(env,body.cover_image);
+      await requireDualFormatCover(env,body.cover_image);
       try { validateArticle({...body,mode:'draft'},Date.now()); } catch(error) { throw new PublishingError(error.message); }
       if(body.cover_image && (!/^\/media\/[A-Za-z0-9/_.-]+$/.test(body.cover_image)||body.cover_image.includes('..')))throw new PublishingError('Ảnh cover không hợp lệ.');
       const saved=await submitArticles(env.DB,[{...body,mode:'draft'}],{chatId:OWNER,submissionId:body.request_id});
@@ -118,7 +154,7 @@ export async function handlePublishingApi(request,env) {
       const parsed=normalizePostPayload({...body,status:'draft'},post);if(parsed.error)throw new PublishingError(parsed.error);
       const p=parsed.value;
       if(p.cover_image && (!/^\/media\/[A-Za-z0-9/_.-]+$/.test(p.cover_image)||p.cover_image.includes('..')||!(await env.MEDIA?.head(p.cover_image.slice(7)))))throw new PublishingError('Ảnh cover không hợp lệ.');
-      await requirePrivateCover(env,p.cover_image);
+      await requireDualFormatCover(env,p.cover_image);
       const saved=await env.DB.batch([
         env.DB.prepare("UPDATE posts SET title=?,slug=?,excerpt=?,content=?,cover_image=?,category=?,tags_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='draft'")
           .bind(p.title,p.slug,p.excerpt,p.content,p.cover_image,p.category,JSON.stringify(p.tags),post.id),
@@ -130,7 +166,7 @@ export async function handlePublishingApi(request,env) {
     if(request.method==='POST'&&match[2]) {
       if(!['draft','published'].includes(post.status))throw new PublishingError('Không thể xuất bản bài đã lưu trữ.',409);
       const editorialError=videoEditorialError(post);if(editorialError)throw new PublishingError(editorialError,422);
-      await requirePrivateCover(env,post.cover_image);
+      await requireDualFormatCover(env,post.cover_image);
       await env.DB.batch([
         env.DB.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) SELECT 'publishing-api','publish','post',CAST(id AS TEXT),title FROM posts WHERE id=? AND status='draft'").bind(post.id),
         env.DB.prepare("UPDATE posts SET status='published',published_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='draft'").bind(new Date().toISOString(),post.id),
@@ -143,7 +179,6 @@ export async function handlePublishingApi(request,env) {
     return json({error:'Method Not Allowed'},405);
   } catch(error) {
     if(error instanceof PublishingError)return json({error:error.message},error.status);
-    if(error instanceof ImagePrivacyError)return json({error:error.message,stage:error.stage,...(error.reason?{reason:error.reason}:{})},error.status);
     if(String(error.message).includes('UNIQUE'))return json({error:'Slug đã tồn tại.'},409);
     console.error('publishing_api_failed',error?.name||'Error');
     return json({error:'Chưa hoàn tất yêu cầu. Kiểm tra lại trạng thái với cùng request_id.',reason:safeFailureReason(error)},500);
