@@ -388,7 +388,11 @@ test('production gate: Business Jets CRM E2E runs after every successful main pr
 
 test('performance gate: homepage hero reserves layout and lazy-loads non-LCP slides', () => {
   const page = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
-  assert.match(page, /hero-slide-auto[\s\S]*fetchpriority="high"[\s\S]*width="1280" height="853"/);
+  const autoStart = page.indexOf('id="hero-slide-auto"');
+  const autoEnd = page.indexOf('</article>', autoStart);
+  const autoSlide = page.slice(autoStart, autoEnd);
+  assert.match(autoSlide, /fetchpriority="high"/);
+  assert.match(autoSlide, /width="1280" height="853"/);
   for (const id of ['hero-slide-yacht','hero-slide-jet','hero-slide-energy']) {
     const start = page.indexOf('id="' + id + '"');
     const end = page.indexOf('</article>', start);
@@ -398,11 +402,13 @@ test('performance gate: homepage hero reserves layout and lazy-loads non-LCP sli
   }
 });
 
-test('performance gate: static homepage scripts use immutable caching', () => {
+test('performance gate: stable CSS and JS URLs revalidate instead of caching immutable for a year', () => {
   const headers = fs.readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
-  for (const asset of ['/script.js','/hero-carousel.js','/blog-latest.js']) {
+  for (const asset of ['/style.css','/script.js','/hero-carousel.js','/blog-latest.js']) {
     const start = headers.indexOf(asset);
     assert.ok(start >= 0, 'missing cache policy for ' + asset);
-    assert.match(headers.slice(start, start + 120), /max-age=31536000, immutable/);
+    const policy = headers.slice(start, start + 140);
+    assert.match(policy, /max-age=300, stale-while-revalidate=86400/);
+    assert.doesNotMatch(policy, /immutable/);
   }
 });
