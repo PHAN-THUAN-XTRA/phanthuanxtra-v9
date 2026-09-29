@@ -66,7 +66,7 @@ export async function verifyAdminRecoveryCode(env, code) {
   } catch {
     return false;
   }
-  if (!row) return candidate === String(env.ADMIN_TOKEN || "");
+  if (!row) return false;
   try {
     const hash = await derive(candidate, base64ToBytes(row.salt));
     return equalBytes(hash, base64ToBytes(row.code_hash));
