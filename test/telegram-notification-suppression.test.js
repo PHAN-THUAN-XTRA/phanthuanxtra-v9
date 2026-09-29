@@ -12,8 +12,10 @@ test("Telegram notification reconciler suppresses CI vehicle audit IDs",()=>{
   assert.match(source,/UPDATE telegram_notification_cursor SET last_audit_id/);
 });
 
-test("suppression is scoped to car audit events",()=>{
-  assert.match(source,/event\?\.resource!==["']car["']/);
+test("ID-prefix suppression stays scoped to car audits while explicit E2E summaries work across resources",()=>{
+  assert.match(source,/explicitE2eSummary/);
+  assert.match(source,/if\(explicitE2eSummary\)return true/);
+  assert.match(source,/event\?\.resource===["']car["']/);
 });
 
 
