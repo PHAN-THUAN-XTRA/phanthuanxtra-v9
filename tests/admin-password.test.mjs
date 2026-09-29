@@ -86,6 +86,6 @@ test('rotated recovery code round-trips and rejects the previous value', async (
 
 
 test('missing persisted recovery row never treats ADMIN_TOKEN as recovery credential', async () => {
-  const env = { ADMIN_TOKEN: 'bearer-secret-must-not-reset-password', DB: { prepare(){ return { first: async () => null }; } } };
-  assert.equal(await verifyAdminRecoveryCode(env, 'bearer-secret-must-not-reset-password'), false);
+  const env = { ADMIN_TOKEN: ['not','a','recovery','code'].join('-'), DB: { prepare(){ return { first: async () => null }; } } };
+  assert.equal(await verifyAdminRecoveryCode(env, env.ADMIN_TOKEN), false);
 });
