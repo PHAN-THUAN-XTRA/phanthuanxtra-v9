@@ -5,7 +5,6 @@ import { storeMedia } from "./media.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { listPosts, getPost, savePost, deletePost } from "./post-persistence.js";
 import { editorialPost, analyzeEditorialImage } from "./editorial-ai.js";
-import { prepareVehicleWebp } from "./media-pipeline.js";
 
 const SEC={"X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"strict-origin-when-cross-origin","Permissions-Policy":"camera=(), microphone=(), geolocation=()","Cross-Origin-Resource-Policy":"same-origin","Strict-Transport-Security":"max-age=31536000; includeSubDomains; preload"};
 const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...SEC,...headers}});
@@ -23,16 +22,16 @@ async function handleMediaUpload(request,env){if(request.method!=="POST")return 
 async function handleVehicleMedia(request,env){
   if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"});
   if(!env.MEDIA)return json({error:"MEDIA chưa được kết nối"},503);
-  if(!env.IMAGES)return json({error:"IMAGES chưa được kết nối"},503);
-  const type=String(request.headers.get("content-type")||"image/jpeg").split(";",1)[0].trim().toLowerCase();
-  if(!/^image\/(?:jpeg|png|webp)$/.test(type))return json({error:"Chỉ nhận JPEG, PNG hoặc WebP"},415);
-  const bytes=await request.arrayBuffer();if(!bytes.byteLength||bytes.byteLength>MEDIA_UPLOAD_MAX_BYTES)return json({error:"Ảnh phải từ 1 byte đến 12 MiB"},413);
-  const caption=text(new URL(request.url).searchParams.get("caption"),2000);
-  let analysis=null;try{analysis=await analyzeVehicleImage(env,bytes,type,caption)}catch(e){console.error("vehicle_media_ai",String(e?.message||e).slice(0,300))}
-  const prepared=await prepareVehicleWebp(env,bytes,analysis?.plate_bbox||null);
-  const key=`vehicles/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}.webp`;
-  await storeMedia(env,key,prepared.bytes,"image/webp");
-  return json({ok:true,key,url:`/media/${encodeURIComponent(key)}`,contentType:"image/webp",plate_redacted:prepared.redacted,analysis});
+  const type=String(request.headers.get("content-type")||"").split(";",1)[0].trim().toLowerCase();
+  if(!/^image\/(?:avif|webp)$/.test(type))return json({error:"Converter chỉ upload AVIF hoặc WebP đã xử lý trong trình duyệt"},415);
+  const bytes=await request.arrayBuffer();
+  if(!bytes.byteLength||bytes.byteLength>MEDIA_UPLOAD_MAX_BYTES)return json({error:"Ảnh phải từ 1 byte đến 12 MiB"},413);
+  const u=new URL(request.url),pair=text(u.searchParams.get("pair"),80);
+  if(!/^[a-z0-9-]{12,80}$/i.test(pair))return json({error:"Mã cặp ảnh không hợp lệ"},400);
+  const ext=type==="image/avif"?"avif":"webp";
+  const key=`vehicles/${new Date().toISOString().slice(0,10)}/${pair}.${ext}`;
+  await storeMedia(env,key,bytes,type);
+  return json({ok:true,key,url:`/media/${key}`,contentType:type,bytes:bytes.byteLength,pair,processing:"browser-format-only"});
 }
 async function handleVehicleAnalyze(request,env){if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"});const type=String(request.headers.get("content-type")||"image/jpeg").split(";",1)[0].trim().toLowerCase();if(!type.startsWith("image/"))return json({error:"Chỉ nhận image/*"},415);const length=Number(request.headers.get("content-length")||0);if(length>MEDIA_UPLOAD_MAX_BYTES)return json({error:"Ảnh vượt quá 12MB"},413);const bytes=await request.arrayBuffer();if(!bytes.byteLength)return json({error:"Ảnh rỗng"},400);if(bytes.byteLength>MEDIA_UPLOAD_MAX_BYTES)return json({error:"Ảnh vượt quá 12MB"},413);const caption=text(new URL(request.url).searchParams.get("caption"),2000);try{return json({ok:true,analysis:await analyzeVehicleImage(env,bytes,type,caption)})}catch(x){const detail=String(x?.message||x).slice(0,500);console.error("admin_vehicle_analyze",detail);const diagnostics=Array.isArray(x?.diagnostics)?x.diagnostics.map(v=>({model:String(v?.model||"").slice(0,120),code:String(v?.code||"UNKNOWN").slice(0,40)})):undefined;return json({error:"Vehicle AI tạm thời không khả dụng",code:"VEHICLE_AI_UNAVAILABLE",retryable:true,...(diagnostics?{diagnostics}:{})},503)}}
 async function handleMediaDelete(request,env,u){if(request.method!=="DELETE")return json({error:"Method Not Allowed"},405,{Allow:"DELETE"});if(!env.MEDIA)return json({error:"MEDIA chưa được kết nối"},503);let key;try{key=decodeURIComponent(u.pathname.slice("/api/admin/media/".length));}catch{return json({error:"Media key không hợp lệ"},400);}if(!key||key.length>1024||key.includes("..")||!MEDIA_KEY_RE.test(key))return json({error:"Media key không hợp lệ"},400);await env.MEDIA.delete(key);return json({ok:true,key,deleted:true});}

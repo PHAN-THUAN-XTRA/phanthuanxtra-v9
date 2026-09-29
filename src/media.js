@@ -81,6 +81,16 @@ export async function handleMediaApi(request,env){
   if(request.method==="HEAD")return new Response(null,{headers});
 
   const requested=url.searchParams.get('format');
+  const accept=request.headers.get("Accept")||"";
+  if(request.method==="GET"&&/\.webp$/i.test(key)&&(requested==='avif'||(!requested&&/image\/avif/i.test(accept)))){
+    const avifKey=key.replace(/\.webp$/i,'.avif'),avif=await env.MEDIA.get(avifKey);
+    if(avif){
+      const avifHeaders=new Headers();avif.writeHttpMetadata(avifHeaders);avifHeaders.set('etag',avif.httpEtag);
+      avifHeaders.set('cache-control',access.private?'private, no-store':'public, max-age=31536000, immutable');
+      if(!requested)avifHeaders.set('vary','Accept');
+      return new Response(avif.body,{status:200,headers:avifHeaders});
+    }
+  }
   if(requested==='avif'&&url.searchParams.get('source')!=='1'){
     const originalUrl=new URL(request.url);
     originalUrl.searchParams.delete('format');
@@ -99,7 +109,6 @@ export async function handleMediaApi(request,env){
   }
   if(url.searchParams.get('source')==='1')return new Response(object.body,{status:200,headers});
   if(request.method==="GET"&&env.IMAGES&&String(headers.get("content-type")||"").startsWith("image/")){
-    const accept=request.headers.get("Accept")||"";
     const format=requested==='webp'?'image/webp':/image\/webp/i.test(accept)?'image/webp':null;
     if(format){
       const result=await env.IMAGES.input(object.body).output({format,quality:82});
