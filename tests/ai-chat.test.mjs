@@ -45,7 +45,7 @@ function mockDb(cars = [], posts = []) {
   };
 }
 
-test('website AI chat uses visible D1 catalog and GLM -> Qwen fallback without AI Search', async () => {
+test('website AI chat uses visible D1 catalog and GLM -> Nemotron -> Qwen fallback without AI Search', async () => {
   const DB = mockDb([
     {id:'lexus-live',brand:'Lexus',model:'LX 600',year:2025,mileage:100,status:'available',price:1,category:'suv'},
     {id:'hidden-car',brand:'Ferrari',model:'Hidden Test',year:2026,mileage:1,status:'hidden',price:1,category:'sport'}
@@ -58,7 +58,8 @@ test('website AI chat uses visible D1 catalog and GLM -> Qwen fallback without A
     AI: { async run(model, payload) {
       modelCalls.push(model);
       if (model === '@cf/zai-org/glm-4.7-flash') throw new Error('transient primary failure');
-      assert.equal(model, '@cf/qwen/qwen3.8-27b');
+      assert.ok(['@cf/nvidia/nemotron-3-120b-a12b','@cf/qwen/qwen3.8-27b'].includes(model));
+      if (model === '@cf/nvidia/nemotron-3-120b-a12b') throw new Error('transient secondary failure');
       const system = payload.messages.find(x=>x.role==='system')?.content || '';
       assert.match(system, /Lexus/);
       assert.doesNotMatch(system, /Hidden Test/);
@@ -163,9 +164,9 @@ test('Phan Thuần ecosystem lookup expands AI Search with official aliases and 
     AI_SEARCH: { async search(payload) { searchPayload = payload; return { chunks: [] }; } },
     AI: { async run(model, payload) {
       const system = payload.messages.find(x => x.role === 'system')?.content || '';
-      assert.match(system, /European Yachts/);
-      assert.match(system, /Business Jets/);
-      assert.match(system, /Green Energy/);
+      assert.match(system, /Du thuyền châu Âu/);
+      assert.match(system, /Chuyên cơ thương gia/);
+      assert.match(system, /Năng lượng xanh/);
       return { response: 'Theo hồ sơ chính thức do chủ website cung cấp, Phan Thuần/PHAN THUẦN XTRA được giới thiệu với Luxury Automotive, European Yachts, Business Jets và Green Energy.' };
     } }
   };
@@ -322,7 +323,7 @@ for (const [label, message, expected] of [
 test('website topics retain grounded answers when all Workers AI models fail', async () => {
   const scenarios = [
     ['Tư vấn điện mặt trời PV và ESS trên website', /Green Energy.*PV.*ESS/s],
-    ['Tôi muốn tư vấn du thuyền theo nội dung website', /European Yachts.*du thuyền/s],
+    ['Tôi muốn tư vấn du thuyền theo nội dung website', /Du thuyền châu Âu.*du thuyền/s],
     ['Tôi muốn tư vấn chuyên cơ thương gia theo nội dung website', /Business Jets.*chuyên cơ/s],
     ['Hotline liên hệ chính thức là gì?', /0866 997 891/]
   ];

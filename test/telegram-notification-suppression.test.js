@@ -12,14 +12,16 @@ test("Telegram notification reconciler suppresses CI vehicle audit IDs",()=>{
   assert.match(source,/UPDATE telegram_notification_cursor SET last_audit_id/);
 });
 
-test("suppression is scoped to car audit events",()=>{
-  assert.match(source,/event\?\.resource!==["']car["']/);
+test("ID-prefix suppression stays scoped to car audits while explicit E2E summaries work across resources",()=>{
+  assert.match(source,/explicitE2eSummary/);
+  assert.match(source,/if\(explicitE2eSummary\)return true/);
+  assert.match(source,/event\?\.resource===["']car["']/);
 });
 
 
 test("Telegram notification reconciler suppresses publishing E2E numeric car IDs by explicit summary marker",()=>{
   assert.match(source,/PTX-E2E/);
-  assert.match(source,/String\(event\.summary\|\|""\)/);
+  assert.match(source,/String\(event\?\.summary\|\|""\)/);
   const verifier=fs.readFileSync("scripts/verify-publishing-production.mjs","utf8");
   assert.match(verifier,/title:'PTX-E2E — PHAN THUẦN XTRA — kiểm thử xuất bản'/);
 });

@@ -9,12 +9,13 @@ async function tg(env,method,payload={}){
 }
 
 function isAutomationAudit(event){
-  if(event?.resource!=="car")return false;
-  const id=String(event.resource_id||"");
-  const summary=String(event.summary||"");
-  return /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(id)
-    || /\bPTX-E2E(?:\b|[-_:])/i.test(summary)
+  const id=String(event?.resource_id||"");
+  const summary=String(event?.summary||"");
+  const explicitE2eSummary=/\bPTX-E2E(?:\b|[-_:])/i.test(summary)
     || /\bPHAN THUẦN XTRA Blog E2E\b/i.test(summary);
+  if(explicitE2eSummary)return true;
+  return event?.resource==="car"
+    && /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(id);
 }
 
 function textFor(event,car){
