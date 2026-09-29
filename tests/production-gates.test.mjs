@@ -412,3 +412,13 @@ test('performance gate: stable CSS and JS URLs revalidate instead of caching imm
     assert.doesNotMatch(policy, /immutable/);
   }
 });
+
+
+test('performance gate: Green Energy homepage hero uses verified internal R2 WebP', () => {
+  const page = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const start = page.indexOf('id="hero-slide-energy"');
+  const end = page.indexOf('</article>', start);
+  const slide = page.slice(start, end);
+  assert.ok(slide.includes('data-src="/media/editorial/green-energy/green-energy-pv-ess-3d.webp"'));
+  assert.doesNotMatch(slide, /wikimedia\.org/);
+});
