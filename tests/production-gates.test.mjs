@@ -334,14 +334,17 @@ test('Business Jets lead stores itinerary in D1 and Telegram accepts correctly c
 });
 
 
-test('production gate: Telegram albums publish every image only through verified privacy storage', () => {
+test('production gate: Telegram albums store dual formats and require explicit human approval', () => {
   const router = fs.readFileSync(new URL('../src/telegram-router.js', import.meta.url), 'utf8');
   const ingest = fs.readFileSync(new URL('../src/telegram-ingest.js', import.meta.url), 'utf8');
   assert.match(router, /const photoRows = rows\.filter\(row => row\.file_id\)/);
-  assert.match(router, /storePublishingImage\(env, new Uint8Array\(bytes\)\)/);
+  assert.match(router, /storeTelegramVehicleVariants/);
   assert.match(router, /publish_media_keys: publishMediaKeys/);
-  assert.match(router, /privacy_status: "verified"/);
-  assert.match(router, /promoteDraft\(env, inboxId, ai, publishMediaKeys\[0\], publishMediaKeys\)/);
+  assert.match(router, /avif_media_keys: avifMediaKeys/);
+  assert.match(router, /image_processing: "format-only"/);
+  assert.match(router, /approval_required: true/);
+  assert.match(router, /status='awaiting_review'/);
+  assert.match(router, /promoteDraft\(env,Number\(inboxId\),ai,keys\[0\],keys,true\)/);
   assert.match(ingest, /images:imageUrls\.length\?imageUrls:\[imageUrl\]/);
 });
 
