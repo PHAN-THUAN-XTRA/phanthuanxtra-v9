@@ -30,7 +30,7 @@ async function processBundle(env, bundleKey, chatId) {
   const processed = [];
   try {
     let primaryAi = null;
-    for (const row of photoRows) {
+    const processPhoto = async (row, index) => {
       const file = await tg(token, "getFile", { file_id: row.file_id });
       const filePath = clean(file?.file_path, 1000);
       if (!filePath) throw new Error("Telegram did not return file_path");
@@ -39,11 +39,9 @@ async function processBundle(env, bundleKey, chatId) {
       if (Number(image.headers.get("content-length") || 0) > imageInputLimit()) throw new Error("Ảnh vượt giới hạn 15 MB.");
       const bytes = await boundedBytes(image.body, imageInputLimit());
       const contentType = image.headers.get("content-type") || "image/jpeg";
-      // Vision is optional for Telegram intake. Run it only once per vehicle bundle:
-      // 20+ gallery images must not burn the Workers AI Free daily neuron allocation.
-      // Quota exhaustion (or another Vision failure) must never block AVIF/WebP + R2 draft creation.
       let ai = null;
-      if (!primaryAi && processed.length === 0) {
+      // Vision is optional and only the first gallery image may consume neurons.
+      if (index === 0) {
         try { ai = await analyzeVehicleImage(env, bytes, contentType, text); }
         catch (error) {
           console.warn("telegram_vehicle_vision_optional_failed", clean(error?.message || error));
@@ -51,11 +49,16 @@ async function processBundle(env, bundleKey, chatId) {
         }
         primaryAi = ai;
       }
-      // Telegram vehicle intake is format-only: no plate masking, watermark or other image editing.
-      // Cloudflare Images Free performs two encodes and the durable AVIF/WebP pair is stored in R2.
       const media = await storeTelegramVehicleVariants(env,new Uint8Array(bytes),"telegram-"+row.id+"-"+(await sha256(String(row.file_id))).slice(0,16));
-      processed.push({ row, ai, media, filePath });
       await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,file_path=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(media.url, filePath, Number(row.id)).run();
+      return { row, ai, media, filePath };
+    };
+    // Bound concurrency so large Telegram galleries finish materially faster
+    // without launching 20+ downloads / 40+ image encodes at once.
+    for (let offset=0; offset<photoRows.length; offset+=3) {
+      const batch=photoRows.slice(offset,offset+3);
+      const results=await Promise.all(batch.map((row,index)=>processPhoto(row,offset+index)));
+      processed.push(...results);
     }
     const ai = primaryAi || {};
     const inboxId = Number(photoRow.id);
