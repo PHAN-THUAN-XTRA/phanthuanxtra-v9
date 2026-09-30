@@ -51,3 +51,14 @@ test("Workers AI failure remains fail-open for durable Telegram publishing",()=>
   assert.match(jobs,/_ai_status:status/);
   assert.match(jobs,/storeTelegramVehicleVariants/);
 });
+
+
+test("Telegram requires preview before vehicle publish",async()=>{
+  const router=(await import("node:fs")).readFileSync("src/telegram-router.js","utf8");
+  assert.match(router,/\/carpreview\\s\+\(\\d\+\)/);
+  assert.match(router,/status='previewed'/);
+  assert.match(router,/Phải xem \/carpreview <Inbox ID> trước khi publish/);
+  assert.match(router,/Workers AI:/);
+  assert.match(router,/ẢNH WEBSITE/);
+  assert.match(router,/publish_media_keys/);
+});
