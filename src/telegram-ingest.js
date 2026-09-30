@@ -45,7 +45,9 @@ async function promoteDraft(env,inboxId,ai,publishMediaKey,publishMediaKeys=[pub
   if(!approved&&!canAutoPublish(ai))return {published:false,reason:"identity_or_confidence_below_threshold"};
   const carId=carIdForInbox(inboxId); const description=clean(ai.description,10000)||`Xe ${clean(ai.brand)} ${clean(ai.model)} được nhập từ Telegram và phân tích bởi AI.`; const features=Array.isArray(ai.features)?ai.features.map(clean).filter(Boolean).slice(0,80):[]; const mediaKeys=(Array.isArray(publishMediaKeys)?publishMediaKeys:[publishMediaKey]).map(clean).filter(Boolean); const publicMediaUrl=key=>`https://phanthuanxtra.com/media/${clean(key).split("/").map(encodeURIComponent).join("/")}`; const imageUrls=mediaKeys.map(publicMediaUrl); const imageUrl=imageUrls[0]||publicMediaUrl(publishMediaKey);
   const existing=await env.DB.prepare("SELECT id,status FROM cars WHERE id=? LIMIT 1").bind(carId).first();
-  if(!existing){const saved=await saveCar(env.DB,{id:carId,brand:ai.brand,model:ai.model,year:ai.year??null,mileage:ai.mileage??0,price:ai.price??0,fuel:ai.fuel,category:ai.category||"other",color:ai.color,status:"available",description,features,featured:false,cover_image:imageUrl,images:imageUrls.length?imageUrls:[imageUrl]},{id:carId,mode:"create",actor:"telegram-ai"});if(!saved.ok)throw new Error(saved.error);}
+  const vehicle={id:carId,brand:ai.brand,model:ai.model,year:ai.year??null,mileage:ai.mileage??0,price:ai.price??0,fuel:ai.fuel,category:ai.category||"other",color:ai.color,status:"available",description,features,featured:false,cover_image:imageUrl,images:imageUrls.length?imageUrls:[imageUrl]};
+  const saved=await saveCar(env.DB,vehicle,{id:carId,mode:existing?"update":"create",actor:"telegram-ai"});
+  if(!saved.ok)throw new Error(saved.error);
   const published=await publishCar(env,carId); await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='published',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run(); return {published:true,car_id:carId,telegram:published};
 }
 
