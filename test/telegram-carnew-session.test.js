@@ -33,6 +33,11 @@ test("/carfinish scopes finalization to rows sent after the active clean session
   assert.ok(router.includes('const carFinish=/^\\/carfinish\\s*$/i.test(caption);'));
   assert.match(router,/message_id>\?/);
   assert.match(router,/opened_message_id/);
-  assert.match(router,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
+  // /carfinish is intentionally durable: it queues the finalized session and
+  // returns promptly instead of processing the full gallery inside the webhook.
+  assert.match(router,/SET bundle_status='queued'/);
+  assert.match(router,/Đã xếp hàng tạo draft AVIF \+ WebP/);
+  const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
+  assert.doesNotMatch(block,/await processBundle\(/);
   assert.doesNotMatch(router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview=")),/LIMIT 100/);
 });
