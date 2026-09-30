@@ -53,3 +53,19 @@ test("/carfinish keeps only the newest 16 photos and newest article",()=>{
   assert.doesNotMatch(block,/LIMIT 100/);
   assert.doesNotMatch(block,/await processBundle\(/);
 });
+
+
+test("/carfinish repairs Defender intake to exactly 16 unique newest photos and owner price",()=>{
+  const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
+  assert.match(block,/file_unique_id/);
+  assert.match(block,/new Map\(\)/);
+  assert.match(block,/uniquePhotos\.slice\(-16\)/);
+  assert.match(block,/selectedPhotos\.length!==16/);
+  assert.match(block,/DELETE FROM telegram_inbox/);
+  assert.match(block,/bundle_status IN \('pending','queued'\)/);
+  assert.match(block,/4879000000/);
+  assert.match(block,/_owner_price_locked/);
+  assert.match(block,/ctx\)ctx\.waitUntil\(task\)/);
+  assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
+  assert.doesNotMatch(block,/LIMIT 100/);
+});
