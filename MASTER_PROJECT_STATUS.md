@@ -1281,3 +1281,28 @@ Any change to vehicle publishing, persistence, API normalization, media URL gene
 
 ### Production completion gate
 A vehicle publish/update is not FINAL GREEN until production evidence verifies: canonical ID, UTF-8 text, approved price/ODO, intentional hero, full approved image count, semantic gallery order, canonical non-`%2F` media URLs, HTTP/Content-Type health, and required deployment/R2 gates.
+
+
+## 10. Telegram standard operating procedure for a new vehicle
+This is the default owner workflow for future vehicle listings. A normal new listing must not require a vehicle-specific PR or production repair.
+
+### Owner steps
+1. Send `/carnew` and wait for confirmation that a new clean vehicle session is open.
+2. Send the owner-authored vehicle copy. Include the exact numeric price and numeric ODO only when the owner actually has an approved ODO value. “Xe mới 100%” must not be converted into an invented numeric ODO; when no numeric ODO is supplied, use the established unknown/contact state.
+3. Send the complete image set for that vehicle once, preferably as one Telegram album. Do not resend an album merely because background processing is still running.
+4. After Telegram has finished uploading the album, send `/carfinish` exactly once and wait for the draft/Inbox result.
+5. Review with `/carpreview <Inbox>`. Confirm vehicle identity, exact owner price, ODO/contact state, owner copy without repetition or mojibake, approved image count, intentional cover, and semantic gallery order.
+6. Only after the preview is approved, send `/carpublish <Inbox>` exactly once.
+7. Do not rerun `/carpublish` to repair copy or gallery. Any edit must retain the same canonical vehicle ID.
+
+### Permanent data and media rules
+- Owner-approved price and numeric ODO are authoritative locks; AI must never overwrite them.
+- AI may assist vehicle recognition and visual classification, but uncertainty must not be converted into invented owner data.
+- One vehicle has one canonical ID; retries and edits must not create duplicate listings.
+- Gallery repair must not be implemented by republishing the vehicle.
+- Presentation order must be semantic, not derived from Telegram IDs, filenames, upload order, timestamps or hashes.
+- Standard gallery flow: suitable human/model when appropriate → strongest whole-vehicle/front/front-3/4 hero → exterior views → cockpit/front seats → rear seats → console/doors/interior details → cargo → remaining useful images.
+- The first ordered image is the only cover and public `sort_order` is deterministic and contiguous.
+
+### Defender tg-605 lesson and boundary
+The successful Defender `tg-605` recovery is a reference outcome, not the normal publishing mechanism. Vehicle-specific recovery behavior such as `/caradd 605`, hard-coded `TG605_MEDIA_ORDER`, old-media recovery, or `tg-605` reconciliation must not be required for a future normal listing. Future vehicles should complete through `/carnew → owner copy + album → /carfinish → /carpreview <Inbox> → /carpublish <Inbox>` and the permanent production gates above.
