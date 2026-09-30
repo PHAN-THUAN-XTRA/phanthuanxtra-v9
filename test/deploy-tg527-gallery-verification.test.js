@@ -16,7 +16,8 @@ test('deploy controller verifies tg-527 production gallery after migrations', ()
 });
 
 test('tg-527 gallery verification pins all 24 approved semantic image identities', () => {
-  const matches = [...deploy.matchAll(/"telegram-\d+-[a-f0-9]+\.webp"/g)].map(x => x[0]);
+  const block = deploy.match(/const TG527_GALLERY = \[([\s\S]*?)\];/)?.[1] || "";
+  const matches = [...block.matchAll(/"telegram-\d+-[a-f0-9]+\.webp"/g)].map(x => x[0]);
   const unique = new Set(matches);
   assert.equal(unique.size, 24);
   assert.match(deploy, /"telegram-531-6fc5b1941350ce0d\.webp"/);
