@@ -26,7 +26,9 @@ async function processBundle(env, bundleKey, chatId) {
   const photoRows = rows.filter(row => row.file_id);
   const photoRow = photoRows[0];
   if (!photoRow) return;
-  const text = rows.map(row => clean(row.caption)).filter(Boolean).join("\n\n");
+  // Telegram albums can repeat the same owner caption on multiple photo rows.
+  // Preserve each distinct owner caption once instead of duplicating the draft copy.
+  const text = [...new Set(rows.map(row => clean(row.caption, 10000)).filter(Boolean))].join("\n\n");
   const processed = [];
   try {
     let primaryAi = null;
@@ -121,6 +123,7 @@ function captionVehicleFallback(ai,caption){
   if(!next.brand){
     const brand=/\b(LEXUS|TOYOTA|MERCEDES(?:-BENZ)?|BMW|AUDI|PORSCHE|VOLVO|LAND ROVER|RANGE ROVER|BENTLEY|ROLLS-ROYCE|FERRARI|LAMBORGHINI|MCLAREN|FORD|HONDA|MAZDA|KIA|HYUNDAI|VINFAST)\b/i.exec(text);
     if(brand)next.brand=brand[1].toUpperCase().replace("MERCEDES-BENZ","MERCEDES");
+    else if(/\bDEFENDER\b/i.test(text))next.brand="LAND ROVER";
   }
   if(!next.model&&next.brand){
     const first=text.split(/\n|\r/).map(x=>clean(x,300)).find(Boolean)||"";
