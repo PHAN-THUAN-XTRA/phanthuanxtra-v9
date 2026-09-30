@@ -116,13 +116,34 @@ async function publishAiPhotoBlog(env, message, chatId, caption) {
   await tg(token, "sendMessage", { chat_id: chatId, text: `📰 BÀI BLOG\n${post.title}\nhttps://phanthuanxtra.com/blog/${post.slug}` });
 }
 
+function captionVehicleFallback(ai,caption){
+  const next={...(ai||{})},text=clean(caption,10000);
+  if(!next.brand){
+    const brand=/\b(LEXUS|TOYOTA|MERCEDES(?:-BENZ)?|BMW|AUDI|PORSCHE|VOLVO|LAND ROVER|RANGE ROVER|BENTLEY|ROLLS-ROYCE|FERRARI|LAMBORGHINI|MCLAREN|FORD|HONDA|MAZDA|KIA|HYUNDAI|VINFAST)\b/i.exec(text);
+    if(brand)next.brand=brand[1].toUpperCase().replace("MERCEDES-BENZ","MERCEDES");
+  }
+  if(!next.model&&next.brand){
+    const first=text.split(/\n|\r/).map(x=>clean(x,300)).find(Boolean)||"";
+    let title=first.replace(/^[^A-Za-z0-9À-ỹ]+/u,"").trim();
+    const pos=title.toUpperCase().indexOf(String(next.brand).toUpperCase());
+    if(pos>=0)title=title.slice(pos+String(next.brand).length).trim();
+    title=title.replace(/[🔥🌬️🏎️💨]+/gu," ").replace(/\s+/g," ").trim();
+    if(title)next.model=title.slice(0,120);
+  }
+  if(!next.year){const year=/\b(19\d{2}|20\d{2})\b/.exec(text);if(year)next.year=Number(year[1]);}
+  if((!next.description||!clean(next.description))&&text)next.description=text;
+  if((next.brand||next.model||next.year)&&!next._metadata_source)next._metadata_source="telegram_caption";
+  return next;
+}
+
 async function publishReviewedCar(env,chatId,inboxId){
   if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền publish.");
-  const row=await env.DB.prepare("SELECT d.ai_json,d.status,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=? LIMIT 1").bind(inboxId).first();
+  const row=await env.DB.prepare("SELECT d.ai_json,d.status,d.source_caption,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=? LIMIT 1").bind(inboxId).first();
   if(!row||String(row.chat_id)!==String(chatId))throw new Error("Không tìm thấy bản nháp xe của chat này.");
   if(row.status!=="previewed")throw new Error("Phải xem /carpreview <Inbox ID> trước khi publish.");
-  const ai=JSON.parse(row.ai_json||"{}"),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
+  const ai=captionVehicleFallback(JSON.parse(row.ai_json||"{}"),row.source_caption),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
   if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
+  if(!clean(ai.brand)||!clean(ai.model))throw new Error("Thiếu brand/model có bằng chứng; hãy xem lại /carpreview trước khi publish.");
   const promotion=await promoteDraft(env,Number(inboxId),ai,keys[0],keys,true);
   if(!promotion?.published)throw new Error(promotion?.reason||"Publish gate rejected listing");
   await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(inboxId).run();
