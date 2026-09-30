@@ -30,3 +30,15 @@ test("human approval bypass is explicit and automatic promotion remains confiden
   assert.match(ingest,/if\(!approved&&!canAutoPublish\(ai\)\)/);
   assert.match(ingest,/approved=false/);
 });
+
+
+test("vehicle draft dedupes repeated Telegram album captions",()=>{
+  const bundle=router.slice(router.indexOf("async function processBundle"),router.indexOf("function blogCommand"));
+  assert.match(bundle,/new Set\(rows\.map\(row => clean\(row\.caption, 10000\)\)\.filter\(Boolean\)\)/);
+});
+
+test("Defender caption fallback supplies LAND ROVER brand for publish gate",()=>{
+  const fallback=router.slice(router.indexOf("function captionVehicleFallback"),router.indexOf("async function publishReviewedCar"));
+  assert.match(fallback,/DEFENDER/);
+  assert.match(fallback,/next\.brand="LAND ROVER"/);
+});
