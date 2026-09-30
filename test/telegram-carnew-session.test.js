@@ -36,12 +36,24 @@ test("/carfinish is generic: keeps all unique session photos and exact owner cop
   assert.match(block,/new Map\(\)/);
   assert.match(block,/const selectedPhotos=\[\.\.\.newestByIdentity\.values\(\)\]/);
   assert.match(block,/const selectedText=texts\.at\(-1\)/);
-  assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
+  assert.match(block,/bundle_status='queued'/);
+  assert.match(block,/reconcileTelegramVehicleDrafts\(env\)/);
   assert.match(block,/selectedPhotos\.length/);
-  assert.match(block,/Giữ nguyên nội dung owner/);
+  assert.match(block,/Nội dung owner được giữ nguyên/);
   assert.doesNotMatch(block,/slice\(-16\)/);
   assert.doesNotMatch(block,/selectedPhotos\.length!==16/);
   assert.doesNotMatch(block,/4879000000/);
   assert.doesNotMatch(block,/DEFENDER/);
   assert.doesNotMatch(block,/_owner_price_locked/);
+});
+
+test("/carfinish uses durable queue and can recover interrupted processing",()=>{
+  const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
+  assert.match(router,/reconcileTelegramVehicleDrafts/);
+  assert.match(block,/processing/);
+  assert.match(block,/failed/);
+  assert.match(block,/bundle_status='queued'/);
+  assert.match(block,/status='closed'/);
+  assert.match(block,/reconcileTelegramVehicleDrafts\(env\)/);
+  assert.doesNotMatch(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
 });
