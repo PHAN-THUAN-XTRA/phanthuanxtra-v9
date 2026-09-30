@@ -293,7 +293,6 @@ export async function processTelegramUpdate(env, update, chatId) {
     const texts=rows.filter(row=>!row.file_id&&clean(row.caption));
     if(!photos.length||!texts.length){await tg(token,"sendMessage",{chat_id:chatId,text:`⏳ Session chưa đủ dữ liệu: ${photos.length} ảnh, ${texts.length} bài viết. Cần ít nhất 1 ảnh + 1 bài viết.`});return;}
     for(const row of rows)await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=? AND bundle_status='pending'").bind(String(active.session_key),Number(row.id),String(chatId)).run();
-    await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(String(active.session_key)).run();
     await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT VEHICLE SESSION\\n🖼 ${photos.length} ảnh + ${texts.length} bài viết\\n⏳ Đang tạo draft AVIF + WebP...`});
     await processBundle(env,String(active.session_key),chatId);
     return;
