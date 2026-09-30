@@ -60,6 +60,15 @@ export async function reconcileTelegramVehicleDrafts(env){
   await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_status='processing' AND updated_at < datetime('now','-3 minutes')").run();
   const q=await env.DB.prepare("SELECT bundle_key,chat_id,MIN(id) id FROM telegram_inbox WHERE bundle_status='queued' GROUP BY bundle_key,chat_id ORDER BY id ASC LIMIT 4").all();
   const rows=q.results||[],results=[];
-  for(const row of rows)results.push(await processBatch(env,clean(row.bundle_key,500),String(row.chat_id)));
+  // Drain a bounded number of durable 3-photo batches per bundle in one cron.
+  // Every batch checkpoints D1 before the next claim, so interruption still resumes safely.
+  for(const row of rows){
+    const bundleKey=clean(row.bundle_key,500),chatId=String(row.chat_id);
+    for(let batch=0;batch<8;batch++){
+      const result=await processBatch(env,bundleKey,chatId);
+      results.push({...result,bundle_key:bundleKey,batch:batch+1});
+      if(!result.claimed||result.complete||result.error)break;
+    }
+  }
   return {processed:results.length,results};
 }
