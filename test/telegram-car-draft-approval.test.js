@@ -42,3 +42,10 @@ test("Defender caption fallback supplies LAND ROVER brand for publish gate",()=>
   assert.match(fallback,/DEFENDER/);
   assert.match(fallback,/next\.brand="LAND ROVER"/);
 });
+
+
+test("Defender 605 preview trims duplicated persisted copy at first owner price marker",()=>{
+  const preview=router.slice(router.indexOf("async function previewReviewedCar"),router.indexOf("async function openTg444Supplement"));
+  assert.match(preview,/inboxId===605&&firstPriceEnd>0/);
+  assert.match(preview,/rawDescription\.slice\(0,firstPriceEnd\)/);
+});
