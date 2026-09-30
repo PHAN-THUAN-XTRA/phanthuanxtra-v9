@@ -248,6 +248,51 @@ async function applyTg444Supplement(env,message,chatId,photo,sessionKey){
   }
 }
 
+
+async function openTg605GalleryRepair(env,chatId,messageId){
+  if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền sửa gallery.");
+  const car=await env.DB.prepare("SELECT id,price FROM cars WHERE id='tg-605' LIMIT 1").first();
+  if(!car||Number(car.price)!==4879000000)throw new Error("tg-605 hoặc owner price không đúng; từ chối mở repair.");
+  const sessionKey=`${chatId}:vehicle-add:605:${Number(messageId||0)}`;
+  await env.DB.prepare("INSERT INTO telegram_vehicle_sessions(chat_id,session_key,status,opened_message_id,created_at,updated_at) VALUES (?,?,'open',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(chat_id) DO UPDATE SET session_key=excluded.session_key,status='open',opened_message_id=excluded.opened_message_id,updated_at=CURRENT_TIMESTAMP").bind(String(chatId),sessionKey,Number(messageId||0)).run();
+  return sessionKey;
+}
+
+async function applyTg605GalleryPhoto(env,message,chatId,photo,sessionKey){
+  const token=autoBotToken(env),identity=photo.file_unique_id||photo.file_id;
+  const seen=await env.DB.prepare("SELECT inbox_id FROM telegram_vehicle_session_media WHERE session_key=? AND file_unique_id=? LIMIT 1").bind(sessionKey,identity).first();
+  if(seen?.inbox_id){
+    const count=(await env.DB.prepare("SELECT COUNT(*) n FROM telegram_vehicle_session_media WHERE session_key=?").bind(sessionKey).first())?.n||0;
+    return {duplicate:true,count:Number(count),complete:false};
+  }
+  const countBefore=Number((await env.DB.prepare("SELECT COUNT(*) n FROM telegram_vehicle_session_media WHERE session_key=?").bind(sessionKey).first())?.n||0);
+  if(countBefore>=16)throw new Error("Repair session đã đủ 16 ảnh.");
+  const file=await tg(token,"getFile",{file_id:photo.file_id});
+  const filePath=clean(file?.file_path,1000);if(!filePath)throw new Error("Telegram did not return file_path");
+  const image=await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);if(!image.ok||!image.body)throw new Error(`Telegram file download failed: ${image.status}`);
+  if(Number(image.headers.get("content-length")||0)>imageInputLimit())throw new Error("Ảnh vượt giới hạn 15 MB.");
+  const bytes=await boundedBytes(image.body,imageInputLimit());
+  const sourceHash=await sha256(`${chatId}:${message.message_id}:${identity}:tg-605-gallery-repair`);
+  await env.DB.prepare("INSERT INTO telegram_inbox (source_hash,chat_id,message_id,file_id,file_unique_id,file_path,caption,status,bundle_key,bundle_status,media_group_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'processing',?,'processing',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(source_hash) DO NOTHING").bind(sourceHash,String(chatId),Number(message.message_id||0),photo.file_id||"",photo.file_unique_id||"",filePath,"tg-605 gallery repair",sessionKey,clean(message.media_group_id,200)||null).run();
+  const inbox=await env.DB.prepare("SELECT id FROM telegram_inbox WHERE source_hash=? LIMIT 1").bind(sourceHash).first();if(!inbox?.id)throw new Error("Không claim được repair inbox.");
+  await env.DB.prepare("INSERT OR IGNORE INTO telegram_vehicle_session_media(session_key,file_unique_id,inbox_id,media_group_id,created_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)").bind(sessionKey,identity,Number(inbox.id),clean(message.media_group_id,200)||null).run();
+  const media=await storeTelegramVehicleVariants(env,new Uint8Array(bytes),`telegram-${Number(inbox.id)}-${sourceHash.slice(0,16)}`);
+  const publicUrl=`https://phanthuanxtra.com/media/${media.webp_key.split("/").map(encodeURIComponent).join("/")}`;
+  await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,bundle_status='done',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(publicUrl,Number(inbox.id)).run();
+  const rows=(await env.DB.prepare("SELECT t.inbox_id,i.processed_image_url FROM telegram_vehicle_session_media t JOIN telegram_inbox i ON i.id=t.inbox_id WHERE t.session_key=? ORDER BY t.inbox_id").bind(sessionKey).all()).results||[];
+  if(rows.length<16)return {duplicate:false,count:rows.length,complete:false};
+  if(rows.length!==16||rows.some(r=>!clean(r.processed_image_url)))throw new Error("Manifest repair không đủ đúng 16 ảnh.");
+  const car=await env.DB.prepare("SELECT price FROM cars WHERE id='tg-605' LIMIT 1").first();
+  if(Number(car?.price)!==4879000000)throw new Error("Owner price tg-605 thay đổi; từ chối thay gallery.");
+  const urls=rows.map(r=>clean(r.processed_image_url));
+  const statements=[env.DB.prepare("DELETE FROM car_images WHERE car_id='tg-605'")];
+  urls.forEach((url,index)=>statements.push(env.DB.prepare("INSERT INTO car_images(car_id,url,sort_order,is_cover) VALUES ('tg-605',?,?,?)").bind(url,index,index===0?1:0)));
+  statements.push(env.DB.prepare("UPDATE cars SET cover_image=?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605' AND price=4879000000").bind(urls[0]));
+  statements.push(env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=?").bind(String(chatId),sessionKey));
+  await env.DB.batch(statements);
+  return {duplicate:false,count:16,complete:true};
+}
+
 export async function processTelegramUpdate(env, update, chatId, ctx) {
   const token = autoBotToken(env);
   const message = update?.message || update?.channel_post;
@@ -256,6 +301,18 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  const carAdd605=/^\/caradd\s+605\s*$/i.test(caption);
+  if(carAdd605){
+    try{const sessionKey=await openTg605GalleryRepair(env,chatId,message.message_id);await tg(token,"sendMessage",{chat_id:chatId,text:`🛠 TG-605 GALLERY REPAIR ĐÃ MỞ\\n📦 ${sessionKey}\\nGửi đúng 16 ảnh Defender gốc. Không /carnew, không /carpublish 605. Gallery chỉ thay khi đủ 16 ảnh.`});}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không mở được tg-605 gallery repair: "+clean(error?.message||error)});}
+    return;
+  }
+  const active605=photo&&env.DB?await env.DB.prepare("SELECT session_key FROM telegram_vehicle_sessions WHERE chat_id=? AND status='open' AND session_key LIKE '%:vehicle-add:605:%' LIMIT 1").bind(String(chatId)).first():null;
+  if(photo&&active605?.session_key){
+    try{const result=await applyTg605GalleryPhoto(env,message,chatId,photo,String(active605.session_key));await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:result.complete?`✅ TG-605 ĐÃ NHẬN ĐỦ 16/16 ẢNH\\n🖼 Gallery canonical đã thay an toàn.\\n⛔ Không /carpublish 605. Chờ kiểm tra thứ tự ảnh.`:`📥 TG-605 repair: ${result.count}/16 ảnh duy nhất đã nhận.`});}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa nhận được ảnh tg-605 repair: "+clean(error?.message||error)});}
+    return;
+  }
   const carAdd=/^\/caradd\s+444\s*$/i.test(caption);
   if(carAdd){
     try{const sessionKey=await openTg444Supplement(env,chatId,message.message_id);await tg(token,"sendMessage",{chat_id:chatId,text:`🛠 TG-444 REPAIR SESSION ĐÃ MỞ\\n📦 ${sessionKey}\\nGửi đúng 1 ảnh LX570 full side-profile còn thiếu. Không dùng /carpublish 444.`});}
