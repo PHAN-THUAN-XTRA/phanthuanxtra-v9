@@ -28,3 +28,10 @@ test("stale processing bundles are recovered for retry",()=>{
   assert.match(jobs,/bundle_status='processing'/);
   assert.match(jobs,/datetime\('now','-3 minutes'\)/);
 });
+
+
+test("scheduler drains enough durable batches for a 20+ photo gallery in one invocation",()=>{
+  assert.match(jobs,/for\(let batch=0;batch<8;batch\+\+\)/);
+  assert.match(jobs,/if\(!result\.claimed\|\|result\.complete\|\|result\.error\)break/);
+  assert.match(jobs,/\.slice\(0,3\)/);
+});
