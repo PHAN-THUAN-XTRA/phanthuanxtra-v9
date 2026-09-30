@@ -120,13 +120,40 @@ async function publishReviewedCar(env,chatId,inboxId){
   if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền publish.");
   const row=await env.DB.prepare("SELECT d.ai_json,d.status,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=? LIMIT 1").bind(inboxId).first();
   if(!row||String(row.chat_id)!==String(chatId))throw new Error("Không tìm thấy bản nháp xe của chat này.");
-  if(row.status!=="awaiting_review")throw new Error("Bản nháp không ở trạng thái chờ duyệt.");
+  if(row.status!=="previewed")throw new Error("Phải xem /carpreview <Inbox ID> trước khi publish.");
   const ai=JSON.parse(row.ai_json||"{}"),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
   if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
   const promotion=await promoteDraft(env,Number(inboxId),ai,keys[0],keys,true);
   if(!promotion?.published)throw new Error(promotion?.reason||"Publish gate rejected listing");
   await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(inboxId).run();
   return promotion;
+}
+
+async function previewReviewedCar(env,chatId,inboxId){
+  if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền xem/publish draft.");
+  const row=await env.DB.prepare("SELECT d.ai_json,d.status,d.source_caption,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=? LIMIT 1").bind(inboxId).first();
+  if(!row||String(row.chat_id)!==String(chatId))throw new Error("Không tìm thấy bản nháp xe của chat này.");
+  if(row.status!=="awaiting_review"&&row.status!=="previewed")throw new Error("Bản nháp không ở trạng thái chờ duyệt.");
+  const ai=JSON.parse(row.ai_json||"{}"),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
+  if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
+  const label=[ai.brand,ai.model].filter(Boolean).join(" ")||"Chưa xác định tên xe";
+  const description=clean(ai.description||row.source_caption,3000)||"(chưa có mô tả)";
+  const aiStatus=clean(ai._ai_status,100)||"ok";
+  const aiModel=clean(ai._ai_model,200)||"(không ghi nhận model)";
+  const specs=[
+    ai.year?`Năm: ${ai.year}`:null,
+    ai.mileage!=null?`ODO: ${ai.mileage}`:null,
+    ai.price!=null?`Giá: ${ai.price}`:null,
+    ai.fuel?`Nhiên liệu: ${ai.fuel}`:null,
+    ai.color?`Màu: ${ai.color}`:null
+  ].filter(Boolean).join(" | ")||"Chưa đủ thông số có bằng chứng";
+  const urls=keys.map((key,index)=>`${index+1}. https://phanthuanxtra.com/media/${encodeURIComponent(key)}`);
+  await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='previewed',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=? AND status='awaiting_review'").bind(inboxId).run();
+  const head=[`👁 PREVIEW XE — CHƯA PUBLISH`,`📦 Inbox: ${inboxId}`,`🚗 Tiêu đề: ${label}`,`📋 ${specs}`,`🤖 Workers AI: ${aiStatus}`,`🧠 Model: ${aiModel}`,`🎯 Confidence: ${Math.round(Number(ai.confidence||0)*100)}%`,`🖼 Gallery: ${keys.length} ảnh WebP + AVIF tương ứng`,``,`📝 MÔ TẢ`,description,``,`🖼 ẢNH WEBSITE`].join("\n");
+  const chunks=[]; let current=head;
+  for(const url of urls){if((current+"\n"+url).length>3500){chunks.push(current);current=url;}else current+="\n"+url;}
+  chunks.push(current);
+  return {chunks,keys,ai};
 }
 
 export async function processTelegramUpdate(env, update, chatId) {
@@ -137,6 +164,12 @@ export async function processTelegramUpdate(env, update, chatId) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  const carPreview=/^\/carpreview\s+(\d+)\s*$/i.exec(caption);
+  if(carPreview){
+    try{const preview=await previewReviewedCar(env,chatId,Number(carPreview[1]));for(const text of preview.chunks)await tg(token,"sendMessage",{chat_id:chatId,text});await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã xem preview Inbox ${carPreview[1]}. Nếu nội dung và ảnh đúng, dùng /carpublish ${carPreview[1]}.`});}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không xem được preview: "+clean(error?.message||error)});}
+    return;
+  }
   const carPublish=/^\/carpublish\s+(\d+)\s*$/i.exec(caption);
   if(carPublish){
     try{const result=await publishReviewedCar(env,chatId,Number(carPublish[1]));await tg(token,"sendMessage",{chat_id:chatId,text:`🚀 ĐÃ DUYỆT + ĐĂNG XE\n📦 Inbox: ${carPublish[1]}\n🚗 ID: ${result.car_id}\n🌐 https://phanthuanxtra.com/`});}
@@ -144,7 +177,7 @@ export async function processTelegramUpdate(env, update, chatId) {
     return;
   }
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carpublish <Inbox ID> — duyệt và đăng xe sau khi kiểm tra." + EDITORIAL_HELP });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {
