@@ -140,6 +140,54 @@ async function verifyTg527ProductionValues() {
   console.log("D1: verified tg-527 mileage=12000 price=4580000000");
 }
 
+const TG527_GALLERY = [
+  "telegram-531-6fc5b1941350ce0d.webp",
+  "telegram-547-b50413a066c0c33b.webp",
+  "telegram-527-81f135c7438e3323.webp",
+  "telegram-529-22eaa38faf05a011.webp",
+  "telegram-530-b9ddcb36eebbaef2.webp",
+  "telegram-528-21c37fa510d87d89.webp",
+  "telegram-532-f70f1b28356ca061.webp",
+  "telegram-533-9edca4739750d4e8.webp",
+  "telegram-541-251b338e88753738.webp",
+  "telegram-536-605322ae5a4b2325.webp",
+  "telegram-535-f245bcfac9efe378.webp",
+  "telegram-539-47868b869ef84eb4.webp",
+  "telegram-548-cb4795ce7cace48e.webp",
+  "telegram-538-951d497b20dd5fda.webp",
+  "telegram-549-73b38a68c25ad41e.webp",
+  "telegram-537-c91fa0f754b4c14d.webp",
+  "telegram-544-58b64d9063922fd9.webp",
+  "telegram-543-cbc7619b2aba6891.webp",
+  "telegram-542-0e45e420db59f769.webp",
+  "telegram-545-736ccdba0225bb8f.webp",
+  "telegram-540-eb0d167b6453742d.webp",
+  "telegram-546-6fc1f1a6d03f5091.webp",
+  "telegram-534-2db16ab4020800c0.webp",
+  "telegram-550-be3f863a9ae6a005.webp"
+];
+
+async function verifyTg527ProductionGallery() {
+  const result = await queryD1("SELECT id,url,sort_order,is_cover FROM car_images WHERE car_id = ? ORDER BY sort_order,id", ["tg-527"]);
+  const rows = result?.[0]?.results || [];
+  if (rows.length !== 24) throw new Error(`D1 tg-527 gallery verification failed: expected 24 images; got ${rows.length}`);
+  const seen = new Set();
+  for (let i = 0; i < TG527_GALLERY.length; i++) {
+    const row = rows[i];
+    const expected = TG527_GALLERY[i];
+    const url = String(row?.url || "");
+    if (Number(row?.sort_order) !== i) throw new Error(`D1 tg-527 gallery verification failed: index ${i} has sort_order=${row?.sort_order}`);
+    if (!url.endsWith("/media/vehicles/" + expected) || url.includes("%2F")) throw new Error(`D1 tg-527 gallery verification failed: index ${i} expected ${expected}; got ${url}`);
+    if (seen.has(url)) throw new Error(`D1 tg-527 gallery verification failed: duplicate URL ${url}`);
+    seen.add(url);
+    if (Number(row?.is_cover) !== (i === 0 ? 1 : 0)) throw new Error(`D1 tg-527 gallery verification failed: index ${i} cover flag=${row?.is_cover}`);
+  }
+  const car = await queryD1("SELECT cover_image FROM cars WHERE id = ?", ["tg-527"]);
+  const cover = String(car?.[0]?.results?.[0]?.cover_image || "");
+  if (!cover.endsWith("/media/vehicles/" + TG527_GALLERY[0]) || cover.includes("%2F")) throw new Error(`D1 tg-527 gallery verification failed: cars.cover_image=${cover}`);
+  console.log("D1: verified tg-527 gallery 24/24, sort_order=0..23, canonical URLs, single semantic cover");
+}
+
 async function getCurrentBindings() {
   const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
   const bindings = settings?.bindings || [];
@@ -296,6 +344,7 @@ for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLIS
 }
 await applyMigrations();
 await verifyTg527ProductionValues();
+await verifyTg527ProductionGallery();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
