@@ -55,3 +55,15 @@ test("car detail gallery includes the cover and numbers the complete image set f
   assert.match(page,/ảnh '\+\(i\+1\)/);
   assert.doesNotMatch(page,/ảnh '\+\(i\+2\)/);
 });
+
+
+test("canonical WebP media falls back to an existing AVIF sibling before 404",()=>{
+  const media=fs.readFileSync("src/media.js","utf8");
+  const start=media.indexOf("let object=await env.MEDIA.get(key)");
+  const end=media.indexOf("const access=await privateMediaAccess",start);
+  const block=media.slice(start,end);
+  assert.match(block,/if\(!object&&\/\\\.webp\$\/i\.test\(key\)\)/);
+  assert.match(block,/key\.replace\(\/\\\.webp\$\/i,'\.avif'\)/);
+  assert.match(block,/env\.MEDIA\.get\(avifKey\)/);
+  assert.ok(block.indexOf("env.MEDIA.get(avifKey)") < block.indexOf('if(!object)return json({ok:false,error:"Not Found"},404)'));
+});
