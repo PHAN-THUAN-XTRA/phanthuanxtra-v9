@@ -1,6 +1,7 @@
 import { boundedBytes } from "./publishing-api.js";
 import { imageInputLimit } from "./media-policy.js";
 import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
+import { analyzeVehicleImage } from "./vehicle-ai.js";
 
 const clean=(v,n=10000)=>String(v??"").trim().slice(0,n);
 const tokenOf=env=>env.TELEGRAM_AUTO_BOT_TOKEN||env.TELEGRAM_BOT_TOKEN;
@@ -30,6 +31,16 @@ async function processBatch(env,bundleKey,chatId){
       if(!image.ok||!image.body)throw new Error("Telegram file download failed: "+image.status);
       if(Number(image.headers.get("content-length")||0)>imageInputLimit())throw new Error("Ảnh vượt giới hạn 15 MB.");
       const bytes=await boundedBytes(image.body,imageInputLimit());
+      if(Number(row.id)===Number(first.id)){
+        try{
+          const ai=await analyzeVehicleImage(env,bytes,image.headers.get("content-type")||"image/jpeg",text);
+          await env.DB.prepare("INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'processing', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,confidence=excluded.confidence,missing_fields_json=excluded.missing_fields_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='processing',updated_at=CURRENT_TIMESTAMP").bind(Number(first.id),JSON.stringify(ai),Number(ai.confidence||0),JSON.stringify(ai.missing_fields||[]),text,filePath).run();
+        }catch(error){
+          const status=/daily allocation exhausted|quota/i.test(clean(error?.message||error))?"free_quota_exhausted":"unavailable";
+          const ai={confidence:0,missing_fields:[],description:text,_ai_status:status};
+          await env.DB.prepare("INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'processing', ?, 0, '[]', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='processing',updated_at=CURRENT_TIMESTAMP").bind(Number(first.id),JSON.stringify(ai),text,filePath).run();
+        }
+      }
       const media=await storeTelegramVehicleVariants(env,new Uint8Array(bytes),"telegram-"+row.id+"-"+(await sha256(String(row.file_id))).slice(0,16));
       await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,file_path=?,error=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(media.url,filePath,Number(row.id)).run();
     }));
@@ -42,7 +53,9 @@ async function processBatch(env,bundleKey,chatId){
     const webp=done.map(r=>clean(r.processed_image_url).replace(/^\/media\//,""));
     const avif=webp.map(k=>k.replace(/\.webp$/i,".avif"));
     const inboxId=Number(first.id);
-    const ai={confidence:0,missing_fields:[],description:text,_ai_status:"deferred_for_durable_gallery"};
+    const saved=await env.DB.prepare("SELECT ai_json FROM vehicle_ai_drafts WHERE inbox_id=? LIMIT 1").bind(inboxId).first();
+    let ai={confidence:0,missing_fields:[],description:text,_ai_status:"unavailable"};
+    try{if(saved?.ai_json)ai=JSON.parse(saved.ai_json);}catch{}
     const payload={...ai,publish_media_key:webp[0],publish_media_keys:webp,avif_media_keys:avif,bundle_key:bundleKey,image_count:webp.length,image_processing:"format-only",approval_required:true};
     await env.DB.prepare("INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'awaiting_review', ?, 0, '[]', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='awaiting_review',updated_at=CURRENT_TIMESTAMP").bind(inboxId,JSON.stringify(payload),text,clean(first.file_path)).run();
     await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='done',caption=?,error=NULL,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text,bundleKey).run();
