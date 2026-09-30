@@ -68,9 +68,18 @@ export async function handleMediaApi(request,env){
     await env.MEDIA.delete(key);
     return json({ok:true,key},200);
   }
-  const object=await env.MEDIA.get(key);
+  let object=await env.MEDIA.get(key);
+  let resolvedKey=key;
+  // Telegram vehicle ingestion persists paired AVIF + WebP variants. If an older
+  // WebP object is missing, serve its immutable AVIF pair instead of rendering a
+  // broken gallery tile. The canonical URL/order remains unchanged.
+  if(!object&&/\.webp$/i.test(key)){
+    const pairedAvifKey=key.replace(/\.webp$/i,'.avif');
+    const pairedAvif=await env.MEDIA.get(pairedAvifKey);
+    if(pairedAvif){object=pairedAvif;resolvedKey=pairedAvifKey;}
+  }
   if(!object)return json({ok:false,error:"Not Found"},404);
-  const access=await privateMediaAccess(request,env,key,object);
+  const access=await privateMediaAccess(request,env,resolvedKey,object);
   if(!access.allowed)return json({ok:false,error:"Not Found"},404);
   if(url.searchParams.get("branding")==="pt-xtra"&&request.method==="GET")return brandedVehicleResponse(request,env,object,access.private);
   const headers=new Headers();
