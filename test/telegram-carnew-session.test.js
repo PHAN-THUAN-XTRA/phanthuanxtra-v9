@@ -15,7 +15,7 @@ test("/carnew opens a recoverable vehicle session and adopts pending intake",()=
 test("LX570 recovery is narrow and locks exactly 18 following photos",()=>{
   assert.match(migration,/UPPER\(t\.caption\) LIKE '%LEXUS%LX570%'/);
   assert.match(migration,/p\.chat_id = t\.chat_id/);
-  assert.match(migration,/p\.id > t\.id/);
+  assert.match(migration,/ABS\(p\.id-t\.id\)/);
   assert.match(migration,/LIMIT 18/);
   assert.match(migration,/bundle_status = 'queued'/);
 });
