@@ -251,8 +251,11 @@ async function applyTg444Supplement(env,message,chatId,photo,sessionKey){
 
 async function openTg605GalleryRepair(env,chatId,messageId){
   if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền sửa gallery.");
-  const car=await env.DB.prepare("SELECT id,price FROM cars WHERE id='tg-605' LIMIT 1").first();
-  if(!car||Number(car.price)!==4879000000)throw new Error("tg-605 hoặc owner price không đúng; từ chối mở repair.");
+  const car=await env.DB.prepare("SELECT id FROM cars WHERE id='tg-605' LIMIT 1").first();
+  const draft=await env.DB.prepare("SELECT ai_json,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=605 LIMIT 1").first();
+  const ai=JSON.parse(draft?.ai_json||"{}");
+  if(!car)throw new Error("Không tìm thấy canonical tg-605; từ chối mở repair.");
+  if(String(draft?.chat_id)!==String(chatId)||Number(ai.price)!==4879000000||Number(ai._owner_price_locked)!==1)throw new Error("Owner-approved draft 605 không còn khóa giá 4.879.000.000 đ; từ chối mở repair.");
   const sessionKey=`${chatId}:vehicle-add:605:${Number(messageId||0)}`;
   await env.DB.prepare("INSERT INTO telegram_vehicle_sessions(chat_id,session_key,status,opened_message_id,created_at,updated_at) VALUES (?,?,'open',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(chat_id) DO UPDATE SET session_key=excluded.session_key,status='open',opened_message_id=excluded.opened_message_id,updated_at=CURRENT_TIMESTAMP").bind(String(chatId),sessionKey,Number(messageId||0)).run();
   return sessionKey;
@@ -282,12 +285,13 @@ async function applyTg605GalleryPhoto(env,message,chatId,photo,sessionKey){
   const rows=(await env.DB.prepare("SELECT t.inbox_id,i.processed_image_url FROM telegram_vehicle_session_media t JOIN telegram_inbox i ON i.id=t.inbox_id WHERE t.session_key=? ORDER BY t.inbox_id").bind(sessionKey).all()).results||[];
   if(rows.length<16)return {duplicate:false,count:rows.length,complete:false};
   if(rows.length!==16||rows.some(r=>!clean(r.processed_image_url)))throw new Error("Manifest repair không đủ đúng 16 ảnh.");
-  const car=await env.DB.prepare("SELECT price FROM cars WHERE id='tg-605' LIMIT 1").first();
-  if(Number(car?.price)!==4879000000)throw new Error("Owner price tg-605 thay đổi; từ chối thay gallery.");
+  const draft=await env.DB.prepare("SELECT ai_json FROM vehicle_ai_drafts WHERE inbox_id=605 LIMIT 1").first();
+  const ai=JSON.parse(draft?.ai_json||"{}");
+  if(Number(ai.price)!==4879000000||Number(ai._owner_price_locked)!==1)throw new Error("Owner-approved draft 605 thay đổi; từ chối thay gallery.");
   const urls=rows.map(r=>clean(r.processed_image_url));
   const statements=[env.DB.prepare("DELETE FROM car_images WHERE car_id='tg-605'")];
   urls.forEach((url,index)=>statements.push(env.DB.prepare("INSERT INTO car_images(car_id,url,sort_order,is_cover) VALUES ('tg-605',?,?,?)").bind(url,index,index===0?1:0)));
-  statements.push(env.DB.prepare("UPDATE cars SET cover_image=?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605' AND price=4879000000").bind(urls[0]));
+  statements.push(env.DB.prepare("UPDATE cars SET cover_image=?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605'").bind(urls[0]));
   statements.push(env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=?").bind(String(chatId),sessionKey));
   await env.DB.batch(statements);
   return {duplicate:false,count:16,complete:true};
