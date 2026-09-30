@@ -72,8 +72,21 @@ export default {
         headers.set("x-ptx-editorial-utf8", "worker-v3");
         return new Response(html, { status: 200, headers });
       }
-      if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/" || url.pathname === "/car" || url.pathname === "/car/") {
-        const assetUrl = new URL((url.pathname === "/car" || url.pathname === "/car/") ? "/car.html" : "/index.html", request.url);
+      if (url.pathname === "/car" || url.pathname === "/car/") {
+        const assetUrl = new URL("/car.html", request.url);
+        const assetHeaders = new Headers(request.headers);
+        assetHeaders.set("accept-encoding", "identity");
+        assetHeaders.set("cache-control", "no-cache");
+        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, { method: "GET", headers: assetHeaders, cf: { cacheTtl: 0, cacheEverything: false } }));
+        const headers = new Headers(assetResponse.headers);
+        headers.set("content-type", "text/html; charset=utf-8");
+        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
+        headers.delete("content-encoding");
+        headers.delete("content-length");
+        return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
+      }
+      if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/") {
+        const assetUrl = new URL("/index.html", request.url);
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
