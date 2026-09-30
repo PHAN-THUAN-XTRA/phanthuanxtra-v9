@@ -204,6 +204,7 @@ export async function processTelegramUpdate(env, update, chatId) {
     const photoRows=open.filter(row=>row.file_id);
     const textRow=open.find(row=>!row.file_id&&clean(row.caption));
     const sessionKey=`${chatId}:vehicle-session:${message.message_id}`;
+    await env.DB.prepare("INSERT INTO telegram_vehicle_sessions(chat_id,session_key,status,opened_message_id,created_at,updated_at) VALUES (?,?,'open',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(chat_id) DO UPDATE SET session_key=excluded.session_key,status='open',opened_message_id=excluded.opened_message_id,updated_at=CURRENT_TIMESTAMP").bind(String(chatId),sessionKey,Number(message.message_id||0)).run();
     const ids=[...photoRows.map(row=>Number(row.id)),...(textRow?[Number(textRow.id)]:[])];
     for(const id of ids)await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,bundle_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=? AND bundle_status='pending'").bind(sessionKey,id,chatId).run();
     await tg(token,"sendMessage",{chat_id:chatId,text:`🆕 VEHICLE SESSION ĐÃ MỞ\\n📦 Session: ${sessionKey}\\n🖼 Đã thu hồi ${photoRows.length} ảnh đang chờ${textRow?" + 1 bài viết":""}.\\nGửi tiếp ảnh/nội dung của đúng xe này.`});
