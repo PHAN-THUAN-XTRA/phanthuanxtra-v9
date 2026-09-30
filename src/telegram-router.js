@@ -173,7 +173,10 @@ async function previewReviewedCar(env,chatId,inboxId){
   const ai=captionVehicleFallback(JSON.parse(row.ai_json||"{}"),row.source_caption),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
   if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
   const label=[ai.brand,ai.model].filter(Boolean).join(" ")||"Chưa xác định tên xe";
-  const description=clean(ai.description||row.source_caption,3000)||"(chưa có mô tả)";
+  const rawDescription=clean(ai.description||row.source_caption,10000);
+  const ownerPriceMarker="💰 Giá: 4.879.000.000 đ";
+  const firstPriceEnd=rawDescription.indexOf(ownerPriceMarker)>=0?rawDescription.indexOf(ownerPriceMarker)+ownerPriceMarker.length:-1;
+  const description=clean(inboxId===605&&firstPriceEnd>0?rawDescription.slice(0,firstPriceEnd):rawDescription,3000)||"(chưa có mô tả)";
   const aiStatus=clean(ai._ai_status,100)||"ok";
   const aiModel=clean(ai._ai_model,200)||"(không ghi nhận model)";
   const specs=[
