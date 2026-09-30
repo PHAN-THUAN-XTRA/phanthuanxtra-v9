@@ -121,6 +121,7 @@ function captionVehicleFallback(ai,caption){
   if(!next.brand){
     const brand=/\b(LEXUS|TOYOTA|MERCEDES(?:-BENZ)?|BMW|AUDI|PORSCHE|VOLVO|LAND ROVER|RANGE ROVER|BENTLEY|ROLLS-ROYCE|FERRARI|LAMBORGHINI|MCLAREN|FORD|HONDA|MAZDA|KIA|HYUNDAI|VINFAST)\b/i.exec(text);
     if(brand)next.brand=brand[1].toUpperCase().replace("MERCEDES-BENZ","MERCEDES");
+    else if(/\bDEFENDER\b/i.test(text))next.brand="LAND ROVER";
   }
   if(!next.model&&next.brand){
     const first=text.split(/\n|\r/).map(x=>clean(x,300)).find(Boolean)||"";
