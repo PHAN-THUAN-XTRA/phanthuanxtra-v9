@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import{readFile}from"node:fs/promises";
+test("tg-444 migration avoids D1 temp-table auth and remains fail-closed",async()=>{const m=await readFile(new URL("../migrations/0024_tg_444_semantic_gallery.sql",import.meta.url),"utf8");assert.doesNotMatch(m,/CREATE TEMP TABLE|DROP TABLE/);assert.match(m,/SELECT COUNT\(\*\)[\s\S]*id IN \(551,569\)[\s\S]*\) = 1/);assert.match(m,/telegram-444-3b7aec5feb857597/);});
