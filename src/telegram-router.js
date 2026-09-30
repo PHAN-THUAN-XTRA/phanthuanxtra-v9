@@ -26,7 +26,9 @@ async function processBundle(env, bundleKey, chatId) {
   const photoRows = rows.filter(row => row.file_id);
   const photoRow = photoRows[0];
   if (!photoRow) return;
-  const text = rows.map(row => clean(row.caption)).filter(Boolean).join("\n\n");
+  // Telegram albums can repeat the same owner caption on multiple photo rows.
+  // Preserve each distinct owner caption once instead of duplicating the draft copy.
+  const text = [...new Set(rows.map(row => clean(row.caption, 10000)).filter(Boolean))].join("\n\n");
   const processed = [];
   try {
     let primaryAi = null;
