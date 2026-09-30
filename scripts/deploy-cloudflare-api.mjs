@@ -205,16 +205,20 @@ async function verifyTg444ProductionGallery() {
   const names=rows.map(row=>String(row.url||"").split("/").pop());
   const known=names.slice(0,17);
   const missing=names[17]||"";
-  if(rows.length!==18 || known.join("|")!==TG444_GALLERY.join("|") ||
-     !/^telegram-(551|569)-[0-9a-f]{16}\.webp$/.test(missing) ||
+  const repair17=rows.length===17 && known.join("|")===TG444_GALLERY.join("|");
+  const complete18=rows.length===18 && known.join("|")===TG444_GALLERY.join("|") &&
+    /^telegram-(551|569)-[0-9a-f]{16}\.webp$/.test(missing);
+  if((!repair17&&!complete18) ||
      rows.some((row,index)=>Number(row.sort_order)!==index) ||
      rows.filter(row=>Number(row.is_cover)===1).length!==1 ||
      Number(rows[0]?.is_cover)!==1 ||
      rows[0]?.url!==rows[0]?.cover_image ||
      rows.some(row=>String(row.url||"").includes("telegram-444-3b7aec5feb857597.webp"))) {
-    throw new Error(`D1 tg-444 gallery verification failed: expected 18 recovered LX570 images with foreign image removed; got ${JSON.stringify(rows)}`);
+    throw new Error(`D1 tg-444 gallery verification failed: repair mode permits only the exact clean 17-image gallery or the completed 18-image gallery, with foreign image absent; got ${JSON.stringify(rows)}`);
   }
-  console.log("D1: verified tg-444 gallery 18/18, omitted album image recovered, unrelated white-vehicle image removed, semantic sort_order=0..17, single exterior cover");
+  console.log(complete18
+    ? "D1: verified tg-444 gallery 18/18, omitted album image recovered, unrelated white-vehicle image removed, semantic sort_order=0..17, single exterior cover"
+    : "D1: REPAIR MODE verified tg-444 exact clean gallery 17/18, unrelated white-vehicle image absent, semantic sort_order=0..16, single exterior cover; missing source side-profile still required");
 }
 
 async function verifyLx570Recovery() {
