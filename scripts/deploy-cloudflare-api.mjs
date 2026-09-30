@@ -203,22 +203,17 @@ async function verifyTg444ProductionGallery() {
   const result=await queryD1("SELECT i.url,i.sort_order,i.is_cover,c.cover_image FROM car_images i JOIN cars c ON c.id=i.car_id WHERE i.car_id='tg-444' ORDER BY i.sort_order,i.id");
   const rows=result?.[0]?.results||[];
   const names=rows.map(row=>String(row.url||"").split("/").pop());
-  const known=names.slice(0,17);
-  const missing=names[17]||"";
-  const repair17=rows.length===17 && known.join("|")===TG444_GALLERY.join("|");
-  const complete18=rows.length===18 && known.join("|")===TG444_GALLERY.join("|") &&
-    /^telegram-(551|569)-[0-9a-f]{16}\.webp$/.test(missing);
-  if((!repair17&&!complete18) ||
+  const expected=[...TG444_GALLERY.slice(0,5),"telegram-571-",...TG444_GALLERY.slice(5)];
+  const exact18=rows.length===18 && names.every((name,index)=>index===5 ? /^telegram-571-[0-9a-f]{16}\.webp$/.test(name) : name===expected[index]);
+  if(!exact18 ||
      rows.some((row,index)=>Number(row.sort_order)!==index) ||
      rows.filter(row=>Number(row.is_cover)===1).length!==1 ||
      Number(rows[0]?.is_cover)!==1 ||
      rows[0]?.url!==rows[0]?.cover_image ||
      rows.some(row=>String(row.url||"").includes("telegram-444-3b7aec5feb857597.webp"))) {
-    throw new Error(`D1 tg-444 gallery verification failed: repair mode permits only the exact clean 17-image gallery or the completed 18-image gallery, with foreign image absent; got ${JSON.stringify(rows)}`);
+    throw new Error(`D1 tg-444 gallery verification failed: expected strict 18/18 gallery with supplement Inbox 571 at semantic side-profile sort_order=5 and foreign image absent; got ${JSON.stringify(rows)}`);
   }
-  console.log(complete18
-    ? "D1: verified tg-444 gallery 18/18, omitted album image recovered, unrelated white-vehicle image removed, semantic sort_order=0..17, single exterior cover"
-    : "D1: REPAIR MODE verified tg-444 exact clean gallery 17/18, unrelated white-vehicle image absent, semantic sort_order=0..16, single exterior cover; missing source side-profile still required");
+  console.log("D1: verified tg-444 strict gallery 18/18, supplement inbox=571 at sort_order=5, unrelated white-vehicle image absent, semantic sort_order=0..17, single exterior cover");
 }
 
 async function verifyLx570Recovery() {
