@@ -189,6 +189,58 @@ async function previewReviewedCar(env,chatId,inboxId){
   return {chunks,keys,ai};
 }
 
+async function openTg444Supplement(env,chatId,messageId){
+  if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền sửa draft.");
+  const draft=await env.DB.prepare("SELECT d.ai_json,d.status,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=444 LIMIT 1").first();
+  if(!draft||String(draft.chat_id)!==String(chatId))throw new Error("Không tìm thấy draft 444 của chat này.");
+  const ai=JSON.parse(draft.ai_json||"{}");
+  if(Number(ai.mileage)!==54800||Number(ai.price)!==4579000000||Number(ai._owner_values_locked)!==1)throw new Error("Owner values draft 444 không đúng; từ chối mở repair session.");
+  const gallery=(await env.DB.prepare("SELECT url,sort_order,is_cover FROM car_images WHERE car_id='tg-444' ORDER BY sort_order,id").all()).results||[];
+  if(gallery.length!==17||gallery.some((row,index)=>Number(row.sort_order)!==index)||gallery.filter(row=>Number(row.is_cover)===1).length!==1||gallery.some(row=>String(row.url||"").includes("telegram-444-3b7aec5feb857597.webp")))throw new Error("tg-444 không còn ở exact clean 17-image repair state.");
+  const sessionKey=`${chatId}:vehicle-add:444:${Number(messageId||0)}`;
+  await env.DB.prepare("INSERT INTO telegram_vehicle_sessions(chat_id,session_key,status,opened_message_id,created_at,updated_at) VALUES (?,?,'open',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(chat_id) DO UPDATE SET session_key=excluded.session_key,status='open',opened_message_id=excluded.opened_message_id,updated_at=CURRENT_TIMESTAMP").bind(String(chatId),sessionKey,Number(messageId||0)).run();
+  return sessionKey;
+}
+
+async function applyTg444Supplement(env,message,chatId,photo,sessionKey){
+  const token=autoBotToken(env);
+  const seen=await env.DB.prepare("SELECT inbox_id FROM telegram_vehicle_session_media WHERE session_key=? AND file_unique_id=? LIMIT 1").bind(sessionKey,photo.file_unique_id||photo.file_id).first();
+  if(seen?.inbox_id)return {duplicate:true,inboxId:Number(seen.inbox_id)};
+  const file=await tg(token,"getFile",{file_id:photo.file_id});
+  const filePath=clean(file?.file_path,1000);if(!filePath)throw new Error("Telegram did not return file_path");
+  const image=await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);if(!image.ok||!image.body)throw new Error(`Telegram file download failed: ${image.status}`);
+  if(Number(image.headers.get("content-length")||0)>imageInputLimit())throw new Error("Ảnh vượt giới hạn 15 MB.");
+  const bytes=await boundedBytes(image.body,imageInputLimit());
+  const identity=photo.file_unique_id||photo.file_id;
+  const sourceHash=await sha256(`${chatId}:${message.message_id}:${identity}:tg-444-supplement`);
+  await env.DB.prepare("INSERT INTO telegram_inbox (source_hash,chat_id,message_id,file_id,file_unique_id,file_path,caption,status,bundle_key,bundle_status,media_group_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'processing',?,'processing',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(source_hash) DO NOTHING").bind(sourceHash,String(chatId),Number(message.message_id||0),photo.file_id||"",photo.file_unique_id||"",filePath,"tg-444 side-profile supplement",sessionKey,clean(message.media_group_id,200)||null).run();
+  const inbox=await env.DB.prepare("SELECT id FROM telegram_inbox WHERE source_hash=? LIMIT 1").bind(sourceHash).first();if(!inbox?.id)throw new Error("Không claim được supplement inbox.");
+  await env.DB.prepare("INSERT OR IGNORE INTO telegram_vehicle_session_media(session_key,file_unique_id,inbox_id,media_group_id,created_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)").bind(sessionKey,identity,Number(inbox.id),clean(message.media_group_id,200)||null).run();
+  let media=null;
+  try{
+    media=await storeTelegramVehicleVariants(env,new Uint8Array(bytes),`telegram-${Number(inbox.id)}-${sourceHash.slice(0,16)}`);
+    const draft=await env.DB.prepare("SELECT ai_json FROM vehicle_ai_drafts WHERE inbox_id=444 LIMIT 1").first();const ai=JSON.parse(draft?.ai_json||"{}");
+    if(Number(ai.mileage)!==54800||Number(ai.price)!==4579000000||Number(ai._owner_values_locked)!==1)throw new Error("Owner values draft 444 changed during supplement; refusing write.");
+    const webp=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];const avif=Array.isArray(ai.avif_media_keys)?ai.avif_media_keys.filter(Boolean):[];
+    if(webp.length!==18||avif.length!==18)throw new Error(`Draft 444 source manifest must remain 18/18 before supplement; got webp=${webp.length} avif=${avif.length}`);
+    const publicUrl=`https://phanthuanxtra.com/media/${media.webp_key.split("/").map(encodeURIComponent).join("/")}`;
+    const current=(await env.DB.prepare("SELECT url,sort_order,is_cover FROM car_images WHERE car_id='tg-444' ORDER BY sort_order,id").all()).results||[];
+    if(current.length!==17||current.some((row,index)=>Number(row.sort_order)!==index)||current.some(row=>String(row.url||"").includes("telegram-444-3b7aec5feb857597.webp")))throw new Error("tg-444 left exact 17-image repair state before supplement.");
+    const insertAt=5;
+    await env.DB.batch([
+      env.DB.prepare("UPDATE car_images SET sort_order=sort_order+1 WHERE car_id='tg-444' AND sort_order>=?").bind(insertAt),
+      env.DB.prepare("INSERT INTO car_images(car_id,url,sort_order,is_cover) VALUES ('tg-444',?,?,0)").bind(publicUrl,insertAt),
+      env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,bundle_status='done',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(publicUrl,Number(inbox.id)),
+      env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=?").bind(String(chatId),sessionKey)
+    ]);
+    return {duplicate:false,inboxId:Number(inbox.id),url:publicUrl,sortOrder:insertAt};
+  }catch(error){
+    if(media){for(const key of [media.webp_key,media.avif_key].filter(Boolean)){await env.MEDIA?.delete(key).catch(()=>{});await env.DB.prepare("DELETE FROM media_assets WHERE r2_key=?").bind(key).run().catch(()=>{});}}
+    await env.DB.prepare("UPDATE telegram_inbox SET status='failed',bundle_status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(error?.message||error),Number(inbox.id)).run().catch(()=>{});
+    throw error;
+  }
+}
+
 export async function processTelegramUpdate(env, update, chatId) {
   const token = autoBotToken(env);
   const message = update?.message || update?.channel_post;
@@ -197,6 +249,18 @@ export async function processTelegramUpdate(env, update, chatId) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  const carAdd=/^\/caradd\s+444\s*$/i.test(caption);
+  if(carAdd){
+    try{const sessionKey=await openTg444Supplement(env,chatId,message.message_id);await tg(token,"sendMessage",{chat_id:chatId,text:`🛠 TG-444 REPAIR SESSION ĐÃ MỞ\\n📦 ${sessionKey}\\nGửi đúng 1 ảnh LX570 full side-profile còn thiếu. Không dùng /carpublish 444.`});}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không mở được tg-444 repair session: "+clean(error?.message||error)});}
+    return;
+  }
+  const activeSupplement=photo&&env.DB?await env.DB.prepare("SELECT session_key FROM telegram_vehicle_sessions WHERE chat_id=? AND status='open' AND session_key LIKE '%:vehicle-add:444:%' LIMIT 1").bind(String(chatId)).first():null;
+  if(photo&&activeSupplement?.session_key){
+    try{const result=await applyTg444Supplement(env,message,chatId,photo,String(activeSupplement.session_key));await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:result.duplicate?`♻️ Ảnh supplement đã nhận trước đó — Inbox ${result.inboxId}.`:`✅ ĐÃ BỔ SUNG 1 ẢNH CHO tg-444\\n📦 Inbox: ${result.inboxId}\\n🖼 sort_order: ${result.sortOrder}\\n⛔ Không republish Telegram; không thay owner values.`});}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa bổ sung được ảnh tg-444: "+clean(error?.message||error)});}
+    return;
+  }
   const carNew=/^\/carnew\s*$/i.test(caption);
   if(carNew){
     if(!env.DB){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ D1 chưa được kết nối."});return;}
@@ -232,7 +296,7 @@ export async function processTelegramUpdate(env, update, chatId) {
     return;
   }
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\n/carnew — mở/thu hồi Vehicle Session cho một xe; hỗ trợ nhiều đợt ảnh.\\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\n/carnew — mở/thu hồi Vehicle Session cho một xe; hỗ trợ nhiều đợt ảnh.\n/caradd 444 — repair-only: bổ sung đúng 1 ảnh side-profile còn thiếu cho tg-444.\\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {
