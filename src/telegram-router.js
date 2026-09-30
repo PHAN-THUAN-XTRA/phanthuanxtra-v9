@@ -197,6 +197,18 @@ export async function processTelegramUpdate(env, update, chatId) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  const carNew=/^\\/carnew\\s*$/i.test(caption);
+  if(carNew){
+    if(!env.DB){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ D1 chưa được kết nối."});return;}
+    const open=(await env.DB.prepare("SELECT id,bundle_key,file_id,caption FROM telegram_inbox WHERE chat_id=? AND bundle_status='pending' ORDER BY id DESC LIMIT 100").bind(chatId).all()).results||[];
+    const photoRows=open.filter(row=>row.file_id);
+    const textRow=open.find(row=>!row.file_id&&clean(row.caption));
+    const sessionKey=`${chatId}:vehicle-session:${message.message_id}`;
+    const ids=[...photoRows.map(row=>Number(row.id)),...(textRow?[Number(textRow.id)]:[])];
+    for(const id of ids)await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,bundle_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=? AND bundle_status='pending'").bind(sessionKey,id,chatId).run();
+    await tg(token,"sendMessage",{chat_id:chatId,text:`🆕 VEHICLE SESSION ĐÃ MỞ\\n📦 Session: ${sessionKey}\\n🖼 Đã thu hồi ${photoRows.length} ảnh đang chờ${textRow?" + 1 bài viết":""}.\\nGửi tiếp ảnh/nội dung của đúng xe này.`});
+    return;
+  }
   const carReview=/^\/carreview\s+(\d+)(?:\s*\n([\s\S]+))?$/i.exec(caption);
   if(carReview){
     try{await saveReviewedCarCopy(env,chatId,Number(carReview[1]),carReview[2]||"");await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã lưu bản biên tập được duyệt cho Inbox ${carReview[1]}. Chạy /carpreview ${carReview[1]} để kiểm tra lần cuối.`});}
@@ -219,7 +231,7 @@ export async function processTelegramUpdate(env, update, chatId) {
     return;
   }
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\n/carnew — mở/thu hồi Vehicle Session cho một xe; hỗ trợ nhiều đợt ảnh.\\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {
