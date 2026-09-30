@@ -5,6 +5,7 @@ import fs from "node:fs";
 const entry=fs.readFileSync("src/entry.js","utf8");
 const ingest=fs.readFileSync("src/telegram-ingest.js","utf8");
 const router=fs.readFileSync("src/telegram-router.js","utf8");
+const telegram=fs.readFileSync("src/telegram.js","utf8");
 
 test("car detail HTML is served through explicit UTF-8 Worker boundary",()=>{
   assert.match(entry,/url\.pathname === "\/car"/);
@@ -27,4 +28,12 @@ test("successful car publish cannot be reported failed by Telegram link preview"
   assert.match(block,/telegram_car_publish_confirmation_failed/);
   assert.match(block,/\/car\?id=\$\{encodeURIComponent\(result\.car_id\)\}/);
   assert.ok(block.indexOf("publishReviewedCar") < block.indexOf("telegram_car_publish_confirmation_failed"));
+});
+
+
+test("Telegram publish survives WEBPAGE_CURL_FAILED from remote gallery fetch",()=>{
+  assert.match(telegram,/WEBPAGE_CURL_FAILED/);
+  assert.match(telegram,/disable_web_page_preview:true/);
+  assert.match(telegram,/continue/);
+  assert.match(telegram,/telegram_posts SET status='published'/);
 });
