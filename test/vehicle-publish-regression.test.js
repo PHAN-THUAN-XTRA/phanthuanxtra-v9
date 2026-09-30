@@ -107,3 +107,31 @@ test("tg-605 album repair waits for 16 processed URLs and finalizes once",()=>{
   assert.match(router,/Number\(claimed\?\.meta\?\.changes\|\|0\)!==1/);
   assert.match(router,/status='closed'.*status='finalizing'/);
 });
+
+
+test("tg-605 public reconciliation uses the reviewed 16-image replacement gallery order",()=>{
+  const index=fs.readFileSync("src/index.js","utf8");
+  const match=index.match(/const TG605_MEDIA_ORDER=\[([^\n]+)\];/);
+  assert.ok(match,"TG605_MEDIA_ORDER must exist");
+  const names=[...match[1].matchAll(/'([^']+)'/g)].map(x=>x[1]);
+  assert.deepEqual(names,[
+    "telegram-625-f38722c5c54d18ec.webp",
+    "telegram-628-c19889e18a9e2a51.webp",
+    "telegram-626-37ef8ae3847c9d91.webp",
+    "telegram-630-75c76b43562d2a04.webp",
+    "telegram-634-c43bc966d958e914.webp",
+    "telegram-624-daaf363d53c2aba0.webp",
+    "telegram-631-4349de2e97eaa7e1.webp",
+    "telegram-633-21b563a6af97d498.webp",
+    "telegram-629-e528f3d381ad194d.webp",
+    "telegram-632-8fcfc345a086192f.webp",
+    "telegram-621-ceee072f71299171.webp",
+    "telegram-622-da8277cdd0d09af2.webp",
+    "telegram-636-3c2d6815ce049461.webp",
+    "telegram-635-fac1e25175e4d721.webp",
+    "telegram-623-f6134f552cfc59ac.webp",
+    "telegram-627-ead1762406120ba8.webp"
+  ]);
+  assert.equal(names.length,16);
+  assert.equal(new Set(names).size,16);
+});
