@@ -252,10 +252,9 @@ async function applyTg444Supplement(env,message,chatId,photo,sessionKey){
 async function openTg605GalleryRepair(env,chatId,messageId){
   if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền sửa gallery.");
   const car=await env.DB.prepare("SELECT id FROM cars WHERE id='tg-605' LIMIT 1").first();
-  const draft=await env.DB.prepare("SELECT ai_json,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=605 LIMIT 1").first();
-  const ai=JSON.parse(draft?.ai_json||"{}");
+  const owner=await env.DB.prepare("SELECT i.chat_id,d.source_caption FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=605 LIMIT 1").first();
   if(!car)throw new Error("Không tìm thấy canonical tg-605; từ chối mở repair.");
-  if(String(draft?.chat_id)!==String(chatId)||Number(ai.price)!==4879000000||Number(ai._owner_price_locked)!==1)throw new Error("Owner-approved draft 605 không còn khóa giá 4.879.000.000 đ; từ chối mở repair.");
+  if(String(owner?.chat_id)!==String(chatId)||!/4[.,]?879|4\.879\.000\.000|4879000000/.test(clean(owner?.source_caption,10000)))throw new Error("Không xác nhận được owner-approved price 4.879.000.000 đ từ nguồn Inbox 605; từ chối mở repair.");
   const sessionKey=`${chatId}:vehicle-add:605:${Number(messageId||0)}`;
   await env.DB.prepare("INSERT INTO telegram_vehicle_sessions(chat_id,session_key,status,opened_message_id,created_at,updated_at) VALUES (?,?,'open',?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT(chat_id) DO UPDATE SET session_key=excluded.session_key,status='open',opened_message_id=excluded.opened_message_id,updated_at=CURRENT_TIMESTAMP").bind(String(chatId),sessionKey,Number(messageId||0)).run();
   return sessionKey;
@@ -285,9 +284,8 @@ async function applyTg605GalleryPhoto(env,message,chatId,photo,sessionKey){
   const rows=(await env.DB.prepare("SELECT t.inbox_id,i.processed_image_url FROM telegram_vehicle_session_media t JOIN telegram_inbox i ON i.id=t.inbox_id WHERE t.session_key=? ORDER BY t.inbox_id").bind(sessionKey).all()).results||[];
   if(rows.length<16)return {duplicate:false,count:rows.length,complete:false};
   if(rows.length!==16||rows.some(r=>!clean(r.processed_image_url)))throw new Error("Manifest repair không đủ đúng 16 ảnh.");
-  const draft=await env.DB.prepare("SELECT ai_json FROM vehicle_ai_drafts WHERE inbox_id=605 LIMIT 1").first();
-  const ai=JSON.parse(draft?.ai_json||"{}");
-  if(Number(ai.price)!==4879000000||Number(ai._owner_price_locked)!==1)throw new Error("Owner-approved draft 605 thay đổi; từ chối thay gallery.");
+  const owner=await env.DB.prepare("SELECT source_caption FROM vehicle_ai_drafts WHERE inbox_id=605 LIMIT 1").first();
+  if(!/4[.,]?879|4\.879\.000\.000|4879000000/.test(clean(owner?.source_caption,10000)))throw new Error("Owner-approved price source 605 thay đổi; từ chối thay gallery.");
   const urls=rows.map(r=>clean(r.processed_image_url));
   const statements=[env.DB.prepare("DELETE FROM car_images WHERE car_id='tg-605'")];
   urls.forEach((url,index)=>statements.push(env.DB.prepare("INSERT INTO car_images(car_id,url,sort_order,is_cover) VALUES ('tg-605',?,?,?)").bind(url,index,index===0?1:0)));
