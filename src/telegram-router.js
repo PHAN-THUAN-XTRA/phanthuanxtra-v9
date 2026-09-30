@@ -197,7 +197,7 @@ export async function processTelegramUpdate(env, update, chatId) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
-  const carNew=/^\\/carnew\\s*$/i.test(caption);
+  const carNew=/^\/carnew\s*$/i.test(caption);
   if(carNew){
     if(!env.DB){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ D1 chưa được kết nối."});return;}
     const open=(await env.DB.prepare("SELECT id,bundle_key,file_id,caption FROM telegram_inbox WHERE chat_id=? AND bundle_status='pending' ORDER BY id DESC LIMIT 100").bind(chatId).all()).results||[];
