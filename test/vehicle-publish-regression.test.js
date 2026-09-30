@@ -87,8 +87,10 @@ test("tg-605 repair session accepts exactly 16 unique source photos and preserve
   assert.match(router,/vehicle-add:605/);
   assert.match(router,/countBefore>=16/);
   assert.match(router,/rows\.length!==16/);
-  assert.match(router,/Number\(car\?\.price\)!==4879000000/);
+  assert.match(router,/Number\(ai\.price\)!==4879000000\|\|Number\(ai\._owner_price_locked\)!==1/);
+  assert.match(router,/d\.inbox_id=605/);
+  assert.doesNotMatch(router,/SELECT id,price FROM cars WHERE id='tg-605'/);
   assert.match(router,/DELETE FROM car_images WHERE car_id='tg-605'/);
-  assert.match(router,/UPDATE cars SET cover_image=\?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605' AND price=4879000000/);
+  assert.match(router,/UPDATE cars SET cover_image=\?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605'/);
   assert.match(router,/Gallery chỉ thay khi đủ 16 ảnh/);
 });
