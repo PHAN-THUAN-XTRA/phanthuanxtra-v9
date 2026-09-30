@@ -115,3 +115,12 @@ test("explicit AVIF delivery falls back to canonical WebP when edge transform re
   assert.match(media,/transformed\.status===404/);
   assert.match(media,/new Response\(object\.body,\{status:200,headers\}\)/);
 });
+
+
+test("missing canonical WebP falls back to its persisted Telegram AVIF pair",()=>{
+  assert.match(media,/if\(!object&&\/\\\.webp\$\/i\.test\(key\)\)/);
+  assert.match(media,/pairedAvifKey=key\.replace\(\/\\\.webp\$\/i,'\.avif'\)/);
+  assert.match(media,/await env\.MEDIA\.get\(pairedAvifKey\)/);
+  assert.match(media,/resolvedKey=pairedAvifKey/);
+  assert.match(media,/privateMediaAccess\(request,env,resolvedKey,object\)/);
+});
