@@ -17,5 +17,5 @@ test("LX570 recovery is narrow and locks exactly 18 following photos",()=>{
   assert.ok(migration.includes('p.chat_id=t.chat_id'));
   assert.match(migration,/ABS\(p\.id-t\.id\)/);
   assert.match(migration,/LIMIT 18/);
-  assert.match(migration,/bundle_status = 'queued'/);
+  assert.ok(migration.includes("bundle_status='queued'"));
 });
