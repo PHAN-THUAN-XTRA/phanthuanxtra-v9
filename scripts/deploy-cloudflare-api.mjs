@@ -199,8 +199,8 @@ async function verifyLx570Recovery() {
   let ai = {};
   try { ai = JSON.parse(draft?.ai_json || "{}"); } catch {}
   const keys = Array.isArray(ai.publish_media_keys) ? ai.publish_media_keys.filter(Boolean) : [];
-  if (!draft || !["awaiting_review","previewed","published"].includes(String(draft.status)) || Number(ai.image_count) !== 18 || keys.length !== 18) {
-    throw new Error(`D1 LX570 draft verification failed: expected reviewable 18-image draft; got status=${draft?.status ?? null} image_count=${ai.image_count ?? null} keys=${keys.length}`);
+  if (!draft || Number(draft.inbox_id) !== 444 || !["awaiting_review","previewed","published"].includes(String(draft.status)) || Number(ai.image_count) !== 18 || keys.length !== 18) {
+    throw new Error(`D1 LX570 draft verification failed: expected inbox=444 reviewable 18-image draft; got status=${draft?.status ?? null} image_count=${ai.image_count ?? null} keys=${keys.length}`);
   }
   console.log(`D1: verified LX570 recovery 18/18 photos + 1 text; draft inbox=${draft.inbox_id} status=${draft.status} image_count=18`);
   return { inboxId: Number(draft.inbox_id), status: String(draft.status) };
