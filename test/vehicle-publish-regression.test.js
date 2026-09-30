@@ -96,3 +96,14 @@ test("tg-605 repair session accepts exactly 16 unique source photos and preserve
   assert.match(router,/UPDATE cars SET cover_image=\?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605'/);
   assert.match(router,/Gallery chỉ thay khi đủ 16 ảnh/);
 });
+
+
+test("tg-605 album repair waits for 16 processed URLs and finalizes once",()=>{
+  const router=fs.readFileSync("src/telegram-router.js","utf8");
+  assert.match(router,/const ready=rows\.filter\(r=>clean\(r\.processed_image_url\)\)/);
+  assert.match(router,/rows\.length<16\|\|ready\.length<16/);
+  assert.doesNotMatch(router,/rows\.some\(r=>!clean\(r\.processed_image_url\)\).*Manifest repair không đủ đúng 16 ảnh/);
+  assert.match(router,/SET status='finalizing'.*status='open'/);
+  assert.match(router,/Number\(claimed\?\.meta\?\.changes\|\|0\)!==1/);
+  assert.match(router,/status='closed'.*status='finalizing'/);
+});
