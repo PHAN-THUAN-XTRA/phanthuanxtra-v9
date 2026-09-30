@@ -283,6 +283,20 @@ export async function processTelegramUpdate(env, update, chatId) {
     await tg(token,"sendMessage",{chat_id:chatId,text:`🆕 VEHICLE SESSION ĐÃ MỞ\\n📦 Session: ${sessionKey}\\n🧼 Session mới sạch: không thu hồi ảnh pending cũ.\\nChỉ ảnh/nội dung gửi SAU /carnew mới được thuộc xe này.`});
     return;
   }
+  const carFinish=/^\/carfinish\s*$/i.test(caption);
+  if(carFinish){
+    if(!env.DB){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ D1 chưa được kết nối."});return;}
+    const active=await env.DB.prepare("SELECT session_key,opened_message_id FROM telegram_vehicle_sessions WHERE chat_id=? AND status='open' AND session_key LIKE '%:vehicle-session:%' LIMIT 1").bind(String(chatId)).first();
+    if(!active?.session_key){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không có Vehicle Session đang mở."});return;}
+    const rows=(await env.DB.prepare("SELECT id,file_id,caption FROM telegram_inbox WHERE chat_id=? AND bundle_status='pending' AND message_id>? ORDER BY id").bind(String(chatId),Number(active.opened_message_id||0)).all()).results||[];
+    const photos=rows.filter(row=>Boolean(row.file_id));
+    const texts=rows.filter(row=>!row.file_id&&clean(row.caption));
+    if(!photos.length||!texts.length){await tg(token,"sendMessage",{chat_id:chatId,text:`⏳ Session chưa đủ dữ liệu: ${photos.length} ảnh, ${texts.length} bài viết. Cần ít nhất 1 ảnh + 1 bài viết.`});return;}
+    for(const row of rows)await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=? AND bundle_status='pending'").bind(String(active.session_key),Number(row.id),String(chatId)).run();
+    await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(String(active.session_key)).run();
+    await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT VEHICLE SESSION\\n🖼 ${photos.length} ảnh + ${texts.length} bài viết\\n⏳ Đã xếp hàng tạo draft AVIF + WebP...`});
+    return;
+  }
   const carReview=/^\/carreview\s+(\d+)(?:\s*\n([\s\S]+))?$/i.exec(caption);
   if(carReview){
     try{await saveReviewedCarCopy(env,chatId,Number(carReview[1]),carReview[2]||"");await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã lưu bản biên tập được duyệt cho Inbox ${carReview[1]}. Chạy /carpreview ${carReview[1]} để kiểm tra lần cuối.`});}
@@ -305,7 +319,7 @@ export async function processTelegramUpdate(env, update, chatId) {
     return;
   }
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\n/carnew — mở Vehicle Session SẠCH; không thu hồi ảnh pending cũ.\n/carcancel — hủy session đang mở và tháo các pending rows khỏi session.\n/caradd 444 — repair-only: bổ sung đúng 1 ảnh side-profile còn thiếu cho tg-444.\\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\n/carnew — mở Vehicle Session SẠCH; không thu hồi ảnh pending cũ.\n/carcancel — hủy session đang mở và tháo các pending rows khỏi session.\n/carfinish — chốt ảnh + bài viết gửi sau /carnew và tạo draft.\n/caradd 444 — repair-only: bổ sung đúng 1 ảnh side-profile còn thiếu cho tg-444.\\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {
