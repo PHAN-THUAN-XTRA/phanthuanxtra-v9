@@ -202,7 +202,10 @@ async function verifyLx570Recovery() {
   if (!draft || Number(draft.inbox_id) !== 444 || !["awaiting_review","previewed","published"].includes(String(draft.status)) || Number(ai.image_count) !== 18 || keys.length !== 18) {
     throw new Error(`D1 LX570 draft verification failed: expected inbox=444 reviewable 18-image draft; got status=${draft?.status ?? null} image_count=${ai.image_count ?? null} keys=${keys.length}`);
   }
-  console.log(`D1: verified LX570 recovery 18/18 photos + 1 text; draft inbox=${draft.inbox_id} status=${draft.status} image_count=18`);
+  if (Number(ai.mileage) !== 54800 || Number(ai.price) !== 4579000000 || Number(ai._owner_values_locked) !== 1) {
+    throw new Error(`D1 LX570 owner-value verification failed: expected inbox=444 mileage=54800 price=4579000000 owner lock; got mileage=${ai.mileage ?? null} price=${ai.price ?? null} lock=${ai._owner_values_locked ?? null}`);
+  }
+  console.log(`D1: verified LX570 recovery 18/18 photos + 1 text; draft inbox=${draft.inbox_id} status=${draft.status} image_count=18 mileage=54800 price=4579000000 owner_values=locked`);
   return { inboxId: Number(draft.inbox_id), status: String(draft.status) };
 }
 
