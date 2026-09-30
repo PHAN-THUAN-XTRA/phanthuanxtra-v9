@@ -365,26 +365,23 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     const texts=rows.filter(row=>!row.file_id&&clean(row.caption));
     const newestByIdentity=new Map();
     for(const row of rows.filter(row=>Boolean(row.file_id))) newestByIdentity.set(clean(row.file_unique_id)||clean(row.file_id),row);
-    const uniquePhotos=[...newestByIdentity.values()].sort((x,y)=>Number(x.id)-Number(y.id));
-    const selectedPhotos=uniquePhotos.slice(-16);
+    const selectedPhotos=[...newestByIdentity.values()].sort((x,y)=>Number(x.id)-Number(y.id));
     const selectedText=texts.at(-1);
-    if(selectedPhotos.length!==16||!selectedText){await tg(token,"sendMessage",{chat_id:chatId,text:`❌ Chưa thể chốt an toàn: tìm thấy ${selectedPhotos.length} ảnh duy nhất + ${texts.length} bài viết. Yêu cầu đúng 16 ảnh + 1 bài viết.`});return;}
+    if(!selectedPhotos.length||!selectedText){await tg(token,"sendMessage",{chat_id:chatId,text:`❌ Chưa thể chốt an toàn: tìm thấy ${selectedPhotos.length} ảnh duy nhất + ${texts.length} bài viết. Cần ít nhất 1 ảnh + 1 bài viết owner trong session hiện tại.`});return;}
     const selectedIds=new Set([...selectedPhotos.map(row=>Number(row.id)),Number(selectedText.id)]);
     const discardIds=rows.filter(row=>!selectedIds.has(Number(row.id))).map(row=>Number(row.id));
     for(const id of discardIds) await env.DB.prepare("DELETE FROM telegram_inbox WHERE id=? AND chat_id=? AND bundle_status IN ('pending','queued','done')").bind(id,String(chatId)).run();
     const ownerCopy=clean(selectedText.caption,10000);
-    const pricedCopy=/4[.,]?879|4\.879\.000\.000|4879000000/.test(ownerCopy)?ownerCopy:ownerCopy+"\n\n💰 Giá: 4.879.000.000 đ";
     for(const row of selectedPhotos) await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,bundle_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=?").bind(String(active.session_key),Number(row.id),String(chatId)).run();
-    await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,bundle_status='pending',caption=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=?").bind(String(active.session_key),pricedCopy,Number(selectedText.id),String(chatId)).run();
+    await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,bundle_status='pending',caption=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=?").bind(String(active.session_key),ownerCopy,Number(selectedText.id),String(chatId)).run();
     const inboxId=Number(selectedPhotos[0].id);
     const task=(async()=>{
       await processBundle(env,String(active.session_key),chatId);
-      await env.DB.prepare("UPDATE vehicle_ai_drafts SET ai_json=json_set(ai_json,'$.price',4879000000,'$._owner_price_locked',1),source_caption=?,updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(pricedCopy,inboxId).run();
       await env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=?").bind(String(chatId),String(active.session_key)).run();
-      await tg(token,"sendMessage",{chat_id:chatId,text:`✅ DEFENDER DRAFT ĐÃ KHÓA OWNER PRICE\n📦 Inbox: ${inboxId}\n🖼 16 ảnh duy nhất\n💰 4.879.000.000 đ\nChạy /carpreview ${inboxId}; chưa /carpublish.`});
-    })().catch(async error=>{console.error("telegram_carfinish_processing_failed",clean(error?.message||error));await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Tạo Defender draft thất bại: "+clean(error?.message||error)}).catch(()=>{});});
+      await tg(token,"sendMessage",{chat_id:chatId,text:`✅ VEHICLE DRAFT ĐÃ TẠO\n📦 Inbox: ${inboxId}\n🖼 ${selectedPhotos.length} ảnh duy nhất\n📝 Giữ nguyên nội dung owner; không chèn giá/ODO mặc định.\nChạy /carpreview ${inboxId}; chưa /carpublish.`});
+    })().catch(async error=>{console.error("telegram_carfinish_processing_failed",clean(error?.message||error));await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Tạo vehicle draft thất bại: "+clean(error?.message||error)}).catch(()=>{});});
     if(ctx)ctx.waitUntil(task);else await task;
-    await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT DEFENDER SESSION\n🖼 16 ảnh duy nhất; đã loại ${discardIds.length} hàng ảnh/bài cũ hoặc trùng\n💰 Owner price: 4.879.000.000 đ\n⏳ Đang tạo draft AVIF + WebP...`});
+    await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT VEHICLE SESSION\n🖼 ${selectedPhotos.length} ảnh duy nhất; đã loại ${discardIds.length} hàng cũ hoặc trùng trong session\n📝 Nội dung owner được giữ nguyên\n⏳ Đang tạo draft AVIF + WebP...`});
     return;
   }
   const carReview=/^\/carreview\s+(\d+)(?:\s*\n([\s\S]+))?$/i.exec(caption);
