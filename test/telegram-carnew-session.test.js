@@ -41,3 +41,15 @@ test("/carfinish scopes finalization to rows sent after the active clean session
   assert.doesNotMatch(block,/await processBundle\(/);
   assert.doesNotMatch(router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview=")),/LIMIT 100/);
 });
+
+
+test("/carfinish keeps only the newest 16 photos and newest article",()=>{
+  const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
+  assert.match(block,/const selectedPhotos=photos\.slice\(-16\)/);
+  assert.match(block,/const selectedText=texts\.at\(-1\)/);
+  assert.match(block,/selectedIds\.has\(Number\(row\.id\)\)/);
+  assert.match(block,/SET bundle_status='queued'/);
+  assert.match(block,/selectedPhotos\.length/);
+  assert.doesNotMatch(block,/LIMIT 100/);
+  assert.doesNotMatch(block,/await processBundle\(/);
+});
