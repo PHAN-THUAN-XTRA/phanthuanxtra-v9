@@ -72,8 +72,8 @@ export default {
         headers.set("x-ptx-editorial-utf8", "worker-v3");
         return new Response(html, { status: 200, headers });
       }
-      if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/") {
-        const assetUrl = new URL("/index.html", request.url);
+      if (url.pathname === "/" || url.pathname === "/home" || url.pathname === "/home/" || url.pathname === "/car" || url.pathname === "/car/") {
+        const assetUrl = new URL((url.pathname === "/car" || url.pathname === "/car/") ? "/car.html" : "/index.html", request.url);
         const assetHeaders = new Headers(request.headers);
         assetHeaders.set("accept-encoding", "identity");
         assetHeaders.set("cache-control", "no-cache");
