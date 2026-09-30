@@ -288,7 +288,7 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     if(!env.DB){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ D1 chưa được kết nối."});return;}
     const active=await env.DB.prepare("SELECT session_key,opened_message_id FROM telegram_vehicle_sessions WHERE chat_id=? AND status='open' AND session_key LIKE '%:vehicle-session:%' LIMIT 1").bind(String(chatId)).first();
     if(!active?.session_key){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không có Vehicle Session đang mở."});return;}
-    const rows=(await env.DB.prepare("SELECT id,file_id,file_unique_id,caption FROM telegram_inbox WHERE chat_id=? AND bundle_status IN ('pending','queued') AND message_id>? ORDER BY id").bind(String(chatId),Number(active.opened_message_id||0)).all()).results||[];
+    const rows=(await env.DB.prepare("SELECT id,file_id,file_unique_id,caption,bundle_status FROM telegram_inbox WHERE chat_id=? AND bundle_status IN ('pending','queued','done') AND message_id>? ORDER BY id").bind(String(chatId),Number(active.opened_message_id||0)).all()).results||[];
     const texts=rows.filter(row=>!row.file_id&&clean(row.caption));
     const newestByIdentity=new Map();
     for(const row of rows.filter(row=>Boolean(row.file_id))) newestByIdentity.set(clean(row.file_unique_id)||clean(row.file_id),row);
@@ -298,7 +298,7 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     if(selectedPhotos.length!==16||!selectedText){await tg(token,"sendMessage",{chat_id:chatId,text:`❌ Chưa thể chốt an toàn: tìm thấy ${selectedPhotos.length} ảnh duy nhất + ${texts.length} bài viết. Yêu cầu đúng 16 ảnh + 1 bài viết.`});return;}
     const selectedIds=new Set([...selectedPhotos.map(row=>Number(row.id)),Number(selectedText.id)]);
     const discardIds=rows.filter(row=>!selectedIds.has(Number(row.id))).map(row=>Number(row.id));
-    for(const id of discardIds) await env.DB.prepare("DELETE FROM telegram_inbox WHERE id=? AND chat_id=? AND bundle_status IN ('pending','queued')").bind(id,String(chatId)).run();
+    for(const id of discardIds) await env.DB.prepare("DELETE FROM telegram_inbox WHERE id=? AND chat_id=? AND bundle_status IN ('pending','queued','done')").bind(id,String(chatId)).run();
     const ownerCopy=clean(selectedText.caption,10000);
     const pricedCopy=/4[.,]?879|4\.879\.000\.000|4879000000/.test(ownerCopy)?ownerCopy:ownerCopy+"\n\n💰 Giá: 4.879.000.000 đ";
     for(const row of selectedPhotos) await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,bundle_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=?").bind(String(active.session_key),Number(row.id),String(chatId)).run();
