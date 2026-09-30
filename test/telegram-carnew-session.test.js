@@ -43,13 +43,14 @@ test("/carfinish scopes finalization to rows sent after the active clean session
 
 test("/carfinish keeps only the newest 16 photos and newest article",()=>{
   const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
-  assert.match(block,/const selectedPhotos=photos\.slice\(-16\)/);
+  assert.match(block,/const selectedPhotos=uniquePhotos\.slice\(-16\)/);
   assert.match(block,/const selectedText=texts\.at\(-1\)/);
   assert.match(block,/selectedIds\.has\(Number\(row\.id\)\)/);
-  assert.match(block,/SET bundle_status='queued'/);
+  assert.match(block,/SET bundle_key=\?,bundle_status='pending'/);
   assert.match(block,/selectedPhotos\.length/);
+  assert.match(block,/ctx\)ctx\.waitUntil\(task\)/);
+  assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
   assert.doesNotMatch(block,/LIMIT 100/);
-  assert.doesNotMatch(block,/await processBundle\(/);
 });
 
 
