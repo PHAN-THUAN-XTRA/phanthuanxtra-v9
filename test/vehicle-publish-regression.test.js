@@ -45,3 +45,13 @@ test("approved publish retry resyncs an existing website car from the draft",()=
   assert.match(promote,/description,features,featured:false,cover_image:imageUrl,images:imageUrls\.length\?imageUrls:\[imageUrl\]/);
   assert.doesNotMatch(promote,/if\(!existing\)\{const saved=/);
 });
+
+
+test("car detail gallery includes the cover and numbers the complete image set from 1",()=>{
+  const page=fs.readFileSync("public/car.html","utf8");
+  assert.match(page,/cover=c\.cover_image\|\|imgs\[0\]\|\|'',gallery=imgs,features=/);
+  assert.doesNotMatch(page,/gallery=imgs\.filter\(x=>x!==cover\)/);
+  assert.match(page,/Hình ảnh chi tiết \(\$\{imgs\.length\} ảnh\)/);
+  assert.match(page,/ảnh '\+\(i\+1\)/);
+  assert.doesNotMatch(page,/ảnh '\+\(i\+2\)/);
+});
