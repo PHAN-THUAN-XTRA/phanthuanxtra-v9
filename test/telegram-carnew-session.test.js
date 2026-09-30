@@ -36,7 +36,8 @@ test("/carfinish is generic: keeps all unique session photos and exact owner cop
   assert.match(block,/new Map\(\)/);
   assert.match(block,/const selectedPhotos=\[\.\.\.newestByIdentity\.values\(\)\]/);
   assert.match(block,/const selectedText=texts\.at\(-1\)/);
-  assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
+  assert.match(block,/bundle_status='queued'/);
+  assert.match(block,/reconcileTelegramVehicleDrafts\(env\)/);
   assert.match(block,/selectedPhotos\.length/);
   assert.match(block,/Giữ nguyên nội dung owner/);
   assert.doesNotMatch(block,/slice\(-16\)/);
