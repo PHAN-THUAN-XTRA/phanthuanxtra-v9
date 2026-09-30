@@ -150,12 +150,24 @@ async function publishReviewedCar(env,chatId,inboxId){
   return promotion;
 }
 
+async function saveReviewedCarCopy(env,chatId,inboxId,description){
+  if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền sửa draft.");
+  const row=await env.DB.prepare("SELECT d.ai_json,d.status,d.source_caption,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=? LIMIT 1").bind(inboxId).first();
+  if(!row||String(row.chat_id)!==String(chatId))throw new Error("Không tìm thấy bản nháp xe của chat này.");
+  if(!["awaiting_review","previewed"].includes(row.status))throw new Error("Bản nháp không ở trạng thái chờ duyệt.");
+  const body=clean(description,10000);if(body.length<20)throw new Error("Nội dung duyệt quá ngắn.");
+  const ai=captionVehicleFallback(JSON.parse(row.ai_json||"{}"),row.source_caption);
+  ai.description=body;ai._editorial_status="owner_reviewed";ai._editorial_source="chatgpt_proposal_owner_approved";
+  await env.DB.prepare("UPDATE vehicle_ai_drafts SET ai_json=?,status='awaiting_review',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(JSON.stringify(ai),inboxId).run();
+  return ai;
+}
+
 async function previewReviewedCar(env,chatId,inboxId){
   if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền xem/publish draft.");
   const row=await env.DB.prepare("SELECT d.ai_json,d.status,d.source_caption,i.chat_id FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE d.inbox_id=? LIMIT 1").bind(inboxId).first();
   if(!row||String(row.chat_id)!==String(chatId))throw new Error("Không tìm thấy bản nháp xe của chat này.");
   if(row.status!=="awaiting_review"&&row.status!=="previewed")throw new Error("Bản nháp không ở trạng thái chờ duyệt.");
-  const ai=JSON.parse(row.ai_json||"{}"),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
+  const ai=captionVehicleFallback(JSON.parse(row.ai_json||"{}"),row.source_caption),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
   if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
   const label=[ai.brand,ai.model].filter(Boolean).join(" ")||"Chưa xác định tên xe";
   const description=clean(ai.description||row.source_caption,3000)||"(chưa có mô tả)";
@@ -168,7 +180,7 @@ async function previewReviewedCar(env,chatId,inboxId){
     ai.fuel?`Nhiên liệu: ${ai.fuel}`:null,
     ai.color?`Màu: ${ai.color}`:null
   ].filter(Boolean).join(" | ")||"Chưa đủ thông số có bằng chứng";
-  const urls=keys.map((key,index)=>`${index+1}. https://phanthuanxtra.com/media/${encodeURIComponent(key)}`);
+  const urls=keys.map((key,index)=>`${index+1}. https://phanthuanxtra.com/media/${key.split("/").map(encodeURIComponent).join("/")}`);
   await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='previewed',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=? AND status='awaiting_review'").bind(inboxId).run();
   const head=[`👁 PREVIEW XE — CHƯA PUBLISH`,`📦 Inbox: ${inboxId}`,`🚗 Tiêu đề: ${label}`,`📋 ${specs}`,`🤖 Workers AI: ${aiStatus}`,`🧠 Model: ${aiModel}`,`🎯 Confidence: ${Math.round(Number(ai.confidence||0)*100)}%`,`🖼 Gallery: ${keys.length} ảnh WebP + AVIF tương ứng`,``,`📝 MÔ TẢ`,description,``,`🖼 ẢNH WEBSITE`].join("\n");
   const chunks=[]; let current=head;
@@ -185,6 +197,12 @@ export async function processTelegramUpdate(env, update, chatId) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  const carReview=/^\/carreview\s+(\d+)(?:\s*\n([\s\S]+))?$/i.exec(caption);
+  if(carReview){
+    try{await saveReviewedCarCopy(env,chatId,Number(carReview[1]),carReview[2]||"");await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã lưu bản biên tập được duyệt cho Inbox ${carReview[1]}. Chạy /carpreview ${carReview[1]} để kiểm tra lần cuối.`});}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa lưu bản duyệt: "+clean(error?.message||error)});}
+    return;
+  }
   const carPreview=/^\/carpreview\s+(\d+)\s*$/i.exec(caption);
   if(carPreview){
     try{const preview=await previewReviewedCar(env,chatId,Number(carPreview[1]));for(const text of preview.chunks)await tg(token,"sendMessage",{chat_id:chatId,text});await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã xem preview Inbox ${carPreview[1]}. Nếu nội dung và ảnh đúng, dùng /carpublish ${carPreview[1]}.`});}
@@ -198,7 +216,7 @@ export async function processTelegramUpdate(env, update, chatId) {
     return;
   }
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {
