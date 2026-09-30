@@ -236,6 +236,7 @@ async function applyTg444Supplement(env,message,chatId,photo,sessionKey){
     return {duplicate:false,inboxId:Number(inbox.id),url:publicUrl,sortOrder:insertAt};
   }catch(error){
     if(media){for(const key of [media.webp_key,media.avif_key].filter(Boolean)){await env.MEDIA?.delete(key).catch(()=>{});await env.DB.prepare("DELETE FROM media_assets WHERE r2_key=?").bind(key).run().catch(()=>{});}}
+    await env.DB.prepare("DELETE FROM telegram_vehicle_session_media WHERE session_key=? AND file_unique_id=? AND inbox_id=?").bind(sessionKey,identity,Number(inbox.id)).run().catch(()=>{});
     await env.DB.prepare("UPDATE telegram_inbox SET status='failed',bundle_status='failed',error=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(error?.message||error),Number(inbox.id)).run().catch(()=>{});
     throw error;
   }
