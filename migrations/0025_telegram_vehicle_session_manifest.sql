@@ -7,6 +7,13 @@ CREATE TABLE IF NOT EXISTS telegram_vehicle_sessions (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_telegram_inbox_file_unique_vehicle
-ON telegram_inbox(chat_id,file_unique_id)
-WHERE file_unique_id <> '';
+
+-- New-session media identity avoids imposing uniqueness on legacy telegram_inbox rows.
+CREATE TABLE IF NOT EXISTS telegram_vehicle_session_media (
+  session_key TEXT NOT NULL,
+  file_unique_id TEXT NOT NULL,
+  inbox_id INTEGER,
+  media_group_id TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY(session_key,file_unique_id)
+);
