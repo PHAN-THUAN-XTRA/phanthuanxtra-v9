@@ -37,3 +37,11 @@ test("Telegram publish survives WEBPAGE_CURL_FAILED from remote gallery fetch",(
   assert.match(telegram,/continue/);
   assert.match(telegram,/telegram_posts SET status='published'/);
 });
+
+
+test("approved publish retry resyncs an existing website car from the draft",()=>{
+  const promote=ingest.slice(ingest.indexOf("async function promoteDraft"),ingest.indexOf("/** Atomically claims"));
+  assert.match(promote,/mode:existing\?"update":"create"/);
+  assert.match(promote,/description,features,featured:false,cover_image:imageUrl,images:imageUrls\.length\?imageUrls:\[imageUrl\]/);
+  assert.doesNotMatch(promote,/if\(!existing\)\{const saved=/);
+});
