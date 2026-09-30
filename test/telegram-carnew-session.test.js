@@ -68,3 +68,13 @@ test("/carfinish repairs Defender intake to exactly 16 unique newest photos and 
   assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
   assert.doesNotMatch(block,/LIMIT 100/);
 });
+
+
+test("/carfinish can recover Defender rows already consumed by the durable worker",()=>{
+  const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
+  assert.match(block,/bundle_status IN \('pending','queued','done'\)/);
+  assert.match(block,/SELECT id,file_id,file_unique_id,caption,bundle_status/);
+  assert.match(block,/uniquePhotos\.slice\(-16\)/);
+  assert.match(block,/selectedPhotos\.length!==16/);
+  assert.match(block,/4879000000/);
+});
