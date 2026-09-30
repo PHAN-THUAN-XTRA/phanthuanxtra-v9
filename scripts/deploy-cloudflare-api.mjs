@@ -131,6 +131,15 @@ async function applyMigrations() {
   }
 }
 
+async function verifyTg527ProductionValues() {
+  const result = await queryD1("SELECT id, mileage, price FROM cars WHERE id = ?", ["tg-527"]);
+  const row = result?.[0]?.results?.[0];
+  if (!row || Number(row.mileage) !== 12000 || Number(row.price) !== 4580000000) {
+    throw new Error(`D1 tg-527 verification failed: expected mileage=12000 price=4580000000; got ${JSON.stringify(row ?? null)}`);
+  }
+  console.log("D1: verified tg-527 mileage=12000 price=4580000000");
+}
+
 async function getCurrentBindings() {
   const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
   const bindings = settings?.bindings || [];
@@ -286,6 +295,7 @@ for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLIS
     throw new Error(`${name} is required on the website Worker for editorial publishing; configure it before deployment.`);
 }
 await applyMigrations();
+await verifyTg527ProductionValues();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
