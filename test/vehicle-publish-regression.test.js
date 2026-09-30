@@ -67,3 +67,15 @@ test("canonical WebP media falls back to an existing AVIF sibling before 404",()
   assert.match(block,/env\.MEDIA\.get\(avifKey\)/);
   assert.ok(block.indexOf("env.MEDIA.get(avifKey)") < block.indexOf('if(!object)return json({ok:false,error:"Not Found"},404)'));
 });
+
+
+test("missing Defender 605-611 media can only self-repair from its exact published Telegram inbox mapping",()=>{
+  const media=fs.readFileSync("src/media.js","utf8");
+  assert.match(media,/restorePublishedTelegramMedia\(env,key\)/);
+  assert.match(media,/telegram-\(60\[5-9\]\|61\[01\]\)-\[a-f0-9\]\{16\}/);
+  assert.match(media,/publicMediaReference\(env,key\)/);
+  assert.match(media,/WHERE id=\? AND processed_image_url=\? LIMIT 1/);
+  assert.match(media,/TELEGRAM_AUTO_BOT_TOKEN\|\|env\.TELEGRAM_BOT_TOKEN/);
+  assert.match(media,/storeTelegramVehicleVariants\(env,bytes,prefix\)/);
+  assert.doesNotMatch(media,/UPDATE cars SET[\s\S]*restorePublishedTelegramMedia/);
+});

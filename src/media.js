@@ -1,4 +1,5 @@
 import { verifyAdminToken } from "./admin-auth.js";
+import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
 
 const json=(data,status=200,extra={})=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...extra}});
 
@@ -34,6 +35,38 @@ async function isAuthorized(request,env){
     (authorization.startsWith("Bearer ")&&authorization.slice(7)===token) ||
     legacyHeader===token
   );
+}
+
+async function restorePublishedTelegramMedia(env,key){
+  if(!env.DB||!env.MEDIA)return null;
+  const match=/^vehicles\/telegram-(60[5-9]|61[01])-[a-f0-9]{16}\.webp$/i.exec(key);
+  if(!match)return null;
+  // Repair only an exact D1 inbox mapping that is already referenced by a
+  // published vehicle. This prevents arbitrary public URLs from importing media.
+  if(!(await publicMediaReference(env,key)))return null;
+  const row=await env.DB.prepare("SELECT id,file_id,processed_image_url FROM telegram_inbox WHERE id=? AND processed_image_url=? LIMIT 1")
+    .bind(Number(match[1]),"/media/"+key).first();
+  if(!row?.file_id)return null;
+  const token=env.TELEGRAM_AUTO_BOT_TOKEN||env.TELEGRAM_BOT_TOKEN;
+  if(!token)return null;
+  const api=async(method,payload)=>{
+    const r=await fetch("https://api.telegram.org/bot"+token+"/"+method,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.ok)throw new Error("Telegram "+method+" failed");
+    return d.result;
+  };
+  const file=await api("getFile",{file_id:row.file_id});
+  const filePath=String(file?.file_path||"").trim();
+  if(!filePath)return null;
+  const source=await fetch("https://api.telegram.org/file/bot"+token+"/"+filePath);
+  if(!source.ok)throw new Error("Telegram media recovery download failed: "+source.status);
+  const declared=Number(source.headers.get("content-length")||0);
+  if(declared>15*1024*1024)throw new Error("Telegram media recovery exceeds 15 MB");
+  const bytes=new Uint8Array(await source.arrayBuffer());
+  if(bytes.byteLength>15*1024*1024)throw new Error("Telegram media recovery exceeds 15 MB");
+  const prefix=key.replace(/^vehicles\//,"").replace(/\.webp$/i,"");
+  await storeTelegramVehicleVariants(env,bytes,prefix);
+  return await env.MEDIA.get(key);
 }
 
 async function publicMediaReference(env,key){
@@ -77,6 +110,9 @@ export async function handleMediaApi(request,env){
     const avifKey=key.replace(/\.webp$/i,'.avif');
     const avif=await env.MEDIA.get(avifKey);
     if(avif){object=avif;resolvedKey=avifKey;}
+  }
+  if(!object&&/\.webp$/i.test(key)){
+    try{object=await restorePublishedTelegramMedia(env,key);if(object)resolvedKey=key;}catch(error){console.error("telegram_media_restore_failed",error?.message||error);}
   }
   if(!object)return json({ok:false,error:"Not Found"},404);
   const access=await privateMediaAccess(request,env,key,object);
