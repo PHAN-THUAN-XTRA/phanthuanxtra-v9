@@ -73,3 +73,15 @@ test("Telegram caption fallback protects approved vehicle publishing",async()=>{
   assert.match(router,/Thiếu brand\/model có bằng chứng/);
   assert.match(ingest,/vehicle_identity_required/);
 });
+
+
+test("vehicle review persists owner-approved copy and preview uses safe fallback URLs",async()=>{
+  const fs=await import("node:fs");
+  const router=fs.readFileSync("src/telegram-router.js","utf8");
+  assert.match(router,/saveReviewedCarCopy/);
+  assert.match(router,/_editorial_status="owner_reviewed"/);
+  assert.match(router,/_editorial_source="chatgpt_proposal_owner_approved"/);
+  assert.match(router,/captionVehicleFallback\(JSON\.parse\(row\.ai_json/);
+  assert.match(router,/key\.split\("\/"\)\.map\(encodeURIComponent\)\.join\("\/"\)/);
+  assert.match(router,/\/carreview\\s\+\(\\d\+\)/);
+});
