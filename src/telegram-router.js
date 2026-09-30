@@ -292,9 +292,16 @@ export async function processTelegramUpdate(env, update, chatId) {
     const photos=rows.filter(row=>Boolean(row.file_id));
     const texts=rows.filter(row=>!row.file_id&&clean(row.caption));
     if(!photos.length||!texts.length){await tg(token,"sendMessage",{chat_id:chatId,text:`⏳ Session chưa đủ dữ liệu: ${photos.length} ảnh, ${texts.length} bài viết. Cần ít nhất 1 ảnh + 1 bài viết.`});return;}
-    for(const row of rows)await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=? AND bundle_status='pending'").bind(String(active.session_key),Number(row.id),String(chatId)).run();
+    // A clean vehicle session may still contain duplicate/retried album deliveries.
+    // For the current owner workflow, keep the newest 16 photos and the newest article.
+    const selectedPhotos=photos.slice(-16);
+    const selectedText=texts.at(-1);
+    const selectedIds=new Set([...selectedPhotos.map(row=>Number(row.id)),Number(selectedText.id)]);
+    for(const row of rows){
+      if(selectedIds.has(Number(row.id)))await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=? AND bundle_status='pending'").bind(String(active.session_key),Number(row.id),String(chatId)).run();
+    }
     await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(String(active.session_key)).run();
-    await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT VEHICLE SESSION\\n🖼 ${photos.length} ảnh + ${texts.length} bài viết\\n⏳ Đã xếp hàng tạo draft AVIF + WebP...`});
+    await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT VEHICLE SESSION\\n🖼 ${selectedPhotos.length} ảnh cuối + 1 bài viết\\n⏳ Đã xếp hàng tạo draft AVIF + WebP...`});
     return;
   }
   const carReview=/^\/carreview\s+(\d+)(?:\s*\n([\s\S]+))?$/i.exec(caption);
