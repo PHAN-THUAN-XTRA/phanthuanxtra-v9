@@ -68,7 +68,16 @@ export async function handleMediaApi(request,env){
     await env.MEDIA.delete(key);
     return json({ok:true,key},200);
   }
-  const object=await env.MEDIA.get(key);
+  let object=await env.MEDIA.get(key);
+  let resolvedKey=key;
+  // Published vehicle galleries may retain a canonical .webp URL while only
+  // the already-generated AVIF sibling survives in R2. Resolve that sibling
+  // before returning 404; this is read-only and never recreates media.
+  if(!object&&/\.webp$/i.test(key)){
+    const avifKey=key.replace(/\.webp$/i,'.avif');
+    const avif=await env.MEDIA.get(avifKey);
+    if(avif){object=avif;resolvedKey=avifKey;}
+  }
   if(!object)return json({ok:false,error:"Not Found"},404);
   const access=await privateMediaAccess(request,env,key,object);
   if(!access.allowed)return json({ok:false,error:"Not Found"},404);
@@ -82,6 +91,12 @@ export async function handleMediaApi(request,env){
 
   const requested=url.searchParams.get('format');
   const accept=request.headers.get("Accept")||"";
+  // If the canonical WebP was absent and its AVIF sibling was resolved,
+  // serve the surviving reviewed object directly for the canonical URL.
+  if(resolvedKey!==key){
+    if(!requested)headers.set('vary','Accept');
+    return new Response(request.method==="HEAD"?null:object.body,{status:200,headers});
+  }
   if(request.method==="GET"&&/\.webp$/i.test(key)&&(requested==='avif'||(!requested&&/image\/avif/i.test(accept)))){
     const avifKey=key.replace(/\.webp$/i,'.avif'),avif=await env.MEDIA.get(avifKey);
     if(avif){
