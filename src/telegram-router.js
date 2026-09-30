@@ -282,17 +282,25 @@ async function applyTg605GalleryPhoto(env,message,chatId,photo,sessionKey){
   const publicUrl=`https://phanthuanxtra.com/media/${media.webp_key.split("/").map(encodeURIComponent).join("/")}`;
   await env.DB.prepare("UPDATE telegram_inbox SET status='analyzed',processed_image_url=?,bundle_status='done',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(publicUrl,Number(inbox.id)).run();
   const rows=(await env.DB.prepare("SELECT t.inbox_id,i.processed_image_url FROM telegram_vehicle_session_media t JOIN telegram_inbox i ON i.id=t.inbox_id WHERE t.session_key=? ORDER BY t.inbox_id").bind(sessionKey).all()).results||[];
-  if(rows.length<16)return {duplicate:false,count:rows.length,complete:false};
-  if(rows.length!==16||rows.some(r=>!clean(r.processed_image_url)))throw new Error("Manifest repair không đủ đúng 16 ảnh.");
+  const ready=rows.filter(r=>clean(r.processed_image_url));
+  if(rows.length<16||ready.length<16)return {duplicate:false,count:ready.length,complete:false};
+  if(rows.length!==16)throw new Error("Repair manifest vượt quá 16 ảnh duy nhất; từ chối thay gallery.");
   const owner=await env.DB.prepare("SELECT source_caption FROM vehicle_ai_drafts WHERE inbox_id=605 LIMIT 1").first();
   if(!/4[.,]?879|4\.879\.000\.000|4879000000/.test(clean(owner?.source_caption,10000)))throw new Error("Owner-approved price source 605 thay đổi; từ chối thay gallery.");
-  const urls=rows.map(r=>clean(r.processed_image_url));
+  const urls=ready.map(r=>clean(r.processed_image_url));
   const statements=[env.DB.prepare("DELETE FROM car_images WHERE car_id='tg-605'")];
   urls.forEach((url,index)=>statements.push(env.DB.prepare("INSERT INTO car_images(car_id,url,sort_order,is_cover) VALUES ('tg-605',?,?,?)").bind(url,index,index===0?1:0)));
   statements.push(env.DB.prepare("UPDATE cars SET cover_image=?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605'").bind(urls[0]));
-  statements.push(env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=?").bind(String(chatId),sessionKey));
-  await env.DB.batch(statements);
-  return {duplicate:false,count:16,complete:true};
+  statements.push(env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=? AND status='finalizing'").bind(String(chatId),sessionKey));
+  const claimed=await env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='finalizing',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=? AND status='open'").bind(String(chatId),sessionKey).run();
+  if(Number(claimed?.meta?.changes||0)!==1)return {duplicate:true,count:16,complete:false};
+  try{
+    await env.DB.batch(statements);
+    return {duplicate:false,count:16,complete:true};
+  }catch(error){
+    await env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='open',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=? AND status='finalizing'").bind(String(chatId),sessionKey).run().catch(()=>{});
+    throw error;
+  }
 }
 
 export async function processTelegramUpdate(env, update, chatId, ctx) {
