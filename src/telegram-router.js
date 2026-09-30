@@ -211,8 +211,11 @@ export async function processTelegramUpdate(env, update, chatId) {
   }
   const carPublish=/^\/carpublish\s+(\d+)\s*$/i.exec(caption);
   if(carPublish){
-    try{const result=await publishReviewedCar(env,chatId,Number(carPublish[1]));await tg(token,"sendMessage",{chat_id:chatId,text:`🚀 ĐÃ DUYỆT + ĐĂNG XE\n📦 Inbox: ${carPublish[1]}\n🚗 ID: ${result.car_id}\n🌐 https://phanthuanxtra.com/`});}
-    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa đăng xe: "+clean(error?.message||error)});}
+    let result;
+    try{result=await publishReviewedCar(env,chatId,Number(carPublish[1]));}
+    catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa đăng xe: "+clean(error?.message||error)});return;}
+    try{await tg(token,"sendMessage",{chat_id:chatId,text:`🚀 ĐÃ DUYỆT + ĐĂNG XE\n📦 Inbox: ${carPublish[1]}\n🚗 ID: ${result.car_id}\n🌐 https://phanthuanxtra.com/car?id=${encodeURIComponent(result.car_id)}`,disable_web_page_preview:true});}
+    catch(error){console.error("telegram_car_publish_confirmation_failed",clean(error?.message||error));}
     return;
   }
   if (["start", "help"].includes(command?.name)) {
