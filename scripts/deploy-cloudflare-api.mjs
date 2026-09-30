@@ -203,15 +203,18 @@ async function verifyTg444ProductionGallery() {
   const result=await queryD1("SELECT i.url,i.sort_order,i.is_cover,c.cover_image FROM car_images i JOIN cars c ON c.id=i.car_id WHERE i.car_id='tg-444' ORDER BY i.sort_order,i.id");
   const rows=result?.[0]?.results||[];
   const names=rows.map(row=>String(row.url||"").split("/").pop());
-  if(rows.length!==17 || names.join("|")!==TG444_GALLERY.join("|") ||
+  const known=names.slice(0,17);
+  const missing=names[17]||"";
+  if(rows.length!==18 || known.join("|")!==TG444_GALLERY.join("|") ||
+     !/^telegram-(551|569)-[0-9a-f]{16}\.webp$/.test(missing) ||
      rows.some((row,index)=>Number(row.sort_order)!==index) ||
      rows.filter(row=>Number(row.is_cover)===1).length!==1 ||
      Number(rows[0]?.is_cover)!==1 ||
      rows[0]?.url!==rows[0]?.cover_image ||
      rows.some(row=>String(row.url||"").includes("telegram-444-3b7aec5feb857597.webp"))) {
-    throw new Error(`D1 tg-444 gallery verification failed: expected 17 semantic LX570 images with foreign image removed; got ${JSON.stringify(rows)}`);
+    throw new Error(`D1 tg-444 gallery verification failed: expected 18 recovered LX570 images with foreign image removed; got ${JSON.stringify(rows)}`);
   }
-  console.log("D1: verified tg-444 gallery 17/17, unrelated white-vehicle image removed, semantic sort_order=0..16, single exterior cover");
+  console.log("D1: verified tg-444 gallery 18/18, omitted album image recovered, unrelated white-vehicle image removed, semantic sort_order=0..17, single exterior cover");
 }
 
 async function verifyLx570Recovery() {
