@@ -6,8 +6,8 @@ const router=fs.readFileSync("src/telegram-router.js","utf8");
 const entry=fs.readFileSync("src/entry.js","utf8");
 const jobs=fs.readFileSync("src/telegram-draft-jobs.js","utf8");
 
-test("Telegram webhook queues vehicle bundles instead of processing the gallery inline",()=>{
-  const update=router.slice(router.indexOf("export async function processTelegramUpdate"),router.indexOf("async function autoWebhook"));
+test("ordinary Telegram webhook queues vehicle bundles instead of processing galleries inline",()=>{
+  const update=router.slice(router.indexOf("export async function processTelegramUpdate"),router.indexOf("const carFinish="));
   assert.match(update,/bundle_status='queued'/);
   assert.doesNotMatch(update,/await processBundle\(env/);
 });
