@@ -83,7 +83,7 @@ test("missing Defender 605-611 media can only self-repair from its exact publish
 
 test("tg-605 repair session accepts exactly 16 unique source photos and preserves owner price",()=>{
   const router=fs.readFileSync("src/telegram-router.js","utf8");
-  assert.match(router,/\/\^\\\/caradd\\s\+605\\s\+\*\$\/i/);
+  assert.match(router,/const carAdd605=\/\^\\\/caradd\\s\+605\\s\*\$\/i\.test\(caption\)/);
   assert.match(router,/vehicle-add:605/);
   assert.match(router,/countBefore>=16/);
   assert.match(router,/rows\.length!==16/);
