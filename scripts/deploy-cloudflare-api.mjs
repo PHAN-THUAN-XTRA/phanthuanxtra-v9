@@ -188,6 +188,24 @@ async function verifyTg527ProductionGallery() {
   console.log("D1: verified tg-527 gallery 24/24, sort_order=0..23, canonical URLs, single semantic cover");
 }
 
+async function verifyLx570Recovery() {
+  const bundles = await queryD1("SELECT bundle_key, COUNT(*) row_count, SUM(CASE WHEN file_id <> '' THEN 1 ELSE 0 END) photo_count, SUM(CASE WHEN file_id = '' THEN 1 ELSE 0 END) text_count, MIN(bundle_status) min_bundle_status, MAX(bundle_status) max_bundle_status FROM telegram_inbox WHERE bundle_key LIKE 'recover:lx570:%' GROUP BY bundle_key ORDER BY MAX(id) DESC LIMIT 1");
+  const bundle = bundles?.[0]?.results?.[0];
+  if (!bundle || Number(bundle.photo_count) !== 18 || Number(bundle.text_count) !== 1 || Number(bundle.row_count) !== 19) {
+    throw new Error(`D1 LX570 recovery verification failed: expected 18 photos + 1 text row; got ${JSON.stringify(bundle ?? null)}`);
+  }
+  const draftResult = await queryD1("SELECT d.inbox_id,d.status,d.ai_json FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE i.bundle_key=? ORDER BY d.id DESC LIMIT 1", [bundle.bundle_key]);
+  const draft = draftResult?.[0]?.results?.[0];
+  let ai = {};
+  try { ai = JSON.parse(draft?.ai_json || "{}"); } catch {}
+  const keys = Array.isArray(ai.publish_media_keys) ? ai.publish_media_keys.filter(Boolean) : [];
+  if (!draft || !["awaiting_review","previewed","published"].includes(String(draft.status)) || Number(ai.image_count) !== 18 || keys.length !== 18) {
+    throw new Error(`D1 LX570 draft verification failed: expected reviewable 18-image draft; got status=${draft?.status ?? null} image_count=${ai.image_count ?? null} keys=${keys.length}`);
+  }
+  console.log(`D1: verified LX570 recovery 18/18 photos + 1 text; draft inbox=${draft.inbox_id} status=${draft.status} image_count=18`);
+  return { inboxId: Number(draft.inbox_id), status: String(draft.status) };
+}
+
 async function getCurrentBindings() {
   const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
   const bindings = settings?.bindings || [];
@@ -345,6 +363,7 @@ for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLIS
 await applyMigrations();
 await verifyTg527ProductionValues();
 await verifyTg527ProductionGallery();
+await verifyLx570Recovery();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
