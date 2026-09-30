@@ -427,3 +427,15 @@ test('performance gate: Green Energy homepage hero uses verified internal R2 Web
   assert.ok(slide.includes('data-src="/media/editorial/green-energy/green-energy-pv-ess-3d.webp"'));
   assert.doesNotMatch(slide, /wikimedia\.org/);
 });
+
+
+test('production gate: Defender tg-605 reconciles owner copy and semantic gallery without R2 mutation',()=>{
+  const source=fs.readFileSync(new URL('../src/index.js',import.meta.url),'utf8');
+  assert.match(source,/TG605_MEDIA_ORDER=\['telegram-619-fc8963a8254c28ce\.webp'/);
+  assert.match(source,/function reconcileTg605\(c,images\)/);
+  assert.match(source,/if\(c\.id!=='tg-605'\)return\{c,images\}/);
+  assert.match(source,/description\.slice\(0,end\+marker\.length\)/);
+  assert.match(source,/price:4879000000,mileage:null/);
+  assert.match(source,/is_cover:i===0\?1:0/);
+  assert.doesNotMatch(source.slice(source.indexOf('function reconcileTg605'),source.indexOf('function norm')),/put\(|delete\(|R2|IMAGES/);
+});
