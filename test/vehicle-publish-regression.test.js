@@ -79,3 +79,16 @@ test("missing Defender 605-611 media can only self-repair from its exact publish
   assert.match(media,/storeTelegramVehicleVariants\(env,bytes,prefix\)/);
   assert.doesNotMatch(media,/UPDATE cars SET[\s\S]*restorePublishedTelegramMedia/);
 });
+
+
+test("tg-605 repair session accepts exactly 16 unique source photos and preserves owner price",()=>{
+  const router=fs.readFileSync("src/telegram-router.js","utf8");
+  assert.match(router,/\/\^\\\/caradd\\s\+605\\s\+\*\$\/i/);
+  assert.match(router,/vehicle-add:605/);
+  assert.match(router,/countBefore>=16/);
+  assert.match(router,/rows\.length!==16/);
+  assert.match(router,/Number\(car\?\.price\)!==4879000000/);
+  assert.match(router,/DELETE FROM car_images WHERE car_id='tg-605'/);
+  assert.match(router,/UPDATE cars SET cover_image=\?,updated_at=CURRENT_TIMESTAMP WHERE id='tg-605' AND price=4879000000/);
+  assert.match(router,/Gallery chỉ thay khi đủ 16 ảnh/);
+});
