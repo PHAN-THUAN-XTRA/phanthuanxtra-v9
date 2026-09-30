@@ -188,6 +188,35 @@ async function verifyTg527ProductionGallery() {
   console.log("D1: verified tg-527 gallery 24/24, sort_order=0..23, canonical URLs, single semantic cover");
 }
 
+const TG444_GALLERY = [
+  "telegram-555-004107aea58e4ebd.webp","telegram-554-23dcb8401e56d467.webp",
+  "telegram-556-1bcf83a89a0e4509.webp","telegram-552-e4543cf92c5ce295.webp",
+  "telegram-553-811a0623d87fdf2b.webp","telegram-560-561e2f4e19f778cd.webp",
+  "telegram-557-e4152ca6d1b544ad.webp","telegram-567-f09a75951cadcb1d.webp",
+  "telegram-558-3a8dd58bb844c11c.webp","telegram-559-8f5b60263921aa5e.webp",
+  "telegram-562-581bed3ff54367f5.webp","telegram-565-741abb2d25ec9acf.webp",
+  "telegram-564-19d7259b250d8e72.webp","telegram-566-17d078c944b9ada4.webp",
+  "telegram-568-d2ec80f112be62df.webp","telegram-561-16da962ac4cdccaa.webp",
+  "telegram-563-e6b66162e499bd47.webp"
+];
+async function verifyTg444ProductionGallery() {
+  const result=await queryD1("SELECT i.url,i.sort_order,i.is_cover,c.cover_image FROM car_images i JOIN cars c ON c.id=i.car_id WHERE i.car_id='tg-444' ORDER BY i.sort_order,i.id");
+  const rows=result?.[0]?.results||[];
+  const names=rows.map(row=>String(row.url||"").split("/").pop());
+  const known=names.slice(0,17);
+  const missing=names[17]||"";
+  if(rows.length!==18 || known.join("|")!==TG444_GALLERY.join("|") ||
+     !/^telegram-(551|569)-[0-9a-f]{16}\.webp$/.test(missing) ||
+     rows.some((row,index)=>Number(row.sort_order)!==index) ||
+     rows.filter(row=>Number(row.is_cover)===1).length!==1 ||
+     Number(rows[0]?.is_cover)!==1 ||
+     rows[0]?.url!==rows[0]?.cover_image ||
+     rows.some(row=>String(row.url||"").includes("telegram-444-3b7aec5feb857597.webp"))) {
+    throw new Error(`D1 tg-444 gallery verification failed: expected 18 recovered LX570 images with foreign image removed; got ${JSON.stringify(rows)}`);
+  }
+  console.log("D1: verified tg-444 gallery 18/18, omitted album image recovered, unrelated white-vehicle image removed, semantic sort_order=0..17, single exterior cover");
+}
+
 async function verifyLx570Recovery() {
   const bundles = await queryD1("SELECT bundle_key, COUNT(*) row_count, SUM(CASE WHEN file_id <> '' THEN 1 ELSE 0 END) photo_count, SUM(CASE WHEN file_id = '' THEN 1 ELSE 0 END) text_count, MIN(bundle_status) min_bundle_status, MAX(bundle_status) max_bundle_status FROM telegram_inbox WHERE bundle_key LIKE 'recover:lx570:%' GROUP BY bundle_key ORDER BY MAX(id) DESC LIMIT 1");
   const bundle = bundles?.[0]?.results?.[0];
@@ -367,6 +396,7 @@ await applyMigrations();
 await verifyTg527ProductionValues();
 await verifyTg527ProductionGallery();
 await verifyLx570Recovery();
+await verifyTg444ProductionGallery();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
