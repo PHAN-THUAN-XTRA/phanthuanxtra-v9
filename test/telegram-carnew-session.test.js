@@ -33,7 +33,7 @@ test("/carfinish scopes finalization to rows sent after the active clean session
   const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
   assert.match(block,/message_id>\?/);
   assert.match(block,/opened_message_id/);
-  assert.match(block,/bundle_status IN \('pending','queued'\)/);
+  assert.match(block,/bundle_status IN \('pending','queued','done'\)/);
   assert.match(block,/uniquePhotos\.slice\(-16\)/);
   assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
   assert.match(block,/Đang tạo draft AVIF \+ WebP/);
@@ -61,7 +61,7 @@ test("/carfinish repairs Defender intake to exactly 16 unique newest photos and 
   assert.match(block,/uniquePhotos\.slice\(-16\)/);
   assert.match(block,/selectedPhotos\.length!==16/);
   assert.match(block,/DELETE FROM telegram_inbox/);
-  assert.match(block,/bundle_status IN \('pending','queued'\)/);
+  assert.match(block,/bundle_status IN \('pending','queued','done'\)/);
   assert.match(block,/4879000000/);
   assert.match(block,/_owner_price_locked/);
   assert.match(block,/ctx\)ctx\.waitUntil\(task\)/);
