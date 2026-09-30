@@ -62,3 +62,14 @@ test("Telegram requires preview before vehicle publish",async()=>{
   assert.match(router,/ẢNH WEBSITE/);
   assert.match(router,/publish_media_keys/);
 });
+
+
+test("Telegram caption fallback protects approved vehicle publishing",async()=>{
+  const fs=await import("node:fs");
+  const router=fs.readFileSync("src/telegram-router.js","utf8");
+  const ingest=fs.readFileSync("src/telegram-ingest.js","utf8");
+  assert.match(router,/captionVehicleFallback/);
+  assert.match(router,/_metadata_source="telegram_caption"/);
+  assert.match(router,/Thiếu brand\/model có bằng chứng/);
+  assert.match(ingest,/vehicle_identity_required/);
+});
