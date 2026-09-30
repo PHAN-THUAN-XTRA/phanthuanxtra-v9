@@ -54,6 +54,7 @@ test('Telegram publish duplicate protection sends only once',async()=>{
   const images=new Map();
   const calls=[];
   const DB={
+    async batch(statements){for(const statement of statements)await statement.run();return statements.map(()=>({}));},
     prepare(sql){
       return {bind(...args){
         return {
