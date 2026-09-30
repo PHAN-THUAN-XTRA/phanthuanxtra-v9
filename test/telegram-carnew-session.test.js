@@ -39,7 +39,7 @@ test("/carfinish is generic: keeps all unique session photos and exact owner cop
   assert.match(block,/bundle_status='queued'/);
   assert.match(block,/reconcileTelegramVehicleDrafts\(env\)/);
   assert.match(block,/selectedPhotos\.length/);
-  assert.match(block,/Giữ nguyên nội dung owner/);
+  assert.match(block,/Nội dung owner được giữ nguyên/);
   assert.doesNotMatch(block,/slice\(-16\)/);
   assert.doesNotMatch(block,/selectedPhotos\.length!==16/);
   assert.doesNotMatch(block,/4879000000/);
