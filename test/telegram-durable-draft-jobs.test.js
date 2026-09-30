@@ -6,10 +6,11 @@ const router=fs.readFileSync("src/telegram-router.js","utf8");
 const entry=fs.readFileSync("src/entry.js","utf8");
 const jobs=fs.readFileSync("src/telegram-draft-jobs.js","utf8");
 
-test("Telegram webhook queues vehicle bundles instead of processing the gallery inline",()=>{
+test("ordinary Telegram intake queues vehicle bundles instead of processing galleries inline",()=>{
   const update=router.slice(router.indexOf("export async function processTelegramUpdate"),router.indexOf("async function autoWebhook"));
-  assert.match(update,/bundle_status='queued'/);
-  assert.doesNotMatch(update,/await processBundle\(env/);
+  const ordinaryIntake=update.slice(update.indexOf("if(mediaGroupId){"));
+  assert.match(ordinaryIntake,/bundle_status='queued'/);
+  assert.doesNotMatch(ordinaryIntake,/await processBundle\(env/);
 });
 
 test("durable gallery worker checkpoints only three pending photos per batch",()=>{

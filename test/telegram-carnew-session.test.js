@@ -30,26 +30,41 @@ test("LX570 recovery is narrow and locks exactly 18 following photos",()=>{
 });
 
 test("/carfinish scopes finalization to rows sent after the active clean session opened",()=>{
-  assert.ok(router.includes('const carFinish=/^\\/carfinish\\s*$/i.test(caption);'));
-  assert.match(router,/message_id>\?/);
-  assert.match(router,/opened_message_id/);
-  // /carfinish is intentionally durable: it queues the finalized session and
-  // returns promptly instead of processing the full gallery inside the webhook.
-  assert.match(router,/SET bundle_status='queued'/);
-  assert.match(router,/Đã xếp hàng tạo draft AVIF \+ WebP/);
   const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
-  assert.doesNotMatch(block,/await processBundle\(/);
-  assert.doesNotMatch(router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview=")),/LIMIT 100/);
+  assert.match(block,/message_id>\?/);
+  assert.match(block,/opened_message_id/);
+  assert.match(block,/bundle_status IN \('pending','queued'\)/);
+  assert.match(block,/uniquePhotos\.slice\(-16\)/);
+  assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
+  assert.match(block,/Đang tạo draft AVIF \+ WebP/);
+  assert.doesNotMatch(block,/LIMIT 100/);
 });
 
 
 test("/carfinish keeps only the newest 16 photos and newest article",()=>{
   const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
-  assert.match(block,/const selectedPhotos=photos\.slice\(-16\)/);
+  assert.match(block,/const selectedPhotos=uniquePhotos\.slice\(-16\)/);
   assert.match(block,/const selectedText=texts\.at\(-1\)/);
   assert.match(block,/selectedIds\.has\(Number\(row\.id\)\)/);
-  assert.match(block,/SET bundle_status='queued'/);
+  assert.match(block,/SET bundle_key=\?,bundle_status='pending'/);
   assert.match(block,/selectedPhotos\.length/);
+  assert.match(block,/ctx\)ctx\.waitUntil\(task\)/);
+  assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
   assert.doesNotMatch(block,/LIMIT 100/);
-  assert.doesNotMatch(block,/await processBundle\(/);
+});
+
+
+test("/carfinish repairs Defender intake to exactly 16 unique newest photos and owner price",()=>{
+  const block=router.slice(router.indexOf("const carFinish="),router.indexOf("const carReview="));
+  assert.match(block,/file_unique_id/);
+  assert.match(block,/new Map\(\)/);
+  assert.match(block,/uniquePhotos\.slice\(-16\)/);
+  assert.match(block,/selectedPhotos\.length!==16/);
+  assert.match(block,/DELETE FROM telegram_inbox/);
+  assert.match(block,/bundle_status IN \('pending','queued'\)/);
+  assert.match(block,/4879000000/);
+  assert.match(block,/_owner_price_locked/);
+  assert.match(block,/ctx\)ctx\.waitUntil\(task\)/);
+  assert.match(block,/await processBundle\(env,String\(active\.session_key\),chatId\)/);
+  assert.doesNotMatch(block,/LIMIT 100/);
 });
