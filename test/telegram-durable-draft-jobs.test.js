@@ -35,3 +35,19 @@ test("scheduler drains enough durable batches for a 20+ photo gallery in one inv
   assert.match(jobs,/if\(!result\.claimed\|\|result\.complete\|\|result\.error\)break/);
   assert.match(jobs,/\.slice\(0,3\)/);
 });
+
+
+test("durable gallery uses Workers AI once on the first photo and persists the result",()=>{
+  assert.match(jobs,/import \{ analyzeVehicleImage \} from "\.\/vehicle-ai\.js"/);
+  assert.match(jobs,/Number\(row\.id\)===Number\(first\.id\)/);
+  assert.match(jobs,/await analyzeVehicleImage\(env,bytes/);
+  assert.match(jobs,/status='processing'/);
+  assert.match(jobs,/SELECT ai_json FROM vehicle_ai_drafts WHERE inbox_id=\?/);
+  assert.doesNotMatch(jobs,/deferred_for_durable_gallery/);
+});
+
+test("Workers AI failure remains fail-open for durable Telegram publishing",()=>{
+  assert.match(jobs,/free_quota_exhausted/);
+  assert.match(jobs,/_ai_status:status/);
+  assert.match(jobs,/storeTelegramVehicleVariants/);
+});
