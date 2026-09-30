@@ -1237,3 +1237,47 @@ The Lexus RX500h F SPORT PERFORMANCE listing `tg-527` established the regression
 - prioritize a suitable image containing a person/model, then order exterior front-to-rear and interior logically.
 
 Future listings must follow the same rules without requiring per-listing code changes.
+
+## 9. Mandatory typography, UTF-8 and visual-gallery invariants for every future vehicle
+These are permanent publishing gates, not optional styling preferences.
+
+### Typography and layout preservation
+- Vehicle publishing/update code must not silently redesign the canonical vehicle detail page.
+- Preserve the approved site font stack, heading hierarchy, spacing, responsive detail grid, description line-height, action buttons and gallery layout unless the owner explicitly approves a design change.
+- Vehicle-specific data corrections (price, ODO, copy, cover, image order) must remain data changes and must not mutate shared typography/CSS without a separately reviewed UI change.
+- Regression tests must protect the canonical detail layout whenever `public/car.html` or shared vehicle styles change.
+
+### UTF-8 end-to-end invariant
+- Vietnamese content is UTF-8 at ingestion, D1 storage, API JSON serialization, HTML delivery and browser rendering.
+- HTML must declare UTF-8 and be served with `text/html; charset=utf-8`; JSON must be delivered as UTF-8-compatible `application/json`.
+- Production verification must check real Vietnamese markers, not only HTTP status.
+- Known mojibake markers such as `LiÃªn`, `há»`, `Ä`, `ð`, `PHAN THUáº¦N` must fail the relevant gate when they represent decoded production content.
+- Console display encoding must be distinguished from server corruption: verify raw response bytes/headers or a UTF-8-capable client before modifying stored copy.
+
+### Image URL invariant
+- Canonical public media URLs use `/media/vehicles/...`, never `/media/vehicles%2F...`.
+- Encode each key path segment independently; preserve `/` separators.
+- Existing legacy records containing encoded separators must be reconciled when edited.
+- A media URL regression test is required for publishing code that creates or rewrites vehicle image URLs.
+
+### Semantic image-order invariant
+- Upload/Telegram order is ingestion order only; it is never automatically accepted as presentation order when image content can be inspected.
+- Before first publish, a visual classifier or explicit human review must assign semantic roles to approved images.
+- Required presentation sequence remains: suitable human/model → strongest front/front-3/4 hero → exterior front-to-rear → exterior details → cockpit → front seats → rear seats → console/doors/cargo → interior details → remaining useful images.
+- The chosen first item is the only cover (`is_cover=1`); all subsequent approved items receive deterministic contiguous `sort_order` values.
+- Never infer semantic order from Telegram message number, filename, upload ID, timestamp, R2 hash or lexical sorting.
+- If visual classification is unavailable or uncertain, publishing must retain a review-needed state rather than inventing semantic order.
+- Reordering an existing vehicle updates the same canonical vehicle ID and must never create a duplicate listing.
+
+### Required automated regression coverage
+Any change to vehicle publishing, persistence, API normalization, media URL generation or detail rendering must include targeted regression coverage for the behavior changed. At minimum the permanent suite must protect:
+1. owner-reviewed Vietnamese multiline copy survives without mojibake;
+2. approved numeric price/ODO survive normalization;
+3. media keys preserve path separators;
+4. cover and contiguous gallery `sort_order` are deterministic;
+5. all approved images remain present;
+6. canonical vehicle ID remains unchanged during edits;
+7. detail-page typography/layout contract remains intact unless explicitly changed.
+
+### Production completion gate
+A vehicle publish/update is not FINAL GREEN until production evidence verifies: canonical ID, UTF-8 text, approved price/ODO, intentional hero, full approved image count, semantic gallery order, canonical non-`%2F` media URLs, HTTP/Content-Type health, and required deployment/R2 gates.
