@@ -431,7 +431,10 @@ test('performance gate: Green Energy homepage hero uses verified internal R2 Web
 
 test('production gate: Defender tg-605 reconciles owner copy and semantic gallery without R2 mutation',()=>{
   const source=fs.readFileSync(new URL('../src/index.js',import.meta.url),'utf8');
-  assert.match(source,/TG605_MEDIA_ORDER=\['telegram-619-fc8963a8254c28ce\.webp'/);
+  assert.match(source,/TG605_MEDIA_ORDER=\['telegram-625-f38722c5c54d18ec\.webp'/);
+  const order=(source.match(/const TG605_MEDIA_ORDER=\\[([^\\n]+)\\];/)?.[1].match(/'[^']+'/g)||[]);
+  assert.equal(order.length,16);
+  assert.equal(new Set(order).size,16);
   assert.match(source,/function reconcileTg605\(c,images\)/);
   assert.match(source,/if\(c\.id!=='tg-605'\)return\{c,images\}/);
   assert.match(source,/description\.slice\(0,end\+marker\.length\)/);
