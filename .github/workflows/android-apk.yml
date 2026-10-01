@@ -6,14 +6,20 @@ on:
       - feature/apk-mvp
       - refactor/apk-architecture-v1
       - queue/gate11-13-finalize
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
+    paths:
+      - "android/**"
+      - "src/app-api.js"
+      - "src/ai-chat.js"
+      - "tests/ai-chat-contract.test.mjs"
+      - ".github/workflows/android-apk.yml"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
+    paths:
+      - "android/**"
+      - "src/app-api.js"
+      - "src/ai-chat.js"
+      - "tests/ai-chat-contract.test.mjs"
+      - ".github/workflows/android-apk.yml"
   workflow_dispatch:
 
 permissions:

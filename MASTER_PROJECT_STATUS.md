@@ -1590,3 +1590,10 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - Existing Blog CMS, Business Jets, Live Chat AI and QUEUE-01 post-deploy consumers remain unchanged and already use the successful deploy lineage.
 - This phase changes orchestration only; it does not remove UTF-8/mojibake assertions, R2 GET/DELETE/404, publishing E2E, D1/Admin/Gateway checks, or Smoke Gate-15 evidence.
 - Acceptance: PR required checks GREEN, merge, successful exact merge-SHA production deploy, then all post-deploy consumers GREEN before Phase 4.
+
+### Phase 4 implementation — Android workflow ownership
+- Phase 3 merged as exact SHA `a5e237a9a08789486d310812d3890be8aa5853fe`; Cloudflare production deploy and the core non-AI production verifiers observed so far are successful.
+- Phase 3 also exposed a real runtime dependency signal: App Assistant and App Sentiment post-deploy E2E both authenticated successfully but returned HTTP 503 from their Workers AI-backed endpoints. This is recorded as a production AI availability failure, not hidden or relabeled GREEN; Phase 3 final closure remains blocked until those checks recover/pass.
+- Narrowed `android-apk.yml` automatic push/PR ownership from every non-Markdown repository change to Android and its directly coupled App/AI contract paths: `android/**`, `src/app-api.js`, `src/ai-chat.js`, `tests/ai-chat-contract.test.mjs`, and the Android workflow itself.
+- Manual dispatch remains available. The debug APK build, Android source safety checks, SHA-256 artifact evidence, App API health check and AI contract regression test remain intact. Signed production release remains isolated in `android-production-release.yml`.
+- Acceptance: required PR gates GREEN and a relevant Android-path change must continue to trigger/build the canonical APK workflow; unrelated web orchestration changes should no longer build APK.
