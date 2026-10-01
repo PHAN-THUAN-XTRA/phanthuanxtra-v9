@@ -51,6 +51,7 @@ jobs:
             -H 'content-type: application/json' \
             --data '{"question":"Hãy xác nhận trợ lý PHAN THUẦN XTRA đang hoạt động. Không thay đổi dữ liệu sản xuất và chỉ trả lời ngắn gọn."}')"
           echo "Assistant HTTP $status"
+          if [ "$status" != "200" ]; then jq -c '{error,diagnostic,last_provider_error}' /tmp/assistant.json || true; exit 1; fi
           test "$status" = "200"
           jq -e '.ok == true and (.answer | type == "string" and length > 0) and (.model | type == "string" and length > 0)' /tmp/assistant.json >/dev/null
           model="$(jq -r '.model' /tmp/assistant.json)"
