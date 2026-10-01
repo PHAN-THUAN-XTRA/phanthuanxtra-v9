@@ -55,7 +55,7 @@ jobs:
           jq -e '.ok == true and (.answer | type == "string" and length > 0) and (.model | type == "string" and length > 0)' /tmp/assistant.json >/dev/null
           model="$(jq -r '.model' /tmp/assistant.json)"
           case "$model" in
-            "@cf/zai-org/glm-4.7-flash"|"@cf/qwen/qwen3.8-27b"|"@cf/nvidia/nemotron-3-120b-a12b") ;;
+            "@cf/zai-org/glm-4.7-flash"|"@cf/qwen/qwen3.8-27b"|"@cf/nvidia/nemotron-3-120b-a12b"|gemini-*) ;;
             *) echo "Unexpected assistant model: $model"; exit 1 ;;
           esac
           echo "App Assistant production E2E: PASS"
