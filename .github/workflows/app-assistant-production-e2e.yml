@@ -2,13 +2,10 @@ name: App Assistant Production E2E
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "src/app-api.js"
-      - "android/**"
-      - ".github/workflows/app-assistant-production-e2e.yml"
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -19,6 +16,7 @@ concurrency:
 
 jobs:
   assistant-e2e:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
@@ -27,6 +25,8 @@ jobs:
       ADMIN_PASSWORD: ${{ secrets['ADMIN_PASSWORD'] }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Require production credential
         shell: bash
         run: |
