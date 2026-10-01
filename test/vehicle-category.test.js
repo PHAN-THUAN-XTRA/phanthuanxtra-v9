@@ -37,3 +37,15 @@ test("homepage exposes every canonical vehicle filter",()=>{
   for(const category of VEHICLE_CATEGORIES) assert.match(html,new RegExp('data-filter="'+category+'"'));
   assert.match(html,/SUV \/ Crossover/);
 });
+
+
+test("homepage vehicle cards use DOM construction instead of innerHTML",()=>{
+  const script=fs.readFileSync("public/script.js","utf8");
+  const start=script.indexOf("function carCard");
+  const end=script.indexOf("function showCompare",start);
+  const block=script.slice(start,end);
+  assert.match(block,/document\.createElement/);
+  assert.match(block,/textContent/);
+  assert.match(block,/replaceChildren/);
+  assert.doesNotMatch(block,/innerHTML/);
+});
