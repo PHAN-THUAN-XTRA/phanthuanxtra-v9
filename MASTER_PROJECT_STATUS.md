@@ -1567,3 +1567,12 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - Credential mutation, signed Android release, backups and diagnostics remain isolated manual/scheduled workflows.
 - RETIRE means delete only after the replacement/current coverage is verified in PR checks. The Defender one-off must not remain as a reusable production mutation path.
 - Phase 2 starts with the lowest-risk duplicate removal: consolidate source validation into `ci.yml` while preserving the required `CI / Validate` context. Production E2E orchestration changes follow only after that is GREEN.
+
+### Phase 2A implementation — core CI consolidation
+- Consolidated the full checks from `admin-pipeline-test.yml`, `application-validation.yml`, and `production-credential-safety.yml` into the canonical `.github/workflows/ci.yml` job named exactly `CI / Validate`.
+- The consolidated job retains: repository diff whitespace validation, Android workflow contract marker, Node 24 + `npm ci`, application/Admin syntax checks, Workers AI model guards, repository unit tests, Developer Gateway unit test, static Worker binding/config validation, runtime-DDL rejection, and the production-smoke credential-safety contract.
+- `CI / Validate` remains the same required ruleset context and still publishes the explicit commit status used by `Main - Production Protection`.
+- The three superseded standalone validation workflow entry points are removed only in the same PR that carries their checks into `CI / Validate`; this is orchestration consolidation, not validation removal.
+- No production Worker/business logic/D1/R2/vehicle/category/publishing behavior is changed in Phase 2A.
+- Acceptance requirement: PR must pass both required contexts `CI / Validate` and `AI Pre-Deploy Audit / Validate`. After merge, the exact merge SHA must show the consolidated CI GREEN before Phase 2B proceeds.
+
