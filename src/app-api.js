@@ -58,7 +58,7 @@ async function assistant(r,e){
   for(const model of models){try{const out=await e.AI.run(model,{messages:[{role:"system",content:system},{role:"user",content:question}],temperature:.15,max_tokens:700},{...AI_GATEWAY,rejectIfBusy:true});const answer=text(out?.response??out?.choices?.[0]?.message?.content,8000);if(answer)return json({ok:true,answer,model});}catch(x){last=x;if(/3036|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(x?.message||x)))break;}}
   try{const fallback=await geminiText(e,system,question,700);if(fallback?.answer)return json({ok:true,...fallback});}catch(x){last=x;console.warn("app_ai_assistant_gemini_failed",String(x?.message||x));}
   console.error("app_ai_assistant",String(last?.message||last||"unknown"));
-  return json({error:"AI Assistant tạm thời không khả dụng"},503);
+  return json({error:"AI Assistant tạm thời không khả dụng",diagnostic:"providers_exhausted",last_provider_error:text(last?.message||last||"unknown",180)},503);
 }
 async function sentiment(r,e){
   if(r.method!=='POST')return json({error:"Method Not Allowed"},405,{Allow:"POST"});
@@ -80,7 +80,7 @@ async function sentiment(r,e){
   }
   try{const fallback=await geminiText(e,"Classify sentiment. Return a short sentiment label and confidence only.",input,80);if(fallback?.answer)return json({ok:true,model:fallback.model,result:{text:fallback.answer,fallback:true}});}catch(x){last=x;console.warn("app_sentiment_gemini_failed",String(x?.message||x));}
   console.error("app_sentiment",String(last?.message||last||"unknown"));
-  return json({error:"Sentiment AI tạm thời không khả dụng"},503);
+  return json({error:"Sentiment AI tạm thời không khả dụng",diagnostic:"providers_exhausted",last_provider_error:text(last?.message||last||"unknown",180)},503);
 }
 async function analyze(r,e){if(r.method!=='POST')return json({error:"Method Not Allowed"},405,{Allow:"POST"});const type=r.headers.get("content-type")||"image/jpeg";if(!type.startsWith("image/"))return json({error:"Chỉ nhận image/*"},415);const bytes=await r.arrayBuffer();if(bytes.byteLength>12*1024*1024)return json({error:"Ảnh vượt quá 12MB"},413);const caption=text(new URL(r.url).searchParams.get('caption'),2000);try{return json({ok:true,analysis:await analyzeVehicleImage(e,bytes,type,caption)})}catch(x){console.error("app_vehicle_analyze",String(x?.message||x));const diagnostics=Array.isArray(x?.diagnostics)?x.diagnostics.map(v=>({model:String(v?.model||"").slice(0,120),code:String(v?.code||"UNKNOWN").slice(0,40),reason:String(v?.reason||"").slice(0,240)})):undefined;return json({error:"Vehicle AI không khả dụng",code:"VEHICLE_AI_UNAVAILABLE",retryable:true,...(diagnostics?{diagnostics}:{})},503)}}
 function decodeCarId(pathname){const raw=pathname.slice('/api/app/v1/cars/'.length);try{return decodeURIComponent(raw)}catch{return null}}
