@@ -28,6 +28,19 @@ export async function replaceCarImages(db, carId, images) {
 }
 export async function carImages(db, carId) { const q=await db.prepare("SELECT id,url,sort_order,is_cover FROM car_images WHERE car_id=? ORDER BY sort_order,id").bind(carId).all(); return q.results||[]; }
 
+export async function setCarVisibility(db, carId, visible, { actor="visibility-api" }={}) {
+  const id=text(carId,81);
+  if(!validCarId(id)) return {ok:false,status:400,error:"ID bài đăng không hợp lệ"};
+  const existing=await db.prepare("SELECT id,brand,model,status FROM cars WHERE id=?").bind(id).first();
+  if(!existing) return {ok:false,status:404,error:"Không tìm thấy xe"};
+  const status=visible?"available":"hidden";
+  if(existing.status!==status){
+    await db.prepare("UPDATE cars SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id).run();
+    await db.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) VALUES (?,?,?,?,?)").bind(text(actor,100),"visibility","car",id,text(`status=${status}; previous=${existing.status}`,500)).run();
+  }
+  return {ok:true,status:200,id,visibility:visible?"visible":"hidden",car:{...existing,status}};
+}
+
 export async function saveCar(db, body, { id, mode="create", actor="publish-core" }={}) {
   const carId=text(id ?? body?.id,81);
   if(!validCarId(carId)) return { ok:false,status:400,error:"id phải gồm 3-81 ký tự, chỉ chữ/số/-/_" };
