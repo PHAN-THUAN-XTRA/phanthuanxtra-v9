@@ -5,6 +5,7 @@ import { createPtXtraPlateImage, hasValidPlateBox } from "./plate-branding.js";
 import { publishCar } from "./telegram.js";
 import { prepareVehicleWebp } from "./media-pipeline.js";
 import { inferVehicleCategory } from "./vehicle-category.js";
+import { verifyAdminToken } from "./admin-auth.js";
 
 const json=(data,status=200,extra={})=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...extra}});
 const clean=v=>String(v??"").trim();
@@ -20,7 +21,7 @@ async function tg(env,method,payload={}){
 }
 
 function pickPhoto(message){const photos=Array.isArray(message?.photo)?message.photo:[];return photos.length?photos[photos.length-1]:null;}
-function authorized(request,env){const h=request.headers.get("Authorization")||"";return Boolean(env.ADMIN_TOKEN&&h===`Bearer ${env.ADMIN_TOKEN}`)}
+async function authorized(request,env){return (await verifyAdminToken(request,env)).ok;}
 function canAutoPublish(ai){return Boolean(ai?.brand&&ai?.model&&Number(ai?.confidence||0)>=AUTO_PUBLISH_MIN_CONFIDENCE)}
 function carIdForInbox(inboxId){return `tg-${Number(inboxId)}`}
 
@@ -30,6 +31,10 @@ function safeWebhookInfo(info,expectedUrl){
 }
 
 async function getTelegramWebhookInfo(env){return tg(env,"getWebhookInfo",{});}
+async function getTelegramBotIdentity(env){
+  const bot=await tg(env,"getMe",{});
+  return {id:bot?.id??null,username:clean(bot?.username)||null,name:clean([bot?.first_name,bot?.last_name].filter(Boolean).join(" "))||null,is_bot:Boolean(bot?.is_bot)};
+}
 
 export async function getTelegramWebhookStatus(env,expectedUrl){
   if(!env.TELEGRAM_BOT_TOKEN) return {ok:false,error:"TELEGRAM_BOT_TOKEN is not configured"};
@@ -121,11 +126,15 @@ export async function handleTelegramIngest(request,env,ctx){
   const url=new URL(request.url);
   if(url.pathname==="/api/admin/telegram/webhook-status"){
     if(request.method!=="GET")return json({error:"Method Not Allowed"},405,{Allow:"GET"});
-    if(!authorized(request,env))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
-    const expected=`${url.origin}/api/telegram/webhook`; return json(await getTelegramWebhookStatus(env,expected));
+    if(!(await authorized(request,env)))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
+    const expected=`${url.origin}/api/telegram/webhook`;
+    const webhook=await getTelegramWebhookStatus(env,expected);
+    let bot=null,bot_error=null;
+    try{bot=await getTelegramBotIdentity(env);}catch(error){bot_error=clean(error?.message||error)||"Telegram getMe failed";}
+    return json({...webhook,bot,bot_error});
   }
   if(url.pathname==="/api/admin/telegram/webhook"){
-    if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); if(!authorized(request,env))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
+    if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); if(!(await authorized(request,env)))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
     try{const result=await setTelegramWebhook(env,`${url.origin}/api/telegram/webhook`); return json({ok:true,webhook:result});}catch(error){console.error("telegram_webhook_setup_failed",String(error?.message||error));return json({ok:false,error:"Telegram setWebhook failed",detail:clean(error?.message||error)||"Unknown Telegram error"},502);}
   }
   if(url.pathname!=="/api/telegram/webhook")return null; if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); const secret=env.TELEGRAM_WEBHOOK_SECRET; if(secret&&request.headers.get("X-Telegram-Bot-Api-Secret-Token")!==secret)return json({error:"Unauthorized"},401); const update=await request.json().catch(()=>null); const message=update?.message||update?.channel_post||null; if(!message)return json({ok:true,ignored:true}); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500); const photo=pickPhoto(message); const caption=clean(message.caption||message.text); if(!photo&&!caption)return json({ok:true,ignored:true});
