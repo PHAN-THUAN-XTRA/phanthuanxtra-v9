@@ -9,6 +9,17 @@ const json=(data,status=200,headers={})=>new Response(JSON.stringify(data),{stat
 const text=(v,n)=>String(v??"").trim().slice(0,n); const num=v=>Number.isFinite(Number(v))?Number(v):0;
 const STATUSES=new Set(["available","reserved","sold"]);
 const AI_GATEWAY={gateway:{id:"default",skipCache:true,cacheTtl:60},extraHeaders:{"cf-aig-metadata":JSON.stringify({app:"phanthuanxtra",surface:"android-app-api"})}};
+async function geminiText(e,system,user,maxOutputTokens=700){
+  if(!e.GEMINI_API_KEY||!/^gemini-[a-z0-9.-]+$/.test(e.GEMINI_MODEL||""))return null;
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${e.GEMINI_MODEL}:generateContent`;
+  const payload={contents:[{role:"user",parts:[{text:`${system}\n\n${user}`}]}],generationConfig:{temperature:.1,maxOutputTokens}};
+  const response=await fetch(url,{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":e.GEMINI_API_KEY},body:JSON.stringify(payload),redirect:"error",signal:AbortSignal.timeout(25000)});
+  if(!response.ok)throw new Error(`Gemini HTTP ${response.status}`);
+  const data=await response.json();
+  const answer=text(data?.candidates?.[0]?.content?.parts?.map(p=>p?.text||"").join(""),8000);
+  if(!answer)throw new Error("Gemini returned no response");
+  return {answer,model:e.GEMINI_MODEL};
+}
 const auth=async(r,e)=>{const a=r.headers.get("Authorization")||"";const t=e.APP_API_TOKEN;if(t&&a.startsWith("Bearer ")&&a.slice(7)===t)return true;return (await verifyAdminToken(r,e)).ok};
 const deny=()=>json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"}); async function body(r){return r.json().catch(()=>null)}
 async function login(r,e){if(r.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"});const b=await body(r)||{};const password=String(b.password??"");if(!e.ADMIN_PASSWORD)return json({error:"Admin credentials chưa được cấu hình"},503);if(!(await verifyAdminPassword(e,password)))return json({error:"Sai mật khẩu"},401);const token=await issueAdminToken(e);if(!token)return json({error:"Không thể tạo phiên Admin"},503);return json({ok:true,token})}
@@ -45,6 +56,7 @@ async function assistant(r,e){
   const models=["@cf/zai-org/glm-4.7-flash","@cf/qwen/qwen3.8-27b","@cf/nvidia/nemotron-3-120b-a12b"];
   let last=null;
   for(const model of models){try{const out=await e.AI.run(model,{messages:[{role:"system",content:system},{role:"user",content:question}],temperature:.15,max_tokens:700},{...AI_GATEWAY,rejectIfBusy:true});const answer=text(out?.response??out?.choices?.[0]?.message?.content,8000);if(answer)return json({ok:true,answer,model});}catch(x){last=x;if(/3036|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(x?.message||x)))break;}}
+  try{const fallback=await geminiText(e,system,question,700);if(fallback?.answer)return json({ok:true,...fallback});}catch(x){last=x;console.warn("app_ai_assistant_gemini_failed",String(x?.message||x));}
   console.error("app_ai_assistant",String(last?.message||last||"unknown"));
   return json({error:"AI Assistant tạm thời không khả dụng"},503);
 }
@@ -66,6 +78,7 @@ async function sentiment(r,e){
       if(raw)return json({ok:true,model,result:{text:raw,fallback:true}});
     }catch(x){last=x;console.warn("app_sentiment_model_failed",model,String(x?.message||x));}
   }
+  try{const fallback=await geminiText(e,"Classify sentiment. Return a short sentiment label and confidence only.",input,80);if(fallback?.answer)return json({ok:true,model:fallback.model,result:{text:fallback.answer,fallback:true}});}catch(x){last=x;console.warn("app_sentiment_gemini_failed",String(x?.message||x));}
   console.error("app_sentiment",String(last?.message||last||"unknown"));
   return json({error:"Sentiment AI tạm thời không khả dụng"},503);
 }
