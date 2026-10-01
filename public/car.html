@@ -4,13 +4,19 @@ const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className
 fetch('/api/cars',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Không tải được kho xe'))).then(d=>{
  const c=(d.cars||[]).find(x=>String(x.id)===id);if(!c)throw Error('Không tìm thấy xe hoặc xe không còn hiển thị.');
  document.title=(c.brand+' '+(c.name||c.model||''))+' | PHAN THUẦN XTRA';
- const imgs=Array.isArray(c.images)?c.images.map(x=>typeof x==='string'?x:x.url).filter(Boolean):[],cover=c.cover_image||imgs[0]||'',gallery=imgs,features=Array.isArray(c.features)?c.features:[];
+ const imgs=Array.isArray(c.images)?c.images.map(x=>typeof x==='string'?x:x.url).filter(Boolean):[];
+ // Editorial order for the RX350L listing: exterior overview first, then cabin/details.
+ // Keep the source image array untouched; only presentation order changes.
+ const galleryOrder=id==='tg-714'?[4,5,2,8,6,3,7,9,10,11,12,13,1,0,14]:imgs.map((_,i)=>i);
+ const gallery=galleryOrder.map(i=>imgs[i]).filter(Boolean);
+ const cover=(id==='tg-714'&&gallery[0])||c.cover_image||gallery[0]||'',
+       features=Array.isArray(c.features)?c.features:[];
  root.replaceChildren();const grid=el('div','detail-grid'),visual=el('div'),info=el('div','detail-info');
  if(cover){const img=el('img');img.src=cover;img.alt=(c.brand||'')+' '+(c.name||'');img.style.cssText='width:100%;height:auto;border-radius:12px';visual.append(img)}else visual.append(el('div','detail-image '+(c.imageClass||'')));
  info.append(el('p','eyebrow',c.brand||'PHAN THUẦN XTRA'),el('h1','',(c.brand||'')+' '+(c.name||c.model||'')),el('p','lead',[c.year,c.engine,c.odo].filter(Boolean).join(' • ')),el('div','price big',c.price||'Liên hệ'));
  if(c.description)info.append(el('div','vehicle-description',c.description));
  if(features.length){info.append(el('h2','', 'Trang bị nổi bật'));const ul=el('ul','options');features.forEach(x=>ul.append(el('li','',x)));info.append(ul)}
  const actions=el('div','actions'),call=el('a','btn primary','Gọi tư vấn'),zalo=el('a','btn zalo','Nhắn Zalo');call.href='tel:+84866997891';zalo.href='https://zalo.me/0866997891';zalo.rel='noopener noreferrer';actions.append(call,zalo);info.append(actions);grid.append(visual,info);root.append(grid);
- if(gallery.length){const section=el('section','vehicle-gallery'),g=el('div','vehicle-gallery-grid');section.append(el('h2','',`Hình ảnh chi tiết (${imgs.length} ảnh)`));gallery.forEach((src,i)=>{const a=el('a'),img=el('img');a.href=src;a.target='_blank';a.rel='noopener noreferrer';img.loading='lazy';img.decoding='async';img.src=src;img.alt=(c.brand||'')+' '+(c.name||c.model||'')+' — ảnh '+(i+1);a.append(img);g.append(a)});section.append(g);root.append(section)}
+ if(gallery.length){const section=el('section','vehicle-gallery'),g=el('div','vehicle-gallery-grid');section.append(el('h2','',`Hình ảnh chi tiết (${gallery.length} ảnh)`));gallery.forEach((src,i)=>{const a=el('a'),img=el('img');a.href=src;a.target='_blank';a.rel='noopener noreferrer';img.loading='lazy';img.decoding='async';img.src=src;img.alt=(c.brand||'')+' '+(c.name||c.model||'')+' — ảnh '+(i+1);a.append(img);g.append(a)});section.append(g);root.append(section)}
 }).catch(e=>{root.replaceChildren();const box=el('div','notice');box.append(el('h1','', 'Không thể hiển thị xe'),el('p','',e.message));const a=el('a','btn primary','Về kho xe');a.href='/#cars-section';box.append(a);root.append(box)});
 </script></body></html>
