@@ -1463,3 +1463,54 @@ Operational recovery remains:
 - A source PR is still reserved for a reproducible shared code/contract defect; routine next-listing publishing remains operational/data-only.
 
 `MASTER_PROJECT_STATUS.md` remains the sole mandatory project source-of-truth and must be read before the next listing or project mutation.
+
+---
+
+## 32. 2026-10-01 — PR #665 production closure, stale vehicle-session branch audit, and CI/Cloudflare consolidation plan
+
+### PR #665 exact production closure
+- PR #665 `feat(vehicle): canonical automatic category taxonomy` merged to `main` as `cbcd13c2ef8df170b058d934b83427ae518f172d`.
+- Deploy Cloudflare Worker run `36826584862`: SUCCESS on the exact merge SHA. Production Worker job `110253577931` checked out the exact SHA, uploaded 41 Worker modules and assigned 100% traffic to Cloudflare version `04805155-a70d-4d0f-889e-ba0699288c68`.
+- Deploy verification passed public/Admin UTF-8, R2 GET 200 → DELETE 200 → cache-busted GET 404, and publishing E2E.
+- Production Smoke Gate-15 run `36826584983`: SUCCESS.
+- The remaining post-deploy workflows also completed SUCCESS: Live Chat AI Identity Verify `36826697362` and QUEUE-01 Production E2E Origin `36826697426`.
+- All 15 observed workflows on the exact merge SHA completed SUCCESS. The canonical automatic vehicle-category change is production GREEN.
+
+### Stale `fix/telegram-vehicle-session` branch audit
+- The historical branch head `59e19c4dd35166633555bb0b22e867e2da907187` belonged to merged PR #627 `fix(telegram): recover LX570 multi-batch vehicle session`; merge commit `51f9d75f81faa3f5429723667837fdd5f053d82a`.
+- Exact compare from that historical head to current `main` showed `main` ahead by 153 commits and the old head behind by 0: there is no unmerged commit to recover or cherry-pick.
+- PR #632 subsequently replaced the fragile nearest/pending recovery model with persistent `telegram_vehicle_sessions` and per-session media identity.
+- PR #660 subsequently added durable `/carfinish` recovery.
+- Current normal `/carnew` opens a clean session and does not reclaim unrelated pending media. Do not merge or recreate the historical branch; doing so risks restoring superseded LX570-specific behavior.
+
+### ChatGPT / GitHub / Cloudflare consolidation target
+The project will simplify orchestration without weakening production evidence:
+1. ChatGPT is the engineering control plane: read this MASTER first, inspect exact evidence, create source PRs only for reproducible shared defects, and never create competing project-status Markdown.
+2. GitHub remains source, review, branch-protection, CI and exact-SHA release ledger.
+3. Cloudflare remains runtime/data plane: Worker/Assets/D1/R2/Cron. GitHub owns deployment orchestration; Cloudflare is not a second source-control coordinator.
+4. Preserve mandatory evidence: exact-SHA deployment, HTML UTF-8/mojibake checks, R2 GET→DELETE→404, publishing E2E, canonical-ID invariants and production smoke.
+5. Reduce duplicate orchestration, not validation. Consolidation must prove equivalent or stronger evidence before any legacy workflow is removed.
+
+### Ordered implementation
+- Phase 1 — inventory the current 35 workflow YAML files and classify each as core, reusable/merge candidate, manual diagnostic/recovery, or obsolete one-off.
+- Phase 2 — consolidate CI/static/security checks behind a small number of stable workflow entry points; preserve check semantics and branch protection.
+- Phase 3 — converge production to one exact-SHA Cloudflare deploy entry point followed by one production verification/E2E chain; reuse jobs instead of independent duplicate production triggers where safe.
+- Phase 4 — keep Android build/release independent from web deployment unless Android source actually changes.
+- Phase 5 — retire only proven-obsolete diagnostic/recovery workflows after replacement evidence is GREEN. Never delete a gate merely to reduce workflow count.
+- Target architecture is approximately 6–10 clearly owned workflow entry points rather than 35 independent YAML entry points. This is a target, not a permission to remove evidence.
+- The first consolidation PR must avoid vehicle/category/publishing business-logic changes. If production equivalence cannot be demonstrated, stop and keep the existing workflow.
+
+### Dependency-audit follow-up
+The #665 deploy log reported four high-severity npm audit findings while all release gates passed. Treat this as a separate dependency review: identify affected packages and reachable usage before remediation. Do not run a blind `npm audit fix` in the orchestration-consolidation change.
+
+### Phase 1 inventory — first verified classification
+The first inventory pass has started from the actual workflow YAML, not filenames alone:
+- Keep independent/manual: `admin-recovery-rotate.yml` and `android-production-release.yml`; both are explicit `workflow_dispatch` operational/release actions and must not be folded into automatic web deploy.
+- Keep PR security boundary: `ai-predeploy-audit.yml`; it audits the PR diff and runs deterministic regression tests before merge.
+- Merge candidate into the core CI validation entry point: `admin-pipeline-test.yml` and `application-validation.yml`; both are source validation/test jobs and currently duplicate checkout/Node/npm setup.
+- Production-verification merge candidate: `admin-redirect-verify.yml`; it is a push-to-main HTTP production assertion and belongs after exact-SHA deploy rather than racing deployment independently.
+- Post-deploy E2E chain candidates: `blog-cms-production-e2e.yml` and `business-jets-crm-production-e2e.yml`; both already key off successful `Deploy Cloudflare Worker` and should remain exact-deployed-SHA checks while orchestration is consolidated.
+- Android APK CI should remain logically separate from web deployment. `android-apk.yml` currently runs on broad non-Markdown PR/main changes and includes a production App API smoke; Phase 4 will narrow ownership only after equivalent Android validation is demonstrated.
+- `ai-peer-executor.yml` is manual control-plane tooling, not a release gate. Do not place it on the production critical path.
+
+No workflow has been deleted in this first pass. Remaining workflow files must be classified before Phase 2 changes triggers or removes entry points.
