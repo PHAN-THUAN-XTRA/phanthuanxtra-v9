@@ -1575,4 +1575,3 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - The three superseded standalone validation workflow entry points are removed only in the same PR that carries their checks into `CI / Validate`; this is orchestration consolidation, not validation removal.
 - No production Worker/business logic/D1/R2/vehicle/category/publishing behavior is changed in Phase 2A.
 - Acceptance requirement: PR must pass both required contexts `CI / Validate` and `AI Pre-Deploy Audit / Validate`. After merge, the exact merge SHA must show the consolidated CI GREEN before Phase 2B proceeds.
-
