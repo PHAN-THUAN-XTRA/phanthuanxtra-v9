@@ -31,3 +31,10 @@ test("update preserves existing values", () => {
   assert.equal(result.value.price,200);
   assert.deepEqual(result.value.features,["Luxury"]);
 });
+
+
+test("hidden is a supported reversible vehicle status",()=>{
+  const result=normalizeCarPayload({brand:"Lexus",model:"RX",status:"hidden"});
+  assert.equal(result.error,undefined);
+  assert.equal(result.value.status,"hidden");
+});
