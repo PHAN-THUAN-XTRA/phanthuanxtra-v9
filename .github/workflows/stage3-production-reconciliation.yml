@@ -1,10 +1,11 @@
 name: Stage 3 Production Reconciliation
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -19,6 +20,7 @@ env:
 
 jobs:
   reconcile:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     name: Current-lineage D1 Gateway AI Admin R2
     runs-on: ubuntu-latest
     timeout-minutes: 25

@@ -1,27 +1,26 @@
 name: Production Asset Delivery Gate
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "public/**"
-      - "src/entry.js"
-      - "src/index.js"
-      - "wrangler.json"
-      - ".github/workflows/production-asset-gate.yml"
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   asset-gate:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     name: Verify production asset delivery
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Check canonical recovery/admin assets
         shell: bash
         run: |
