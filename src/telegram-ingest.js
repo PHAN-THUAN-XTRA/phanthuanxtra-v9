@@ -1,4 +1,5 @@
-import { saveCar } from "./vehicle-persistence.js";
+import { saveCar, setCarVisibility, validCarId } from "./vehicle-persistence.js";
+import { canPublishAutoBlog } from "./auto-bot-ai.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { createPtXtraPlateImage, hasValidPlateBox } from "./plate-branding.js";
 import { publishCar } from "./telegram.js";
@@ -127,7 +128,22 @@ export async function handleTelegramIngest(request,env,ctx){
     if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); if(!authorized(request,env))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
     try{const result=await setTelegramWebhook(env,`${url.origin}/api/telegram/webhook`); return json({ok:true,webhook:result});}catch(error){console.error("telegram_webhook_setup_failed",String(error?.message||error));return json({ok:false,error:"Telegram setWebhook failed",detail:clean(error?.message||error)||"Unknown Telegram error"},502);}
   }
-  if(url.pathname!=="/api/telegram/webhook")return null; if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); const secret=env.TELEGRAM_WEBHOOK_SECRET; if(secret&&request.headers.get("X-Telegram-Bot-Api-Secret-Token")!==secret)return json({error:"Unauthorized"},401); const update=await request.json().catch(()=>null); const message=update?.message||update?.channel_post||null; if(!message)return json({ok:true,ignored:true}); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500); const photo=pickPhoto(message); const caption=clean(message.caption||message.text); if(!photo&&!caption)return json({ok:true,ignored:true}); const fileId=photo?.file_id||""; let filePath=""; if(photo){const file=await tg(env,"getFile",{file_id:photo.file_id}); filePath=clean(file?.file_path); if(!filePath)throw new Error("Telegram không trả file_path");} const sourceHash=await sha256(`${message.chat?.id||""}:${message.message_id}:${photo?.file_unique_id||fileId||caption}`); const chatId=String(message.chat?.id||""); const active=chatId?await env.DB.prepare("SELECT session_key FROM telegram_vehicle_sessions WHERE chat_id=? AND status='open' LIMIT 1").bind(chatId).first():null; const sessionKey=clean(active?.session_key); const mediaGroupId=clean(message.media_group_id);
+  if(url.pathname!=="/api/telegram/webhook")return null; if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); const secret=env.TELEGRAM_WEBHOOK_SECRET; if(secret&&request.headers.get("X-Telegram-Bot-Api-Secret-Token")!==secret)return json({error:"Unauthorized"},401); const update=await request.json().catch(()=>null); const message=update?.message||update?.channel_post||null; if(!message)return json({ok:true,ignored:true}); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500); const photo=pickPhoto(message); const caption=clean(message.caption||message.text); if(!photo&&!caption)return json({ok:true,ignored:true});
+  const chatId=String(message.chat?.id||"");
+  const visibilityCommand=/^(?:\/(hide|show)(?:@\w+)?|(ẩn|an|hiện|hien)\s+xe)\s+([a-z0-9][a-z0-9_-]{2,80})\s*$/iu.exec(caption);
+  if(visibilityCommand){
+    if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500);
+    if(!canPublishAutoBlog(env,chatId)){await tg(env,"sendMessage",{chat_id:chatId,text:"⛔ Chat này chưa được cấp quyền ẩn/hiện xe."}).catch(()=>{});return json({ok:true,received:true,authorized:false});}
+    const action=String(visibilityCommand[1]||visibilityCommand[2]||"").toLowerCase();
+    const visible=action==="show"||action==="hiện"||action==="hien";
+    const carId=String(visibilityCommand[3]||"").toLowerCase();
+    if(!validCarId(carId))return json({ok:false,error:"ID xe không hợp lệ"},400);
+    const result=await setCarVisibility(env.DB,carId,visible,{actor:`telegram:${chatId}`});
+    const reply=result.ok?(visible?`✅ ĐÃ HIỆN XE ${carId}\nTrạng thái: available`:`🙈 ĐÃ ẨN XE ${carId}\nTrạng thái: hidden\nDữ liệu và ảnh được giữ nguyên.`):`❌ ${result.error}`;
+    await tg(env,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:reply}).catch(()=>{});
+    return json(result.ok?{ok:true,received:true,car_id:carId,visibility:result.visibility}:{ok:false,error:result.error},result.status);
+  }
+  const fileId=photo?.file_id||""; let filePath=""; if(photo){const file=await tg(env,"getFile",{file_id:photo.file_id}); filePath=clean(file?.file_path); if(!filePath)throw new Error("Telegram không trả file_path");} const sourceHash=await sha256(`${message.chat?.id||""}:${message.message_id}:${photo?.file_unique_id||fileId||caption}`); const active=chatId?await env.DB.prepare("SELECT session_key FROM telegram_vehicle_sessions WHERE chat_id=? AND status='open' LIMIT 1").bind(chatId).first():null; const sessionKey=clean(active?.session_key); const mediaGroupId=clean(message.media_group_id);
   if(sessionKey&&photo?.file_unique_id){
     const seen=await env.DB.prepare("SELECT inbox_id FROM telegram_vehicle_session_media WHERE session_key=? AND file_unique_id=? LIMIT 1").bind(sessionKey,photo.file_unique_id).first();
     if(seen?.inbox_id)return json({ok:true,received:true,duplicate:true,inbox_id:Number(seen.inbox_id),queued:false});

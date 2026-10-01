@@ -70,6 +70,27 @@ paths:
       parameters: [{ $ref: '#/components/parameters/CarId' }]
       responses:
         '200': { description: Đã xóa }
+  /api/cms/v1/cars/{id}/visibility:
+    put:
+      operationId: setCarVisibility
+      summary: Ẩn hoặc hiện lại xe mà không sửa metadata hay ảnh
+      description: >-
+        Dùng endpoint này cho thao tác ẩn/hiện. visible=false đặt status=hidden;
+        visible=true đặt status=available. Không gửi toàn bộ object xe.
+      parameters: [{ $ref: '#/components/parameters/CarId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visible]
+              additionalProperties: false
+              properties:
+                visible: { type: boolean }
+      responses:
+        '200': { description: Đã cập nhật visibility }
+        '404': { description: Không tìm thấy xe }
   /api/cms/v1/leads:
     get:
       operationId: listLeads

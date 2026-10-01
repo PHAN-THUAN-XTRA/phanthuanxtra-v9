@@ -1,4 +1,4 @@
-import { saveCar, carImages, validCarId } from "./vehicle-persistence.js";
+import { saveCar, carImages, validCarId, setCarVisibility } from "./vehicle-persistence.js";
 import { listPosts, getPost, savePost, deletePost } from "./post-persistence.js";
 const MAX_BODY_BYTES = 1024 * 1024;
 const CAR_STATUSES = new Set(["available", "reserved", "sold", "hidden"]);
@@ -64,6 +64,15 @@ export async function handleAdminCars(request, env) {
   if (!env.DB) return response({ error: "D1 chưa được kết nối" }, 503);
   const parts = url.pathname.replace(/^\/api\/admin\/cars\/?/, "").split("/").filter(Boolean);
   const id = parts[0] || "";
+  if (parts[1] === "visibility") {
+    if (request.method !== "PUT") return response({ error: "Method Not Allowed" }, 405, { Allow: "PUT" });
+    if (!id || !safeId(id)) return response({ error: "ID không hợp lệ" }, 400);
+    const body = await readJson(request);
+    if (!body || typeof body.visible !== "boolean") return response({ error: "visible phải là boolean" }, 400);
+    const actor = text(request.headers.get("X-PTX-Actor") || "cms", 100);
+    const result = await setCarVisibility(env.DB, id, body.visible, { actor });
+    return response(result.ok ? { ok: true, id: result.id, visibility: result.visibility, car: result.car } : { error: result.error }, result.status);
+  }
   if (request.method === "GET") {
     if (id) {
       if (!safeId(id)) return response({ error: "ID không hợp lệ" }, 400);
