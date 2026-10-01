@@ -136,4 +136,3 @@ test("tg-605 public reconciliation uses the reviewed 16-image replacement galler
   assert.equal(names.length,16);
   assert.equal(new Set(names).size,16);
 });
-
