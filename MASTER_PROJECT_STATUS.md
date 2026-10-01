@@ -1621,3 +1621,8 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - Recovery uses an already-configured independent provider boundary: App Assistant and Sentiment retain Workers AI as primary, then fail over to configured Gemini only after Workers AI model attempts fail. Gemini credentials remain server-side; responses expose only the validated model name, never the key/provider error body.
 - Production E2Es accept the configured `gemini-*` model family as an explicit successful provider lineage; HTTP 503 remains failure. This is availability failover, not a weakened gate.
 - Final closure still requires required PR checks, exact merge-SHA production deploy, both App AI E2Es GREEN and the complete post-deploy chain GREEN.
+
+### PR #674 post-deploy AI audit — diagnostic follow-up
+- PR #674 merged as exact SHA `67cd15ad8e0e164a0d20560525b61aa0c959ca24`. Exact-SHA production deploy and the non-AI post-deploy chain passed, but Assistant and Sentiment still returned HTTP 503 after login HTTP 200.
+- Deploy evidence continues to show Workers AI HTTP 429 / code 4006 quota exhaustion. The configured Gemini metadata probe reported `probe_failed`, so there is not yet sufficient evidence to attribute the Gemini failure to model, credential, quota, or network status.
+- Added bounded/sanitized provider diagnostics to 503 responses and production E2E failure logs. No secret or provider response body is exposed. This diagnostic step is required before any further provider/config change; HTTP 503 remains a hard failure.
