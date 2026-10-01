@@ -54,6 +54,16 @@ jobs:
             node --check "$file"
           done
 
+      - name: Repository-wide syntax and release safety audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f MASTER_PROJECT_STATUS.md
+          test -f wrangler.json
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('wrangler.json','utf8'))"
+          find src developer-gateway -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | sort -z | xargs -0 -n1 node --check
+          node --test tests/release-gate-static.test.mjs tests/admin-auth.test.mjs tests/admin-password.test.mjs tests/ai-chat-contract.test.mjs tests/production-gates.test.mjs tests/telegram-ingest.test.mjs tests/telegram-lookup.test.mjs
+
       - name: Guard Workers AI model IDs
         shell: bash
         run: |
