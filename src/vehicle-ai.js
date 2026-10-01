@@ -7,7 +7,7 @@ const schema = {
     mileage: { type: ["integer", "null"] },
     price: { type: ["integer", "null"] },
     fuel: { type: ["string", "null"] },
-    category: { type: ["string", "null"] },
+    category: { type: ["string", "null"], enum: ["suv","sedan","coupe","convertible","mpv","pickup","wagon","sport","other",null] },
     color: { type: ["string", "null"] },
     condition: { type: ["string", "null"] },
     origin: { type: ["string", "null"] },
@@ -74,6 +74,8 @@ function stopOnDailyQuota(errors, error) {
 export async function analyzeVehicleImage(env, fileBytes, contentType, caption = "") {
   if (!env.AI) throw new Error("Workers AI binding AI is not configured");
   const prompt = `Bạn là bộ phận nhập kho xe của Phan Thuần Xtra. Chỉ ghi dữ kiện nhìn thấy hoặc được cung cấp rõ ràng; không bịa. Không suy đoán năm sản xuất, ODO, giá, phiên bản, động cơ, option, màu hoặc xuất xứ. condition chỉ mô tả dấu hiệu ngoại quan nhìn thấy (ví dụ vết xước), không khẳng định tình trạng máy móc hay pháp lý. Nếu không đủ bằng chứng trả null và thêm trường vào missing_fields. origin/origin_country chỉ ghi khi có bằng chứng rõ từ caption, giấy tờ hoặc dữ kiện nhận dạng đáng tin cậy. Phân biệt form hiện tại với xe gốc: form_state=facelift nếu ngoại hình có dấu hiệu facelift nhưng không coi facelift là năm sản xuất; up_form nếu đã đổi ngoại hình sang form đời mới; modified nếu độ/chỉnh sửa; original nếu không thấy dấu hiệu; uncertain nếu thiếu bằng chứng. form_notes phải giải thích ngắn gọn bằng tiếng Việt khi khác original.
+
+CATEGORY: chỉ dùng một trong suv, sedan, coupe, convertible, mpv, pickup, wagon, sport, other. Gộp crossover/CUV vào suv. Chỉ dùng other khi không đủ dữ kiện nhận diện kiểu thân xe; không tự tạo nhãn category mới.
 
 QUAN TRỌNG: tìm biển số xe. plate_bbox là vùng chuẩn hóa 0..1 theo ảnh gốc; nếu không nhìn thấy hoặc không chắc chắn thì null.
 
