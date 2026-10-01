@@ -13,7 +13,7 @@ async function geminiText(e,system,user,maxOutputTokens=700){
   if(!e.GEMINI_API_KEY||!/^gemini-[a-z0-9.-]+$/.test(e.GEMINI_MODEL||""))return null;
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${e.GEMINI_MODEL}:generateContent`;
   const payload={contents:[{role:"user",parts:[{text:`${system}\n\n${user}`}]}],generationConfig:{temperature:.1,maxOutputTokens}};
-  const response=await fetch(url,{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":e.GEMINI_API_KEY},body:JSON.stringify(payload),redirect:"error",signal:AbortSignal.timeout(25000)});
+  const response=await fetch(url,{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":e.GEMINI_API_KEY},body:JSON.stringify(payload),redirect:"manual",signal:AbortSignal.timeout(25000)});
   if(!response.ok)throw new Error(`Gemini HTTP ${response.status}`);
   const data=await response.json();
   const answer=text(data?.candidates?.[0]?.content?.parts?.map(p=>p?.text||"").join(""),8000);
