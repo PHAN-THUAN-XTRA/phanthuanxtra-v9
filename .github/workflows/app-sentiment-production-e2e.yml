@@ -40,6 +40,6 @@ jobs:
           status="$(curl --silent --show-error --max-time 90 -o /tmp/sentiment.json -w '%{http_code}' -X POST "$SITE_URL/api/app/v1/sentiment" -H "Authorization: Bearer $APP_TOKEN" -H 'content-type: application/json' --data '{"text":"Dịch vụ tư vấn rất tốt và chuyên nghiệp."}')"
           echo "Sentiment HTTP $status"
           test "$status" = "200"
-          jq -e '.ok == true and .model == "@cf/huggingface/distilbert-sst-2-int8" and .result != null' /tmp/sentiment.json >/dev/null
+          jq -e '.ok == true and (.model == "@cf/huggingface/distilbert-sst-2-int8" or .model == "@cf/zai-org/glm-4.7-flash") and .result != null' /tmp/sentiment.json >/dev/null
           echo "App Sentiment production E2E: PASS"
-          echo "Model: @cf/huggingface/distilbert-sst-2-int8"
+          jq -r '"Model: " + .model' /tmp/sentiment.json

@@ -73,7 +73,7 @@ test('Android operator app uses the canonical App API namespace with signed Admi
 
 test('App API exposes authenticated native AI assistant with free-first fallback chain', () => {
   assert.match(appApi, /\/api\/app\/v1\/assistant/);
-  assert.match(appApi, /@cf\/meta\/llama-3\.1-8b-instruct-fast/);
+  assert.match(appApi, /@cf\/zai-org\/glm-4\.7-flash/);
   assert.match(appApi, /@cf\/qwen\/qwen3\.8-27b/);
   assert.match(appApi, /rejectIfBusy:true/);
 });
@@ -89,6 +89,8 @@ test('App API routes assistant through AI Gateway default and exposes bounded se
   assert.match(appApi, /cf-aig-metadata/);
   assert.match(appApi, /\/api\/app\/v1\/sentiment/);
   assert.match(appApi, /@cf\/huggingface\/distilbert-sst-2-int8/);
+  assert.match(appApi, /const models=\["@cf\/huggingface\/distilbert-sst-2-int8","@cf\/zai-org\/glm-4\.7-flash"\]/);
+  assert.match(appApi, /fallback:true/);
   assert.match(appApi, /text\(b\.text,2000\)/);
   assert.match(appApi, /skipCache:true/);
 });

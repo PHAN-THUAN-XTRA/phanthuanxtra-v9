@@ -42,7 +42,7 @@ async function assistant(r,e){
   let cars=[];
   if(e.DB){try{const q=await e.DB.prepare("SELECT id,brand,model,year,mileage,price,fuel,category,color,status,description FROM cars WHERE status <> 'hidden' ORDER BY featured DESC,created_at DESC LIMIT 40").all();cars=q.results||[]}catch{}}
   const system=`Bạn là XTRA APK Assistant cho PHAN THUẦN XTRA. Trả lời ngắn gọn bằng tiếng Việt. Chỉ dùng dữ liệu catalog được cung cấp cho câu hỏi về xe; không bịa giá, ODO, tình trạng hay option. Với tác vụ quản trị, chỉ hướng dẫn và tóm tắt; không tự ý thay đổi D1/R2 hay production. CATALOG: ${JSON.stringify(cars)}`;
-  const models=["@cf/meta/llama-3.1-8b-instruct-fast","@cf/qwen/qwen3.8-27b","@cf/nvidia/nemotron-3-120b-a12b"];
+  const models=["@cf/zai-org/glm-4.7-flash","@cf/qwen/qwen3.8-27b","@cf/nvidia/nemotron-3-120b-a12b"];
   let last=null;
   for(const model of models){try{const out=await e.AI.run(model,{messages:[{role:"system",content:system},{role:"user",content:question}],temperature:.15,max_tokens:700},{...AI_GATEWAY,rejectIfBusy:true});const answer=text(out?.response??out?.choices?.[0]?.message?.content,8000);if(answer)return json({ok:true,answer,model});}catch(x){last=x;if(/3036|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(x?.message||x)))break;}}
   console.error("app_ai_assistant",String(last?.message||last||"unknown"));
@@ -53,10 +53,21 @@ async function sentiment(r,e){
   if(!e.AI)return json({error:"Workers AI chưa được kết nối"},503);
   const b=await body(r)||{},input=text(b.text,2000);
   if(!input)return json({error:"Nội dung trống"},400);
-  try{
-    const out=await e.AI.run("@cf/huggingface/distilbert-sst-2-int8",{text:input},{gateway:{id:"default",skipCache:true},extraHeaders:{"cf-aig-metadata":JSON.stringify({app:"phanthuanxtra",surface:"android-sentiment"})}});
-    return json({ok:true,model:"@cf/huggingface/distilbert-sst-2-int8",result:out});
-  }catch(x){console.error("app_sentiment",String(x?.message||x));return json({error:"Sentiment AI tạm thời không khả dụng"},503)}
+  let last=null;
+  const models=["@cf/huggingface/distilbert-sst-2-int8","@cf/zai-org/glm-4.7-flash"];
+  for(const model of models){
+    try{
+      if(model==="@cf/huggingface/distilbert-sst-2-int8"){
+        const out=await e.AI.run(model,{text:input},{gateway:{id:"default",skipCache:true},extraHeaders:{"cf-aig-metadata":JSON.stringify({app:"phanthuanxtra",surface:"android-sentiment"})}});
+        return json({ok:true,model,result:out});
+      }
+      const out=await e.AI.run(model,{messages:[{role:"system",content:"Classify sentiment. Return a short sentiment label and confidence only."},{role:"user",content:input}],temperature:0,max_tokens:80});
+      const raw=text(out?.response??out?.choices?.[0]?.message?.content,1000);
+      if(raw)return json({ok:true,model,result:{text:raw,fallback:true}});
+    }catch(x){last=x;console.warn("app_sentiment_model_failed",model,String(x?.message||x));}
+  }
+  console.error("app_sentiment",String(last?.message||last||"unknown"));
+  return json({error:"Sentiment AI tạm thời không khả dụng"},503);
 }
 async function analyze(r,e){if(r.method!=='POST')return json({error:"Method Not Allowed"},405,{Allow:"POST"});const type=r.headers.get("content-type")||"image/jpeg";if(!type.startsWith("image/"))return json({error:"Chỉ nhận image/*"},415);const bytes=await r.arrayBuffer();if(bytes.byteLength>12*1024*1024)return json({error:"Ảnh vượt quá 12MB"},413);const caption=text(new URL(r.url).searchParams.get('caption'),2000);try{return json({ok:true,analysis:await analyzeVehicleImage(e,bytes,type,caption)})}catch(x){console.error("app_vehicle_analyze",String(x?.message||x));const diagnostics=Array.isArray(x?.diagnostics)?x.diagnostics.map(v=>({model:String(v?.model||"").slice(0,120),code:String(v?.code||"UNKNOWN").slice(0,40),reason:String(v?.reason||"").slice(0,240)})):undefined;return json({error:"Vehicle AI không khả dụng",code:"VEHICLE_AI_UNAVAILABLE",retryable:true,...(diagnostics?{diagnostics}:{})},503)}}
 function decodeCarId(pathname){const raw=pathname.slice('/api/app/v1/cars/'.length);try{return decodeURIComponent(raw)}catch{return null}}
