@@ -36,7 +36,8 @@ export async function setCarVisibility(db, carId, visible, { actor="visibility-a
   const status=visible?"available":"hidden";
   if(existing.status!==status){
     await db.prepare("UPDATE cars SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id).run();
-    await db.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) VALUES (?,?,?,?,?)").bind(text(actor,100),"visibility","car",id,text(`status=${status}; previous=${existing.status}`,500)).run();
+    const summary="status="+status+"; previous="+existing.status;
+    await db.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) VALUES (?,?,?,?,?)").bind(text(actor,100),"visibility","car",id,text(summary,500)).run();
   }
   return {ok:true,status:200,id,visibility:visible?"visible":"hidden",car:{...existing,status}};
 }
