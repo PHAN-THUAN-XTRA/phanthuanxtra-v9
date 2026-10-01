@@ -1632,3 +1632,17 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - The new bounded diagnostic identified the same deterministic Gemini failure in both endpoints: Cloudflare Workers rejects Fetch `redirect:"error"` because edge Fetch supports `follow` or `manual`, not `error`.
 - Root-cause fix changes only the Gemini fallback request to `redirect:"manual"`; response status remains explicitly checked before parsing. A targeted contract test locks this edge-compatible mode and forbids regression to `redirect:"error"` in App API.
 - Workers AI quota exhaustion remains independently evidenced; final acceptance still requires real successful Assistant and Sentiment inference after exact-SHA production deploy.
+
+## 33. 2026-10-01 — CI/Cloudflare consolidation and production AI recovery final closure
+- PR #676 merged as exact SHA `ae10e58cf8fa7766e9e2960eb474665b489dc5fb`.
+- Required validation on the exact merge SHA: both `CI / Validate` checks SUCCESS; Android `build-apk` SUCCESS.
+- Production deploy job `110288566860` SUCCESS. Cloudflare lineage: deployment `be8e0f01-d848-4bd4-967e-a4ec1515a95b`, Worker version `b2204e9b-c48d-444a-880d-58047596a127`, 100% traffic.
+- Production boundary PASS: homepage, health and admin HTTP 200; HTML UTF-8 verified after decompression; editorial UTF-8 routes PASS; admin mojibake markers absent.
+- R2 E2E PASS: authenticated GET 200 → DELETE 200 → cache-busted GET 404.
+- Publishing production E2E PASS: canonical/variant media, private draft 404, idempotent retry, publish, public HTML UTF-8 + cover, cleanup.
+- Workers AI account remains quota-exhausted (REST probe HTTP 429 / code 4006), but independent configured Gemini fallback is now production-proven after correcting the Cloudflare edge Fetch redirect mode.
+- App Assistant production E2E job `110288831685` SUCCESS: login HTTP 200, inference HTTP 200, model `gemini-3.5-flash-lite`.
+- App Sentiment production E2E job `110288829866` SUCCESS: login HTTP 200, inference HTTP 200, model `gemini-3.5-flash-lite`.
+- Production Smoke Gate-15, Current-lineage D1/Gateway/AI/Admin/R2, asset, homepage/admin, Blog CMS and the observed exact-SHA post-deploy verification chain all SUCCESS.
+- Workflow inventory after Phase 5 is freshly verified at **30** YAML entry points. The earlier 6–10 figure was a planning target, not an acceptance requirement; validation was not deleted merely to reach a count. Exact-SHA deploy ownership and post-deploy chaining are the achieved simplification boundary.
+- Phase 1–5 consolidation plus production AI recovery is **FINAL GREEN** on the above production evidence. Future changes continue to use this MASTER as the sole project source-of-truth and must preserve exact-SHA deployment, UTF-8/mojibake, R2, publishing, smoke and branch-protection invariants.
