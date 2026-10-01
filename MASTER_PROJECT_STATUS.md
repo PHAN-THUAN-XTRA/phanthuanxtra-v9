@@ -1306,3 +1306,31 @@ This is the default owner workflow for future vehicle listings. A normal new lis
 
 ### Defender tg-605 lesson and boundary
 The successful Defender `tg-605` recovery is a reference outcome, not the normal publishing mechanism. Vehicle-specific recovery behavior such as `/caradd 605`, hard-coded `TG605_MEDIA_ORDER`, old-media recovery, or `tg-605` reconciliation must not be required for a future normal listing. Future vehicles should complete through `/carnew → owner copy + album → /carfinish → /carpreview <Inbox> → /carpublish <Inbox>` and the permanent production gates above.
+
+---
+
+## 29. 2026-10-01 — PR #660 durable `/carfinish` production closure and publishing SOP
+
+### Exact lineage and production evidence
+- PR #660 `fix(telegram): recover interrupted /carfinish through durable queue` merged to `main` as `8ddc245edb7a78c3b7a792f7068901fcaa4f0e36`.
+- Deploy Cloudflare Worker #1781: SUCCESS on the exact merge SHA.
+- Deploy verification: public/Admin/editorial UTF-8 PASS; R2 lifecycle GET 200 → DELETE 200 → cache-busted GET 404 PASS.
+- Production Smoke Gate-15 #483: SUCCESS.
+- QUEUE-01 Production E2E Origin #1014: SUCCESS.
+- Blog CMS Production E2E #644 attempt 1 reached CREATE 201, public API 200, public page 200 and UTF-8 PASS before a transient `curl (35) Recv failure: Connection reset by peer`.
+- Failed jobs were rerun without a source change. Attempt 2: SUCCESS, including create → read → public UTF-8 → update → delete → 404.
+- Same merge lineage production workflows are GREEN after the successful rerun.
+
+### Durable vehicle intake invariant
+Normal future vehicle publishing uses:
+`/carnew → owner copy + album → /carfinish → /carpreview <Inbox> → /carpublish <Inbox>`.
+
+`/carfinish` checkpoints selected unique session photos and owner copy into the durable queue, closes intake and permits explicit recovery of interrupted `processing`/`failed` work. An interrupted gallery must not be repaired by resending the album, opening a second vehicle session or creating a vehicle-specific code PR.
+
+### Operational rule — no PR per article/listing
+Publishing content, retrying a transient network failure, recovering durable processing, editing owner data and verifying a canonical public record are operational/data actions. They are not code changes and must not require a per-article or per-vehicle PR.
+
+Open a source PR only when evidence demonstrates a reusable code/contract defect. Do not use a PR as the retry mechanism for timeout, Telegram confirmation loss, connection reset, delayed queue processing or article-specific data correction.
+
+The detailed owner runbook is `docs/telegram-editorial.md`.
+
