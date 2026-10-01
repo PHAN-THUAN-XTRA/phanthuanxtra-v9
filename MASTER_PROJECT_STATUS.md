@@ -1503,3 +1503,15 @@ The project will simplify orchestration without weakening production evidence:
 ### Dependency-audit follow-up
 The #665 deploy log reported four high-severity npm audit findings while all release gates passed. Treat this as a separate dependency review: identify affected packages and reachable usage before remediation. Do not run a blind `npm audit fix` in the orchestration-consolidation change.
 
+### Phase 1 inventory — first verified classification
+The first inventory pass has started from the actual workflow YAML, not filenames alone:
+- Keep independent/manual: `admin-recovery-rotate.yml` and `android-production-release.yml`; both are explicit `workflow_dispatch` operational/release actions and must not be folded into automatic web deploy.
+- Keep PR security boundary: `ai-predeploy-audit.yml`; it audits the PR diff and runs deterministic regression tests before merge.
+- Merge candidate into the core CI validation entry point: `admin-pipeline-test.yml` and `application-validation.yml`; both are source validation/test jobs and currently duplicate checkout/Node/npm setup.
+- Production-verification merge candidate: `admin-redirect-verify.yml`; it is a push-to-main HTTP production assertion and belongs after exact-SHA deploy rather than racing deployment independently.
+- Post-deploy E2E chain candidates: `blog-cms-production-e2e.yml` and `business-jets-crm-production-e2e.yml`; both already key off successful `Deploy Cloudflare Worker` and should remain exact-deployed-SHA checks while orchestration is consolidated.
+- Android APK CI should remain logically separate from web deployment. `android-apk.yml` currently runs on broad non-Markdown PR/main changes and includes a production App API smoke; Phase 4 will narrow ownership only after equivalent Android validation is demonstrated.
+- `ai-peer-executor.yml` is manual control-plane tooling, not a release gate. Do not place it on the production critical path.
+
+No workflow has been deleted in this first pass. Remaining workflow files must be classified before Phase 2 changes triggers or removes entry points.
+
