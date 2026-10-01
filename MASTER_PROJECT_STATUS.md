@@ -1306,3 +1306,69 @@ This is the default owner workflow for future vehicle listings. A normal new lis
 
 ### Defender tg-605 lesson and boundary
 The successful Defender `tg-605` recovery is a reference outcome, not the normal publishing mechanism. Vehicle-specific recovery behavior such as `/caradd 605`, hard-coded `TG605_MEDIA_ORDER`, old-media recovery, or `tg-605` reconciliation must not be required for a future normal listing. Future vehicles should complete through `/carnew → owner copy + album → /carfinish → /carpreview <Inbox> → /carpublish <Inbox>` and the permanent production gates above.
+
+---
+
+## 29. 2026-10-01 — PR #660 durable `/carfinish` production closure and publishing SOP
+
+### Exact lineage and production evidence
+- PR #660 `fix(telegram): recover interrupted /carfinish through durable queue` merged to `main` as `8ddc245edb7a78c3b7a792f7068901fcaa4f0e36`.
+- Deploy Cloudflare Worker #1781: SUCCESS on the exact merge SHA.
+- Deploy verification: public/Admin/editorial UTF-8 PASS; R2 lifecycle GET 200 → DELETE 200 → cache-busted GET 404 PASS.
+- Production Smoke Gate-15 #483: SUCCESS.
+- QUEUE-01 Production E2E Origin #1014: SUCCESS.
+- Blog CMS Production E2E #644 attempt 1 reached CREATE 201, public API 200, public page 200 and UTF-8 PASS before a transient `curl (35) Recv failure: Connection reset by peer`.
+- Failed jobs were rerun without a source change. Attempt 2: SUCCESS, including create → read → public UTF-8 → update → delete → 404.
+- Same merge lineage production workflows are GREEN after the successful rerun.
+
+### Durable vehicle intake invariant
+Normal future vehicle publishing uses:
+`/carnew → owner copy + album → /carfinish → /carpreview <Inbox> → /carpublish <Inbox>`.
+
+`/carfinish` checkpoints selected unique session photos and owner copy into the durable queue, closes intake and permits explicit recovery of interrupted `processing`/`failed` work. An interrupted gallery must not be repaired by resending the album, opening a second vehicle session or creating a vehicle-specific code PR.
+
+### Operational rule — no PR per article/listing
+Publishing content, retrying a transient network failure, recovering durable processing, editing owner data and verifying a canonical public record are operational/data actions. They are not code changes and must not require a per-article or per-vehicle PR.
+
+Open a source PR only when evidence demonstrates a reusable code/contract defect. Do not use a PR as the retry mechanism for timeout, Telegram confirmation loss, connection reset, delayed queue processing or article-specific data correction.
+
+Detailed owner instructions are consolidated below in this MASTER. `MASTER_PROJECT_STATUS.md` is the sole mandatory source-of-truth to read before any project work; do not create or rely on a competing status/runbook file.
+
+
+
+### Detailed owner SOP — new vehicle
+
+1. Send `/carnew` and wait for confirmation that a clean session is open. Never mix two vehicles in one session.
+2. Send the final owner-reviewed copy. Preserve Vietnamese UTF-8, paragraph breaks, emoji and bullets. Owner-approved price/ODO are authoritative; AI must not invent or overwrite them.
+3. Send the complete image set once, preferably one Telegram album. Wait for upload completion; do not resend the album because background processing is slow.
+4. Send `/carfinish` after intake is complete. The command checkpoints unique photos + owner copy into the durable queue and closes intake.
+5. If processing/response is interrupted, do not open a new session, resend photos, or create a PR. Retry `/carfinish` for the just-closed session so queued/processing/failed work can recover on the same vehicle.
+6. When Inbox/draft is available, run `/carpreview <Inbox>`. Verify vehicle identity, owner copy, price, ODO/contact state, approved image count, intentional cover, semantic gallery order, UTF-8 and media URLs without encoded `%2F` separators.
+7. Only after preview approval, run `/carpublish <Inbox>` once.
+8. If Telegram confirmation times out, verify canonical status/URL before retrying. Confirmation failure does not prove publication failure.
+9. After publish, verify the canonical URL: HTTP 200, `text/html; charset=utf-8`, correct Vietnamese copy, price/ODO, hero, complete gallery and same canonical vehicle ID.
+
+### Detailed owner SOP — Blog
+
+- Publish now: send `/post <title>` followed by the body on subsequent lines.
+- Draft: send `/draft <title>` + body; review, then `/publish <ID>`.
+- Schedule: send `/schedule YYYY-MM-DD HH:mm` + title/body. Time is Vietnam UTC+07:00.
+- Use `/posts` to inspect state after a timeout instead of blindly creating a duplicate.
+- Publishing API/GPT retries must reuse the same `request_id` for the same request.
+
+### Failure handling without a repair PR
+
+- Timeout/connection reset: read current state first, then retry/reconcile.
+- Interrupted vehicle gallery: durable `/carfinish` recovery; never resend the full album as the first recovery action.
+- Lost Telegram confirmation: verify canonical record/public URL before retry.
+- Article/vehicle data correction: update the same canonical record; do not republish solely to edit.
+- Create a source PR only for a reproducible shared code/contract defect. A normal publish, operational retry, queue recovery or one-record correction must not require a PR.
+
+### Pre-publish checklist
+
+- Latest relevant production Worker lineage is deployed and required publishing gates have no current related RED.
+- Correct authorized bot/chat is being used.
+- Owner copy is final; price/ODO are owner-approved or intentionally unknown.
+- All media belongs to the same article/vehicle and is fully uploaded before finish.
+- Preview is approved before first vehicle publish.
+- Content/media/retry actions do not require GitHub commits.
