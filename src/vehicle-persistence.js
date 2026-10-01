@@ -1,6 +1,7 @@
 const CAR_STATUSES = new Set(["available", "reserved", "sold", "hidden"]);
 const text = (value, max = 1000) => String(value ?? "").trim().slice(0, max);
 const integer = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const nullableInteger = (value, fallback = null) => value === null || value === "" || value === undefined ? fallback : (Number.isFinite(Number(value)) ? Number(value) : fallback);
 const bool = value => value === true || value === 1 || value === "1" || value === "true";
 export const validCarId = value => /^[a-z0-9][a-z0-9_-]{2,80}$/i.test(String(value ?? ""));
 
@@ -12,7 +13,7 @@ export function normalizeCarPayload(body, existing = {}) {
   if (!CAR_STATUSES.has(status)) return { error: `status phải là: ${[...CAR_STATUSES].join(", ")}` };
   let previousFeatures = [];
   try { previousFeatures = existing.features_json ? JSON.parse(existing.features_json) : []; } catch {}
-  return { value: { brand, model, year: body?.year === null ? null : integer(body?.year ?? existing.year, 0) || null, mileage: integer(body?.mileage ?? existing.mileage, 0), price: integer(body?.price ?? existing.price, 0), fuel: text(body?.fuel ?? existing.fuel, 100), category: text(body?.category ?? existing.category, 40), color: text(body?.color ?? existing.color, 80), status, description: text(body?.description ?? existing.description, 10000), features: Array.isArray(body?.features) ? body.features.slice(0,80).map(x=>text(x,300)) : previousFeatures, featured: bool(body?.featured ?? existing.featured), cover_image: text(body?.cover_image ?? existing.cover_image, 200000) } };
+  return { value: { brand, model, year: body?.year === null ? null : integer(body?.year ?? existing.year, 0) || null, mileage: Object.prototype.hasOwnProperty.call(body ?? {}, "mileage") ? nullableInteger(body.mileage, existing.mileage ?? null) : (existing.mileage ?? null), price: integer(body?.price ?? existing.price, 0), fuel: text(body?.fuel ?? existing.fuel, 100), category: text(body?.category ?? existing.category, 40), color: text(body?.color ?? existing.color, 80), status, description: text(body?.description ?? existing.description, 10000), features: Array.isArray(body?.features) ? body.features.slice(0,80).map(x=>text(x,300)) : previousFeatures, featured: bool(body?.featured ?? existing.featured), cover_image: text(body?.cover_image ?? existing.cover_image, 200000) } };
 }
 
 function normalizeImages(images) {
