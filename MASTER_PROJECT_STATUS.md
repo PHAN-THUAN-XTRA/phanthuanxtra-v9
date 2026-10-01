@@ -1567,4 +1567,3 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - Credential mutation, signed Android release, backups and diagnostics remain isolated manual/scheduled workflows.
 - RETIRE means delete only after the replacement/current coverage is verified in PR checks. The Defender one-off must not remain as a reusable production mutation path.
 - Phase 2 starts with the lowest-risk duplicate removal: consolidate source validation into `ci.yml` while preserving the required `CI / Validate` context. Production E2E orchestration changes follow only after that is GREEN.
-
