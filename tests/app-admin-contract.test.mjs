@@ -79,6 +79,8 @@ test('App API exposes authenticated native AI assistant with free-first fallback
   assert.match(appApi, /geminiText/);
   assert.match(appApi, /GEMINI_API_KEY/);
   assert.match(appApi, /GEMINI_MODEL/);
+  assert.match(appApi, /providers_exhausted/);
+  assert.match(appApi, /last_provider_error/);
 });
 
 test('Android operator hub exposes XTRA AI Assistant through App API', () => {
