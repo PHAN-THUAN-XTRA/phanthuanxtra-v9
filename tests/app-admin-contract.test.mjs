@@ -76,6 +76,9 @@ test('App API exposes authenticated native AI assistant with free-first fallback
   assert.match(appApi, /@cf\/zai-org\/glm-4\.7-flash/);
   assert.match(appApi, /@cf\/qwen\/qwen3\.8-27b/);
   assert.match(appApi, /rejectIfBusy:true/);
+  assert.match(appApi, /geminiText/);
+  assert.match(appApi, /GEMINI_API_KEY/);
+  assert.match(appApi, /GEMINI_MODEL/);
 });
 
 test('Android operator hub exposes XTRA AI Assistant through App API', () => {
@@ -91,6 +94,7 @@ test('App API routes assistant through AI Gateway default and exposes bounded se
   assert.match(appApi, /@cf\/huggingface\/distilbert-sst-2-int8/);
   assert.match(appApi, /const models=\["@cf\/huggingface\/distilbert-sst-2-int8","@cf\/zai-org\/glm-4\.7-flash"\]/);
   assert.match(appApi, /fallback:true/);
+  assert.match(appApi, /app_sentiment_gemini_failed/);
   assert.match(appApi, /text\(b\.text,2000\)/);
   assert.match(appApi, /skipCache:true/);
 });
