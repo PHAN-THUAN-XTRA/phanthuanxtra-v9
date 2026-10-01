@@ -31,3 +31,8 @@ test("update preserves existing values", () => {
   assert.equal(result.value.price,200);
   assert.deepEqual(result.value.features,["Luxury"]);
 });
+
+
+test("hidden is a supported reversible vehicle status",()=>{
+  assert.match(source,/CAR_STATUSES = new Set\(\["available", "reserved", "sold", "hidden"\]\)/);
+});
