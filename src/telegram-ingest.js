@@ -27,7 +27,7 @@ function carIdForInbox(inboxId){return `tg-${Number(inboxId)}`}
 
 function safeWebhookInfo(info,expectedUrl){
   const actual=clean(info?.url);
-  return {ok:true,configured:Boolean(actual),url_configured:Boolean(actual),url_matches_expected:actual===expectedUrl,expected_url:expectedUrl,has_custom_certificate:Boolean(info?.has_custom_certificate),pending_update_count:Number(info?.pending_update_count||0),last_error_date:info?.last_error_date||null,last_error_message:clean(info?.last_error_message,500)||null,last_synchronization_error_date:info?.last_synchronization_error_date||null,max_connections:info?.max_connections||null,ip_address:info?.ip_address||null};
+  return {ok:true,configured:Boolean(actual),url_configured:Boolean(actual),url:actual||null,url_matches_expected:actual===expectedUrl,expected_url:expectedUrl,has_custom_certificate:Boolean(info?.has_custom_certificate),pending_update_count:Number(info?.pending_update_count||0),last_error_date:info?.last_error_date||null,last_error_message:clean(info?.last_error_message,500)||null,last_synchronization_error_date:info?.last_synchronization_error_date||null,max_connections:info?.max_connections||null,ip_address:info?.ip_address||null};
 }
 
 async function getTelegramWebhookInfo(env){return tg(env,"getWebhookInfo",{});}
@@ -139,8 +139,10 @@ export async function handleTelegramIngest(request,env,ctx){
   }
   if(url.pathname!=="/api/telegram/webhook")return null; if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); const secret=env.TELEGRAM_WEBHOOK_SECRET; if(secret&&request.headers.get("X-Telegram-Bot-Api-Secret-Token")!==secret)return json({error:"Unauthorized"},401); const update=await request.json().catch(()=>null); const message=update?.message||update?.channel_post||null; if(!message)return json({ok:true,ignored:true}); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500); const photo=pickPhoto(message); const caption=clean(message.caption||message.text); if(!photo&&!caption)return json({ok:true,ignored:true});
   const chatId=String(message.chat?.id||"");
+  console.log("telegram_webhook_dispatch",JSON.stringify({handler:"telegram-ingest",version:"visibility-v1",update_id:update?.update_id??null,chat_id:chatId||null,message_id:message.message_id??null,kind:message.text?"text":message.caption?"caption":photo?"photo":"other",has_command:/^\s*\//.test(caption)}));
   const visibilityCommand=/^(?:\/(hide|show)(?:@\w+)?|(ẩn|an|hiện|hien)\s+xe)\s+([a-z0-9][a-z0-9_-]{2,80})\s*$/iu.exec(caption);
   if(visibilityCommand){
+    console.log("telegram_visibility_command",JSON.stringify({handler:"telegram-ingest",version:"visibility-v1",update_id:update?.update_id??null,chat_id:chatId||null,message_id:message.message_id??null,action:String(visibilityCommand[1]||visibilityCommand[2]||"").toLowerCase(),car_id:String(visibilityCommand[3]||"").toLowerCase()}));
     if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500);
     if(!canPublishAutoBlog(env,chatId)){await tg(env,"sendMessage",{chat_id:chatId,text:"⛔ Chat này chưa được cấp quyền ẩn/hiện xe."}).catch(()=>{});return json({ok:true,received:true,authorized:false});}
     const action=String(visibilityCommand[1]||visibilityCommand[2]||"").toLowerCase();
