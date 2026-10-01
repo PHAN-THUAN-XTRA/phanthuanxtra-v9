@@ -1426,3 +1426,40 @@ Operational recovery remains:
 - **Normal next-vehicle publishing workflow: READY.**
 
 `MASTER_PROJECT_STATUS.md` remains the sole mandatory project source-of-truth. Do not create a competing checkpoint, status or runbook file.
+
+
+---
+
+## 31. 2026-10-01 — Lexus GX 460 Inbox 677 data-only recovery and canonical publish
+
+### Operational recovery evidence
+- New vehicle intake completed on durable session `6451516147:vehicle-session:4311` with 17 approved images and owner-authored Vietnamese copy.
+- Durable processing completed as Inbox `677`; draft media evidence contained 17 WebP keys and 17 corresponding AVIF keys. No second vehicle/session was created and the album was not resent.
+- Initial preview exposed a data-layer metadata gap: Workers AI was unavailable/confidence 0, the structured model was missing, and the title had absorbed owner copy. This was handled as an operational data correction on the existing draft, not by creating a vehicle-specific source repair.
+- Production D1 access was authenticated with Wrangler OAuth against account `5f35d608938abe622b694bab3af1319c` and remote database `phanthuanxtra-db` / `8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d`. No credential value is stored here.
+- Before mutation, Inbox 677 was backed up locally. The existing `ai_json` was patched in place with owner-authoritative structured values while preserving media arrays and description; draft status was reset to `awaiting_review`.
+- Verified post-patch draft values: brand `LEXUS`; model `GX 460 Luxury`; year `2021`; price `4150000000`; mileage `41044`; owner lock `1`; WebP count `17`; AVIF count `17`.
+
+### Preview and publish evidence
+- Owner preview command `/carpreview 677` was confirmed at 11:19 UTC+7 on 2026-10-01.
+- Preview showed `LEXUS GX 460 Luxury`, year `2021`, ODO `41044`, price `4150000000`, preserved owner copy, and `17 ảnh WebP + AVIF tương ứng`.
+- Workers AI remained unavailable/confidence 0; this did not override or invalidate the explicit owner-approved structured values.
+- Owner then ran `/carpublish 677` exactly once. Telegram confirmed publication as canonical ID `tg-677` with public URL `https://phanthuanxtra.com/car?id=tg-677`.
+- Telegram's publish message displayed `Ảnh xe: 7 ảnh trên website`; this was treated as non-authoritative display text and checked against canonical D1 rather than triggering republish.
+
+### Canonical production D1 verification
+- Canonical `cars` row exists as `tg-677`: brand `LEXUS`; model `GX 460 Luxury`; year `2021`; mileage `41044`; price `4150000000`; status `available`.
+- Canonical cover is `https://phanthuanxtra.com/media/vehicles/telegram-677-e391390e3fff08a1.webp`.
+- Canonical gallery contains exactly 17 rows with `sort_order` range `0..16` and exactly one cover. Therefore the Telegram seven-image summary is not the canonical gallery count.
+- Do not rerun `/carpublish 677`. Any future copy/price/ODO/gallery correction must update the same canonical ID `tg-677`.
+
+### Closure and next-listing readiness
+- **Inbox 677 structured metadata recovery: PASS.**
+- **Owner preview after correction: PASS.**
+- **Single canonical publish to `tg-677`: PASS.**
+- **Canonical production D1 price/ODO/status/cover/gallery-count verification: PASS.**
+- Direct browser/public HTTP rendering was not independently re-verified in this recovery session; do not represent that unperformed check as evidence.
+- The normal publishing queue is clear for the next vehicle. Continue with a fresh `/carnew → owner copy + complete album → /carfinish → /carpreview <Inbox> → /carpublish <Inbox>` flow.
+- A source PR is still reserved for a reproducible shared code/contract defect; routine next-listing publishing remains operational/data-only.
+
+`MASTER_PROJECT_STATUS.md` remains the sole mandatory project source-of-truth and must be read before the next listing or project mutation.
