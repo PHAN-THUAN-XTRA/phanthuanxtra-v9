@@ -1575,3 +1575,10 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - The three superseded standalone validation workflow entry points are removed only in the same PR that carries their checks into `CI / Validate`; this is orchestration consolidation, not validation removal.
 - No production Worker/business logic/D1/R2/vehicle/category/publishing behavior is changed in Phase 2A.
 - Acceptance requirement: PR must pass both required contexts `CI / Validate` and `AI Pre-Deploy Audit / Validate`. After merge, the exact merge SHA must show the consolidated CI GREEN before Phase 2B proceeds.
+
+### Phase 2B implementation — release static audit consolidation
+- Phase 2A exact merge SHA `3e46c82d86f6d0bdde892b8f88957411f80d4e72` completed its production evidence chain GREEN: canonical CI, Cloudflare deploy, Production Smoke Gate-15, Stage 3 reconciliation, Homepage/Admin verification, Blog CMS, Business Jets, QUEUE-01 and Live Chat AI identity all completed successfully.
+- Folded the unique non-Android assertions from `release-gate-static-audit.yml` into canonical `CI / Validate`: MASTER/wrangler presence, package/wrangler JSON parsing, repository-wide `src` + `developer-gateway` Node syntax audit, and the release-gate focused unit-test set.
+- The duplicate Android debug build from Release Gate Static Audit is intentionally not copied into CI because canonical `android-apk.yml` already builds the debug APK, verifies SHA-256 and publishes the CI artifact. Android remains a separate ownership boundary for Phase 4.
+- Removed `release-gate-static-audit.yml` only in the same PR carrying its unique static assertions into canonical CI. No production Worker, D1, R2, publishing, vehicle/category or Android application behavior changes are included.
+- Phase 2B acceptance: required `CI / Validate` and `AI Pre-Deploy Audit / Validate` must pass on the PR and exact merge SHA before production orchestration Phase 3 changes begin.
