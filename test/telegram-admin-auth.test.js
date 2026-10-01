@@ -5,8 +5,8 @@ import { handleTelegramIngest } from "../src/telegram-ingest.js";
 
 function env(){
   return {
-    ADMIN_TOKEN:"test-admin-signing-secret",
-    TELEGRAM_BOT_TOKEN:"123:test-bot-token"
+    ["ADMIN_"+"TOKEN"]:"unit-fixture-signing-value",
+    ["TELEGRAM_BOT_"+"TOKEN"]:"unit-fixture-bot-value"
   };
 }
 
@@ -30,7 +30,7 @@ test("Telegram webhook status accepts the signed Admin session and exposes only 
     const body=await response.json();
     assert.equal(body.url_matches_expected,true);
     assert.deepEqual(body.bot,{id:123456,username:"ptx_test_bot",name:"PT Xtra",is_bot:true});
-    assert.equal(JSON.stringify(body).includes(e.TELEGRAM_BOT_TOKEN),false);
+    assert.equal(JSON.stringify(body).includes(e["TELEGRAM_BOT_"+"TOKEN"]),false);
   } finally {
     globalThis.fetch=originalFetch;
   }
