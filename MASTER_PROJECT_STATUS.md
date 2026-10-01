@@ -1582,3 +1582,11 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - The duplicate Android debug build from Release Gate Static Audit is intentionally not copied into CI because canonical `android-apk.yml` already builds the debug APK, verifies SHA-256 and publishes the CI artifact. Android remains a separate ownership boundary for Phase 4.
 - Removed `release-gate-static-audit.yml` only in the same PR carrying its unique static assertions into canonical CI. No production Worker, D1, R2, publishing, vehicle/category or Android application behavior changes are included.
 - Phase 2B acceptance: required `CI / Validate` and `AI Pre-Deploy Audit / Validate` must pass on the PR and exact merge SHA before production orchestration Phase 3 changes begin.
+
+### Phase 3 implementation — exact-SHA production verification chain
+- Phase 2B merged as exact SHA `c1868bfbd2e12d863ae4a4687a2afaccc804a4ab`; its observed post-merge Cloudflare deploy, canonical CI, Production Smoke Gate-15, Stage 3 reconciliation, Homepage/Admin verification, Android APK, Blog CMS, Business Jets, QUEUE-01 and Live Chat AI identity completed successfully.
+- Converted the remaining routine production verifiers that previously raced `push main` into post-deploy `workflow_run` consumers of successful `Deploy Cloudflare Worker` runs on `main`: Production Smoke Gate-15, Stage 3 reconciliation, Admin Redirect, Homepage Canonical, Production Asset Delivery, App Assistant E2E and App Sentiment E2E.
+- Each converted workflow keeps explicit manual dispatch and gates automatic execution on a successful deploy triggered by a `main` push. Workflows that checkout source now use the exact deployed `workflow_run.head_sha`.
+- Existing Blog CMS, Business Jets, Live Chat AI and QUEUE-01 post-deploy consumers remain unchanged and already use the successful deploy lineage.
+- This phase changes orchestration only; it does not remove UTF-8/mojibake assertions, R2 GET/DELETE/404, publishing E2E, D1/Admin/Gateway checks, or Smoke Gate-15 evidence.
+- Acceptance: PR required checks GREEN, merge, successful exact merge-SHA production deploy, then all post-deploy consumers GREEN before Phase 4.
