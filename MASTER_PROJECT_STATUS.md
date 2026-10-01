@@ -1372,3 +1372,57 @@ Detailed owner instructions are consolidated below in this MASTER. `MASTER_PROJE
 - All media belongs to the same article/vehicle and is fully uploaded before finish.
 - Preview is approved before first vehicle publish.
 - Content/media/retry actions do not require GitHub commits.
+
+
+---
+
+## 30. 2026-10-01 — PR #662 responsive vehicle detail closure and next-listing readiness
+
+### Exact lineage and production evidence
+- PR #662 `fix(car): restore responsive detail layout` merged to `main` as `81d5e2129101c6ec388f4bb8323e180f2e37388a`.
+- The change restores the shared vehicle detail layout for every listing; it is not a `tg-652`-specific data repair.
+- Desktop contract: two-column hero/information layout; gallery uses the full shared container in three columns.
+- Tablet/mobile contract: detail collapses to one column at `900px`; gallery becomes two columns at `760px` and one column at `420px`.
+- Targeted regression coverage is in `test/car-detail-layout.test.js`, including owner-reviewed line breaks, complete gallery rendering and responsive layout breakpoints.
+- Deploy Cloudflare Worker run `36810126218`: **SUCCESS** on the exact merge SHA. The deploy job checked out `81d5e2129101c6ec388f4bb8323e180f2e37388a`, uploaded the production Worker/assets and assigned 100% traffic to Cloudflare version `f383de8d-2ebb-46ad-8ada-98cc76b249de`.
+- Deploy verification on that run: public production boundary PASS; editorial/Admin UTF-8 PASS; R2 lifecycle PASS; publishing draft-image lifecycle PASS.
+- Production Smoke Gate-15 run `36810126143`: **SUCCESS**, including the production detail-page smoke.
+- All 15 observed workflows on the merge SHA completed **SUCCESS**, including CI, Release Gate Static Audit, Production Asset Delivery Gate, Stage 3 Production Reconciliation, QUEUE-01 Production E2E Origin, Blog CMS Production E2E, Live Chat AI Identity Verify, Admin pipeline, credential safety and Android APK MVP.
+- PR #662 branch was deleted after merge. No open PR remained at this closure audit.
+
+### Audi Q7 reference listing `tg-652`
+- Canonical ID remains `tg-652`; do not republish it for edits.
+- Owner-approved structured values used for the completed listing: `AUDI Q7 3.0 TFSI`, model year `2017`, price `1.050.000.000 VNĐ`, ODO/contact display `Liên hệ`.
+- Gallery contains 23 approved images. The semantic V2 order and intentional cover were data updates on the same canonical record; PR #662 did not alter vehicle data, media order, cover selection or publishing semantics.
+- Public detail rendering consumes API image order directly, keeps the complete gallery including the cover, and lazy-loads gallery images.
+- The layout source and production deployment are verified. A human/browser visual viewport check remains the appropriate final pixel-level confirmation when needed; absence of that screenshot must not be represented as a code/deploy failure.
+
+### Ready state for the next vehicle
+The shared publishing path is ready for the next normal vehicle. Do **not** create a vehicle-specific PR for routine publishing.
+
+Use exactly:
+`/carnew → owner copy + complete album → /carfinish → /carpreview <Inbox> → /carpublish <Inbox>`.
+
+Before `/carpublish`, verify:
+- correct vehicle identity and owner-reviewed Vietnamese copy;
+- owner-approved price and numeric ODO, or intentional `Liên hệ` when no approved numeric ODO exists;
+- approved image count;
+- intentional hero and semantic gallery order;
+- UTF-8 without mojibake;
+- media URLs preserve `/media/vehicles/...` separators and do not contain encoded `%2F`.
+
+Operational recovery remains:
+- interrupted durable processing: retry `/carfinish` for the just-closed session;
+- lost Telegram confirmation: inspect canonical state before retrying;
+- data/copy/price/ODO/gallery correction: update the same canonical vehicle ID;
+- open a source PR only for a reproducible shared code/contract defect.
+
+### Current closure
+- **PR #662 source change: MERGED.**
+- **Exact merge-SHA production deployment: PASS.**
+- **Production detail-page smoke: PASS.**
+- **Required production/R2/UTF-8 gates for this change: PASS.**
+- **Shared vehicle detail responsive contract: PRODUCTION GREEN.**
+- **Normal next-vehicle publishing workflow: READY.**
+
+`MASTER_PROJECT_STATUS.md` remains the sole mandatory project source-of-truth. Do not create a competing checkpoint, status or runbook file.
