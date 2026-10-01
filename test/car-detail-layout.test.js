@@ -10,11 +10,17 @@ test("car detail preserves owner-reviewed line breaks",()=>{
 });
 
 test("car detail renders the complete gallery including cover",()=>{
-  assert.match(html,/gallery=imgs,features=/);
+  assert.match(html,/const gallery=galleryOrder\.map\(i=>imgs\[i\]\)\.filter\(Boolean\)/);
   assert.doesNotMatch(html,/gallery=imgs\.filter\(x=>x!==cover\)/);
   assert.match(html,/vehicle-gallery-grid/);
   assert.match(html,/Hình ảnh chi tiết/);
   assert.match(html,/ảnh '\+\(i\+1\)/);
+});
+
+test("tg-714 prioritizes exterior hero and preserves every gallery image",()=>{
+  assert.match(html,/galleryOrder=id==='tg-714'\?\[4,5,2,8,6,3,7,9,10,11,12,13,1,0,14\]:imgs\.map\(\(_,i\)=>i\)/);
+  assert.match(html,/cover=\(id==='tg-714'&&gallery\[0\]\)\|\|c\.cover_image\|\|gallery\[0\]\|\|''/);
+  assert.match(html,/Hình ảnh chi tiết \(\$\{gallery\.length\} ảnh\)/);
 });
 
 test("car detail has responsive desktop and mobile layout contracts",()=>{

@@ -49,9 +49,10 @@ test("approved publish retry resyncs an existing website car from the draft",()=
 
 test("car detail gallery includes the cover and numbers the complete image set from 1",()=>{
   const page=fs.readFileSync("public/car.html","utf8");
-  assert.match(page,/cover=c\.cover_image\|\|imgs\[0\]\|\|'',gallery=imgs,features=/);
+  assert.match(page,/const gallery=galleryOrder\.map\(i=>imgs\[i\]\)\.filter\(Boolean\)/);
+  assert.match(page,/cover=\(id==='tg-714'&&gallery\[0\]\)\|\|c\.cover_image\|\|gallery\[0\]\|\|''/);
   assert.doesNotMatch(page,/gallery=imgs\.filter\(x=>x!==cover\)/);
-  assert.match(page,/Hình ảnh chi tiết \(\$\{imgs\.length\} ảnh\)/);
+  assert.match(page,/Hình ảnh chi tiết \(\$\{gallery\.length\} ảnh\)/);
   assert.match(page,/ảnh '\+\(i\+1\)/);
   assert.doesNotMatch(page,/ảnh '\+\(i\+2\)/);
 });
