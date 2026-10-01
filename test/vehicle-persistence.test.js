@@ -34,5 +34,7 @@ test("update preserves existing values", () => {
 
 
 test("hidden is a supported reversible vehicle status",()=>{
-  assert.match(source,/CAR_STATUSES = new Set\(\["available", "reserved", "sold", "hidden"\]\)/);
+  const result=normalizeCarPayload({brand:"Lexus",model:"RX",status:"hidden"});
+  assert.equal(result.error,undefined);
+  assert.equal(result.value.status,"hidden");
 });
