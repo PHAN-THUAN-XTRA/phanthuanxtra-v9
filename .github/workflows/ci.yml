@@ -14,22 +14,123 @@ jobs:
   Validate:
     name: CI / Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Validate repository changes
         shell: bash
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git diff --check "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}"
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
           else
-            git diff --check "${{ github.event.before }}" "${{ github.sha }}"
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
           fi
+          git diff --check "$base_sha" "$head_sha"
           test -s .github/workflows/android-apk.yml
           grep -q "Publish direct APK release asset" .github/workflows/android-apk.yml
-          echo "CI / Validate: PASS"
+
+      - name: Validate application and Admin JavaScript syntax
+        run: |
+          set -euo pipefail
+          for file in \
+            src/entry.js src/cms.js src/index.js src/app-api.js src/ai-chat.js \
+            src/telegram-lookup.js src/vip-telegram.js src/vip-vehicle-intelligence.js \
+            src/admin-auth.js src/admin-password.js src/admin-vehicle-pipeline.js src/app-admin.js; do
+            node --check "$file"
+          done
+
+      - name: Guard Workers AI model IDs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -n --exclude-dir=node_modules --exclude-dir=.git \
+            -E '@cf/meta/llama-3\.1-8b-instruct(["@]|[^a-zA-Z0-9_-])' src tests; then
+            echo "ERROR: deprecated Workers AI model ID detected"; exit 1
+          fi
+          if grep -n '@cf/meta/llama-3.2-3b-instruct' src/ai-chat.js; then
+            echo "ERROR: legacy website AI fallback detected"; exit 1
+          fi
+          grep -n '@cf/zai-org/glm-4.7-flash' src/ai-chat.js
+          grep -n '@cf/qwen/qwen3.8-27b' src/ai-chat.js
+          grep -n '@cf/nvidia/nemotron-3-120b-a12b' src/ai-chat.js
+          echo "Workers AI model guard passed"
+
+      - name: Unit tests
+        run: |
+          node --test tests/*.test.mjs
+          node --test developer-gateway/test/index.test.mjs
+
+      - name: Validate deployment configuration without deployment CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const cfg=JSON.parse(fs.readFileSync('wrangler.json','utf8'));
+          if(cfg.main!=='src/entry.js') throw new Error('Unexpected Worker entrypoint');
+          for(const key of ['assets','ai','images','r2_buckets','d1_databases']) if(!cfg[key]) throw new Error('Missing required config: '+key);
+          console.log('Worker deployment configuration: PASS (static validation only)');
+          NODE
+
+      - name: Verify no runtime DDL
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          fi
+          changed_files="$(git diff --name-only "$base_sha" "$head_sha" -- 'src/**' 'public/**' 'developer-gateway/**')"
+          if [ -z "$changed_files" ]; then echo "NO RUNTIME FILES CHANGED"; exit 0; fi
+          printf '%s\n' "$changed_files"
+          if git diff --unified=0 "$base_sha" "$head_sha" -- $changed_files | grep -E '^\+.*(CREATE TABLE|CREATE INDEX|ALTER TABLE|DROP TABLE|DROP INDEX)'; then
+            echo "ERROR: runtime DDL added by this change"; exit 1
+          fi
+          echo "NO RUNTIME DDL ADDED BY THIS CHANGE"
+
+      - name: Reject credential mutations in routine smoke workflows
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          path = Path(".github/workflows/production-smoke-gate15.yml")
+          content = path.read_text()
+          forbidden = [
+              r"/api/admin/recovery/rotate",
+              r"/api/admin/forgot-password",
+              r"ADMIN_RECOVERY_ROTATE_TOKEN",
+              r"Password Reset:\s*PASS",
+          ]
+          for pattern in forbidden:
+              if re.search(pattern, content, re.I):
+                  raise SystemExit(f"{path}: forbidden credential mutation or misleading reset result")
+          for marker in [
+              "Password reset E2E: NOT RUN",
+              "E2E Admin login and D1 create/read/delete",
+              "E2E R2 media write/read/delete through Admin binding",
+              "Smoke admin authentication boundary",
+          ]:
+              if marker not in content:
+                  raise SystemExit(f"{path}: missing safety or retained-check marker")
+          print(f"{path}: credential safety contract PASS")
 
       - name: Publish required CI / Validate status
         if: always()
