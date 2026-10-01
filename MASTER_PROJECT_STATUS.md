@@ -1606,3 +1606,10 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - Retired `xtra-registration-probe.yml`: it is a no-op workflow-registration echo probe with no runtime validation coverage.
 - No canonical CI, exact-SHA deploy, UTF-8/mojibake, R2 lifecycle, publishing E2E, Production Smoke Gate-15, backup/restore, credential safety or signed Android release coverage is removed.
 - Phase 5 acceptance: required PR checks GREEN and exact merge-SHA canonical validation GREEN. Final MASTER closure remains blocked on successful App Assistant + App Sentiment production E2E evidence unless a separately evidenced source/runtime fix is required.
+
+### Production AI 503 root-cause fix after Phase 5
+- Exact Phase 5 merge SHA `239a3e0a8ec5afe41d317ce749c373c5e3c08f80` deployed successfully and all non-AI post-deploy gates passed, but App Assistant and App Sentiment again authenticated with HTTP 200 and returned inference HTTP 503.
+- Source audit found App Assistant still preferred `@cf/meta/llama-3.1-8b-instruct-fast`, while the canonical website/auto-bot production lineage already uses current Cloudflare-hosted `@cf/zai-org/glm-4.7-flash` with Qwen/Nemotron fallbacks. App Assistant is aligned to that current model lineage.
+- App Sentiment depended on a single legacy classifier model `@cf/huggingface/distilbert-sst-2-int8` and had no fallback. It now preserves that classifier as primary and falls back to `@cf/zai-org/glm-4.7-flash` with a constrained sentiment-classification prompt when the classifier invocation fails.
+- Production E2Es are updated only to accept the explicitly supported fallback model IDs; HTTP 503 remains a failure. No gate is weakened to accept unavailable AI.
+- Final acceptance remains: PR required checks GREEN, exact merge-SHA production deploy GREEN, App Assistant E2E GREEN, App Sentiment E2E GREEN, and the complete post-deploy chain GREEN before MASTER final closure.
