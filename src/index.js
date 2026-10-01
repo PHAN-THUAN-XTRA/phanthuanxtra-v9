@@ -13,7 +13,11 @@ const SEC={"X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer
 const secure=r=>{const o=new Response(r.body,r);for(const[k,v]of Object.entries(SEC))o.headers.set(k,v);return o};
 const auth=(r,e)=>{const t=e.ADMIN_TOKEN,a=r.headers.get("Authorization")||"";return !!t&&a.startsWith("Bearer ")&&a.slice(7)===t};
 const body=async r=>r.json().catch(()=>null);const text=(v,n)=>String(v??"").trim().slice(0,n);const num=v=>Number.isFinite(Number(v))?Number(v):0;
-async function initDb(db) {}
+async function initDb(db) {
+  // Owner-requested temporary unpublish. This is idempotent and preserves the
+  // complete car record + media, so Admin can restore it by setting available.
+  await db.prepare("UPDATE cars SET status='hidden',updated_at=CURRENT_TIMESTAMP WHERE id='tg-652' AND status<>'hidden'").run();
+}
 async function getImages(db,carId){const q=await db.prepare("SELECT id,url,sort_order,is_cover FROM car_images WHERE car_id=? ORDER BY sort_order,id").bind(carId).all();return q.results||[]}
 async function saveImages(db,carId,images){await db.prepare("DELETE FROM car_images WHERE car_id=?").bind(carId).run();if(!Array.isArray(images)||!images.length)return;if(images.length>MEDIA_POLICY.image.maxPerArticle)throw Error("Vượt giới hạn ảnh cho phép mỗi bài.");const rows=images.map((x,i)=>typeof x==='string'?{url:x,sort_order:i,is_cover:i===0}:x);await db.batch(rows.map((x,i)=>db.prepare("INSERT INTO car_images (car_id,url,sort_order,is_cover) VALUES (?,?,?,?)").bind(carId,text(x.url,200000),Number.isFinite(Number(x.sort_order))?Number(x.sort_order):i,x.is_cover?1:0)))}
 function validCar(b){if(!b||!/^[a-z0-9][a-z0-9-_]{2,80}$/i.test(String(b.id||"")))return"ID bài đăng không hợp lệ";if(!text(b.brand,100)||!text(b.model,160))return"Hãng và mẫu xe là bắt buộc";return null}
