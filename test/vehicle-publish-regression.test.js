@@ -136,3 +136,11 @@ test("tg-605 public reconciliation uses the reviewed 16-image replacement galler
   assert.equal(names.length,16);
   assert.equal(new Set(names).size,16);
 });
+
+
+test("public catalog excludes hidden cars and tg-652 is temporarily unpublished without deletion",()=>{
+  const worker=fs.readFileSync("src/index.js","utf8");
+  assert.match(worker,/SELECT \* FROM cars WHERE status <> 'hidden'/);
+  assert.match(worker,/UPDATE cars SET status='hidden',updated_at=CURRENT_TIMESTAMP WHERE id='tg-652' AND status<>'hidden'/);
+  assert.doesNotMatch(worker,/DELETE FROM cars WHERE id='tg-652'/);
+});
