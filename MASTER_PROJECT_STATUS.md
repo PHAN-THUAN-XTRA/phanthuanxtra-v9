@@ -1514,3 +1514,57 @@ The first inventory pass has started from the actual workflow YAML, not filename
 - `ai-peer-executor.yml` is manual control-plane tooling, not a release gate. Do not place it on the production critical path.
 
 No workflow has been deleted in this first pass. Remaining workflow files must be classified before Phase 2 changes triggers or removes entry points.
+
+### Phase 1 complete inventory — 37 workflow entry points
+The repository currently has **37**, not 35, workflow YAML entry points. Classification is based on trigger, production mutation risk, and overlap with the canonical release chain.
+
+| Workflow | Class | Target |
+|---|---|---|
+| admin-pipeline-test.yml | MERGE | fold Admin syntax/tests into core CI |
+| admin-recovery-rotate.yml | MANUAL | keep isolated credential rotation |
+| admin-redirect-verify.yml | MERGE | post-deploy production verify |
+| ai-peer-executor.yml | MANUAL | keep control-plane utility off release path |
+| ai-predeploy-audit.yml | KEEP | required PR security gate |
+| android-apk.yml | KEEP | Android CI; narrow ownership later |
+| android-production-release.yml | MANUAL | signed release only |
+| app-assistant-production-e2e.yml | MERGE | post-deploy App E2E |
+| app-sentiment-production-e2e.yml | MERGE | post-deploy App E2E |
+| application-validation.yml | MERGE | fold application checks into core CI |
+| blog-cms-production-e2e.yml | MERGE | post-deploy production E2E |
+| business-jets-crm-production-e2e.yml | MERGE | post-deploy production E2E |
+| ci.yml | KEEP | canonical required `CI / Validate` |
+| cleanup-ci-test-cars.yml | MANUAL | retain recovery cleanup; no routine trigger needed |
+| cloudflare-auth-workers-ai-smoke.yml | RETIRE | historical branch-specific auth smoke; covered by deploy/runtime gates |
+| cloudflare-machine-audit.yml | MANUAL | retain read-only infrastructure inventory |
+| codex-agent.yml | MANUAL | keep isolated engineering utility |
+| deepseek-harness-isolated.yml | KEEP | isolated third-party harness evidence, path-scoped |
+| defender-4092-production-diagnostic.yml | RETIRE | one-off Defender 4092 diagnostic contains record-specific repair SQL |
+| deploy-cloudflare.yml | KEEP | canonical production Worker deploy |
+| deploy-developer-gateway.yml | KEEP | separate Developer Gateway deploy |
+| developer-gateway.yml | MERGE | gateway validation can converge with gateway deploy/CI |
+| full-system-backup.yml | KEEP | scheduled production backup |
+| gate-14-backup-restore.yml | KEEP | backup readability/restore evidence |
+| gate10-runtime-evidence.yml | KEEP | exact post-gateway-deploy runtime evidence |
+| homepage-canonical-verify.yml | MERGE | post-deploy production verify |
+| live-chat-ai-identity-verify.yml | MERGE | post-deploy production E2E |
+| password-reset-production-e2e.yml | MANUAL | destructive credential lifecycle must remain isolated/authorized |
+| production-asset-gate.yml | MERGE | post-deploy production verify |
+| production-credential-safety.yml | MERGE | static credential-safety contract belongs in CI/security |
+| production-smoke-gate15.yml | KEEP | canonical production smoke/E2E baseline |
+| queue-01-e2e-origin.yml | MERGE | post-deploy production E2E |
+| release-gate-static-audit.yml | MERGE | static/unit checks overlap core CI; preserve unique assertions |
+| stage3-production-reconciliation.yml | MERGE | post-deploy runtime reconciliation |
+| telegram-bots-diagnostic.yml | MANUAL | retain explicit Telegram diagnostic |
+| xtra-registration-probe.yml | RETIRE | registration-only no-op probe |
+| zero-cost-audit-test.yml | MANUAL | retain explicit zero-cost audit/test utility |
+
+**Inventory totals:** KEEP 10, MERGE 15, MANUAL 9, RETIRE 3 = 37.
+
+### Consolidation invariants discovered during Phase 1
+- Repository ruleset `Main - Production Protection` requires exactly the status contexts `CI / Validate` and `AI Pre-Deploy Audit / Validate`; both must remain stable throughout consolidation.
+- Production mutation must remain downstream of a successful exact-SHA validation and restricted to `main`/authorized manual dispatch.
+- Post-deploy E2E must use the deployed SHA from the successful deploy event; do not race a `push` trigger against Cloudflare propagation.
+- Credential mutation, signed Android release, backups and diagnostics remain isolated manual/scheduled workflows.
+- RETIRE means delete only after the replacement/current coverage is verified in PR checks. The Defender one-off must not remain as a reusable production mutation path.
+- Phase 2 starts with the lowest-risk duplicate removal: consolidate source validation into `ci.yml` while preserving the required `CI / Validate` context. Production E2E orchestration changes follow only after that is GREEN.
+
