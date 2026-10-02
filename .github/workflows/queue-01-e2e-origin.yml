@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: xtra-production-e2e-single-queue
+  group: queue-01-production-e2e-origin
   cancel-in-progress: false
 
 jobs:
