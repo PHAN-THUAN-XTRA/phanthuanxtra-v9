@@ -30,12 +30,23 @@ jobs:
       CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
     steps:
       - uses: actions/checkout@v5
+
       - name: Run read-only Cloudflare inventory
         run: node scripts/cloudflare-machine-audit.mjs
-      - name: Verify report contract and redaction
+
+      - name: Verify report contract, closure invariants, and redaction
         run: |
           set -euo pipefail
-          jq -e '.audit=="CF-MACHINE-003" and .mutations==0' cloudflare-audit/report.json >/dev/null
+          jq -e '
+            .audit=="CF-MACHINE-009"
+            and .mutations==0
+            and (.worker_dependencies|length)==6
+            and (.worker_dependencies["phanthuanxtra-videos"] == null)
+            and .phase2_evidence.public_probes.videos_public.status==200
+            and .phase2_evidence.public_probes.videos_v2_workers_dev.status==200
+            and .phase2_evidence.public_json_shapes.images_health.status==200
+          ' cloudflare-audit/report.json >/dev/null
+
           node - <<'NODE'
           const report=require('./cloudflare-audit/report.json');
           const bad=[];
@@ -52,11 +63,21 @@ jobs:
           if(bad.length) throw new Error('Sensitive binding value escaped redaction');
           console.log('Sensitive binding redaction: PASS');
           NODE
-          jq '{audit,generated_at,mutations,production,source_evidence,decisions,availability:(.resources|map_values({unavailable:(.unavailable//false),status:(.status//null)})),worker_dependency_count:(.worker_dependencies|length)}' cloudflare-audit/report.json >> "$GITHUB_STEP_SUMMARY"
+
+          jq '{
+            audit,generated_at,mutations,production,
+            worker_dependency_count:(.worker_dependencies|length),
+            workers:(.worker_dependencies|keys),
+            service_bindings,
+            d1_schemas,
+            phase2_evidence,
+            blocked:.decisions.blocked
+          }' cloudflare-audit/report.json >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload machine evidence
         uses: actions/upload-artifact@v4
         with:
-          name: cloudflare-machine-audit-${{ github.run_id }}
+          name: cloudflare-machine-audit-v9-${{ github.run_id }}
           path: cloudflare-audit/report.json
           retention-days: 30
           if-no-files-found: error
