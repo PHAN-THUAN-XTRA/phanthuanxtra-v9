@@ -50,8 +50,7 @@ jobs:
             and (.queue_evidence["ptx-vehicle-jobs"] != null)
             and (.queue_evidence["ptx-vehicle-jobs-dlq"] != null)
             and ((.queue_evidence["ptx-vehicle-jobs"].consumers.result // []) | any(
-              .type=="worker"
-              and .script_name=="phanthuanxtra-v2"
+              .script_name=="phanthuanxtra-v2"
               and .dead_letter_queue=="ptx-vehicle-jobs-dlq"
               and (.settings.batch_size|tonumber)==1
               and (.settings.max_retries|tonumber)==5
