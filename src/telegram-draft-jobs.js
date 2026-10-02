@@ -5,6 +5,9 @@ import { analyzeVehicleImage } from "./vehicle-ai.js";
 
 const clean=(v,n=10000)=>String(v??"").trim().slice(0,n);
 const tokenOf=env=>env.TELEGRAM_AUTO_BOT_TOKEN||env.TELEGRAM_BOT_TOKEN;
+const JOB_TYPE="telegram_vehicle_draft";
+const JOB_VERSION=1;
+
 async function tg(token,method,payload={}){
   const r=await fetch("https://api.telegram.org/bot"+token+"/"+method,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
   const d=await r.json().catch(()=>({}));
@@ -13,7 +16,18 @@ async function tg(token,method,payload={}){
 }
 const sha256=async value=>{const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value));return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("");};
 
-async function processBatch(env,bundleKey,chatId){
+export function vehicleDraftJob(bundleKey,chatId,inboxId=0){
+  return{type:JOB_TYPE,version:JOB_VERSION,bundle_key:clean(bundleKey,500),chat_id:String(chatId),inbox_id:Number(inboxId||0),queued_at:new Date().toISOString()};
+}
+
+export async function enqueueTelegramVehicleDraft(env,{bundle_key,chat_id,inbox_id=0}){
+  if(!env?.VEHICLE_JOBS||typeof env.VEHICLE_JOBS.send!=="function")throw new Error("VEHICLE_JOBS queue binding is unavailable");
+  const job=vehicleDraftJob(bundle_key,chat_id,inbox_id);
+  if(!job.bundle_key||!job.chat_id)throw new Error("Vehicle queue job is missing bundle/chat identity");
+  return env.VEHICLE_JOBS.send(job,{contentType:"json"});
+}
+
+export async function processTelegramVehicleDraftBatch(env,bundleKey,chatId){
   const claim=await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='processing',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='queued'").bind(bundleKey).run();
   if(Number(claim?.meta?.changes||0)<1)return {claimed:false};
   try{
@@ -48,7 +62,7 @@ async function processBatch(env,bundleKey,chatId){
     const all=rows.filter(r=>r.file_id),done=all.filter(r=>r.status==="analyzed"&&clean(r.processed_image_url));
     if(done.length<all.length){
       await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',error=NULL,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(bundleKey).run();
-      return {claimed:true,complete:false,processed:done.length,total:all.length};
+      return {claimed:true,complete:false,processed:done.length,total:all.length,inbox_id:Number(first.id)};
     }
     const webp=done.map(r=>clean(r.processed_image_url).replace(/^\/media\//,""));
     const avif=webp.map(k=>k.replace(/\.webp$/i,".avif"));
@@ -59,8 +73,8 @@ async function processBatch(env,bundleKey,chatId){
     const payload={...ai,publish_media_key:webp[0],publish_media_keys:webp,avif_media_keys:avif,bundle_key:bundleKey,image_count:webp.length,image_processing:"format-only",approval_required:true};
     await env.DB.prepare("INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'awaiting_review', ?, 0, '[]', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='awaiting_review',updated_at=CURRENT_TIMESTAMP").bind(inboxId,JSON.stringify(payload),text,clean(first.file_path)).run();
     await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='done',caption=?,error=NULL,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text,bundleKey).run();
-    await tg(tokenOf(env),"sendMessage",{chat_id:chatId,reply_to_message_id:Number(first.message_id||0),text:"📝 BẢN NHÁP XE — CHỜ DUYỆT\n📦 Inbox: "+inboxId+"\n🖼 Gallery: "+webp.length+" cặp AVIF + WebP trên R2\n🟢 Xử lý bền vững qua D1 job đã hoàn tất.\n⛔ Chưa đăng website. Dùng /carpublish "+inboxId+" sau khi kiểm tra bản nháp."});
-    return {claimed:true,complete:true,processed:done.length,total:all.length};
+    await tg(tokenOf(env),"sendMessage",{chat_id:chatId,reply_to_message_id:Number(first.message_id||0),text:"📝 BẢN NHÁP XE — CHỜ DUYỆT\n📦 Inbox: "+inboxId+"\n🖼 Gallery: "+webp.length+" cặp AVIF + WebP trên R2\n🟢 Cloudflare Queue + D1 checkpoint đã hoàn tất.\n⛔ Chưa đăng website. Dùng /carpublish "+inboxId+" sau khi kiểm tra bản nháp."});
+    return {claimed:true,complete:true,processed:done.length,total:all.length,inbox_id:inboxId};
   }catch(error){
     const message=clean(error?.message||error,1000);
     await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',error=?,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(message,bundleKey).run().catch(()=>{});
@@ -68,20 +82,65 @@ async function processBatch(env,bundleKey,chatId){
   }
 }
 
+export async function consumeTelegramVehicleDraftJobs(batch,env){
+  const outcomes=[];
+  for(const message of batch?.messages||[]){
+    const body=message?.body&&typeof message.body==="object"?message.body:{};
+    const bundleKey=clean(body.bundle_key,500),chatId=String(body.chat_id??"");
+    if(body.type!==JOB_TYPE||Number(body.version)!==JOB_VERSION||!bundleKey||!chatId){
+      console.error("telegram_vehicle_queue_invalid_job",JSON.stringify({type:body.type,version:body.version,bundle_key:Boolean(bundleKey),chat_id:Boolean(chatId)}));
+      if(typeof message.ack==="function")message.ack();
+      outcomes.push({valid:false});
+      continue;
+    }
+    const result=await processTelegramVehicleDraftBatch(env,bundleKey,chatId);
+    outcomes.push({...result,bundle_key:bundleKey});
+    if(result.error){
+      console.error("telegram_vehicle_queue_batch_failed",JSON.stringify({bundle_key:bundleKey,error:result.error}));
+      if(typeof message.retry==="function")message.retry({delaySeconds:30});
+      else throw new Error(result.error);
+      continue;
+    }
+    if(result.claimed&&result.complete===false){
+      try{
+        await enqueueTelegramVehicleDraft(env,{bundle_key:bundleKey,chat_id:chatId,inbox_id:result.inbox_id||body.inbox_id});
+      }catch(error){
+        console.error("telegram_vehicle_queue_continuation_failed",clean(error?.message||error,1000));
+        if(typeof message.retry==="function")message.retry({delaySeconds:30});
+        else throw error;
+        continue;
+      }
+    }
+    if(typeof message.ack==="function")message.ack();
+  }
+  return{processed:outcomes.length,outcomes};
+}
+
 export async function reconcileTelegramVehicleDrafts(env){
-  if(!env.DB)return {processed:0};
+  if(!env.DB)return {processed:0,mode:"no-db"};
   await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_status='processing' AND updated_at < datetime('now','-3 minutes')").run();
+
+  if(env.VEHICLE_JOBS&&typeof env.VEHICLE_JOBS.send==="function"){
+    const q=await env.DB.prepare("SELECT bundle_key,chat_id,MIN(id) id FROM telegram_inbox WHERE bundle_status='queued' AND (error IS NULL OR error='') AND updated_at < datetime('now','-2 minutes') GROUP BY bundle_key,chat_id ORDER BY id ASC LIMIT 4").all();
+    const rows=q.results||[],results=[];
+    for(const row of rows){
+      const bundleKey=clean(row.bundle_key,500),chatId=String(row.chat_id);
+      await enqueueTelegramVehicleDraft(env,{bundle_key:bundleKey,chat_id:chatId,inbox_id:Number(row.id||0)});
+      results.push({bundle_key:bundleKey,chat_id:chatId,enqueued:true});
+    }
+    return{processed:results.length,mode:"queue-recovery",results};
+  }
+
   const q=await env.DB.prepare("SELECT bundle_key,chat_id,MIN(id) id FROM telegram_inbox WHERE bundle_status='queued' GROUP BY bundle_key,chat_id ORDER BY id ASC LIMIT 4").all();
   const rows=q.results||[],results=[];
-  // Drain a bounded number of durable 3-photo batches per bundle in one cron.
-  // Every batch checkpoints D1 before the next claim, so interruption still resumes safely.
+  // Fail-safe only: if Queue binding is unavailable, retain the previous bounded D1 drain.
   for(const row of rows){
     const bundleKey=clean(row.bundle_key,500),chatId=String(row.chat_id);
     for(let batch=0;batch<8;batch++){
-      const result=await processBatch(env,bundleKey,chatId);
+      const result=await processTelegramVehicleDraftBatch(env,bundleKey,chatId);
       results.push({...result,bundle_key:bundleKey,batch:batch+1});
       if(!result.claimed||result.complete||result.error)break;
     }
   }
-  return {processed:results.length,results};
+  return{processed:results.length,mode:"d1-fallback",results};
 }
