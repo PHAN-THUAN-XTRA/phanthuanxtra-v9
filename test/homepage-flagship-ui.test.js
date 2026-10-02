@@ -11,7 +11,7 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/Vượt trên<br><em>xa xỉ\.<\/em>/);
   assert.match(html,/hero-carousel/);
   for (const sector of ['auto','yacht','jet','energy']) assert.match(html,new RegExp(`id="hero-slide-${sector}"`));
-  assert.match(html,/data-src="\/media\/editorial\/green-energy\/green-energy-pv-ess-3d\.webp"/);
+  assert.match(html,/data-src="\/media\/editorial\/green-energy\/wide_clean_modern_promotional_banner_hero_image\.png"/);
   assert.doesNotMatch(html,/Intel_Solar_Installation_Vietnam\.jpg/);
   assert.doesNotMatch(html,/Intel Free Press/);
   assert.match(html,/href="#test-drive">Đặt lịch tư vấn xe/);
@@ -47,6 +47,7 @@ test("flagship palette preserves obsidian emerald and gold tokens",()=>{
   assert.match(css,/Vietnamese typography consistency/);
   assert.doesNotMatch(css,/Manrope/);
   assert.match(css,/AI chat inherits the same Vietnamese UI typography/);
+  assert.match(css,/#hero-slide-energy img\{object-position:center top\}/);
 });
 
 test("production homepage gate checks all four current hero sectors",()=>{
