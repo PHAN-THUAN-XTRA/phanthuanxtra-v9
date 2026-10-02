@@ -169,6 +169,16 @@ async function publicProbe(url){
   }finally{clearTimeout(timer)}
 }
 
+async function publicProbeUntilOk(url,{attempts=8,delayMs=15000}={}){
+  let last=null;
+  for(let i=0;i<attempts;i++){
+    last=await publicProbe(url);
+    if(last?.status===200&&last?.ok===true)return{...last,attempt:i+1};
+    if(i<attempts-1)await new Promise(resolve=>setTimeout(resolve,delayMs));
+  }
+  return{...(last||{url,error:"probe_failed"}),attempt:attempts};
+}
+
 async function publicJsonShape(url){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),15000);
@@ -366,7 +376,7 @@ report.phase2_evidence={
     robots:await publicProbe("https://phanthuanxtra.com/robots.txt"),
     sitemap:await publicProbe("https://phanthuanxtra.com/sitemap.xml"),
     videos_public:await publicProbe("https://phanthuanxtra.com/videos"),
-    videos_v2_workers_dev:await publicProbe("https://phanthuanxtra-v2.phanthuanmodelactor.workers.dev/videos"),
+    videos_v2_workers_dev:await publicProbeUntilOk("https://phanthuanxtra-v2.phanthuanmodelactor.workers.dev/videos"),
     images_worker:await publicProbe("https://phanthuanxtra-images.phanthuanmodelactor.workers.dev/"),
     images_r2_domain:await publicProbe("https://images.phanthuanxtra.com/"),
     apk_r2_domain:await publicProbe("https://downloadai.phanthuanxtra.com/")
