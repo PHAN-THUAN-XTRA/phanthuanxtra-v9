@@ -49,12 +49,13 @@ jobs:
             and (.worker_dependencies["phanthuanxtra-v2"].bindings | any(.name=="VEHICLE_JOBS" and .type=="queue" and .queue_name=="ptx-vehicle-jobs"))
             and (.queue_evidence["ptx-vehicle-jobs"] != null)
             and (.queue_evidence["ptx-vehicle-jobs-dlq"] != null)
-            and ((.queue_evidence["ptx-vehicle-jobs"].consumers.result // []) | any(
-              .script_name=="phanthuanxtra-v2"
-              and .dead_letter_queue=="ptx-vehicle-jobs-dlq"
+            and ((.queue_evidence["ptx-vehicle-jobs"].consumers // []) | length)==1
+            and ((.queue_evidence["ptx-vehicle-jobs"].consumers // []) | any(
+              .dead_letter_queue=="ptx-vehicle-jobs-dlq"
               and (.settings.batch_size|tonumber)==1
               and (.settings.max_retries|tonumber)==5
             ))
+            and ((.queue_evidence["ptx-vehicle-jobs"].producers // []) | any(.script=="phanthuanxtra-v2"))
           ' cloudflare-audit/report.json >/dev/null
 
           node - <<'NODE'
