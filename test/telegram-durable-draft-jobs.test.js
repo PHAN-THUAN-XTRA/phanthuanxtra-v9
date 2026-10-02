@@ -20,7 +20,9 @@ test("durable gallery worker checkpoints only three pending photos per batch",()
   assert.match(jobs,/bundle_status='done'/);
 });
 
-test("scheduled worker reconciles durable Telegram vehicle drafts",()=>{
+test("Worker exposes both Queue consumer and cron recovery for durable Telegram vehicle drafts",()=>{
+  assert.match(entry,/consumeTelegramVehicleDraftJobs/);
+  assert.match(entry,/async queue\(batch, env, ctx\)/);
   assert.match(entry,/reconcileTelegramVehicleDrafts/);
   assert.match(entry,/telegram_vehicle_draft_jobs/);
 });
@@ -31,10 +33,19 @@ test("stale processing bundles are recovered for retry",()=>{
 });
 
 
-test("scheduler drains enough durable batches for a 20+ photo gallery in one invocation",()=>{
-  assert.match(jobs,/for\(let batch=0;batch<8;batch\+\+\)/);
-  assert.match(jobs,/if\(!result\.claimed\|\|result\.complete\|\|result\.error\)break/);
+test("Queue consumer checkpoints three photos then chains a continuation message",()=>{
+  assert.match(jobs,/processTelegramVehicleDraftBatch/);
   assert.match(jobs,/\.slice\(0,3\)/);
+  assert.match(jobs,/enqueueTelegramVehicleDraft\(env/);
+  assert.match(jobs,/message\.ack/);
+  assert.match(jobs,/message\.retry/);
+});
+
+test("cron recovery re-enqueues only stale clean D1 jobs when Queue is available",()=>{
+  assert.match(jobs,/mode:"queue-recovery"/);
+  assert.match(jobs,/updated_at < datetime\('now','-2 minutes'\)/);
+  assert.match(jobs,/error IS NULL OR error=''/);
+  assert.match(jobs,/VEHICLE_JOBS/);
 });
 
 
