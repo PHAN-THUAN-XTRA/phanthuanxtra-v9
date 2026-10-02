@@ -398,13 +398,18 @@ test('performance gate: homepage hero reserves layout and lazy-loads non-LCP sli
   const autoSlide = page.slice(autoStart, autoEnd);
   assert.match(autoSlide, /fetchpriority="high"/);
   assert.match(autoSlide, /width="1280" height="853"/);
-  for (const id of ['hero-slide-yacht','hero-slide-jet','hero-slide-energy']) {
+  for (const id of ['hero-slide-yacht','hero-slide-jet']) {
     const start = page.indexOf('id="' + id + '"');
     const end = page.indexOf('</article>', start);
     const slide = page.slice(start, end);
     assert.match(slide, /loading="lazy"/, id + ' must lazy-load');
     assert.match(slide, /width="1280" height="853"/, id + ' must reserve image geometry');
   }
+  const energyStart = page.indexOf('id="hero-slide-energy"');
+  const energyEnd = page.indexOf('</article>', energyStart);
+  const energySlide = page.slice(energyStart, energyEnd);
+  assert.match(energySlide, /loading="lazy"/, 'hero-slide-energy must lazy-load');
+  assert.match(energySlide, /width="1672" height="940"/, 'hero-slide-energy must reserve intrinsic image geometry');
 });
 
 test('production gate: business jet homepage hero uses verified owned R2 media', () => {
