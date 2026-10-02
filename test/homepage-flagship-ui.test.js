@@ -49,7 +49,7 @@ test("flagship palette preserves obsidian emerald and gold tokens",()=>{
   assert.match(css,/Vietnamese typography consistency/);
   assert.doesNotMatch(css,/Manrope/);
   assert.match(css,/AI chat inherits the same Vietnamese UI typography/);
-  assert.match(css,/#hero-slide-energy img\{object-position:center top\}/);
+  assert.match(css,/#hero-slide-energy img\{object-fit:contain;object-position:center;background:#dcecf7\}/);
 });
 
 test("production homepage gate checks all four current hero sectors",()=>{
