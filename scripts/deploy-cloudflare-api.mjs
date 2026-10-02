@@ -273,7 +273,7 @@ async function ensureVehicleQueueResources() {
 async function ensureVehicleQueueConsumer(primaryQueue) {
   if (!primaryQueue?.queue_id) throw new Error("Vehicle Queue consumer setup requires queue_id.");
   const consumers = asList(await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`)));
-  const existing = consumers.find((consumer) => consumer?.type === "worker" && consumer?.script_name === WORKER);
+  const existing = consumers.find((consumer) => consumer?.script_name === WORKER);
   const payload = {
     script_name: WORKER,
     type: "worker",
@@ -315,7 +315,7 @@ async function verifyVehicleQueueDeployment(primaryQueue) {
     throw new Error(`Vehicle Queue producer binding verification failed: ${JSON.stringify(binding || null)}`);
   }
   const consumers = asList(await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`)));
-  const consumer = consumers.find((item) => item?.type === "worker" && item?.script_name === WORKER);
+  const consumer = consumers.find((item) => item?.script_name === WORKER);
   if (!consumer || consumer.dead_letter_queue !== VEHICLE_DLQ || Number(consumer?.settings?.batch_size) !== 1 || Number(consumer?.settings?.max_retries) !== 5) {
     throw new Error(`Vehicle Queue consumer verification failed: ${JSON.stringify(consumer || null)}`);
   }
