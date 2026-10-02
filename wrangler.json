@@ -49,5 +49,23 @@
     "crons": [
       "*/5 * * * *"
     ]
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "VEHICLE_JOBS",
+        "queue": "ptx-vehicle-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "ptx-vehicle-jobs",
+        "dead_letter_queue": "ptx-vehicle-jobs-dlq",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 5,
+        "retry_delay": 15
+      }
+    ]
   }
 }
