@@ -300,10 +300,18 @@ for(const queue of listFrom(report.resources.queues)){
   const name=queue?.queue_name||queue?.name;
   const id=queue?.queue_id||queue?.id;
   if(!name||!id)continue;
+  const consumerApi=result(`/accounts/${accountId}/queues/${encodeURIComponent(id)}/consumers`);
+  const listedConsumers=listFrom(consumerApi);
+  const embeddedConsumers=Array.isArray(queue?.consumers)?queue.consumers:[];
+  const consumers=listedConsumers.length?listedConsumers:embeddedConsumers;
   report.queue_evidence[name]={
     queue_id:id,
     settings:clean(queue.settings||{}),
-    consumers:result(`/accounts/${accountId}/queues/${encodeURIComponent(id)}/consumers`),
+    producers:clean(Array.isArray(queue?.producers)?queue.producers:[]),
+    consumers:clean(consumers),
+    consumers_total_count:Number(queue?.consumers_total_count||consumers.length||0),
+    producers_total_count:Number(queue?.producers_total_count||0),
+    consumer_api:consumerApi,
     metrics:result(`/accounts/${accountId}/queues/${encodeURIComponent(id)}/metrics`)
   };
 }
@@ -510,6 +518,12 @@ for(const id of allWorkers){
   console.log(`WORKER ${id}: routes=${s.route_count} domains=${s.custom_domain_count} cron=${s.cron_count} service_out=${s.service_binding_out_count} referenced_by=${s.referenced_by_worker_count} requests1d=${s.requests_1d??"UNAVAILABLE"} requests3d=${s.requests_3d??"UNAVAILABLE"} requests30d=${s.requests_30d??"UNAVAILABLE"}`);
 }
 console.log("D1:",listFrom(report.resources.d1).map(x=>x.name||x.uuid).join(", ")|| (report.resources.d1?.unavailable?"UNAVAILABLE":"none"));
+console.log("Queues:",Object.keys(report.queue_evidence||{}).join(", ")|| (report.resources.queues?.unavailable?"UNAVAILABLE":"none"));
+for(const [name,evidence] of Object.entries(report.queue_evidence||{})){
+  const consumer=(evidence.consumers||[])[0]||{};
+  const metric=evidence.metrics?.result||{};
+  console.log(`QUEUE ${name}: producers=${evidence.producers_total_count||evidence.producers?.length||0} consumers=${evidence.consumers_total_count||evidence.consumers?.length||0} dlq=${consumer.dead_letter_queue||""} batch=${consumer.settings?.batch_size??"n/a"} retries=${consumer.settings?.max_retries??"n/a"} backlog=${metric.backlog_count??metric.backlogCount??"n/a"}`);
+}
 console.log("R2:",r2Buckets.map(x=>x.name).join(", ")|| (report.resources.r2?.unavailable?"UNAVAILABLE":"none"));
 console.log("KV:",listFrom(report.resources.kv).map(x=>x.title||x.id).join(", ")|| (report.resources.kv?.unavailable?"UNAVAILABLE":"none"));
 console.log("Durable Objects:",listFrom(report.resources.durable_objects).map(x=>x.name||x.id).join(", ")|| (report.resources.durable_objects?.unavailable?"UNAVAILABLE":"none"));
