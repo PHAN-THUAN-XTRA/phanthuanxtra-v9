@@ -62,3 +62,14 @@ test("wrangler documents vehicle Queue producer consumer and DLQ",()=>{
   assert.equal(cfg.queues?.consumers?.[0]?.max_batch_size,1);
   assert.equal(cfg.queues?.consumers?.[0]?.max_retries,5);
 });
+
+test("CF-MACHINE-010 Queue audit tolerates consumer endpoint shape and validates embedded topology",()=>{
+  const source=fs.readFileSync("scripts/cloudflare-machine-audit.mjs","utf8");
+  const workflow=fs.readFileSync(".github/workflows/cloudflare-machine-audit.yml","utf8");
+  assert.ok(source.includes("const embeddedConsumers=Array.isArray(queue?.consumers)?queue.consumers:[]"));
+  assert.ok(source.includes("const consumers=listedConsumers.length?listedConsumers:embeddedConsumers"));
+  assert.ok(source.includes('console.log("Queues:"'));
+  assert.ok(workflow.includes('.queue_evidence["ptx-vehicle-jobs"].consumers // []'));
+  assert.ok(workflow.includes('.queue_evidence["ptx-vehicle-jobs"].producers // []'));
+});
+
