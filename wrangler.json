@@ -55,6 +55,10 @@
       {
         "binding": "VEHICLE_JOBS",
         "queue": "ptx-vehicle-jobs"
+      },
+      {
+        "binding": "MEMORY_JOBS",
+        "queue": "ptx-memory-jobs"
       }
     ],
     "consumers": [
@@ -63,6 +67,14 @@
         "dead_letter_queue": "ptx-vehicle-jobs-dlq",
         "max_batch_size": 1,
         "max_batch_timeout": 1,
+        "max_retries": 5,
+        "retry_delay": 15
+      },
+      {
+        "queue": "ptx-memory-jobs",
+        "dead_letter_queue": "ptx-memory-jobs-dlq",
+        "max_batch_size": 5,
+        "max_batch_timeout": 2,
         "max_retries": 5,
         "retry_delay": 15
       }
