@@ -152,7 +152,7 @@ async function publicProbe(url){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const r=await fetch(url,{method:"GET",redirect:"follow",signal:controller.signal,headers:{"user-agent":"PTX-Cloudflare-Audit/9","accept":"*/*"}});
+    const r=await fetch(url,{method:"GET",redirect:"follow",signal:controller.signal,headers:{"user-agent":"PTX-Cloudflare-Audit/10","accept":"*/*"}});
     const bytes=new Uint8Array(await r.arrayBuffer());
     return{
       url,
@@ -183,7 +183,7 @@ async function publicJsonShape(url){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const r=await fetch(url,{method:"GET",redirect:"follow",signal:controller.signal,headers:{"user-agent":"PTX-Cloudflare-Audit/9","accept":"application/json"}});
+    const r=await fetch(url,{method:"GET",redirect:"follow",signal:controller.signal,headers:{"user-agent":"PTX-Cloudflare-Audit/10","accept":"application/json"}});
     const text=await r.text();
     let body=null; try{body=JSON.parse(text)}catch{}
     const shape=(x,depth=0)=>{
@@ -203,7 +203,7 @@ async function workerContentSummary(name){
   for(const [tokenName,token] of tokens){
     try{
       const r=await fetch(`${API}/accounts/${accountId}/workers/scripts/${encodeURIComponent(name)}/content/v2`,{
-        headers:{Authorization:`Bearer ${token}`,"user-agent":"PTX-Cloudflare-Audit/9"}
+        headers:{Authorization:`Bearer ${token}`,"user-agent":"PTX-Cloudflare-Audit/10"}
       });
       attempts.push({token:tokenName,status:r.status,ok:r.ok});
       if(!r.ok){if(![401,403].includes(r.status))break;continue}
@@ -237,7 +237,7 @@ async function publicHtmlSummary(url){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const r=await fetch(url,{method:"GET",redirect:"follow",signal:controller.signal,headers:{"user-agent":"PTX-Cloudflare-Audit/9","accept":"text/html,*/*"}});
+    const r=await fetch(url,{method:"GET",redirect:"follow",signal:controller.signal,headers:{"user-agent":"PTX-Cloudflare-Audit/10","accept":"text/html,*/*"}});
     const text=await r.text();
     const cleanText=s=>String(s||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,300);
     return{
@@ -274,7 +274,7 @@ function d1CandidateEvidence(databaseId){
 }
 
 const report={
-  audit:"CF-MACHINE-009",
+  audit:"CF-MACHINE-010",
   generated_at:new Date().toISOString(),
   mutations:0,
   read_only_post_queries:"Cloudflare GET, GraphQL analytics, read-only D1 SELECT/PRAGMA, and public HTTP probes",
@@ -295,6 +295,18 @@ for(const db of listFrom(report.resources.d1)){
 }
 report.resources.kv=result(`/accounts/${accountId}/storage/kv/namespaces`);
 report.resources.queues=result(`/accounts/${accountId}/queues`);
+report.queue_evidence={};
+for(const queue of listFrom(report.resources.queues)){
+  const name=queue?.queue_name||queue?.name;
+  const id=queue?.queue_id||queue?.id;
+  if(!name||!id)continue;
+  report.queue_evidence[name]={
+    queue_id:id,
+    settings:clean(queue.settings||{}),
+    consumers:result(`/accounts/${accountId}/queues/${encodeURIComponent(id)}/consumers`),
+    metrics:result(`/accounts/${accountId}/queues/${encodeURIComponent(id)}/metrics`)
+  };
+}
 report.resources.durable_objects=result(`/accounts/${accountId}/workers/durable_objects/namespaces?per_page=1000`);
 report.resources.ai_gateway=result(`/accounts/${accountId}/ai-gateway/gateways`);
 report.resources.ai_search_default=result(`/accounts/${accountId}/ai-search/namespaces/default/instances`);
@@ -491,7 +503,7 @@ report.source_evidence={
 mkdirSync("cloudflare-audit",{recursive:true});
 writeFileSync("cloudflare-audit/report.json",JSON.stringify(report,null,2));
 
-console.log("CF-MACHINE-009 read-only Cloudflare cleanup evidence complete");
+console.log("CF-MACHINE-010 read-only Cloudflare cleanup evidence complete");
 console.log("Workers:",allWorkers.length);
 for(const id of allWorkers){
   const s=workerSignals(id);
