@@ -53,14 +53,15 @@ test("browser keeps durable visitor identity and sends it to chat plus lead endp
 test("D1 migration creates customer identity, episodic and semantic memory stores",()=>{
   const sql=fs.readFileSync("migrations/0027_xtra_customer_memory.sql","utf8");
   for(const marker of [
-    "CREATE TABLE IF NOT EXISTS customers",
-    "CREATE TABLE IF NOT EXISTS customer_identities",
-    "CREATE TABLE IF NOT EXISTS customer_episodes",
-    "CREATE TABLE IF NOT EXISTS customer_facts",
-    "CREATE TABLE IF NOT EXISTS memory_jobs_processed",
-    "ALTER TABLE ai_conversations ADD COLUMN customer_id",
-    "ALTER TABLE leads ADD COLUMN customer_id"
+    "CREATE TABLE IF NOT EXISTS xtra_memory_customers",
+    "CREATE TABLE IF NOT EXISTS xtra_memory_identities",
+    "CREATE TABLE IF NOT EXISTS xtra_memory_episodes",
+    "CREATE TABLE IF NOT EXISTS xtra_memory_facts",
+    "CREATE TABLE IF NOT EXISTS xtra_memory_jobs_processed",
+    "CREATE TABLE IF NOT EXISTS xtra_memory_conversation_links",
+    "CREATE TABLE IF NOT EXISTS xtra_memory_lead_links"
   ]) assert.ok(sql.includes(marker),marker);
+  assert.doesNotMatch(sql,/ALTER TABLE (ai_conversations|leads)/);
 });
 
 test("production config provisions a dedicated durable memory queue with DLQ",()=>{

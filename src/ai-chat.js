@@ -1,5 +1,5 @@
 import { notifyTelegramCrm } from "./telegram-crm-notify.js";
-import { attachConversationCustomer, enqueueMemoryEvent, formatCustomerMemory, loadCustomerMemory, procedureState, resolveCustomer } from "./customer-memory.js";
+import { attachConversationCustomer, enqueueMemoryEvent, formatCustomerMemory, linkLeadCustomer, loadCustomerMemory, procedureState, resolveCustomer } from "./customer-memory.js";
 
 const MODEL_PRIMARY = "@cf/zai-org/glm-4.7-flash";
 const MODEL_FALLBACKS = Object.freeze([
@@ -300,10 +300,11 @@ async function saveLead(env,conversationId,phone,name,message,customerId=""){
   const normalized=phone.replace(/\D/g,"");
   if(normalized.length<9)return false;
   const leadMessage="[AI CHAT "+conversationId+"] "+clean(message,1800);
-  await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message,customer_id) VALUES (?,?,?,?,?)")
-    .bind(clean(name,120),clean(phone,30),"",leadMessage,customerId||null).run();
-  await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,customer_id=COALESCE(?,customer_id),updated_at=CURRENT_TIMESTAMP WHERE id=?")
-    .bind(clean(name,120)||null,clean(phone,30),customerId||null,conversationId).run();
+  const lead=await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message) VALUES (?,?,?,?)")
+    .bind(clean(name,120),clean(phone,30),"",leadMessage).run();
+  if(customerId)await linkLeadCustomer(env,lead?.meta?.last_row_id,customerId);
+  await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+    .bind(clean(name,120)||null,clean(phone,30),conversationId).run();
   return true;
 }
 async function pendingUnknown(env,cid){try{return await env.DB.prepare("SELECT id,question,name,phone,status FROM ai_unknown_questions WHERE conversation_id=? AND status='pending' AND (name IS NULL OR phone IS NULL) ORDER BY id DESC LIMIT 1").bind(cid).first();}catch{return null;}}
@@ -388,7 +389,7 @@ export async function handleAiChat(request,env,ctx){
   }
   await env.DB.prepare("INSERT INTO ai_messages (conversation_id,role,content) VALUES (?,?,?)").bind(conversationId,"assistant",reply).run();
   const phone=clean(body?.phone,30)||effectiveContact.phone; const name=clean(body?.name,120)||effectiveContact.name;
-  if(phone)await saveLead(env,conversationId,phone,name,message,customer?.customerId); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),customer_id=COALESCE(?,customer_id),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,customer?.customerId||null,conversationId).run();
+  if(phone)await saveLead(env,conversationId,phone,name,message,customer?.customerId); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,conversationId).run();
   // Every website AI message must reach CRM exactly once. Unknown requests are
   // already notified above; all other messages use the normal AI chat source.
   if(!needsHuman && !suppressCrmNotification)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
