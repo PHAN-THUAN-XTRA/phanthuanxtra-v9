@@ -41,9 +41,17 @@ test("deployment controller provisions producer consumer DLQ with fail-closed ve
 
 test("Cloudflare consumer verification tolerates omitted optional type field",()=>{
   const source=fs.readFileSync("scripts/deploy-cloudflare-api.mjs","utf8");
-  assert.ok(source.includes('consumers.find((consumer) => consumer?.script_name === WORKER)'));
-  assert.ok(source.includes('consumers.find((item) => item?.script_name === WORKER)'));
+  assert.ok(source.includes("consumer?.script_name===WORKER"));
+  assert.ok(source.includes("snapshot.consumers.length===1?snapshot.consumers[0]:null"));
   assert.ok(!source.includes('consumer?.type === "worker" && consumer?.script_name === WORKER'));
+});
+
+test("existing Queue consumer is reconciled from list or queue detail without duplicate creation",()=>{
+  const source=fs.readFileSync("scripts/deploy-cloudflare-api.mjs","utf8");
+  assert.ok(source.includes("async function readVehicleQueueConsumers"));
+  assert.ok(source.includes("Array.isArray(queue?.consumers)?queue.consumers:[]"));
+  assert.ok(source.includes("snapshot.consumers.length===1?snapshot.consumers[0]:null"));
+  assert.ok(source.includes("refusing duplicate creation"));
 });
 
 test("wrangler documents vehicle Queue producer consumer and DLQ",()=>{
