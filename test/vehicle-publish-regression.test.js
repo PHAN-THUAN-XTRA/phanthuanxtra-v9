@@ -47,10 +47,11 @@ test("approved publish retry resyncs an existing website car from the draft",()=
 });
 
 
-test("car detail gallery includes the cover and numbers the complete image set from 1",()=>{
+test("car detail gallery uses persisted order, includes cover, and numbers the complete image set from 1",()=>{
   const page=fs.readFileSync("public/car.html","utf8");
-  assert.match(page,/const gallery=galleryOrder\.map\(i=>imgs\[i\]\)\.filter\(Boolean\)/);
-  assert.match(page,/cover=\(id==='tg-714'&&gallery\[0\]\)\|\|c\.cover_image\|\|gallery\[0\]\|\|''/);
+  assert.match(page,/const gallery=imgs/);
+  assert.match(page,/const cover=c\.cover_image\|\|gallery\[0\]\|\|''/);
+  assert.doesNotMatch(page,/galleryOrder=/);
   assert.doesNotMatch(page,/gallery=imgs\.filter\(x=>x!==cover\)/);
   assert.match(page,/Hình ảnh chi tiết \(\$\{gallery\.length\} ảnh\)/);
   assert.match(page,/ảnh '\+\(i\+1\)/);
