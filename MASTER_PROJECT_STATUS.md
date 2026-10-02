@@ -1,5 +1,59 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 CURRENT PRODUCTION CHECKPOINT — 2026-10-02 (UTC+7)
+- Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`.
+- Current main lineage at this checkpoint: `176f44773c0750824e9681d8acf3df56e67fb94f` (PR #698).
+- Active PR: **none**.
+- Production deployment path remains **GitHub Actions → Cloudflare API/SDK**. No manual Wrangler production deploy is part of this checkpoint.
+- Deploy Cloudflare Worker run `36987201820`: **SUCCESS**. The production Worker deploy job completed successfully after validating source/tests, uploading the Worker, verifying public boundaries, R2 lifecycle, and publishing-draft media lifecycle.
+- Exact-lineage post-deploy workflows on `176f44773c...` are **SUCCESS**: CI, Android APK MVP, Production Asset Delivery Gate, Homepage Canonical Verify, Admin Redirect Verify, Business Jets CRM Production E2E, Blog CMS Production E2E, Live Chat AI Identity Verify, Production Smoke Gate-15, App Sentiment Production E2E, App Assistant Production E2E, QUEUE-01 Production E2E Origin, Stage 3 Production Reconciliation, and Cloudflare Machine Inventory Audit.
+
+### XTRA MEMORY BRAIN — LIVE
+- PR #695 introduced the first production Memory Brain foundation: persistent web visitor identity, customer resolution, bounded recent episodes, semantic preference facts, procedural state, redacted memory summaries, customer-specific AI cache isolation, durable memory queue processing, and current-truth priority.
+- PR #696 hotfixed production schema compatibility by moving memory storage into namespaced tables:
+  - `xtra_memory_customers`
+  - `xtra_memory_identities`
+  - `xtra_memory_episodes`
+  - `xtra_memory_facts`
+  - `xtra_memory_jobs_processed`
+  - `xtra_memory_conversation_links`
+  - `xtra_memory_lead_links`
+- Production principle: **D1 / live website state is current truth; customer memory is context only.** Memory must not independently assert current stock, price, availability, or other mutable catalog facts.
+- Current deterministic facts remain intentionally narrow and non-sensitive: preferred brand, body type, vehicle, and contact channel.
+- Known customer contact state is reused so the assistant should not repeatedly request a phone number once it is already associated with the customer identity.
+
+### LIVE CHAT FALLBACK HARDENING
+- PR #697 fixed quota-limited vehicle fallback behavior:
+  - explicit brand + body-type intent is respected (example: `Lexus` + `SUV` returns only matching Lexus SUVs);
+  - unrelated brands/categories are excluded from fallback results;
+  - a vehicle year is not appended when the same year is already present in the model text.
+- PR #698 improved fallback readability:
+  - each matching vehicle is rendered on its own bullet line;
+  - the chat UI preserves server-provided line breaks using `white-space: pre-line`;
+  - regression tests cover the line-separated vehicle list and UI rendering behavior.
+- Verified production behavior after these changes: quota fallback can continue using the live D1 catalog even when Workers AI is temporarily rate/quota limited, while retaining deterministic filtering and customer-contact awareness.
+
+### OPERATING POLICY — CHATGPT × GITHUB × CLOUDFLARE × PHAN THUẦN XTRA
+- ChatGPT acts as architecture reviewer, root-cause analyst, implementation assistant, and production verifier; it should propose changes only when there is clear reliability, UX, conversion, security, cost, or operational value.
+- GitHub remains the source of truth. Material production changes use branch → PR → regression tests / CI → merge; do not mutate `main` directly.
+- Cloudflare remains the preferred runtime platform. Reuse existing Workers, D1, R2, Queues, Workers AI, and AI Search before introducing another infrastructure dependency.
+- Do not add complexity merely because a technology is newer. D1 + Queues remain sufficient for Memory Brain v1 unless production evidence shows a serialization, scale, or retrieval requirement that they cannot meet.
+- After every material change, verify both source-side checks and exact-lineage production behavior. A merged PR alone is not production proof.
+- When the system is healthy, prefer stability over unnecessary refactoring. New proposals should be tied to measured failures, repeated manual work, customer experience, conversion, privacy, reliability, or operating cost.
+
+### NEXT EVALUATION TARGETS — NO IMMEDIATE ARCHITECTURE CHANGE REQUIRED
+- Observe real Memory Brain behavior before expanding the architecture: returning-customer recognition, reduction in repeated name/phone requests, false or duplicate memory facts/episodes, and cross-customer isolation.
+- Good Phase 2 candidates only when justified by evidence: Admin customer memory timeline with correction/delete controls, lead/opportunity dedupe by customer identity, broader Telegram cross-channel identity linkage, retention/privacy controls, and additional deterministic sales events.
+- Do **not** introduce vector customer-memory retrieval, Durable Objects, or another database merely for architectural novelty. Add them only if a measured production requirement justifies them.
+
+Canonical implementation references:
+- PR #695: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/695
+- PR #696: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/696
+- PR #697: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/697
+- PR #698: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/698
+- Production deploy run: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/36987201820
+
+
 ## 0.0A ISSUE #569 — AUTO-MERGE AUDIT CHECKPOINT (2026-09-28 UTC+7)
 - Read-only Cloudflare audit confirms production Worker binding `MEDIA -> phanthuanxtra-media` and D1 `8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d`; `phanthuanxtra-images` is not the production Worker binding. No binding mutation is authorized by this checkpoint.
 - GitHub merge audit confirms PR #576 merged as `3028d4f9244faa42b74f9b05365a2a6d975d44a9`, PR #577 as `c5fddfac2a33098f106cb1f6694e8fe946f9e634`, PR #578 as `16e3f5892a0fcdc934a7ad1079c6133740d11a4b`, and docs PR #579 as `41e21c8d5cabf84ff040b2aebe16eb7dfa16427c`.
