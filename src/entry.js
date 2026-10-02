@@ -16,7 +16,7 @@ import { reconcileTelegramNotifications } from "./telegram-notifications.js";
 import { handlePublishCore } from "./publish-core.js";
 import { handleBlog } from "./blog.js";
 import { reconcileSeo } from "./seo-ai.js";
-import { reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
+import { consumeTelegramVehicleDraftJobs, reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
 import { handleVideosPage } from "./videos-page.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
@@ -135,6 +135,10 @@ export default {
       console.error("telegram_or_worker_request", String(error?.message || error));
       return new Response(JSON.stringify({ok:false,error:"Internal Server Error"}),{status:500,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}});
     }
+  },
+  async queue(batch, env, ctx) {
+    const result=await consumeTelegramVehicleDraftJobs(batch,env);
+    console.log("telegram_vehicle_queue_jobs",JSON.stringify(result));
   },
   async scheduled(controller, env, ctx) {
     try {

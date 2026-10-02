@@ -7,6 +7,8 @@ const API_BASE = "https://api.cloudflare.com/client/v4";
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const WORKER = "phanthuanxtra-v2";
+const VEHICLE_QUEUE = "ptx-vehicle-jobs";
+const VEHICLE_DLQ = "ptx-vehicle-jobs-dlq";
 const DB_ID = "8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d";
 const COMPATIBILITY_DATE = "2026-08-11";
 const ROOT = process.cwd();
@@ -237,13 +239,97 @@ async function verifyLx570Recovery() {
   return { inboxId: Number(draft.inbox_id), status: String(draft.status) };
 }
 
+function asList(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.result)) return value.result;
+  if (Array.isArray(value?.queues)) return value.queues;
+  if (Array.isArray(value?.consumers)) return value.consumers;
+  return [];
+}
+
+async function ensureQueueByName(queueName) {
+  const listed = asList(await api(accountPath("/queues")));
+  const existing = listed.find((queue) => queue?.queue_name === queueName);
+  if (existing?.queue_id) {
+    console.log(`Queue: ${queueName} already exists (${existing.queue_id}).`);
+    return existing;
+  }
+  const created = await api(accountPath("/queues"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ queue_name: queueName }),
+  });
+  if (!created?.queue_id) throw new Error(`Queue creation failed for ${queueName}: missing queue_id`);
+  console.log(`Queue: created ${queueName} (${created.queue_id}).`);
+  return created;
+}
+
+async function ensureVehicleQueueResources() {
+  const primary = await ensureQueueByName(VEHICLE_QUEUE);
+  const dlq = await ensureQueueByName(VEHICLE_DLQ);
+  return { primary, dlq };
+}
+
+async function ensureVehicleQueueConsumer(primaryQueue) {
+  if (!primaryQueue?.queue_id) throw new Error("Vehicle Queue consumer setup requires queue_id.");
+  const consumers = asList(await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`)));
+  const existing = consumers.find((consumer) => consumer?.type === "worker" && consumer?.script_name === WORKER);
+  const payload = {
+    script_name: WORKER,
+    type: "worker",
+    dead_letter_queue: VEHICLE_DLQ,
+    settings: {
+      batch_size: 1,
+      max_concurrency: 2,
+      max_retries: 5,
+      max_wait_time_ms: 1000,
+      retry_delay: 15,
+    },
+  };
+  let consumer;
+  if (existing?.consumer_id) {
+    consumer = await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers/${existing.consumer_id}`), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    console.log(`Queue consumer: updated ${VEHICLE_QUEUE} -> ${WORKER}.`);
+  } else {
+    consumer = await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    console.log(`Queue consumer: created ${VEHICLE_QUEUE} -> ${WORKER}.`);
+  }
+  if (consumer?.script_name !== WORKER || consumer?.dead_letter_queue !== VEHICLE_DLQ) {
+    throw new Error(`Queue consumer verification failed: ${JSON.stringify(consumer || null)}`);
+  }
+  return consumer;
+}
+
+async function verifyVehicleQueueDeployment(primaryQueue) {
+  const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
+  const binding = (settings?.bindings || []).find((item) => item?.name === "VEHICLE_JOBS");
+  if (!binding || binding.type !== "queue" || binding.queue_name !== VEHICLE_QUEUE) {
+    throw new Error(`Vehicle Queue producer binding verification failed: ${JSON.stringify(binding || null)}`);
+  }
+  const consumers = asList(await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`)));
+  const consumer = consumers.find((item) => item?.type === "worker" && item?.script_name === WORKER);
+  if (!consumer || consumer.dead_letter_queue !== VEHICLE_DLQ || Number(consumer?.settings?.batch_size) !== 1 || Number(consumer?.settings?.max_retries) !== 5) {
+    throw new Error(`Vehicle Queue consumer verification failed: ${JSON.stringify(consumer || null)}`);
+  }
+  console.log(`Queue verification: ${VEHICLE_QUEUE} producer=${WORKER}, consumer=${WORKER}, dlq=${VEHICLE_DLQ}, batch=1, retries=5.`);
+}
+
 async function getCurrentBindings() {
   const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
   const bindings = settings?.bindings || [];
   const inherited = bindings
-    .filter((binding) => binding?.name && binding.name !== "VIDEOS_ORIGIN")
+    .filter((binding) => binding?.name && !["VIDEOS_ORIGIN","VEHICLE_JOBS"].includes(binding.name))
     .map((binding) => ({ name: binding.name, type: "inherit", version_id: "latest" }));
   inherited.push({ name: "VIDEOS_ORIGIN", type: "service", service: "phanthuanxtra-images" });
+  inherited.push({ name: "VEHICLE_JOBS", type: "queue", queue_name: VEHICLE_QUEUE });
   if (!inherited.some((binding) => binding.name === "ASSETS")) inherited.push({ name: "ASSETS", type: "assets" });
   return inherited;
 }
@@ -455,9 +541,12 @@ await verifyTg527ProductionValues();
 await verifyTg527ProductionGallery();
 await verifyLx570Recovery();
 await verifyTg444ProductionGallery();
+const vehicleQueues = await ensureVehicleQueueResources();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
+await ensureVehicleQueueConsumer(vehicleQueues.primary);
+await verifyVehicleQueueDeployment(vehicleQueues.primary);
 await ensureCustomDomainRoute();
 await migrateVideosRoute();
 // A deploy is incomplete if the custom domain is still shadowed by an edge route.

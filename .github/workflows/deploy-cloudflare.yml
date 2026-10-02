@@ -63,6 +63,7 @@ jobs:
           node --check src/telegram.js
           node --check src/telegram-ingest.js
           node --check src/telegram-router.js
+          node --check src/telegram-draft-jobs.js
           node --check src/auto-bot-ai.js
           node --test tests/editorial-publishing.test.mjs tests/publishing-api.test.mjs tests/gemini-plate-privacy.test.mjs
           node --test tests/auto-bot-ai.test.mjs
@@ -73,7 +74,7 @@ jobs:
           node --check src/ai-chat.js
           node --check src/plate-branding.js
           node --check public/blog-latest.js
-          node --test test/blog-ui.test.js test/blog-cards.test.js
+          node --test test/blog-ui.test.js test/blog-cards.test.js test/telegram-durable-draft-jobs.test.js test/cloudflare-vehicle-queue.test.js
           node --check public/script.js
           node --test tests/admin-auth.test.mjs tests/admin-password.test.mjs tests/app-admin-contract.test.mjs tests/telegram.test.mjs tests/ai-chat.test.mjs tests/pt-xtra-media.test.mjs tests/pt-xtra-plate.test.mjs tests/plate-branding.test.mjs tests/production-gates.test.mjs tests/vip-vehicle-intelligence.test.mjs
 

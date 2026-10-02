@@ -2,11 +2,9 @@ name: Cloudflare Machine Inventory Audit
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/cloudflare-machine-audit.yml
-      - scripts/cloudflare-machine-audit.mjs
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -21,6 +19,7 @@ env:
 
 jobs:
   audit:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
@@ -30,21 +29,33 @@ jobs:
       CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Run read-only Cloudflare inventory
         run: node scripts/cloudflare-machine-audit.mjs
 
-      - name: Verify report contract, closure invariants, and redaction
+      - name: Verify report contract, Queue invariants, and redaction
         run: |
           set -euo pipefail
           jq -e '
-            .audit=="CF-MACHINE-009"
+            .audit=="CF-MACHINE-010"
             and .mutations==0
             and (.worker_dependencies|length)==6
             and (.worker_dependencies["phanthuanxtra-videos"] == null)
             and .phase2_evidence.public_probes.videos_public.status==200
             and .phase2_evidence.public_probes.videos_v2_workers_dev.status==200
             and .phase2_evidence.public_json_shapes.images_health.status==200
+            and (.worker_dependencies["phanthuanxtra-v2"].bindings | any(.name=="VEHICLE_JOBS" and .type=="queue" and .queue_name=="ptx-vehicle-jobs"))
+            and (.queue_evidence["ptx-vehicle-jobs"] != null)
+            and (.queue_evidence["ptx-vehicle-jobs-dlq"] != null)
+            and ((.queue_evidence["ptx-vehicle-jobs"].consumers.result // []) | any(
+              .type=="worker"
+              and .script_name=="phanthuanxtra-v2"
+              and .dead_letter_queue=="ptx-vehicle-jobs-dlq"
+              and (.settings.batch_size|tonumber)==1
+              and (.settings.max_retries|tonumber)==5
+            ))
           ' cloudflare-audit/report.json >/dev/null
 
           node - <<'NODE'
@@ -69,6 +80,7 @@ jobs:
             worker_dependency_count:(.worker_dependencies|length),
             workers:(.worker_dependencies|keys),
             service_bindings,
+            queues:.queue_evidence,
             d1_schemas,
             phase2_evidence,
             blocked:.decisions.blocked
@@ -77,7 +89,7 @@ jobs:
       - name: Upload machine evidence
         uses: actions/upload-artifact@v4
         with:
-          name: cloudflare-machine-audit-v9-${{ github.run_id }}
+          name: cloudflare-machine-audit-v10-${{ github.run_id }}
           path: cloudflare-audit/report.json
           retention-days: 30
           if-no-files-found: error
