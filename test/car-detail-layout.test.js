@@ -9,17 +9,19 @@ test("car detail preserves owner-reviewed line breaks",()=>{
   assert.match(html,/white-space:pre-line/);
 });
 
-test("car detail renders the complete gallery including cover",()=>{
-  assert.match(html,/const gallery=galleryOrder\.map\(i=>imgs\[i\]\)\.filter\(Boolean\)/);
+test("car detail renders persisted gallery order including cover",()=>{
+  assert.match(html,/const gallery=imgs/);
+  assert.match(html,/const cover=c\.cover_image\|\|gallery\[0\]\|\|''/);
+  assert.doesNotMatch(html,/galleryOrder=/);
+  assert.doesNotMatch(html,/id==='tg-714'/);
   assert.doesNotMatch(html,/gallery=imgs\.filter\(x=>x!==cover\)/);
   assert.match(html,/vehicle-gallery-grid/);
   assert.match(html,/Hình ảnh chi tiết/);
   assert.match(html,/ảnh '\+\(i\+1\)/);
 });
 
-test("tg-714 prioritizes exterior hero and preserves every gallery image",()=>{
-  assert.match(html,/galleryOrder=id==='tg-714'\?\[4,5,2,8,6,3,7,9,10,11,12,13,1,0,14\]:imgs\.map\(\(_,i\)=>i\)/);
-  assert.match(html,/cover=\(id==='tg-714'&&gallery\[0\]\)\|\|c\.cover_image\|\|gallery\[0\]\|\|''/);
+test("car detail has no model-specific gallery override",()=>{
+  assert.doesNotMatch(html,/tg-714/);
   assert.match(html,/Hình ảnh chi tiết \(\$\{gallery\.length\} ảnh\)/);
 });
 

@@ -5,11 +5,8 @@ fetch('/api/cars',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error
  const c=(d.cars||[]).find(x=>String(x.id)===id);if(!c)throw Error('Không tìm thấy xe hoặc xe không còn hiển thị.');
  document.title=(c.brand+' '+(c.name||c.model||''))+' | PHAN THUẦN XTRA';
  const imgs=Array.isArray(c.images)?c.images.map(x=>typeof x==='string'?x:x.url).filter(Boolean):[];
- // Editorial order for the RX350L listing: exterior overview first, then cabin/details.
- // Keep the source image array untouched; only presentation order changes.
- const galleryOrder=id==='tg-714'?[4,5,2,8,6,3,7,9,10,11,12,13,1,0,14]:imgs.map((_,i)=>i);
- const gallery=galleryOrder.map(i=>imgs[i]).filter(Boolean);
- const cover=(id==='tg-714'&&gallery[0])||c.cover_image||gallery[0]||'',
+ const gallery=imgs;
+ const cover=c.cover_image||gallery[0]||'',
        features=Array.isArray(c.features)?c.features:[];
  root.replaceChildren();const grid=el('div','detail-grid'),visual=el('div'),info=el('div','detail-info');
  if(cover){const img=el('img');img.src=cover;img.alt=(c.brand||'')+' '+(c.name||'');img.style.cssText='width:100%;height:auto;border-radius:12px';visual.append(img)}else visual.append(el('div','detail-image '+(c.imageClass||'')));
