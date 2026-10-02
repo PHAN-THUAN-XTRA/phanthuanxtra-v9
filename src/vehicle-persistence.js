@@ -28,6 +28,44 @@ export async function replaceCarImages(db, carId, images) {
 }
 export async function carImages(db, carId) { const q=await db.prepare("SELECT id,url,sort_order,is_cover FROM car_images WHERE car_id=? ORDER BY sort_order,id").bind(carId).all(); return q.results||[]; }
 
+export async function reorderCarImages(db, carId, imageIds, coverImageId, { actor="gallery-order-api" }={}) {
+  const id=text(carId,81);
+  if(!validCarId(id)) return {ok:false,status:400,error:"ID bài đăng không hợp lệ"};
+  const car=await db.prepare("SELECT id FROM cars WHERE id=?").bind(id).first();
+  if(!car) return {ok:false,status:404,error:"Không tìm thấy xe"};
+
+  const q=await db.prepare("SELECT id,url,sort_order,is_cover FROM car_images WHERE car_id=? ORDER BY sort_order,id").bind(id).all();
+  const current=q.results||[];
+  if(!Array.isArray(imageIds)||imageIds.length!==current.length) return {ok:false,status:400,error:"Danh sách ảnh phải chứa đầy đủ ảnh hiện tại"};
+
+  const normalized=imageIds.map(Number);
+  if(normalized.some(x=>!Number.isInteger(x)||x<=0)||new Set(normalized).size!==normalized.length) return {ok:false,status:400,error:"image_ids không hợp lệ hoặc bị trùng"};
+
+  const byId=new Map(current.map(row=>[Number(row.id),row]));
+  if(normalized.some(imageId=>!byId.has(imageId))) return {ok:false,status:400,error:"image_ids không khớp gallery hiện tại"};
+
+  const coverId=Number(coverImageId);
+  if(!Number.isInteger(coverId)||!byId.has(coverId)) return {ok:false,status:400,error:"cover_image_id không hợp lệ"};
+
+  const coverUrl=byId.get(coverId).url;
+  const statements=normalized.map((imageId,index)=>
+    db.prepare("UPDATE car_images SET sort_order=?,is_cover=? WHERE car_id=? AND id=?").bind(index,imageId===coverId?1:0,id,imageId)
+  );
+  statements.push(db.prepare("UPDATE cars SET cover_image=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(coverUrl,id));
+  const summary="images="+normalized.length+"; cover_image_id="+coverId;
+  statements.push(db.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) VALUES (?,?,?,?,?)").bind(text(actor,100),"gallery_order","car",id,text(summary,500)));
+  await db.batch(statements);
+
+  return {
+    ok:true,
+    status:200,
+    id,
+    cover_image:coverUrl,
+    cover_image_id:coverId,
+    images:normalized.map((imageId,index)=>({...byId.get(imageId),sort_order:index,is_cover:imageId===coverId?1:0}))
+  };
+}
+
 export async function setCarVisibility(db, carId, visible, { actor="visibility-api" }={}) {
   const id=text(carId,81);
   if(!validCarId(id)) return {ok:false,status:400,error:"ID bài đăng không hợp lệ"};
