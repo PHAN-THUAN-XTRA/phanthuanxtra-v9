@@ -96,7 +96,33 @@ function isIdentityQuery(value){
 }
 function isVehicleQuery(value){
   const t=foldVi(value);
-  return /\b(mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup)\b/.test(t);
+  return /\b(mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup|mpv)\b/.test(t);
+}
+function vehicleFallbackCars(query,cars=[]){
+  const t=foldVi(query);
+  const requestedBrands=[...new Set(cars.map(car=>String(car.brand||"").trim()).filter(Boolean).filter(brand=>t.includes(foldVi(brand))))];
+  const categoryAliases=[
+    ["suv",["suv"]],
+    ["sedan",["sedan"]],
+    ["coupe",["coupe"]],
+    ["pickup",["pickup","truck"]],
+    ["mpv",["mpv","van"]],
+    ["sport",["sport","sports"]]
+  ];
+  const requestedCategories=categoryAliases.filter(([,aliases])=>aliases.some(alias=>new RegExp(`\\b${alias}\\b`).test(t))).map(([category])=>category);
+  return cars.filter(car=>{
+    const brandOk=!requestedBrands.length||requestedBrands.some(brand=>foldVi(car.brand)===foldVi(brand));
+    const carCategory=foldVi(car.category);
+    const categoryOk=!requestedCategories.length||requestedCategories.some(category=>carCategory===category||(category==="sport"&&/sport|coupe/.test(carCategory)));
+    return brandOk&&categoryOk;
+  });
+}
+function vehicleFallbackLabel(car){
+  const brand=String(car?.brand||"").trim();
+  const model=String(car?.model||"").trim();
+  const year=String(car?.year??"").trim();
+  const hasYear=Boolean(year&&new RegExp(`(?:^|\\D)${year}(?:\\D|$)`).test(model));
+  return [brand,model,hasYear?"":year].filter(Boolean).join(" ");
 }
 function isWebsiteTopicQuery(value){
   const t=foldVi(value);
@@ -378,8 +404,13 @@ export async function handleAiChat(request,env,ctx){
       if(identityFallback){reply=identityFallback;}
       else if(vehicleQuery){
         if(cars.length){
-          const visibleCars=cars.slice(0,5).map(car=>[car.brand,car.model,car.year].filter(Boolean).join(" ")).join("; ");
-          reply=procedures.knownPhone ? `Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe đang có: ${visibleCars}. Anh/chị đang quan tâm mẫu nào? Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại.` : `Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe đang có: ${visibleCars}. Anh/chị đang quan tâm mẫu nào? Nếu muốn anh Phan Thuần trực tiếp tư vấn, vui lòng để lại họ tên + số điện thoại.`;
+          const matchedCars=vehicleFallbackCars(message,cars);
+          const visibleCars=matchedCars.slice(0,5).map(vehicleFallbackLabel).join("; ");
+          if(visibleCars){
+            reply=procedures.knownPhone ? `Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị: ${visibleCars}. Anh/chị đang quan tâm mẫu nào? Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại.` : `Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị: ${visibleCars}. Anh/chị đang quan tâm mẫu nào? Nếu muốn anh Phan Thuần trực tiếp tư vấn, vui lòng để lại họ tên + số điện thoại.`;
+          }else{
+            reply=procedures.knownPhone ? "Workers AI đang tạm đạt giới hạn xử lý. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại." : "Workers AI đang tạm đạt giới hạn xử lý. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Nếu muốn anh Phan Thuần trực tiếp tìm xe phù hợp, vui lòng để lại họ tên + số điện thoại.";
+          }
         }else{
           reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
         }
