@@ -1,4 +1,4 @@
-import { reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
+import { enqueueTelegramVehicleDraft, reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
 import { handleEditorialMessage, isEditorialMessage, EDITORIAL_HELP } from "./telegram-editorial.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { promoteDraft } from "./telegram-ingest.js";
@@ -377,9 +377,16 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     await env.DB.prepare("UPDATE telegram_inbox SET bundle_key=?,bundle_status='queued',caption=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND chat_id=?").bind(String(active.session_key),ownerCopy,Number(selectedText.id),String(chatId)).run();
     const inboxId=Number(selectedPhotos[0].id);
     await env.DB.prepare("UPDATE telegram_vehicle_sessions SET status='closed',updated_at=CURRENT_TIMESTAMP WHERE chat_id=? AND session_key=?").bind(String(chatId),String(active.session_key)).run();
-    const task=reconcileTelegramVehicleDrafts(env).catch(async error=>{console.error("telegram_carfinish_reconcile_failed",clean(error?.message||error));await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Durable draft reconcile thất bại: "+clean(error?.message||error)}).catch(()=>{});});
-    if(ctx)ctx.waitUntil(task);else await task;
-    await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT VEHICLE SESSION\n🖼 ${selectedPhotos.length} ảnh duy nhất; đã loại ${discardIds.length} hàng cũ hoặc trùng trong session\n📝 Nội dung owner được giữ nguyên\n⏳ Đã xếp durable queue; đang tạo draft AVIF + WebP...`});
+    let queueMode="cloudflare-queue";
+    try{
+      await enqueueTelegramVehicleDraft(env,{bundle_key:String(active.session_key),chat_id:String(chatId),inbox_id:inboxId});
+    }catch(error){
+      queueMode="d1-fallback";
+      console.error("telegram_carfinish_queue_enqueue_failed",clean(error?.message||error));
+      const task=reconcileTelegramVehicleDrafts(env).catch(async recoveryError=>{console.error("telegram_carfinish_reconcile_failed",clean(recoveryError?.message||recoveryError));await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Durable draft recovery thất bại: "+clean(recoveryError?.message||recoveryError)}).catch(()=>{});});
+      if(ctx)ctx.waitUntil(task);else await task;
+    }
+    await tg(token,"sendMessage",{chat_id:chatId,text:`📦 ĐÃ CHỐT VEHICLE SESSION\n🖼 ${selectedPhotos.length} ảnh duy nhất; đã loại ${discardIds.length} hàng cũ hoặc trùng trong session\n📝 Nội dung owner được giữ nguyên\n⏳ Đã xếp ${queueMode==="cloudflare-queue"?"Cloudflare Queue":"D1 recovery fallback"}; đang tạo draft AVIF + WebP...`});
     return;
   }
   const carReview=/^\/carreview\s+(\d+)(?:\s*\n([\s\S]+))?$/i.exec(caption);
