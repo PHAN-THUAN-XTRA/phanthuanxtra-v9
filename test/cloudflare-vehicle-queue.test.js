@@ -72,4 +72,3 @@ test("CF-MACHINE-010 Queue audit tolerates consumer endpoint shape and validates
   assert.ok(workflow.includes('.queue_evidence["ptx-vehicle-jobs"].consumers // []'));
   assert.ok(workflow.includes('.queue_evidence["ptx-vehicle-jobs"].producers // []'));
 });
-
