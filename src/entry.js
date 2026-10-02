@@ -99,7 +99,7 @@ export default {
         headers.delete("content-length");
         return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
       }
-      const videosPageResponse = await handleVideosPage(request);
+      const videosPageResponse = await handleVideosPage(request, env);
       if (videosPageResponse) return videosPageResponse;
       const blogResponse = await handleBlog(request, env);
       if (blogResponse) return blogResponse;

@@ -1,10 +1,14 @@
-const VIDEOS_API = "https://phanthuanxtra-images.phanthuanmodelactor.workers.dev/videos";
-
-export async function handleVideosPage(request) {
+export async function handleVideosPage(request, env) {
   const url = new URL(request.url);
   if (url.pathname !== "/videos" && url.pathname !== "/videos/") return null;
 
-  const response = await fetch(VIDEOS_API, { headers: { accept: "application/json" } });
+  if (!env?.VIDEOS_ORIGIN || typeof env.VIDEOS_ORIGIN.fetch !== "function") {
+    throw new Error("VIDEOS_ORIGIN service binding is unavailable");
+  }
+  const response = await env.VIDEOS_ORIGIN.fetch(new Request("https://videos-origin/videos", {
+    method: "GET",
+    headers: { accept: "application/json" }
+  }));
   if (!response.ok) throw new Error(`Videos source API failed: HTTP ${response.status}`);
 
   const data = await response.json();
