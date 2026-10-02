@@ -17,6 +17,7 @@ import { handlePublishCore } from "./publish-core.js";
 import { handleBlog } from "./blog.js";
 import { reconcileSeo } from "./seo-ai.js";
 import { reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
+import { handleVideosPage } from "./videos-page.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
 
@@ -98,6 +99,8 @@ export default {
         headers.delete("content-length");
         return new Response(assetResponse.body, { status: assetResponse.status, statusText: assetResponse.statusText, headers });
       }
+      const videosPageResponse = await handleVideosPage(request);
+      if (videosPageResponse) return videosPageResponse;
       const blogResponse = await handleBlog(request, env);
       if (blogResponse) return blogResponse;
       const publishingResponse = await handlePublishingApi(request, env);

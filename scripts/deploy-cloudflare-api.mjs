@@ -324,6 +324,58 @@ async function ensureCustomDomainRoute() {
   console.log(`Route: created ${wanted} -> ${WORKER}.`);
 }
 
+
+async function verifyVideosPage() {
+  const response = await fetch("https://phanthuanxtra.com/videos?migration-check=" + encodeURIComponent(process.env.GITHUB_SHA || Date.now()), {
+    headers: { accept: "text/html" }
+  });
+  const type = response.headers.get("content-type") || "";
+  const html = await response.text();
+  if (response.status !== 200 || !type.includes("text/html") || !html.includes("Video Review — PhanThuanXtra") || !html.includes("🎬 Video Review Xe")) {
+    throw new Error(`Videos route verification failed: HTTP ${response.status}, content-type ${type}, bytes=${Buffer.byteLength(html)}`);
+  }
+  console.log("Videos route: HTTP 200 HTML from phanthuanxtra-v2.");
+}
+
+async function migrateVideosRoute() {
+  const zoneId = process.env.CLOUDFLARE_ZONE_ID || "7b2653821ef0d8052bfc91c4cf5008ca";
+  const wanted = "phanthuanxtra.com/videos*";
+  const routes = await api(`/zones/${zoneId}/workers/routes`);
+  const current = Array.isArray(routes) ? routes.find((route) => route?.pattern === wanted) : null;
+
+  if (current?.script === WORKER) {
+    await verifyVideosPage();
+    console.log(`Route: ${wanted} -> ${WORKER} already migrated.`);
+    return;
+  }
+
+  if (!current?.id || current?.script !== "phanthuanxtra-videos") {
+    throw new Error(`Refusing videos route migration: expected current owner phanthuanxtra-videos, got ${JSON.stringify(current || null)}`);
+  }
+
+  await api(`/zones/${zoneId}/workers/routes/${current.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pattern: wanted, script: WORKER }),
+  });
+  console.log(`Route: migrated ${wanted} phanthuanxtra-videos -> ${WORKER}.`);
+
+  try {
+    await verifyVideosPage();
+    const after = await api(`/zones/${zoneId}/workers/routes`);
+    const migrated = Array.isArray(after) ? after.find((route) => route?.pattern === wanted) : null;
+    if (migrated?.script !== WORKER) throw new Error(`Videos route ownership verification failed: ${JSON.stringify(migrated || null)}`);
+  } catch (error) {
+    await api(`/zones/${zoneId}/workers/routes/${current.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pattern: wanted, script: "phanthuanxtra-videos" }),
+    });
+    console.error("Videos route migration failed; legacy route owner restored.");
+    throw error;
+  }
+}
+
 async function syncSecretsAndDeploy() {
   const secrets = {};
   const currentBindingNames = new Set((await api(accountPath(`/workers/scripts/${WORKER}/settings`)))?.bindings?.map((binding) => binding?.name).filter(Boolean) || []);
@@ -400,6 +452,7 @@ const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
 await ensureCustomDomainRoute();
+await migrateVideosRoute();
 // A deploy is incomplete if the custom domain is still shadowed by an edge route.
 const blogCheck = await fetch("https://phanthuanxtra.com/api/blog/posts?deploy-check=" + encodeURIComponent(process.env.GITHUB_SHA || Date.now()), { headers: { accept: "application/json" } });
 const blogType = blogCheck.headers.get("content-type") || "";
