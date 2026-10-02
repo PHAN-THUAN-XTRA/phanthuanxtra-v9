@@ -1696,3 +1696,38 @@ Final closure decision:
 - Temporary destructive/export tooling `scripts/cloudflare-cleanup-phase1.mjs` and `scripts/export-videos-worker-source.mjs` is absent from those active branch trees and remains absent from main.
 - Merged feature branches `fix/cloudflare-final` and `fix/queue01-concurrency` were auto-removed by repository branch hygiene.
 - Any remaining temporary branch names are inert aliases to main, not divergent deployment or cleanup sources.
+
+## 36. 2026-10-02 — Cloudflare Queues vehicle pipeline upgrade FINAL GREEN
+
+Objective completed:
+- `/carfinish` now checkpoints the selected Telegram vehicle session rows in D1 and enqueues a compact versioned message to Cloudflare Queue binding `VEHICLE_JOBS`.
+- Producer Queue: `ptx-vehicle-jobs`.
+- Dead-letter Queue: `ptx-vehicle-jobs-dlq`.
+- Main Worker `phanthuanxtra-v2` is both Queue producer and dedicated Queue consumer.
+- Consumer batch size = 1, max retries = 5, retry delay = 15 seconds; failed messages route to the DLQ.
+- Queue consumer processes at most 3 pending photos per D1 checkpoint cycle, persists AVIF/WebP media and draft state, then re-enqueues continuation work until the bundle is complete.
+- D1 remains the durable source of truth. The existing 5-minute cron remains as recovery only: it restores stale `processing` rows and re-enqueues stale clean `queued` bundles when the Queue binding is available; the bounded direct D1 drain remains a fail-safe only when Queue binding is unavailable.
+- Telegram draft completion notification explicitly reports Cloudflare Queue + D1 checkpoint completion.
+
+GitHub implementation lineage:
+- Feature commit `ce4ee64fc770564370b01d719098f0b0b8192174`: Queue producer/consumer/DLQ, `/carfinish` enqueue path, Queue handler, cron recovery, deploy provisioning, tests, Wrangler config and CF-MACHINE-010 audit.
+- Follow-up consumer/API reconciliation fixes: `fc16fa24c5a65b8eb12157860d9807be3ae1aa17`, `503d41e819f2ef47228209d9b1e1b3066fa0dca0`, `46ff6686b090e79516ef8f57560842cfe69ba460`.
+- Exact current main for production evidence: `46ff6686b090e79516ef8f57560842cfe69ba460`.
+
+Production deployment evidence:
+- Deploy Cloudflare Worker run `36977580670`: SUCCESS.
+- Production Worker version `e23905c8-dc0e-45e5-ac16-3198f88f0407`, deployment `1fe8312b-90a1-4d00-86a2-e19b85d1295d`, API-created 100% traffic.
+- Deployment verified existing Queue IDs for `ptx-vehicle-jobs` and `ptx-vehicle-jobs-dlq`, updated the dedicated consumer, and passed producer/consumer/DLQ contract verification.
+- Canonical CI run `36977580686`: SUCCESS. Queue regression tests cover compact payload, producer binding, Queue consumer + cron recovery, continuation behavior and provisioning topology.
+- Exact-SHA post-deploy chain on `46ff6686b090e79516ef8f57560842cfe69ba460` is GREEN, including QUEUE-01, Production Smoke Gate-15, App Assistant, App Sentiment, Blog CMS, Business Jets CRM, Stage 3, Homepage Canonical, Production Asset Delivery, Admin Redirect and Live Chat AI Identity.
+
+CF-MACHINE-010 live Queue evidence:
+- Audit run `36977677065`: SUCCESS; mutations=0.
+- Queues present: `ptx-vehicle-jobs`, `ptx-vehicle-jobs-dlq`.
+- Primary Queue topology: producers=1, consumers=1, producer Worker=`phanthuanxtra-v2`, DLQ=`ptx-vehicle-jobs-dlq`, batch=1, retries=5.
+- Primary backlog = 0 at audit time.
+- DLQ backlog = 0 at audit time.
+- D1/R2/Worker inventory remains intact; Workers count stays 6.
+- This upgrade does not authorize deletion of any remaining Worker, D1, R2, DO, DNS or AI resource.
+
+Operational status: Cloudflare Queues migration for the Telegram vehicle draft pipeline is FINAL GREEN. Future production vehicle sessions should use Queue-first processing; cron/D1 direct processing is recovery/fail-safe only.
