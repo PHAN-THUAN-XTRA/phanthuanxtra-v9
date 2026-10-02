@@ -240,7 +240,10 @@ async function verifyLx570Recovery() {
 async function getCurrentBindings() {
   const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
   const bindings = settings?.bindings || [];
-  const inherited = bindings.filter((binding) => binding?.name).map((binding) => ({ name: binding.name, type: "inherit", version_id: "latest" }));
+  const inherited = bindings
+    .filter((binding) => binding?.name && binding.name !== "VIDEOS_ORIGIN")
+    .map((binding) => ({ name: binding.name, type: "inherit", version_id: "latest" }));
+  inherited.push({ name: "VIDEOS_ORIGIN", type: "service", service: "phanthuanxtra-images" });
   if (!inherited.some((binding) => binding.name === "ASSETS")) inherited.push({ name: "ASSETS", type: "assets" });
   return inherited;
 }
@@ -326,15 +329,19 @@ async function ensureCustomDomainRoute() {
 
 
 async function verifyVideosPage() {
-  const response = await fetch("https://phanthuanxtra.com/videos?migration-check=" + encodeURIComponent(process.env.GITHUB_SHA || Date.now()), {
-    headers: { accept: "text/html" }
-  });
-  const type = response.headers.get("content-type") || "";
-  const html = await response.text();
-  if (response.status !== 200 || !type.includes("text/html") || !html.includes("Video Review — PhanThuanXtra") || !html.includes("🎬 Video Review Xe")) {
-    throw new Error(`Videos route verification failed: HTTP ${response.status}, content-type ${type}, bytes=${Buffer.byteLength(html)}`);
+  const suffix = "?migration-check=" + encodeURIComponent(process.env.GITHUB_SHA || Date.now());
+  for (const base of [
+    "https://phanthuanxtra.com/videos",
+    "https://phanthuanxtra-v2.phanthuanmodelactor.workers.dev/videos"
+  ]) {
+    const response = await fetch(base + suffix, { headers: { accept: "text/html" } });
+    const type = response.headers.get("content-type") || "";
+    const html = await response.text();
+    if (response.status !== 200 || !type.includes("text/html") || !html.includes("Video Review — PhanThuanXtra") || !html.includes("🎬 Video Review Xe")) {
+      throw new Error(`Videos route verification failed for ${base}: HTTP ${response.status}, content-type ${type}, bytes=${Buffer.byteLength(html)}`);
+    }
+    console.log(`Videos route: ${base} => HTTP 200 HTML.`);
   }
-  console.log("Videos route: HTTP 200 HTML from phanthuanxtra-v2.");
 }
 
 async function migrateVideosRoute() {
