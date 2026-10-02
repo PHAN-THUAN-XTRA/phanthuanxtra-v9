@@ -83,6 +83,7 @@ jobs:
       - name: Unit tests
         run: |
           node --test tests/*.test.mjs
+          node --test test/videos-page.test.js test/videos-route-migration.test.js
           node --test developer-gateway/test/index.test.mjs
 
       - name: Validate deployment configuration without deployment CLI
