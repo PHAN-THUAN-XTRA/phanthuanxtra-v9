@@ -9,6 +9,8 @@ const TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 const WORKER = "phanthuanxtra-v2";
 const VEHICLE_QUEUE = "ptx-vehicle-jobs";
 const VEHICLE_DLQ = "ptx-vehicle-jobs-dlq";
+const MEMORY_QUEUE = "ptx-memory-jobs";
+const MEMORY_DLQ = "ptx-memory-jobs-dlq";
 const DB_ID = "8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d";
 const COMPATIBILITY_DATE = "2026-08-11";
 const ROOT = process.cwd();
@@ -270,6 +272,12 @@ async function ensureVehicleQueueResources() {
   return { primary, dlq };
 }
 
+async function ensureMemoryQueueResources() {
+  const primary = await ensureQueueByName(MEMORY_QUEUE);
+  const dlq = await ensureQueueByName(MEMORY_DLQ);
+  return { primary, dlq };
+}
+
 async function readVehicleQueueConsumers(primaryQueue) {
   const queueId=primaryQueue?.queue_id;
   if(!queueId)throw new Error("Vehicle Queue consumer read requires queue_id.");
@@ -345,14 +353,74 @@ async function verifyVehicleQueueDeployment(primaryQueue) {
   console.log(`Queue verification: ${VEHICLE_QUEUE} producer=${WORKER}, consumer=${consumer.script_name||"single-dedicated-consumer"}, dlq=${VEHICLE_DLQ}, batch=1, retries=5.`);
 }
 
+async function ensureMemoryQueueConsumer(primaryQueue) {
+  if (!primaryQueue?.queue_id) throw new Error("Memory Queue consumer setup requires queue_id.");
+  const snapshot=await readVehicleQueueConsumers(primaryQueue);
+  const existing=snapshot.consumers.find((consumer)=>consumer?.script_name===WORKER)
+    || (snapshot.consumers.length===1?snapshot.consumers[0]:null);
+  const payload = {
+    script_name: WORKER,
+    type: "worker",
+    dead_letter_queue: MEMORY_DLQ,
+    settings: {
+      batch_size: 5,
+      max_concurrency: 2,
+      max_retries: 5,
+      max_wait_time_ms: 2000,
+      retry_delay: 15,
+    },
+  };
+  let consumer;
+  if (existing?.consumer_id) {
+    consumer = await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers/${existing.consumer_id}`), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    console.log(`Queue consumer: updated ${MEMORY_QUEUE} -> ${WORKER}.`);
+  } else {
+    const existingCount=Number(snapshot.queue?.consumers_total_count||snapshot.consumers.length||0);
+    if(existingCount>0)throw new Error(`Memory Queue already has ${existingCount} consumer(s) but no consumer_id was readable; refusing duplicate creation.`);
+    consumer = await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    console.log(`Queue consumer: created ${MEMORY_QUEUE} -> ${WORKER}.`);
+  }
+  if (consumer?.script_name && consumer.script_name !== WORKER) {
+    throw new Error(`Memory Queue consumer script verification failed: ${JSON.stringify(consumer || null)}`);
+  }
+  if (consumer?.dead_letter_queue !== MEMORY_DLQ) {
+    throw new Error(`Memory Queue consumer DLQ verification failed: ${JSON.stringify(consumer || null)}`);
+  }
+  return consumer;
+}
+
+async function verifyMemoryQueueDeployment(primaryQueue) {
+  const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
+  const binding = (settings?.bindings || []).find((item) => item?.name === "MEMORY_JOBS");
+  if (!binding || binding.type !== "queue" || binding.queue_name !== MEMORY_QUEUE) {
+    throw new Error(`Memory Queue producer binding verification failed: ${JSON.stringify(binding || null)}`);
+  }
+  const snapshot=await readVehicleQueueConsumers(primaryQueue);
+  const consumer=snapshot.consumers.find((item)=>item?.script_name===WORKER)
+    || (snapshot.consumers.length===1?snapshot.consumers[0]:null);
+  if (!consumer || consumer.dead_letter_queue !== MEMORY_DLQ || Number(consumer?.settings?.batch_size) !== 5 || Number(consumer?.settings?.max_retries) !== 5) {
+    throw new Error(`Memory Queue consumer verification failed: ${JSON.stringify({consumer,queue:snapshot.queue} || null)}`);
+  }
+  console.log(`Queue verification: ${MEMORY_QUEUE} producer=${WORKER}, consumer=${consumer.script_name||"single-dedicated-consumer"}, dlq=${MEMORY_DLQ}, batch=5, retries=5.`);
+}
+
 async function getCurrentBindings() {
   const settings = await api(accountPath(`/workers/scripts/${WORKER}/settings`));
   const bindings = settings?.bindings || [];
   const inherited = bindings
-    .filter((binding) => binding?.name && !["VIDEOS_ORIGIN","VEHICLE_JOBS"].includes(binding.name))
+    .filter((binding) => binding?.name && !["VIDEOS_ORIGIN","VEHICLE_JOBS","MEMORY_JOBS"].includes(binding.name))
     .map((binding) => ({ name: binding.name, type: "inherit", version_id: "latest" }));
   inherited.push({ name: "VIDEOS_ORIGIN", type: "service", service: "phanthuanxtra-images" });
   inherited.push({ name: "VEHICLE_JOBS", type: "queue", queue_name: VEHICLE_QUEUE });
+  inherited.push({ name: "MEMORY_JOBS", type: "queue", queue_name: MEMORY_QUEUE });
   if (!inherited.some((binding) => binding.name === "ASSETS")) inherited.push({ name: "ASSETS", type: "assets" });
   return inherited;
 }
@@ -565,11 +633,14 @@ await verifyTg527ProductionGallery();
 await verifyLx570Recovery();
 await verifyTg444ProductionGallery();
 const vehicleQueues = await ensureVehicleQueueResources();
+const memoryQueues = await ensureMemoryQueueResources();
 const assetJwt = await uploadAssets();
 await uploadWorker(assetJwt);
 await syncSecretsAndDeploy();
 await ensureVehicleQueueConsumer(vehicleQueues.primary);
 await verifyVehicleQueueDeployment(vehicleQueues.primary);
+await ensureMemoryQueueConsumer(memoryQueues.primary);
+await verifyMemoryQueueDeployment(memoryQueues.primary);
 await ensureCustomDomainRoute();
 await migrateVideosRoute();
 // A deploy is incomplete if the custom domain is still shadowed by an edge route.
