@@ -1646,3 +1646,44 @@ The repository currently has **37**, not 35, workflow YAML entry points. Classif
 - Production Smoke Gate-15, Current-lineage D1/Gateway/AI/Admin/R2, asset, homepage/admin, Blog CMS and the observed exact-SHA post-deploy verification chain all SUCCESS.
 - Workflow inventory after Phase 5 is freshly verified at **30** YAML entry points. The earlier 6–10 figure was a planning target, not an acceptance requirement; validation was not deleted merely to reach a count. Exact-SHA deploy ownership and post-deploy chaining are the achieved simplification boundary.
 - Phase 1–5 consolidation plus production AI recovery is **FINAL GREEN** on the above production evidence. Future changes continue to use this MASTER as the sole project source-of-truth and must preserve exact-SHA deployment, UTF-8/mojibake, R2, publishing, smoke and branch-protection invariants.
+
+
+## 34. 2026-10-02 — GitHub + Cloudflare final closure
+
+Latest checkpoint wins over earlier historical/planning sections when they conflict.
+
+Final GitHub state:
+- PR #686 `fix(cloudflare): close videos origin gap and promote audit v9` merged as `3386992b892c584360ee1fb9319dd9ae23768a04`.
+- Production deploy run `36972540776` completed SUCCESS.
+- Production Worker version `67d06069-f13d-41f2-a876-effff0ec5555`, deployment `72ec40b8-f5aa-4461-8b53-b2fffded8f42`, 100% API-created traffic.
+- `/videos` now uses the explicit `VIDEOS_ORIGIN -> phanthuanxtra-images` Worker service binding.
+- Production deploy verified both `https://phanthuanxtra.com/videos` and direct `https://phanthuanxtra-v2.phanthuanmodelactor.workers.dev/videos` as HTTP 200 HTML.
+- Read-only Cloudflare audit was promoted to main as `CF-MACHINE-009`; destructive cleanup/export operations remain off main.
+
+Final Cloudflare audit evidence:
+- Audit run `36972540784`, attempt 2, completed SUCCESS after production deploy.
+- Workers count = 6: `ask-ai-agent`, `ask-ai-api`, `phanthuanxtra-backup`, `phanthuanxtra-developer-gateway`, `phanthuanxtra-images`, `phanthuanxtra-v2`.
+- `phanthuanxtra-videos` remains retired/absent.
+- `phanthuanxtra-v2`: 12 routes, 1 custom domain, 1 cron, 1 outbound service binding.
+- Direct v2 workers.dev `/videos` = HTTP 200 on first post-deploy audit attempt; public custom-domain `/videos` = HTTP 200.
+- D1 unchanged: `luxury-ui-db`, `chatbot-db`, `phanthuanxtra-db`.
+- R2 unchanged: `ai-pt-xtra-apk`, `phanthuanxtra-images`, `phanthuanxtra-media`.
+- Durable Object `ask-ai-agent_ChatAgent` remains.
+- Audit mutations = 0; sensitive binding redaction PASS.
+- No additional Worker/D1/R2/DO/DNS/AI resource is approved for deletion.
+
+QUEUE-01 cancellation root cause and closure:
+- `QUEUE-01 Production E2E Origin` shared concurrency group `xtra-production-e2e-single-queue` with `Production Smoke Gate-15`; simultaneous post-deploy triggers could cancel QUEUE-01 before any job started.
+- PR #687 `fix(ci): prevent QUEUE-01 post-deploy cancellation` merged as `47aa3769cd9ef33dcca7920f74bf9cbf3632f189`.
+- QUEUE-01 now uses its own concurrency group `queue-01-production-e2e-origin`.
+- Exact-SHA production deploy run `36972949240` SUCCESS.
+- QUEUE-01 run `36973079375` SUCCESS: Admin/App signed sessions, dashboard, D1 CRUD, R2 write/private-read/delete lifecycle PASS. Workers AI Vision remains `BLOCKED_BY_FREE_TIER_QUOTA` with the recognized Cloudflare daily 10,000-neuron fingerprint and is not classified as an application regression.
+- Exact-SHA post-deploy chain on `47aa3769cd9ef33dcca7920f74bf9cbf3632f189`: Homepage Canonical, Production Asset Delivery, Blog CMS, QUEUE-01, App Sentiment, Stage 3 Reconciliation, Live Chat AI Identity, Admin Redirect, Business Jets CRM, Production Smoke Gate-15 and App Assistant all SUCCESS.
+
+Final closure decision:
+- Direct workers.dev `/videos` 500 discrepancy: CLOSED.
+- QUEUE-01 exact-SHA evidence: CLOSED.
+- Read-only audit promoted to main: CLOSED.
+- Legacy videos Worker migration/retirement: CLOSED.
+- GitHub + Cloudflare cleanup objective is FINAL GREEN at this checkpoint.
+- Preserve the 6 remaining Workers and current D1/R2/DO/AI dependencies; future cleanup requires a new independently verified objective.
