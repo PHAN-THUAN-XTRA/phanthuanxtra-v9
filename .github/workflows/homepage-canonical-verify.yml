@@ -33,6 +33,12 @@ jobs:
           grep -Fq "Vượt trên" /tmp/home.html
           grep -Fq "xa xỉ." /tmp/home.html
           grep -Fq 'id="hero-slide-auto"' /tmp/home.html
+          grep -Fq 'data-catalog-hero="lexus-rx500h-2024"' /tmp/home.html
+          if grep -Fq "Kevauto" /tmp/home.html || grep -Fq "2022_Lexus_LX600_F_Sport" /tmp/home.html || grep -Fq "upload.wikimedia.org/wikipedia/commons/a/a4/2022_Lexus_LX600_F_Sport" /tmp/home.html; then
+            echo "Retired Lexus LX600/Kevauto automotive hero is still present in production."
+            exit 1
+          fi
+          echo "Automotive hero RX500h production fingerprint: PASS"
           grep -Fq 'id="hero-slide-yacht"' /tmp/home.html
           grep -Fq 'id="hero-slide-jet"' /tmp/home.html
           grep -Fq 'id="hero-slide-energy"' /tmp/home.html
