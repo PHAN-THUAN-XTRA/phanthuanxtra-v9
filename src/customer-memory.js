@@ -19,9 +19,18 @@ function redactPhone(value){
   return clean(value,MAX_MEMORY_SUMMARY).replace(PHONE_RE,"[SĐT đã cung cấp]");
 }
 
+async function firstBound(bound){
+  if(typeof bound?.first==="function")return await bound.first();
+  if(typeof bound?.all==="function"){
+    const result=await bound.all();
+    return result?.results?.[0]||null;
+  }
+  return null;
+}
+
 async function identityCustomer(db,type,value){
   if(!value)return null;
-  return await db.prepare("SELECT customer_id FROM customer_identities WHERE identity_type=? AND identity_value=? LIMIT 1").bind(type,value).first();
+  return await firstBound(db.prepare("SELECT customer_id FROM customer_identities WHERE identity_type=? AND identity_value=? LIMIT 1").bind(type,value));
 }
 
 async function mergeCustomers(db,canonicalId,duplicateId){
@@ -77,8 +86,8 @@ export async function loadCustomerMemory(env,customerId){
   if(!env?.DB||!customerId)return {profile:null,facts:[],episodes:[],knownPhone:false,phone:""};
   const db=env.DB;
   const [profile,phoneRow,facts,episodes]=await Promise.all([
-    db.prepare("SELECT id,display_name,status,created_at,last_seen_at FROM customers WHERE id=? LIMIT 1").bind(customerId).first(),
-    db.prepare("SELECT identity_value FROM customer_identities WHERE customer_id=? AND identity_type='phone' ORDER BY verified DESC,last_seen_at DESC LIMIT 1").bind(customerId).first(),
+    firstBound(db.prepare("SELECT id,display_name,status,created_at,last_seen_at FROM customers WHERE id=? LIMIT 1").bind(customerId)),
+    firstBound(db.prepare("SELECT identity_value FROM customer_identities WHERE customer_id=? AND identity_type='phone' ORDER BY verified DESC,last_seen_at DESC LIMIT 1").bind(customerId)),
     db.prepare("SELECT fact_key,fact_value,confidence,last_confirmed_at FROM customer_facts WHERE customer_id=? AND status='active' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) ORDER BY last_confirmed_at DESC LIMIT 20").bind(customerId).all(),
     db.prepare("SELECT event_type,subject_type,subject_id,summary,outcome,happened_at FROM customer_episodes WHERE customer_id=? ORDER BY happened_at DESC LIMIT 8").bind(customerId).all()
   ]);
