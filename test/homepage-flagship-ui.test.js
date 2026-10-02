@@ -12,6 +12,8 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/hero-carousel/);
   for (const sector of ['auto','yacht','jet','energy']) assert.match(html,new RegExp(`id="hero-slide-${sector}"`));
   assert.match(html,/data-src="\/media\/editorial\/green-energy\/wide_clean_modern_promotional_banner_hero_image\.png"/);
+  assert.match(html,/class="hero-slide-energy-link" href="\/green-energy"/);
+  assert.doesNotMatch(html,/id="hero-slide-energy"[^]*?<div class="hero-slide-content">/);
   assert.doesNotMatch(html,/Intel_Solar_Installation_Vietnam\.jpg/);
   assert.doesNotMatch(html,/Intel Free Press/);
   assert.match(html,/href="#test-drive">Đặt lịch tư vấn xe/);
