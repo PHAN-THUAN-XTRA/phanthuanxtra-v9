@@ -56,7 +56,7 @@ test("existing Queue consumer is reconciled from list or queue detail without du
 
 test("wrangler documents vehicle Queue producer consumer and DLQ",()=>{
   const cfg=JSON.parse(fs.readFileSync("wrangler.json","utf8"));
-  assert.deepEqual(cfg.queues?.producers,[{binding:"VEHICLE_JOBS",queue:"ptx-vehicle-jobs"}]);
+  assert.ok(cfg.queues?.producers?.some(x=>x.binding==="VEHICLE_JOBS"&&x.queue==="ptx-vehicle-jobs"));
   assert.equal(cfg.queues?.consumers?.[0]?.queue,"ptx-vehicle-jobs");
   assert.equal(cfg.queues?.consumers?.[0]?.dead_letter_queue,"ptx-vehicle-jobs-dlq");
   assert.equal(cfg.queues?.consumers?.[0]?.max_batch_size,1);

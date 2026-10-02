@@ -17,6 +17,7 @@ import { handlePublishCore } from "./publish-core.js";
 import { handleBlog } from "./blog.js";
 import { reconcileSeo } from "./seo-ai.js";
 import { consumeTelegramVehicleDraftJobs, reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
+import { consumeMemoryJobs } from "./customer-memory.js";
 import { handleVideosPage } from "./videos-page.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
@@ -107,7 +108,7 @@ export default {
       if (publishingResponse) return publishingResponse;
       const publishCoreResponse = await handlePublishCore(request, env);
       if (publishCoreResponse) return publishCoreResponse;
-      const aiChatResponse = await handleAiChat(request, env);
+      const aiChatResponse = await handleAiChat(request, env, ctx);
       if (aiChatResponse) return aiChatResponse;
       const adminPipeline = await handleAdminVehiclePipeline(request, env);
       if (adminPipeline instanceof Response) return adminPipeline;
@@ -137,6 +138,11 @@ export default {
     }
   },
   async queue(batch, env, ctx) {
+    if(batch?.queue==="ptx-memory-jobs"){
+      const result=await consumeMemoryJobs(batch,env);
+      console.log("xtra_memory_queue_jobs",JSON.stringify(result));
+      return;
+    }
     const result=await consumeTelegramVehicleDraftJobs(batch,env);
     console.log("telegram_vehicle_queue_jobs",JSON.stringify(result));
   },
