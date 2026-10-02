@@ -1,3 +1,29 @@
+const catalogHero = document.querySelector('[data-catalog-hero="lexus-rx500h-2024"]');
+if (catalogHero) {
+  fetch('/api/cars', { cache: 'no-store', credentials: 'same-origin' })
+    .then(response => {
+      if (!response.ok) throw new Error('catalog unavailable');
+      return response.json();
+    })
+    .then(data => {
+      const cars = Array.isArray(data?.cars) ? data.cars : [];
+      const rx500h = cars.find(car => {
+        const brand = String(car?.brand ?? '').toLowerCase();
+        const name = String(car?.name ?? car?.model ?? '').toLowerCase();
+        const year = String(car?.year ?? '');
+        return brand === 'lexus' && name.includes('rx500h') && year === '2024';
+      });
+      const image = rx500h?.cover_image ?? rx500h?.image ?? '';
+      if (!image) throw new Error('RX500h 2024 image unavailable');
+      catalogHero.src = image;
+      const listingName = String(rx500h?.name ?? rx500h?.model ?? 'LEXUS RX500h F SPORT PERFORMANCE 2024').trim();
+      catalogHero.alt = `${listingName} đang bán tại PHAN THUẦN XTRA`;
+    })
+    .catch(() => {
+      catalogHero.closest('.hero-slide')?.classList.add('hero-catalog-image-unavailable');
+    });
+}
+
 const carousel = document.querySelector('.hero-carousel');
 if (carousel) {
   const slides = [...carousel.querySelectorAll('.hero-slide')];
