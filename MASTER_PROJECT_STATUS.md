@@ -1687,3 +1687,12 @@ Final closure decision:
 - Legacy videos Worker migration/retirement: CLOSED.
 - GitHub + Cloudflare cleanup objective is FINAL GREEN at this checkpoint.
 - Preserve the 6 remaining Workers and current D1/R2/DO/AI dependencies; future cleanup requires a new independently verified objective.
+
+
+## 35. 2026-10-02 — Temporary branch/tooling hygiene closed
+
+- Temporary branches `audit/cloudflare-cleanup-v4` and `chore/retire-legacy-videos-worker` were force-reset to the final main tree after their work was completed.
+- Both refs are now identical to main: ahead=0, behind=0.
+- Temporary destructive/export tooling `scripts/cloudflare-cleanup-phase1.mjs` and `scripts/export-videos-worker-source.mjs` is absent from those active branch trees and remains absent from main.
+- Merged feature branches `fix/cloudflare-final` and `fix/queue01-concurrency` were auto-removed by repository branch hygiene.
+- Any remaining temporary branch names are inert aliases to main, not divergent deployment or cleanup sources.
