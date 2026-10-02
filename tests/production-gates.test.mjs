@@ -407,6 +407,16 @@ test('performance gate: homepage hero reserves layout and lazy-loads non-LCP sli
   }
 });
 
+test('production gate: business jet homepage hero uses verified owned R2 media', () => {
+  const page = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const start = page.indexOf('id="hero-slide-jet"');
+  const end = page.indexOf('</article>', start);
+  const slide = page.slice(start, end);
+  assert.match(slide, /data-src="\/media\/editorial\/business-jets\/hero-business-jet-phan-thuan-2026\.webp"/);
+  assert.match(slide, /href="\/business-jets#flight-request"/);
+  assert.doesNotMatch(slide, /Ronnie Macdonald|creativecommons\.org|commons\.wikimedia\.org/);
+});
+
 test('performance gate: stable CSS and JS URLs revalidate instead of caching immutable for a year', () => {
   const headers = fs.readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
   for (const asset of ['/style.css','/script.js','/hero-carousel.js','/blog-latest.js']) {
