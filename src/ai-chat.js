@@ -405,9 +405,13 @@ export async function handleAiChat(request,env,ctx){
       else if(vehicleQuery){
         if(cars.length){
           const matchedCars=vehicleFallbackCars(message,cars);
-          const visibleCars=matchedCars.slice(0,5).map(vehicleFallbackLabel).join("; ");
+          const visibleCars=matchedCars.slice(0,5).map(car=>`• ${vehicleFallbackLabel(car)}`).join("\n");
           if(visibleCars){
-            reply=procedures.knownPhone ? `Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị: ${visibleCars}. Anh/chị đang quan tâm mẫu nào? Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại.` : `Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị: ${visibleCars}. Anh/chị đang quan tâm mẫu nào? Nếu muốn anh Phan Thuần trực tiếp tư vấn, vui lòng để lại họ tên + số điện thoại.`;
+            const intro="Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị:";
+            const next=procedures.knownPhone
+              ? "Anh/chị đang quan tâm mẫu nào? Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại."
+              : "Anh/chị đang quan tâm mẫu nào? Nếu muốn anh Phan Thuần trực tiếp tư vấn, vui lòng để lại họ tên + số điện thoại.";
+            reply=`${intro}\n${visibleCars}\n\n${next}`;
           }else{
             reply=procedures.knownPhone ? "Workers AI đang tạm đạt giới hạn xử lý. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại." : "Workers AI đang tạm đạt giới hạn xử lý. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Nếu muốn anh Phan Thuần trực tiếp tìm xe phù hợp, vui lòng để lại họ tên + số điện thoại.";
           }
