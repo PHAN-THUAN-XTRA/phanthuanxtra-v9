@@ -39,6 +39,13 @@ test("deployment controller provisions producer consumer DLQ with fail-closed ve
   ]) assert.ok(source.includes(marker),marker);
 });
 
+test("Cloudflare consumer verification tolerates omitted optional type field",()=>{
+  const source=fs.readFileSync("scripts/deploy-cloudflare-api.mjs","utf8");
+  assert.ok(source.includes('consumers.find((consumer) => consumer?.script_name === WORKER)'));
+  assert.ok(source.includes('consumers.find((item) => item?.script_name === WORKER)'));
+  assert.ok(!source.includes('consumer?.type === "worker" && consumer?.script_name === WORKER'));
+});
+
 test("wrangler documents vehicle Queue producer consumer and DLQ",()=>{
   const cfg=JSON.parse(fs.readFileSync("wrangler.json","utf8"));
   assert.deepEqual(cfg.queues?.producers,[{binding:"VEHICLE_JOBS",queue:"ptx-vehicle-jobs"}]);
