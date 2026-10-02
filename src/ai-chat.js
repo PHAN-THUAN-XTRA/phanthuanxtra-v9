@@ -295,7 +295,17 @@ function handoffReply(contact, sent=false){
   if(contact.phone)return "Cảm ơn anh/chị, tôi đã nhận số điện thoại. Vui lòng cho tôi xin thêm họ tên để hoàn tất thông tin chuyển anh Phan Thuần trực tiếp tư vấn.";
   return "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin họ tên và số điện thoại, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
 }
-async function saveLead(env,conversationId,phone,name,message,customerId=""){if(!phone||!env.DB)return false;const normalized=phone.replace(/\D/g,"");if(normalized.length<9)return false;await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message,customer_id) VALUES (?,?,?,?,?)").bind(clean(name,120),clean(phone,30),"",`[AI CHAT ${conversationId}] ${clean(message,1800)}`,customerId||null).run();await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,customer_id=COALESCE(?,customer_id),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(clean(name,120)||null,clean(phone,30),customerId||null,conversationId).run();return true;}
+async function saveLead(env,conversationId,phone,name,message,customerId=""){
+  if(!phone||!env.DB)return false;
+  const normalized=phone.replace(/\D/g,"");
+  if(normalized.length<9)return false;
+  const leadMessage="[AI CHAT "+conversationId+"] "+clean(message,1800);
+  await env.DB.prepare("INSERT INTO leads (name,phone,car_id,message,customer_id) VALUES (?,?,?,?,?)")
+    .bind(clean(name,120),clean(phone,30),"",leadMessage,customerId||null).run();
+  await env.DB.prepare("UPDATE ai_conversations SET name=?,phone=?,customer_id=COALESCE(?,customer_id),updated_at=CURRENT_TIMESTAMP WHERE id=?")
+    .bind(clean(name,120)||null,clean(phone,30),customerId||null,conversationId).run();
+  return true;
+}
 async function pendingUnknown(env,cid){try{return await env.DB.prepare("SELECT id,question,name,phone,status FROM ai_unknown_questions WHERE conversation_id=? AND status='pending' AND (name IS NULL OR phone IS NULL) ORDER BY id DESC LIMIT 1").bind(cid).first();}catch{return null;}}
 async function recordUnknown(env,cid,question,name,phone){const existing=await pendingUnknown(env,cid);if(existing){if(name||phone)await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,phone||null,existing.id).run();return {id:existing.id,created:false};}const r=await env.DB.prepare("INSERT INTO ai_unknown_questions (conversation_id,question,name,phone,notified_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)").bind(cid,clean(question,4000),clean(name,120)||null,clean(phone,30)||null).run();return {id:r?.meta?.last_row_id??null,created:true};}
 
