@@ -55,6 +55,10 @@ test("production homepage gate checks all four current hero sectors",()=>{
   }
   assert.doesNotMatch(canonicalGate,/BỘ SƯU TẬP RIÊNG/);
   assert.match(canonicalGate,/PHAN THUáº¦N XTRA/);
+  assert.match(canonicalGate,/data-catalog-hero="lexus-rx500h-2024"/);
+  assert.match(canonicalGate,/Kevauto/);
+  assert.match(canonicalGate,/2022_Lexus_LX600_F_Sport/);
+  assert.match(canonicalGate,/Retired Lexus LX600\/Kevauto automotive hero is still present in production/);
 });
 
 
