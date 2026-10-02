@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { handleAiChat } from '../src/ai-chat.js';
 
 function mockDb(cars = [], posts = []) {
@@ -100,11 +101,16 @@ test('vehicle quota fallback filters Lexus SUV intent and excludes unrelated bra
   const data=await response.json();
   assert.equal(response.status,200);
   assert.equal(data.needs_human,false);
-  assert.match(data.reply,/LEXUS RX350L 2019/);
-  assert.match(data.reply,/LEXUS GX 460 Luxury 2021/);
+  assert.match(data.reply,/\n• LEXUS RX350L 2019\n• LEXUS GX 460 Luxury 2021/);
+  assert.doesNotMatch(data.reply,/; LEXUS/);
   assert.doesNotMatch(data.reply,/TOYOTA/);
   assert.doesNotMatch(data.reply,/LAND ROVER/);
   assert.doesNotMatch(data.reply,/LS 500/);
+});
+
+test('AI chat bubble preserves server line breaks for vehicle lists', () => {
+  const css=fs.readFileSync('public/style.css','utf8');
+  assert.match(css,/\.ai-msg\{[^}]*white-space:pre-line/);
 });
 
 test('vehicle quota fallback does not append year when model already contains it', async () => {
