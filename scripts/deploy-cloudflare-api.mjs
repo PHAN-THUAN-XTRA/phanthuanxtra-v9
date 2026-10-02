@@ -270,10 +270,27 @@ async function ensureVehicleQueueResources() {
   return { primary, dlq };
 }
 
+async function readVehicleQueueConsumers(primaryQueue) {
+  const queueId=primaryQueue?.queue_id;
+  if(!queueId)throw new Error("Vehicle Queue consumer read requires queue_id.");
+  const listed=asList(await api(accountPath(`/queues/${queueId}/consumers`)));
+  const queue=await api(accountPath(`/queues/${queueId}`));
+  const embedded=Array.isArray(queue?.consumers)?queue.consumers:[];
+  const merged=[];
+  const seen=new Set();
+  for(const consumer of [...listed,...embedded]){
+    const key=consumer?.consumer_id||consumer?.script_name||JSON.stringify(consumer);
+    if(!key||seen.has(key))continue;
+    seen.add(key);merged.push(consumer);
+  }
+  return{queue,consumers:merged};
+}
+
 async function ensureVehicleQueueConsumer(primaryQueue) {
   if (!primaryQueue?.queue_id) throw new Error("Vehicle Queue consumer setup requires queue_id.");
-  const consumers = asList(await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`)));
-  const existing = consumers.find((consumer) => consumer?.script_name === WORKER);
+  const snapshot=await readVehicleQueueConsumers(primaryQueue);
+  const existing=snapshot.consumers.find((consumer)=>consumer?.script_name===WORKER)
+    || (snapshot.consumers.length===1?snapshot.consumers[0]:null);
   const payload = {
     script_name: WORKER,
     type: "worker",
@@ -295,6 +312,8 @@ async function ensureVehicleQueueConsumer(primaryQueue) {
     });
     console.log(`Queue consumer: updated ${VEHICLE_QUEUE} -> ${WORKER}.`);
   } else {
+    const existingCount=Number(snapshot.queue?.consumers_total_count||snapshot.consumers.length||0);
+    if(existingCount>0)throw new Error(`Vehicle Queue already has ${existingCount} consumer(s) but no consumer_id was readable; refusing duplicate creation.`);
     consumer = await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -302,8 +321,11 @@ async function ensureVehicleQueueConsumer(primaryQueue) {
     });
     console.log(`Queue consumer: created ${VEHICLE_QUEUE} -> ${WORKER}.`);
   }
-  if (consumer?.script_name !== WORKER || consumer?.dead_letter_queue !== VEHICLE_DLQ) {
-    throw new Error(`Queue consumer verification failed: ${JSON.stringify(consumer || null)}`);
+  if (consumer?.script_name && consumer.script_name !== WORKER) {
+    throw new Error(`Queue consumer script verification failed: ${JSON.stringify(consumer || null)}`);
+  }
+  if (consumer?.dead_letter_queue !== VEHICLE_DLQ) {
+    throw new Error(`Queue consumer DLQ verification failed: ${JSON.stringify(consumer || null)}`);
   }
   return consumer;
 }
@@ -314,12 +336,13 @@ async function verifyVehicleQueueDeployment(primaryQueue) {
   if (!binding || binding.type !== "queue" || binding.queue_name !== VEHICLE_QUEUE) {
     throw new Error(`Vehicle Queue producer binding verification failed: ${JSON.stringify(binding || null)}`);
   }
-  const consumers = asList(await api(accountPath(`/queues/${primaryQueue.queue_id}/consumers`)));
-  const consumer = consumers.find((item) => item?.script_name === WORKER);
+  const snapshot=await readVehicleQueueConsumers(primaryQueue);
+  const consumer=snapshot.consumers.find((item)=>item?.script_name===WORKER)
+    || (snapshot.consumers.length===1?snapshot.consumers[0]:null);
   if (!consumer || consumer.dead_letter_queue !== VEHICLE_DLQ || Number(consumer?.settings?.batch_size) !== 1 || Number(consumer?.settings?.max_retries) !== 5) {
-    throw new Error(`Vehicle Queue consumer verification failed: ${JSON.stringify(consumer || null)}`);
+    throw new Error(`Vehicle Queue consumer verification failed: ${JSON.stringify({consumer,queue:snapshot.queue} || null)}`);
   }
-  console.log(`Queue verification: ${VEHICLE_QUEUE} producer=${WORKER}, consumer=${WORKER}, dlq=${VEHICLE_DLQ}, batch=1, retries=5.`);
+  console.log(`Queue verification: ${VEHICLE_QUEUE} producer=${WORKER}, consumer=${consumer.script_name||"single-dedicated-consumer"}, dlq=${VEHICLE_DLQ}, batch=1, retries=5.`);
 }
 
 async function getCurrentBindings() {
