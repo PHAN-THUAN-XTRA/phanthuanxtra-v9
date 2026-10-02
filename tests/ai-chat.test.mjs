@@ -85,6 +85,42 @@ test('website AI chat uses visible D1 catalog and GLM -> Nemotron -> Qwen fallba
   assert.ok(DB._rows.some(x=>x.type==='message' && x.role==='assistant'));
 });
 
+test('vehicle quota fallback filters Lexus SUV intent and excludes unrelated brands', async () => {
+  const DB = mockDb([
+    {id:'lexus-rx',brand:'LEXUS',model:'RX350L',year:2019,status:'available',category:'suv'},
+    {id:'lexus-gx',brand:'LEXUS',model:'GX 460 Luxury',year:2021,status:'available',category:'suv'},
+    {id:'toyota-lc',brand:'TOYOTA',model:'Land Cruiser VX 4.6 V8',year:2018,status:'available',category:'suv'},
+    {id:'land-rover-defender',brand:'LAND ROVER',model:'Defender 110 HSE 2025',year:2025,status:'available',category:'suv'},
+    {id:'lexus-sedan',brand:'LEXUS',model:'LS 500',year:2022,status:'available',category:'sedan'}
+  ]);
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'fallback-lexus-suv',visitor_id:'fallback-lexus-suv',message:'Tôi đang quan tâm Lexus SUV'})
+  }), {DB, AI:{async run(){throw new Error('quota 4006');}}});
+  const data=await response.json();
+  assert.equal(response.status,200);
+  assert.equal(data.needs_human,false);
+  assert.match(data.reply,/LEXUS RX350L 2019/);
+  assert.match(data.reply,/LEXUS GX 460 Luxury 2021/);
+  assert.doesNotMatch(data.reply,/TOYOTA/);
+  assert.doesNotMatch(data.reply,/LAND ROVER/);
+  assert.doesNotMatch(data.reply,/LS 500/);
+});
+
+test('vehicle quota fallback does not append year when model already contains it', async () => {
+  const DB = mockDb([
+    {id:'defender',brand:'LAND ROVER',model:'Defender 110 HSE 2025',year:2025,status:'available',category:'suv'}
+  ]);
+  const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'fallback-year-dedupe',visitor_id:'fallback-year-dedupe',message:'Tôi quan tâm Land Rover SUV'})
+  }), {DB, AI:{async run(){throw new Error('quota 4006');}}});
+  const data=await response.json();
+  assert.equal(response.status,200);
+  assert.match(data.reply,/LAND ROVER Defender 110 HSE 2025/);
+  assert.doesNotMatch(data.reply,/2025 2025/);
+});
+
 test('Phan Thuần identity knowledge is present when AI Search is unavailable', async () => {
   const DB = mockDb();
   const env = {
