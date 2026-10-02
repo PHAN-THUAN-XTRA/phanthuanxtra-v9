@@ -41,8 +41,8 @@ test("deployment controller provisions producer consumer DLQ with fail-closed ve
 
 test("Cloudflare consumer verification tolerates omitted optional type field",()=>{
   const source=fs.readFileSync("scripts/deploy-cloudflare-api.mjs","utf8");
-  assert.ok(source.includes('consumers.find((consumer) => consumer?.script_name === WORKER)'));
-  assert.ok(source.includes('consumers.find((item) => item?.script_name === WORKER)'));
+  assert.ok(source.includes("consumer?.script_name===WORKER"));
+  assert.ok(source.includes("snapshot.consumers.length===1?snapshot.consumers[0]:null"));
   assert.ok(!source.includes('consumer?.type === "worker" && consumer?.script_name === WORKER'));
 });
 
