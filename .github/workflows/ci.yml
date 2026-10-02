@@ -83,7 +83,7 @@ jobs:
       - name: Unit tests
         run: |
           node --test tests/*.test.mjs
-          node --test test/videos-page.test.js test/videos-route-migration.test.js
+          node --test test/videos-page.test.js test/videos-route-migration.test.js test/telegram-durable-draft-jobs.test.js test/cloudflare-vehicle-queue.test.js
           node --test developer-gateway/test/index.test.mjs
 
       - name: Validate deployment configuration without deployment CLI
@@ -94,7 +94,8 @@ jobs:
           const fs=require('fs');
           const cfg=JSON.parse(fs.readFileSync('wrangler.json','utf8'));
           if(cfg.main!=='src/entry.js') throw new Error('Unexpected Worker entrypoint');
-          for(const key of ['assets','ai','images','r2_buckets','d1_databases']) if(!cfg[key]) throw new Error('Missing required config: '+key);
+          for(const key of ['assets','ai','images','r2_buckets','d1_databases','queues']) if(!cfg[key]) throw new Error('Missing required config: '+key);
+          if(cfg.queues?.producers?.[0]?.binding!=='VEHICLE_JOBS') throw new Error('Missing VEHICLE_JOBS Queue producer');
           console.log('Worker deployment configuration: PASS (static validation only)');
           NODE
 
