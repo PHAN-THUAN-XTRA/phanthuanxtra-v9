@@ -1,0 +1,24 @@
+{
+  "name": "vehicle-manager-safe-context",
+  "required_literals": [
+    "tg-652",
+    "AUDI",
+    "Q7 3.0 TFSI",
+    "2017",
+    "1050000000",
+    "sold",
+    "NO_DELETE",
+    "telegram-mini-app"
+  ],
+  "records": [
+    {"id":"tg-652","brand":"AUDI","model":"Q7 3.0 TFSI","year":2017,"price":1050000000,"status":"sold","policy":"NO_DELETE","surface":"telegram-mini-app","note":"Vehicle status changes are reversible and must preserve media and audit history."},
+    {"id":"tg-714","brand":"LEXUS","model":"RX350L","year":2019,"price":0,"status":"available","policy":"NO_DELETE","surface":"telegram-mini-app","note":"Gallery ordering must submit the complete image id list and preserve a valid cover image."},
+    {"id":"tg-694","brand":"TOYOTA","model":"Land Cruiser VX 4.6 V8","year":2018,"price":0,"status":"available","policy":"NO_DELETE","surface":"telegram-mini-app","note":"Public vehicle presentation must match canonical D1 state."}
+  ],
+  "repeated_context": [
+    "Never delete vehicle data. Preserve D1 rows, R2 media, audit history, and reversible status transitions.",
+    "Never delete vehicle data. Preserve D1 rows, R2 media, audit history, and reversible status transitions.",
+    "Never delete vehicle data. Preserve D1 rows, R2 media, audit history, and reversible status transitions.",
+    "Never delete vehicle data. Preserve D1 rows, R2 media, audit history, and reversible status transitions."
+  ]
+}

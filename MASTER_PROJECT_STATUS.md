@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 HEADROOM SHADOW BENCHMARK — PROMOTION GATE — 2026-10-03 (UTC+7)
+- Next priority after isolated Headroom evidence: measure **real local compression behavior** on a secret-free PHAN THUẦN XTRA fixture before any production traffic integration.
+- Shadow benchmark installs the exact Headroom commit already pinned in `tools/headroom.json`; it runs with `HEADROOM_OFFLINE=1`, `HEADROOM_BEACON=off`, `DO_NOT_TRACK=1`.
+- Fixture locks critical vehicle semantics including canonical IDs, brand/model/year, price/status, `NO_DELETE`, and Telegram Mini App policy markers.
+- Promotion floor: all required literals must survive compression and token count must not increase. Report captures before/after/saved tokens, ratio, transforms and missing literals.
+- Benchmark makes **no provider API call**, receives no production secrets, does not start Headroom proxy/memory/CCR, and cannot mutate Cloudflare/D1/R2/Telegram.
+- Passing this benchmark only qualifies Headroom for a later, separately reviewed shadow-context experiment. It does **not** authorize production proxying or autonomous mutation.
+- Existing control order remains deterministic audit → Jev → LLM/AI audit → Headroom isolated/shadow evidence → CI → GitHub Actions/Cloudflare API-SDK.
+- Owner operations remain **S21 Ultra → Telegram → Termux → browser**, Windows fallback only, no Wrangler.
+- Status: **SOURCE IMPLEMENTED — LIVE SHADOW BENCHMARK / CI / MERGE PENDING**.
+
+
 ## 0.0 HEADROOM GITHUB CAPABILITY — ISOLATED AUDIT — 2026-10-03 (UTC+7)
 - Owner requested adding **Headroom** to GitHub and continuing automatically by priority.
 - Upstream selected/audited: `headroomlabs-ai/headroom`, Apache-2.0, package `headroom-ai` v0.39.1, pinned commit `793bb85659d9aa907115ec16ea3356c5459f6299`.
