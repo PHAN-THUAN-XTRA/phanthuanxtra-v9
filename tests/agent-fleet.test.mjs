@@ -19,7 +19,7 @@ test("orchestrator routes CRM work through governance and approval",()=>{
  assert.ok(p.departments.includes("governance"));
  assert.equal(p.approvalRequired,true);
  assert.equal(p.execution,"bounded-existing-workflows");
- assert.deepEqual(p.executableAgents,["agent-27","agent-28","agent-31","agent-33","agent-34"]);
+ assert.deepEqual(p.executableAgents,["agent-26","agent-27","agent-28","agent-31","agent-33","agent-34"]);
  assert.deepEqual(p.pipeline,["collect","score","brief","draft","validate","approval-gate"]);
 });
 test("kill switch can disable fleet without changing code",()=>{
