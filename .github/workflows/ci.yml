@@ -98,7 +98,8 @@ jobs:
             review_base="${{ github.event.before }}"
             review_head="${{ github.sha }}"
           fi
-          if git diff --name-only "$review_base" "$review_head" | rg '^(public/(content-review\.(js|css)|admin-control(\.html)?|telegram-mini-app\.html)|src/(content-owner-review|telegram-mini-app)\.js|tests/ui/content-owner-review\.browser\.mjs|scripts/content-review-ui-fixture\.mjs)$' >/dev/null; then
+          git diff --name-only "$review_base" "$review_head" > "$RUNNER_TEMP/owner-review-changed-files"
+          if grep -E '^(public/(content-review\.(js|css)|admin-control(\.html)?|telegram-mini-app\.html)|src/(content-owner-review|telegram-mini-app)\.js|tests/ui/content-owner-review\.browser\.mjs|scripts/content-review-ui-fixture\.mjs)$' "$RUNNER_TEMP/owner-review-changed-files" >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
