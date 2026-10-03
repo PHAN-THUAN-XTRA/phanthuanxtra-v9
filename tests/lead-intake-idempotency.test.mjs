@@ -20,7 +20,7 @@ test("lead is stored behind the idempotency claim and replay does not insert ano
  const source=fs.readFileSync(new URL("../src/index.js",import.meta.url),"utf8");
  const claim=source.indexOf("INSERT INTO xtra_lead_intake_requests");
  const lead=source.indexOf("INSERT INTO leads",claim);
- const replay=source.indexOf("if(prior.lead_id)",claim);
+ const replay=source.indexOf("if(prior.lead_id)");
  assert.ok(claim>=0&&lead>claim);
  assert.ok(replay>claim&&replay<lead);
 });
