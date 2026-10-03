@@ -1,5 +1,19 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## QUY ĐỊNH BẮT BUỘC — ĐỌC TRƯỚC, GHI SAU THỰC THI
+
+Áp dụng từ 2026-10-03 theo yêu cầu owner cho mọi công việc PHAN THUẦN XTRA.
+
+1. **Trước khi thực thi:** đọc bản cập nhật mới nhất của `MASTER_PROJECT_STATUS.md`; đối chiếu checkpoint mới nhất, phạm vi được phép, trạng thái còn mở và bằng chứng. Không dùng bản cũ để ra quyết định. Nếu file thay đổi trong lúc làm hoặc chuyển sang tác vụ mới, đọc lại phần cập nhật liên quan trước bước tiếp theo.
+2. **Thực thi theo trạng thái đã đọc:** xử lý từng hạng mục, giữ ranh giới quyền hạn và dữ liệu. Chuẩn bị nháp/lịch không cấp quyền publish; mô phỏng không thay thế nghiệm thu thiết bị, khách hàng hoặc AI thật.
+3. **Sau khi thực thi thành công:** ghi vào chính MASTER thời điểm UTC+7, hạng mục/thay đổi, kết quả, kiểm tra và bằng chứng liên quan (PR/commit/run/artifact/receipt nếu có), giới hạn và việc còn lại. Chỉ ghi DONE/CLOSED khi có bằng chứng thành công. Nếu thất bại/bị chặn, giữ trạng thái OPEN/BLOCKED và ghi nguyên nhân.
+4. **Hợp nhất và đồng bộ:** cập nhật bản MASTER trong repository và bản tài liệu cùng danh tính; giữ lịch sử. Checkpoint mới nhất được ưu tiên khi mâu thuẫn với kế hoạch cũ. Tài liệu phụ chỉ bổ trợ, không thay thế nguồn trạng thái này.
+5. **Trước khi báo hoàn thành:** xác nhận cập nhật MASTER đã lưu thành công; với thay đổi repository, hoàn thành CI/merge và các kiểm chứng triển khai cần thiết. Không ghi khóa bí mật hoặc dữ liệu riêng tư của khách hàng vào MASTER.
+
+### Ghi nhận thực thi thành công — 2026-10-03
+
+Đã đọc MASTER phiên bản 33 trước khi chỉnh sửa; hợp nhất quy định trên và giữ nguyên các checkpoint/bằng chứng. Hạng mục đối soát trước đó đã merge **PR #746**, commit `5261d633c0a0c60a0cccaeb94e304a0d76a2b701`; CI trên main **37121565664** PASS. Đây là cập nhật quy trình tài liệu, không đóng các mục S21, khách hàng thật, quota AI hoặc phạm vi backup còn thiếu.
+
 ## 0.0G REMAINING-WORK RECONCILIATION — 2026-10-03 18:58 (UTC+7)
 
 Latest checkpoint distinguishes completed virtual/release work from evidence that still requires real operation.
