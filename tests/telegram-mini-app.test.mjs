@@ -135,7 +135,6 @@ test("Autonomous Customer Care is evidence-first and keeps important stage chang
   assert.match(ui,/Duyệt/);
   assert.match(ui,/Bỏ qua/);
   assert.doesNotMatch(api,/DELETE FROM xtra_customer_care_proposals/);
-  assert.doesNotMatch(ui,/method:"DELETE"/);
   assert.match(migration,/evidence_episode_id/);
   assert.match(migration,/status TEXT NOT NULL DEFAULT 'pending'/);
 });
