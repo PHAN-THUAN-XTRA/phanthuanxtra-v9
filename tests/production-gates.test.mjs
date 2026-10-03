@@ -267,11 +267,13 @@ test('production gate: Green Energy 3D PV ESS visual uses R2 WebP asset', () => 
 });
 
 
-test('production gate: homepage Green Energy production delivery gate checks PNG response', () => {
+test('production gate: homepage Green Energy production delivery gate checks AVIF and WebP responses', () => {
   const workflow = fs.readFileSync(new URL('../.github/workflows/production-asset-gate.yml', import.meta.url), 'utf8');
   assert.ok(workflow.includes('media/editorial/green-energy/green-energy-home-hero.avif'));
   assert.ok(workflow.includes('media/editorial/green-energy/green-energy-home-hero.webp'));
-  assert.match(workflow, /visual_status/);
+  assert.ok(workflow.includes('check_image()'));
+  assert.ok(workflow.includes('test "$status" = "200"'));
+  assert.ok(workflow.includes('test -s "$body"'));
   assert.ok(workflow.includes('image/avif'));
   assert.ok(workflow.includes('image/webp'));
   assert.ok(workflow.includes('Green Energy homepage AVIF/WebP delivery PASS'));
@@ -441,7 +443,10 @@ test('performance gate: Green Energy homepage hero uses verified internal R2 art
   const start = page.indexOf('id="hero-slide-energy"');
   const end = page.indexOf('</article>', start);
   const slide = page.slice(start, end);
-  assert.ok(slide.includes('data-src="/media/editorial/green-energy/wide_clean_modern_promotional_banner_hero_image.png"'));
+  assert.ok(slide.includes('data-srcset="/media/editorial/green-energy/green-energy-home-hero.avif"'));
+  assert.ok(slide.includes('data-srcset="/media/editorial/green-energy/green-energy-home-hero.webp"'));
+  assert.ok(slide.includes('data-src="/media/editorial/green-energy/green-energy-home-hero.webp"'));
+  assert.ok(slide.includes('<picture>'));
   assert.doesNotMatch(slide, /wikimedia\.org/);
 });
 
