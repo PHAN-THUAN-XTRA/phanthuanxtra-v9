@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0A 62-AGENT CONTROL PLANE + EXECUTION PROMOTION — 2026-10-03 (UTC+7)
+- PR #733 established the production 62-agent control plane inspired by Structure Webworks' published operating model: 62 logical specialist agents, 8 departments, one Chief Orchestrator, shared existing D1/Memory Brain context, approval boundaries and a fleet kill switch. It intentionally does not create 62 persistent services, a second database, or a second customer-memory system.
+- Canonical fleet departments: Intelligence 8, Content 9, Distribution 8, CRM 9, Reputation 7, Analytics 8, Operations 7, Governance 6.
+- Production policy: D1/live state remains truth; XTRA Memory Brain remains customer context; GitHub Actions -> Cloudflare API/SDK remains the production deployment path; customer deletion remains owner-only; budget/brand-promise/consequential public writes remain owner/approval-bound.
+- Promotion rule: an agent may move beyond plan/draft only when its real target workflow already provides bounded/authenticated ingress, idempotency, audit/evidence, retry or reconciliation, and least privilege.
+- Phase 1 promotes exactly five CRM agents onto existing production workflows rather than inventing new write paths: **agent-27 Identity Resolver**, **agent-28 Vehicle Interest Mapper**, **agent-31 Care Status Agent**, **agent-33 Proposal Agent**, **agent-34 CRM Auditor**.
+- Execution evidence: Memory Brain jobs claim `idempotencyKey` in `xtra_memory_jobs_processed`; duplicate jobs are ignored; queue failures retry; customer events create evidence episodes/facts; care changes create audit; important care stages become evidence-linked proposals for owner approval. Only the low-risk explicit-phone transition `new -> contacting` may auto-write.
+- **agent-26 Lead Intake is deliberately not promoted yet** because the current public lead-create path does not expose a sufficiently strong idempotency contract for autonomous replay. Website Publisher/Telegram Distributor and other consequential distribution agents also remain approval-bound.
+- Fleet kill switch remains `AI_AGENT_FLEET_ENABLED=0`. The owner-only `GET /api/admin/agents` exposes registry/promotion policy; planning reports which selected agents have bounded execution capability but does not create a bypass around existing workflow APIs.
+- Next promotion candidates must be selected by measured workflow readiness, not by agent count. Priority is to add explicit idempotency/reconciliation to Lead Intake before autonomous promotion, then evaluate low-risk draft/scheduling operations separately from public publish.
+
+
 ## 0.0 CURRENT CUSTOMER CARE + MARKETING OPS CLOSURE — 2026-10-03 (UTC+7)
 - Canonical production baseline before this documentation closure: `fd5f63b6511012cc0ae692006bb88e9219c9d691` (PR #729 lineage). GitHub currently has no open PR or open issue.
 - PR #726 operational CRM hygiene is production-deployed: S21 owner evidence changed the Customer Care list from 107/107 mixed records to 1/1 meaningful customer; CI fixtures and anonymous one-shot noise are filtered from the operational list without deleting Memory Brain records.
