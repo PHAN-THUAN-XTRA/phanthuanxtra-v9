@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 JEV + LLM GITHUB DECISION CASCADE — 2026-10-03 (UTC+7)
+- Owner requested combining **TypeSafe Jev + LLM** in GitHub and continuing work by priority.
+- Architecture: deterministic repository audit first → optional Jev typed risk decisions → existing LLM/AI audit remains the explanatory/fallback review layer. Jev does not replace deterministic tests or the existing LLM gate.
+- Jev integration uses the official TypeSafe `POST /v1/systemone` API with model alias `jev-latest`; the only credential is GitHub Actions secret `TYPESAFE_API_KEY`.
+- The Jev job is **optional until the secret is configured**: absence of the secret is a clean skip so existing CI/AI gates are not weakened or broken.
+- Review state is bounded to 120 KB of PR diff. Jev receives no GitHub token, Cloudflare credential, Telegram token, Admin/CMS secret, D1/R2 credential, or production mutation capability.
+- High-confidence Jev risk threshold is 0.90 for security or production risk; crossing it blocks the Jev job for human/LLM review rather than autonomously fixing, merging, or deploying.
+- GitHub workflow permissions are read-only and checkout credentials are not persisted.
+- Existing owner operations policy remains **S21 Ultra → Telegram → Termux → browser**, Windows fallback only, and **no Wrangler production operations**.
+- Status: **SOURCE IMPLEMENTED — CI / AI AUDIT / MERGE PENDING**. Live Jev decision evidence additionally requires owner-configured `TYPESAFE_API_KEY` in GitHub Actions secrets.
+
+
 ## 0.0 OWNER OPERATIONS POLICY — S21 ULTRA / TELEGRAM / TERMUX FIRST — 2026-10-03 (UTC+7)
 - Owner operating priority is now: **Samsung Galaxy S21 Ultra → Telegram → Termux → browser**.
 - **Windows PowerShell is fallback only**, not the primary operating path.
