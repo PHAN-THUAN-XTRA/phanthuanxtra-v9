@@ -315,7 +315,7 @@ test('Business Jets lead stores itinerary in D1 and Telegram accepts correctly c
   const rows=[];
   const DB={prepare(sql){return {bind(...args){return {
     async run(){if(sql.includes('INSERT INTO leads')){rows.push({id:17,name:args[0],phone:args[1],message:args[3]});return {meta:{last_row_id:17}};}return {meta:{changes:1}};},
-    async all(){return {results:rows};}
+    async all(){return {results:rows};},\n    async first(){return null;}
   };}};}};
   const originalFetch=globalThis.fetch;
   let telegramText='';
