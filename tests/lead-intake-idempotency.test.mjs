@@ -6,7 +6,7 @@ test("public lead intake has a durable replay-safe contract",()=>{
  const source=fs.readFileSync(new URL("../src/index.js",import.meta.url),"utf8");
  const migration=fs.readFileSync(new URL("../migrations/0030_lead_intake_idempotency.sql",import.meta.url),"utf8");
  assert.match(source,/function leadIdempotencyKey/);
- assert.match(source,/Idempotency-Key/);
+ assert.match(source,/Idempotency-Key/);\n assert.match(source,/visitor\|\|\"legacy\"/);
  assert.match(source,/payload_fingerprint/);
  assert.match(source,/createLeadReplaySafe/);
  assert.match(source,/replayed:true/);
