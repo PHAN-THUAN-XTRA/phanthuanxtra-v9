@@ -1,0 +1,13 @@
+{
+  "upstream": "headroomlabs-ai/headroom",
+  "commit": "793bb85659d9aa907115ec16ea3356c5459f6299",
+  "version": "0.39.1",
+  "license": "Apache-2.0",
+  "mode": "audit-only",
+  "production_access": false,
+  "production_secrets": false,
+  "proxy": false,
+  "memory": false,
+  "telemetry": false,
+  "ccr_disk_cache": false
+}
