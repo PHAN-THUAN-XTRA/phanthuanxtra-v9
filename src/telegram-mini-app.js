@@ -139,6 +139,19 @@ async function decideCustomerProposal(request,env,id,proposalId){
   return customerDetail(env,id);
 }
 
+async function deleteCustomer(request,env,id){
+  if(!customerIdOk(id))return json({error:"ID khách hàng không hợp lệ"},400);
+  const body=await request.json().catch(()=>null);
+  if(body?.confirm!=="DELETE_CUSTOMER"||body?.customer_id!==id)return json({error:"Cần xác nhận xóa đúng khách hàng"},400);
+  const exists=await env.DB.prepare("SELECT id FROM xtra_memory_customers WHERE id=? LIMIT 1").bind(id).first();
+  if(!exists)return json({error:"Không tìm thấy khách hàng"},404);
+  // Leads are business records: unlink them from Memory Brain, do not delete the lead rows themselves.
+  await env.DB.prepare("DELETE FROM xtra_memory_lead_links WHERE customer_id=?").bind(id).run();
+  const result=await env.DB.prepare("DELETE FROM xtra_memory_customers WHERE id=?").bind(id).run();
+  if(Number(result?.meta?.changes||0)!==1)return json({error:"Không thể xóa khách hàng"},409);
+  return json({ok:true,deleted:true,customer_id:id});
+}
+
 async function updateCustomerCare(request,env,id){
   if(!customerIdOk(id))return json({error:"ID khách hàng không hợp lệ"},400);
   const exists=await env.DB.prepare("SELECT id FROM xtra_memory_customers WHERE id=? LIMIT 1").bind(id).first();
@@ -200,6 +213,8 @@ export async function handleTelegramMiniAppApi(request,env){
   const customer=u.pathname.match(/^\/api\/telegram\/mini\/v1\/customers\/(cus_[A-Za-z0-9-]{20,80})$/);
   if(customer&&request.method==="GET")return customerDetail(env,customer[1]);
   if(customer&&request.method==="PATCH")return updateCustomerCare(request,env,customer[1]);
+  const customerDelete=u.pathname.match(/^\/api\/telegram\/mini\/v1\/customers\/(cus_[A-Za-z0-9-]{20,80})$/);
+  if(customerDelete&&request.method==="DELETE")return deleteCustomer(request,env,customerDelete[1]);
   const customerProposal=u.pathname.match(/^\/api\/telegram\/mini\/v1\/customers\/(cus_[A-Za-z0-9-]{20,80})\/proposals\/(prop_[A-Za-z0-9-]{20,80})$/);
   if(customerProposal&&request.method==="POST")return decideCustomerProposal(request,env,customerProposal[1],customerProposal[2]);
   const customerSummary=u.pathname.match(/^\/api\/telegram\/mini\/v1\/customers\/(cus_[A-Za-z0-9-]{20,80})\/ai-summary$/);
