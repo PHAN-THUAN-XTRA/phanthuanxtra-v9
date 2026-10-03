@@ -22,7 +22,7 @@ function cfD1(path,options={}) { const attempt=requestCloudflare(path,options,d1
 async function saveJson(name,body){const path=join(root,name);await mkdir(dirname(path),{recursive:true});await writeFile(path,JSON.stringify(body,null,2));}
 async function sha256(path){const hash=createHash("sha256");hash.update(await readFile(path));return hash.digest("hex");}
 function redactSecretValues(value){if(Array.isArray(value))return value.map(redactSecretValues);if(!value||typeof value!=="object")return value;const output={};for(const [key,child] of Object.entries(value))output[key]=["text","secret","value","private_key","token","api_key"].includes(key.toLowerCase())?"[REDACTED]":redactSecretValues(child);return output;}
-function downloadR2Object(urlPath,destination,authToken){const args=["-sS","-L","-o",destination,"-H",`Authorization: Bearer ${authToken}`,"-w","%{http_code}",`https://api.cloudflare.com/client/v4${urlPath}`];const status=Number(execFileSync("curl",args,{encoding:"utf8"}).trim());if(status>=200&&status<300)return;throw new Error(`R2 download failed: ${status}`);}
+function downloadR2Object(urlPath,destination,authToken,responseHeaders){const args=["-sS","-L","-o",destination,"-H",`Authorization: Bearer ${authToken}`,"-w","%{http_code}",`https://api.cloudflare.com/client/v4${urlPath}`];if(responseHeaders)args.splice(0,0,"--dump-header",responseHeaders);const status=Number(execFileSync("curl",args,{encoding:"utf8"}).trim());if(status>=200&&status<300)return;throw new Error(`R2 download failed: ${status}`);}
 execFileSync("git",["archive","--format=tar.gz","HEAD","-o",join(root,"github-source.tar.gz")],{stdio:"inherit"});
 await saveJson("cloudflare/worker.json",cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}`));
 await saveJson("cloudflare/deployments.json",cf(`/accounts/${accountId}/workers/scripts/${encodeURIComponent(workerName)}/deployments`));
@@ -34,7 +34,9 @@ const relatedWorkers = inventory.filter(entry => relatedNames.has(entry.id));
 await saveJson("cloudflare/worker-inventory.json", { expected: [...relatedNames], collected: relatedWorkers.map(entry => entry.id) });
 for (const entry of relatedWorkers) {
   const name = encodeURIComponent(entry.id);
-  await saveJson(`cloudflare/workers/${entry.id}/script.json`, cf(`/accounts/${accountId}/workers/scripts/${name}`));
+  const bundle = join(root, "cloudflare/workers", entry.id, "script.multipart");
+  await mkdir(dirname(bundle), { recursive: true });
+  downloadR2Object(`/accounts/${accountId}/workers/scripts/${name}`, bundle, token, bundle + ".headers");
   await saveJson(`cloudflare/workers/${entry.id}/settings.json`, redactSecretValues(cf(`/accounts/${accountId}/workers/scripts/${name}/settings`)));
 }
 // Native export preserves actual row data and a provider-consistent D1 snapshot.
