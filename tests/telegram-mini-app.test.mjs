@@ -139,3 +139,17 @@ test("Autonomous Customer Care is evidence-first and keeps important stage chang
   assert.match(migration,/evidence_episode_id/);
   assert.match(migration,/status TEXT NOT NULL DEFAULT 'pending'/);
 });
+
+
+test("Customer Care delete requires explicit customer-bound confirmation and preserves source leads",()=>{
+  const api=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
+  assert.match(api,/body\?\.confirm!=="DELETE_CUSTOMER"\|\|body\?\.customer_id!==id/);
+  assert.match(api,/DELETE FROM xtra_memory_lead_links WHERE customer_id=\?/);
+  assert.match(api,/DELETE FROM xtra_memory_customers WHERE id=\?/);
+  assert.doesNotMatch(api,/DELETE FROM leads WHERE/);
+  assert.match(ui,/Xóa khách hàng/);
+  assert.match(ui,/method:"DELETE"/);
+  assert.match(ui,/Lead gốc vẫn được giữ/);
+  assert.match(ui,/showConfirm/);
+});
