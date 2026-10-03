@@ -2,10 +2,6 @@
 name: Full System Backup
 
 on:
-  # Temporary owner-authorized one-shot trigger; removed after delivery proof.
-  push:
-    branches: [main]
-    paths: ["backup/owner-request-20261003.json"]
   workflow_dispatch:
   schedule:
     # 07:00 Asia/Ho_Chi_Minh (UTC+7)
@@ -47,11 +43,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-
-      - name: Verify bounded one-shot owner request
-        if: github.event_name == 'push'
-        run: |
-          node -e "const r=require('./backup/owner-request-20261003.json'); if(r.action!=='backup-to-owner-telegram'||Date.parse(r.expires_at)<=Date.now()) throw new Error('Owner backup request expired or invalid');"
 
       - name: Verify private Telegram owner destination
         run: node scripts/backup-telegram-delivery.mjs --preflight
