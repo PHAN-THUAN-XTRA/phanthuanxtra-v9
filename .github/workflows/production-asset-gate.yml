@@ -50,17 +50,17 @@ jobs:
           test "$(grep -Foc '</html>' "$home")" = "1"
           check_asset "/car.html?id=__p4_missing__" "vehicleDetail"
 
-          # Green Energy 3D R2 visual must be publicly deliverable through the Worker.
+          # Homepage Green Energy hero artwork must be publicly deliverable through the Worker.
           visual_headers="$(mktemp)"
           visual_body="$(mktemp)"
           visual_status="$(curl --silent --show-error --compressed --retry 3 --retry-delay 1 --max-time 20 \
             --location --proto '=https' --proto-redir '=https' \
             -D "$visual_headers" -o "$visual_body" -w '%{http_code}' \
-            "$SITE_URL/media/editorial/green-energy/green-energy-pv-ess-3d.webp?asset_gate=$GITHUB_SHA")"
-          echo "/media/editorial/green-energy/green-energy-pv-ess-3d.webp final HTTP $visual_status"
+            "$SITE_URL/media/editorial/green-energy/wide_clean_modern_promotional_banner_hero_image.png?asset_gate=$GITHUB_SHA")"
+          echo "/media/editorial/green-energy/wide_clean_modern_promotional_banner_hero_image.png final HTTP $visual_status"
           test "$visual_status" = "200"
-          grep -Eiq '^content-type:[[:space:]]*image/webp' "$visual_headers"
+          grep -Eiq '^content-type:[[:space:]]*image/png' "$visual_headers"
           test -s "$visual_body"
-          echo "Green Energy 3D WebP delivery PASS."
+          echo "Green Energy homepage PNG delivery PASS."
       - name: Verify editorial production UTF-8
         run: node scripts/verify-editorial-production.mjs
