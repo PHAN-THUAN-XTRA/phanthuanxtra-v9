@@ -13,7 +13,8 @@
     "d1:create": "wrangler d1 create phanthuanxtra-db",
     "d1:migrate": "wrangler d1 migrations apply phanthuanxtra-db --remote",
     "d1:local": "wrangler d1 migrations apply phanthuanxtra-db --local",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "simulate:content": "node scripts/simulate-content-runner.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.121.0"

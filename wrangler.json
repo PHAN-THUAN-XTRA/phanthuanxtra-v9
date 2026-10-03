@@ -7,6 +7,9 @@
     "nodejs_compat"
   ],
   "minify": true,
+  "vars": {
+    "CONTENT_RUNNER_LIVE_ENABLED": "0"
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
