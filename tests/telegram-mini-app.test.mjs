@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { validateTelegramMiniAppInitData, handleTelegramMiniAppApi } from "../src/telegram-mini-app.js";
 
-const token="123456:TEST_TOKEN";
+const token="unit-test-bot-token";
 async function hmac(keyBytes,value){
   const key=await crypto.subtle.importKey("raw",keyBytes,{name:"HMAC",hash:"SHA-256"},false,["sign"]);
   return new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(value)));
