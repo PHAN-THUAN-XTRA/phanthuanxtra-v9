@@ -111,3 +111,31 @@ test("Customer Care operational list hides CI fixtures and anonymous one-shot no
   assert.doesNotMatch(source,/DELETE FROM xtra_memory_customers/);
   assert.doesNotMatch(source,/DELETE FROM xtra_memory_episodes/);
 });
+
+
+test("Autonomous Customer Care is evidence-first and keeps important stage changes human-approved",()=>{
+  const memory=fs.readFileSync(new URL("../src/customer-memory.js",import.meta.url),"utf8");
+  const api=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
+  const migration=fs.readFileSync(new URL("../migrations/0029_xtra_customer_care_proposals.sql",import.meta.url),"utf8");
+  assert.match(memory,/careProposal/);
+  assert.match(memory,/test_drive_requested/);
+  assert.match(memory,/contact_shared/);
+  assert.match(memory,/price_asked/);
+  assert.match(memory,/availability_asked/);
+  assert.match(memory,/vehicle_interest/);
+  assert.match(memory,/proposal\.value==="contacting".*currentStatus==="new".*proposal\.confidence>=0\.95/s);
+  assert.match(memory,/xtra_customer_care_proposals/);
+  assert.match(memory,/evidence_auto_update/);
+  assert.match(api,/decideCustomerProposal/);
+  assert.match(api,/proposal_decision/);
+  assert.match(api,/approve/);
+  assert.match(api,/reject/);
+  assert.match(ui,/AI đề xuất chăm sóc/);
+  assert.match(ui,/Duyệt/);
+  assert.match(ui,/Bỏ qua/);
+  assert.doesNotMatch(memory,/DELETE FROM xtra_memory_customers/);
+  assert.doesNotMatch(api,/DELETE FROM xtra_customer_care_proposals/);
+  assert.match(migration,/evidence_episode_id/);
+  assert.match(migration,/status TEXT NOT NULL DEFAULT 'pending'/);
+});
