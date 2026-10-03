@@ -96,7 +96,7 @@ function isIdentityQuery(value){
 }
 function isVehicleQuery(value){
   const t=foldVi(value);
-  return /\b(mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup|mpv)\b/.test(t);
+  return /\b(xe|mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup|mpv)\b/.test(t);
 }
 function vehicleFallbackCars(query,cars=[]){
   const t=foldVi(query);
