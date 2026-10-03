@@ -10,7 +10,7 @@
 - Telegram security basis: trust only signed `initData`; never trust `initDataUnsafe` for authorization.
 - Targeted regression file: `tests/telegram-mini-app.test.mjs` covers valid/tampered/expired initData, auth-before-D1, no-delete contract, no Admin token in UI, and `/carapp` wiring.
 - Baseline publishing API before this change: `tests/publishing-api.test.mjs` PASS 9/9, fail 0.
-- Status at this checkpoint: **SOURCE IMPLEMENTED — CI / PR / MERGE / PRODUCTION RUNTIME EVIDENCE PENDING**. Do not call the Mini App production-ready until exact-lineage CI, deploy, live asset/API checks and Telegram `/carapp` launch evidence pass.
+- Status update: **PR #707 MERGED** as main `6096f0c75a7dba5e5d7936410e9a552bb1769929`. PR head `0bb7e8db57bc43c4ad8a471125c3bdaa6060369d` passed CI, AI Pre-Deploy Audit and Deploy Cloudflare Worker validation. Exact-lineage push CI and Deploy Cloudflare Worker run `37091711752` completed SUCCESS, including Cloudflare API/SDK deploy+migrate, public boundary, UTF-8, R2 E2E and publishing-draft lifecycle. Final owner Telegram `/carapp` launch/status-change acceptance remains pending.
 - Windows 10 owner acceptance after deploy: open private chat with the existing Auto Bot → send `/carapp` → press **Mở quản lý xe** → verify catalog loads → change a non-destructive status → refresh and confirm D1-backed state.
 
 
