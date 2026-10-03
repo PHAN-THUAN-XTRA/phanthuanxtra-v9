@@ -86,6 +86,45 @@ jobs:
           node --test test/videos-page.test.js test/videos-route-migration.test.js test/telegram-durable-draft-jobs.test.js test/cloudflare-vehicle-queue.test.js
           node --test developer-gateway/test/index.test.mjs
 
+      - name: Detect owner review UI changes
+        id: owner-review-changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            review_base="${{ github.event.pull_request.base.sha }}"
+            review_head="${{ github.event.pull_request.head.sha }}"
+          else
+            review_base="${{ github.event.before }}"
+            review_head="${{ github.sha }}"
+          fi
+          git diff --name-only "$review_base" "$review_head" > "$RUNNER_TEMP/owner-review-changed-files"
+          if grep -E '^(public/(content-review\.(js|css)|admin-control(\.html)?|telegram-mini-app\.html)|src/(content-owner-review|telegram-mini-app)\.js|tests/ui/content-owner-review\.browser\.mjs|scripts/content-review-ui-fixture\.mjs)$' "$RUNNER_TEMP/owner-review-changed-files" >/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install isolated owner review browser test runtime
+        if: steps.owner-review-changes.outputs.changed == 'true'
+        run: |
+          npm install --prefix "$RUNNER_TEMP/owner-review-browser" --no-audit --no-fund playwright@1.62.1
+          node "$RUNNER_TEMP/owner-review-browser/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Owner review real browser E2E on synthetic private fixture
+        if: steps.owner-review-changes.outputs.changed == 'true'
+        env:
+          CONTENT_REVIEW_PLAYWRIGHT_MODULE: ${{ runner.temp }}/owner-review-browser/node_modules/playwright
+          CONTENT_REVIEW_SCREENSHOT_DIR: ${{ runner.temp }}/owner-review-ui-proof
+        run: node tests/ui/content-owner-review.browser.mjs
+
+      - name: Retain owner review browser proof
+        if: always() && steps.owner-review-changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-review-ui-proof
+          path: ${{ runner.temp }}/owner-review-ui-proof
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Validate deployment configuration without deployment CLI
         shell: bash
         run: |
