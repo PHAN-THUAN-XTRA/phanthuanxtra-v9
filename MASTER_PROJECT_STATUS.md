@@ -7,7 +7,7 @@
 - Added Windows PowerShell bootstrap `scripts/agent-reach.ps1` with default `Check` mode and explicit `Install` mode using a dedicated user venv. Project integration never passes Agent-Reach `--system`.
 - Added `docs/AGENT_REACH.md` safety/usage contract and regression guard `tests/agent-reach-integration.test.mjs`.
 - Credentials/cookies remain outside repository/GitHub Actions/Cloudflare/D1/R2; no social write/post automation is enabled.
-- Status: **SOURCE IMPLEMENTED — CI / AUDIT / MERGE PENDING**.
+- Status: **PR #714 MERGED** as main `133dd1a1dc7186870b9415b34bade19ceabedd98`; PR-head CI, AI Pre-Deploy Audit and deploy validation SUCCESS. Exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37093787053` SUCCESS, including Worker deploy/migrate, UTF-8 checks, R2 E2E and publishing lifecycle. Windows owner-side Agent-Reach installation/doctor remains pending explicit local execution.
 
 
 ## 0.0 TELEGRAM VEHICLE MINI APP — FULL MANAGER UPGRADE — 2026-10-03 (UTC+7)
