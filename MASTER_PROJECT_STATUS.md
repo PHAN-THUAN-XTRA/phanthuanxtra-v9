@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0F OWNER TELEGRAM BACKUP — DELIVERY AND RESTORE VERIFIED — 2026-10-03 (UTC+7)
+
+- Owner-authorized immediate backup completed at 16:59 UTC+7. **Full System Backup 37114688475**, job **111179092047**, source **`9a37cdf93fb97605864334f3ad4a61c40bc4f469`** (PR **#744**) succeeded. Telegram destination was verified as the configured owner's private chat before collection and after every send.
+- Telegram acknowledged **two archive parts and six supporting documents**, message IDs **193–200**, plus completion message **201**. Delivery receipt artifact **11270333241** records the exact source/run and every document acknowledgment. Download both parts, `backup-parts.json`, and `restore-backup.py` together; Python 3.12+ `python restore-backup.py` validates part and joined SHA-256 checksums before safe extraction.
+- Verified scope: current repository source snapshot; primary production D1 SQL with actual rows; **477 R2 objects**; raw bundles and redacted settings for all **six known related Workers**; main Worker bindings/deployments and zone/routes. This is not a complete Cloudflare account-state backup: other Worker databases, KV, Durable Object storage, in-flight queues and secret values are excluded. D1 has a provider-consistent snapshot; R2 is collected over an interval, without a cross-service atomic-snapshot claim.
+- Independent **Gate 14 restore 37114866763**, job **111179619420**, succeeded: archive/internal checksums, clean SQLite import, integrity_check=ok, **58 tables**, required row evidence and R2 manifest/file-count verification. Counts include cars=7, car_images=133, posts=4, leads=18 and customers=1. No restore or deletion was performed against production.
+- Fixed the prior schema-only D1 serializer by using native D1 SQL export and requiring actual row evidence. Fixed today's 51,259,472-byte Telegram oversize failure with verified 40 MiB archive parts. GitHub fallback artifact **11270283371** is **AES-256-GCM encrypted**, retained 30 days; plaintext customer backup is not uploaded to the public repository. Telegram restoration is self-contained; decrypting the fallback requires the backup credential used at creation.
+- Validation: focused backup tests **7/7**, canonical **300/300**, npm **235/235** PASS. Exact backup-source CI **37114688462**, production deployment **37114688439**, and all twelve post-deploy gates succeeded. Backup delivery does not enable AI, content scheduling or public publishing; **CONTENT_RUNNER_LIVE_ENABLED=0** remains the existing boundary.
+- The bounded one-shot push trigger and request marker are removed in this closure. Manual backup and the daily **07:00 UTC+7** schedule remain available.
+
 ## 0.0E OWNER CONTENT REVIEW — PRODUCTION GREEN — 2026-10-03 (UTC+7)
 
 This checkpoint closes the authorized Content Draft / Scheduling virtual implementation and owner review release. Preparation and review do not grant public publishing authority.
