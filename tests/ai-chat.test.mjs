@@ -407,7 +407,7 @@ test('unknown question is sent to Telegram only after name and phone arrive, wit
     await send('Tôi tên là Nguyễn Văn An');
     assert.equal(calls.length, 0);
     const last = await send('Số điện thoại của tôi là 0909123456');
-    assert.match(last.reply, /gửi yêu cầu qua Telegram\/CRM/i);
+    assert.equal(last.reply, 'Cảm ơn anh/chị. Tôi đã tiếp nhận, anh Phan Thuần trực tiếp tư vấn.');
     assert.equal(calls.length, 1);
     assert.match(calls[0].body.text, /Chính sách bảo hành ngoài website là gì/);
     assert.match(calls[0].body.text, /Nguyễn Văn An/);
@@ -548,5 +548,5 @@ test('phone-first handoff accepts a later standalone full name and does not trap
   assert.equal(named.needs_human,true);
   assert.equal(DB._unknown[0].name,'Phan Tung');
   assert.equal(DB._unknown[0].phone,'0123654897');
-  assert.match(named.reply,/đã ghi nhận họ tên, số điện thoại/i);
+  assert.match(named.reply,/chưa xác nhận được Telegram đã nhận/i);
 });
