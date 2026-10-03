@@ -548,5 +548,5 @@ test('phone-first handoff accepts a later standalone full name and does not trap
   assert.equal(named.needs_human,true);
   assert.equal(DB._unknown[0].name,'Phan Tung');
   assert.equal(DB._unknown[0].phone,'0123654897');
-  assert.match(named.reply,/đã ghi nhận họ tên, số điện thoại/i);
+  assert.equal(named.reply,'Cảm ơn anh/chị. Tôi đã tiếp nhận, anh Phan Thuần trực tiếp tư vấn.');
 });
