@@ -29,3 +29,9 @@ test('existing acknowledgment prevents duplicate Telegram calls',async()=>{
  let calls=0;const r=await deliverReport(report,{...env,GITHUB_TOKEN:'fake',GITHUB_REPOSITORY:'owner/repo'},async()=>{calls++;return Response.json({artifacts:[{name:'upgrade-delivery-'+report.id,expired:false}]});});
  assert.equal(calls,1);assert.equal(r.skipped,true);
 });
+
+test("research report updates are excluded from production deploy push", async()=>{
+ const {readFile}=await import("node:fs/promises");
+ const workflow=await readFile(new URL("../.github/workflows/deploy-cloudflare.yml",import.meta.url),"utf8");
+ assert.match(workflow,/paths-ignore:[\s\S]*?- "research\/\*\*"/);
+});

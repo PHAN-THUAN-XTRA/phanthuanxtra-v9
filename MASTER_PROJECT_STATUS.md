@@ -1,5 +1,12 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## QWEN REVIEW DELIVERY / DAILY COST BOUNDARY — VERIFIED 2026-10-03
+
+- Research **PR #751** merged `2bab3254e11701c3bd3f1e7ae24fff1936e823ab` after required CI/audit passed. Exact-merge CI **37123590248 PASS**. **Telegram Upgrade Report 37123590263 PASS**, artifact **11273628372**, report `2026-10-03-research`, verified private owner **message 203** confirms the actual Qwen review brief was delivered.
+- Review remains WATCH / non-commercial research only; commercial media integration BLOCKED_BY_LICENSE. No local GPU inference or free demo quota test is claimed. FREE FIRST and explicit Qwen watch instructions are saved in the existing enabled 07:00 daily automation.
+- Research JSON changes previously matched the broad production-deploy push filter. Add `research/**` to its paths-ignore, alongside existing Markdown exclusions; regression assertion ensures report-only updates do not invoke application deployment. Delivery and required PR CI/audit remain active. Application/source/workflow changes still deploy normally.
+- Current master is the single project Markdown file, and this checkpoint records delivery after success. Original activation receipt (message 202) and the new research receipt are distinct; no duplicate-send retry was used.
+
 ## QWEN IMAGE 2.1 VIEWPOINT ORBIT LoRA — REVIEW / WATCH ONLY — 2026-10-03 (UTC+7)
 
 Read current MASTER before review. Owner specifically requests this candidate; daily research automation **6ac08e9e99008191a00060afeceb181a** was successfully updated to track it, retaining FREE FIRST and owner-only Telegram proposals.
