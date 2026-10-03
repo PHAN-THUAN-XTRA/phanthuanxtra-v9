@@ -1,14 +1,43 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
-## 0.0E OWNER CONTENT REVIEW — IMPLEMENTATION CHECKPOINT — 2026-10-03 (UTC+7)
+## 0.0E OWNER CONTENT REVIEW — PRODUCTION GREEN — 2026-10-03 (UTC+7)
 
-- Baseline main `54aa214ffa74c8e364feeaa512c69134bc1cf6fc`; runner production code `831a6136f3965e2309e3ef028645aaf6151684c2`. Fleet remains 62 agents / 8 bounded executing agents; `CONTENT_RUNNER_LIVE_ENABLED=0`.
-- Shared responsive Admin and Telegram Mini App owner review shows private drafts, schedule proposals, bounded run errors and daily reserved model-call budget. Pipeline filtering and pagination hide deleted test fixtures without deleting audit ledgers.
-- Signed Admin or fresh signed Telegram owner authentication is mandatory. Agent scopes and raw CMS credentials cannot review. Authenticated identity supplies the audit actor.
-- Owner can edit private copy with exact-revision concurrency checks, preserving slug, cover, publication status and original preparation ledger. Accepted/dismissed decisions apply to an immutable revision/time snapshot and only record readiness; stale proposals are blocked. No public-publish authority, automatic publication or pending publication job is created.
-- Migration `0033_content_owner_review.sql` adds atomic owner operation/review ledgers, canonical retry fingerprints and transactional audit. Lost responses reconcile against committed operation history. Owner review remains available when agent execution is disabled.
-- Local validation: canonical 294/294, npm 229/229; focused owner review covers auth, concurrency, rollback, replay, stale artifacts, safe DOM integration and Telegram owner identity. Mandatory Chromium mobile/Admin browser proof and exact-SHA production verification are release gates, still pending at this checkpoint.
-- Usage: Telegram `/customerapp` -> **Nội dung**; Admin -> **Nội dung / Lịch**. See `docs/content-owner-review.md`. Physical S21 observation, real-customer care evidence and live AI quota evidence remain separate and are not simulated acceptance.
+This checkpoint closes the authorized Content Draft / Scheduling virtual implementation and owner review release. Preparation and review do not grant public publishing authority.
+
+- Implemented shared responsive **Admin → Nội dung / Lịch** and **Telegram /customerapp → Nội dung**. Owners see private drafts, current proposal validity, sanitized runner checkpoints/errors and daily reserved-call budget; pipeline filtering and bounded cursor pagination hide deleted CI fixtures while retaining ledgers.
+- Review requires a signed Admin session or fresh signed Telegram owner initData. Delegated agent, raw secret and CMS credentials cannot authenticate owner review. Audit actor comes from authenticated identity. Private copy edits preserve slug, cover, draft status and original preparation ledger, with exact-revision checks inside the D1 transaction.
+- Accepted/dismissed decisions record immutable readiness against target + revision + proposed time. Old reviews become inactive after editing; stale/deleted/published/elapsed artifacts are blocked. Migration **0033_content_owner_review.sql** adds atomic operation/review/audit ledgers, canonical payload fingerprints and safe retry/lost-response reconciliation. No pending publication job, public publication or automatic schedule is created; owner review remains usable while agent execution is disabled.
+- Release lineage: owner review **PR #740** merged `fc33faa6603981e6cbb79671de506fca16412932`; mobile header fix **#741** merged `e040c2bbd51673aa4d4dcd77bcd9ffa72f083a97`; release reliability fix **#742** merged **`e32316f37753accf9161e2f25043abe9995a6f29`**. Final required PR checks succeeded at `b56ee4c4e9ab856d2776d35522c1f2509541a72b`; exact final-merge CI **37113011464** and deployment **37113011490** succeeded.
+- Production migration 0033 applied in deployment **37112388452**. Final Worker version **`6e725eb7-4d8a-48de-9952-4c1ea5fd63a1`**, deployment **`cdcf55b9-50f8-4585-898b-e1c5405758ec`**, API-created **100% traffic**; Wrangler production path was not used. **CONTENT_RUNNER_LIVE_ENABLED=0** remains verified by the production runner gate. Fleet remains 62 agents / 8 bounded executing agents; Publisher/Distributor were not promoted.
+- Validation: canonical **296/296**, npm **230/230**, gateway **19/19**, focused owner review **16/16** PASS. Offline runner simulation again completed generate → draft → schedule → done, reconciled lost response and replayed the same artifact: one simulated inference, **zero real AI calls**, one private draft/proposal and **zero pending publication jobs**.
+- Real Chromium browser proof at 360px passed on Mini App and both Admin surfaces: private edit, readiness review, lost-response reconciliation, stale proposal, safe literal text DOM, audit history and no horizontal overflow. CI **37112487407**, artifact **11270785139** (five screenshots), records the fixed Mini App header; screenshots were downloaded and visually inspected. Header remains in document flow on Content Review, preventing overlap after edits. This is browser simulation, not physical S21 acceptance.
+- Release verification exposed and fixed a synthetic credential wall-clock boundary failure; initial fixture/isolation credentials use the simulation instant and renewed credentials remain compatible with nested artifact auth. A separate Live Chat gate observed a truncated basic hotline model answer; bounded official hotline/phone questions now use existing authoritative contact copy with zero inference. Final hotline production evidence is complete with `ai_model:null`; no test assertion was weakened.
+- Exact final-code Blog CMS gate **37113076852**, job **111174598195**, passed **OWNER CONTENT REVIEW PRODUCTION**: owner-only list/detail, UTF-8 private edit, decision/replay/audit, stale/concurrent rejection, delivered Admin/Mini App assets, no public publish. Atomic draft/proposal permissions and live-off preview also passed. Temporary private fixtures were deleted; audit ledgers retained.
+
+All twelve exact-final-code post-deploy gates succeeded:
+
+| Gate | Run |
+| --- | --- |
+| Admin Redirect Verify | 37113076845 |
+| App Assistant Production E2E | 37113076758 |
+| App Sentiment Production E2E | 37113076763 |
+| Blog CMS Production E2E | 37113076852 |
+| Business Jets CRM Production E2E | 37113076778 |
+| Cloudflare Machine Inventory Audit | 37113076748 |
+| Homepage Canonical Verify | 37113076777 |
+| Live Chat AI Identity Verify | 37113076735 |
+| Production Asset Delivery Gate | 37113076797 |
+| Production Smoke Gate-15 | 37113076749 |
+| QUEUE-01 Production E2E Origin | 37113076863 |
+| Stage 3 Production Reconciliation | 37113076879 |
+
+Remaining evidence outside the completed virtual release:
+
+1. **Physical S21 observation** of Content Review and the existing Customer Care proposal/delete controls with the genuine owner session. CI mobile viewport screenshots do not substitute for device observation.
+2. **Genuine customer care E2E** from a real customer interaction. No fabricated customer/lead was created to mark this complete.
+3. **Real content AI readiness/quota and bounded provider evidence** before a separately reviewed live-runner configuration change. Content preparation remains live-off; public publishing remains a distinct explicit owner action.
+
+There is no unresolved code/CI/deployment blocker in this completed scope. Native APK distribution, Headroom shadow evaluation and Memory Brain 2 evaluation remain separate optional tracks. See `docs/content-owner-review.md` for use and execution boundaries.
 
 ## 0.0D CONTENT RUNNER — OFFLINE SIMULATION COMPLETE — 2026-10-03 (UTC+7)
 
