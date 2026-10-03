@@ -23,6 +23,7 @@ try {
   await page.goto('http://127.0.0.1:8765/telegram-mini-app.html?view=content');
   await page.getByRole('button', { name: 'Xem / sửa nháp', exact: true }).waitFor();
   assert.ok((await page.locator('#contentReview').innerText()).includes('AI thật đang tắt'));
+  assert.equal(await page.locator('#listView .head').evaluate(n => getComputedStyle(n).position), 'static');
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   await page.screenshot({ path: path.join(screenshotDir, 'mini-mobile-list.png'), fullPage: true });
   await page.getByRole('button', { name: 'Xem / sửa nháp', exact: true }).click();
@@ -47,6 +48,7 @@ try {
   assert.ok((await page.getByTestId('content-proposal').innerText()).includes('Nội dung đã thay đổi'));
   assert.equal(await page.getByRole('button', { name: 'Đã kiểm tra lịch', exact: true }).isEnabled(), false);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: path.join(screenshotDir, 'mini-mobile-stale-proposal.png'), fullPage: true });
   await page.getByRole('button', { name: 'Bỏ qua nháp', exact: true }).click();
   await page.getByRole('status').filter({ hasText: 'Đã ghi nhận bỏ qua' }).waitFor();
