@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 FINAL CANONICAL OPERATIONS RECONCILIATION — 2026-10-03 (UTC+7)
+- Canonical source baseline for this reconciliation: `500152aa5cfdf95ca7ba9d7fcb7a6486754cd8b0` (PR #722 merged). Newer merged documentation-only lineage supersedes the older `b188d7e...` status header without invalidating its production E2E evidence.
+- Owner operations acceptance is **PASS**: **Samsung Galaxy S21 Ultra → Telegram → Termux → browser**. Telegram vehicle operations use **@phanthuanxtra_auto_bot**; owner confirmed `/carapp` works on the S21 Ultra.
+- Termux local capability acceptance is **PASS**: repository fast-forward sync completed safely and `scripts/complete-termux-gates.sh` reached `COMPLETE: Termux gate finished`. Agent-Reach local installation/doctor is therefore no longer an open project task.
+- Latest full production E2E closure remains the successful `b188d7e61a272c90ff336257c4eea6953c2de27b` lineage recorded below. Subsequent PRs #721/#722 are status/documentation-only changes; do not require a production runtime redeploy merely to advance the MASTER SHA.
+- Historical GitHub issues #65, #99, #203 and #569 are superseded by later production/owner acceptance evidence. They should be reconciled/closed as historical records, not treated as active release blockers.
+- **Native Android APK distribution is OPTIONAL / NON-BLOCKING.** The preferred owner path is Telegram Mini App on S21 Ultra. Physical APK regression/release work is required only if the owner explicitly re-enables native APK distribution as a product goal.
+- Memory Brain Phase 2 remains evidence-driven evaluation only. Headroom remains shadow-only. Neither is a release blocker.
+- Production deployment policy remains **GitHub Actions → Cloudflare API/SDK**; **no Wrangler production operations**.
+- Current active release blockers: **none identified by this reconciliation**. New implementation work requires new production evidence, a concrete owner goal, or a measured reliability/security/UX/cost need.
+
+
 ## 0.0 S21 ULTRA OWNER OPERATIONS ACCEPTANCE — PASS — 2026-10-03 (UTC+7)
 - Owner acceptance **PASS** for the canonical operating chain: **Samsung Galaxy S21 Ultra → Telegram → Termux → browser**.
 - S21 Termux environment verified by owner: Git, Python, pip and curl available; repository safely fast-forwarded to current `main` without destructive reset/clean and without Wrangler.
@@ -18,8 +30,8 @@
 - Current control chain: deterministic audit → Jev typed decision when available → LLM/AI audit → Headroom isolated/shadow evidence → CI → GitHub Actions/Cloudflare API-SDK → production E2E/smoke.
 - Headroom measured 490 → 450 tokens (~8.16% saving) while preserving 8/8 required vehicle safety literals; it remains **shadow-only**, not a production LLM proxy.
 - Owner operating priority remains **S21 Ultra → Telegram → Termux → browser**; Windows is fallback; **no Wrangler production operations**.
-- Remaining owner/device-only acceptance: Samsung Galaxy S21 Ultra physical APK regression if Android native distribution is still desired. This cannot be truthfully closed by GitHub CI alone.
-- Remaining optional local capability acceptance: Agent-Reach Termux/Windows install + doctor only if the owner wants local Agent-Reach execution. GitHub/production integration is already merged and green; local install is not a production release blocker.
+- Native Android APK physical regression is **OPTIONAL / NON-BLOCKING**. Telegram Mini App is the accepted primary S21 operating surface; resume APK device regression only if native distribution is explicitly re-enabled.
+- Agent-Reach Termux local acceptance is **PASS**: the owner completed the Termux gate through `COMPLETE: Termux gate finished`. Windows remains fallback only; no further Agent-Reach completion work is required.
 - Memory Brain Phase-2 items remain **evaluation candidates, not release blockers**: observe real returning-customer behavior before adding timeline/correction UI, dedupe expansion, broader identity linkage, or retention controls.
 - No new infrastructure, Headroom proxy promotion, vector memory, Durable Objects, or production mutation is authorized merely to clear historical text.
 
