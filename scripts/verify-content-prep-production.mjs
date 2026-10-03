@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { publicationKey } from '../src/editorial-publishing.js';
 
 const base = 'https://phanthuanxtra.com';
 const API = '/api/agents/content/v1', ADMIN = '/api/admin/agents/content-prep';
@@ -63,6 +64,36 @@ try {
   const review = expect(await call(ADMIN + '?pipeline_id=' + pipeline, owner), 200, 'Owner evidence');
   assert.equal(review.requests.length, 2);
   assert.ok(review.requests.every(r => r.status === 'completed'));
+  const REVIEW = ADMIN + '/review', draftKey = await publicationKey(JSON.stringify([pipeline, draftId])), proposalKey = await publicationKey(JSON.stringify([pipeline, scheduleId]));
+  expect(await call(REVIEW, writer), 401, 'Scoped writer cannot access owner review');
+  expect(await call('/api/telegram/mini/v1/content-review'), 401, 'Mini App review requires signed session');
+  const ownerList = expect(await call(REVIEW + '?pipeline_id=' + pipeline, owner), 200, 'Owner review list');
+  assert.equal(ownerList.drafts.length, 1); assert.equal(ownerList.live_enabled, false);
+  assert.equal(ownerList.drafts[0].latest_proposal.stale, false);
+  const decision = { request_id: 'owner-check-' + crypto.randomUUID(), expected_revision: draft.draft_revision, decision: 'accepted' };
+  const accepted = expect(await call(REVIEW + '/requests/' + proposalKey + '/decision', owner, decision), 200, 'Owner records schedule review');
+  assert.equal(accepted.review_only, true); assert.equal(accepted.publicPublish, false); assert.equal(accepted.duplicate, false);
+  assert.equal(expect(await call(REVIEW + '/requests/' + proposalKey + '/decision', owner, decision), 200, 'Decision replay').duplicate, true);
+  const edit = { request_id: 'owner-edit-' + crypto.randomUUID(), expected_revision: draft.draft_revision,
+    title: 'CI — Nháp đã được owner kiểm tra', content: 'Nội dung tiếng Việt đã sửa, vẫn riêng tư.', excerpt: '', category: 'Tin tức', tags: ['ci', 'private-fixture'] };
+  const edited = expect(await call(REVIEW + '/drafts/' + draftKey, owner, edit, 'PATCH'), 200, 'Owner private edit');
+  assert.notEqual(edited.draft_revision, draft.draft_revision);
+  expect(await call(REVIEW + '/drafts/' + draftKey, owner, edit, 'PATCH'), 200, 'Edit replay');
+  expect(await call(REVIEW + '/drafts/' + draftKey, owner, { ...edit, title: 'Changed payload' }, 'PATCH'), 409, 'Edit request conflict');
+  const detail = expect(await call(REVIEW + '/drafts/' + draftKey, owner), 200, 'Current owner detail');
+  assert.equal(detail.draft.post.content, edit.content); assert.equal(detail.draft.post.status, 'draft'); assert.equal(detail.draft.post.url, null);
+  assert.equal(detail.proposals[0].stale, true); assert.equal(detail.proposals[0].review, null); assert.equal(detail.history.length, 2);
+  expect(await call(REVIEW + '/requests/' + proposalKey + '/decision', owner, { ...decision, request_id: 'stale-' + crypto.randomUUID(), expected_revision: edited.draft_revision }), 409, 'Stale proposal cannot be reviewed');
+  expect(await call(REVIEW + '/drafts/' + draftKey, owner, { ...edit, request_id: 'stale-edit-' + crypto.randomUUID() }, 'PATCH'), 409, 'Concurrent revision denied');
+  const dismissed = expect(await call(REVIEW + '/requests/' + draftKey + '/decision', owner, {
+    request_id: 'owner-dismiss-' + crypto.randomUUID(), expected_revision: edited.draft_revision, decision: 'dismissed'
+  }), 200, 'Owner dismisses private draft');
+  assert.equal(dismissed.autoPublish, false);
+  for (const [path, marker] of [['/admin-control.html', 'ownerContentReview'], ['/telegram-mini-app.html', 'contentTab'], ['/content-review.js?v=20261003-1', 'PTXContentReview'], ['/content-review.css?v=20261003-1', 'content-review']]) {
+    const response = await fetch(base + path, { signal: AbortSignal.timeout(25000) });
+    assert.equal(response.status, 200, 'Review asset delivered'); assert.ok((await response.text()).includes(marker), 'Review asset current');
+  }
+  console.log('OWNER CONTENT REVIEW PRODUCTION: owner-only list/detail; UTF-8 private edit; decision/replay/audit; stale/concurrent rejection; Admin/Mini App assets; no public publish: PASS');
   console.log('ATOMIC CONTENT PREP PRODUCTION: private UTF-8 draft + proposal + idempotency/conflict + reconciliation + action/pipeline isolation + public publish denied: PASS');
 } finally {
   // Reconcile a response lost after commit before cleaning only this test's private draft.

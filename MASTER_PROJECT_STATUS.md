@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0E OWNER CONTENT REVIEW — IMPLEMENTATION CHECKPOINT — 2026-10-03 (UTC+7)
+
+- Baseline main `54aa214ffa74c8e364feeaa512c69134bc1cf6fc`; runner production code `831a6136f3965e2309e3ef028645aaf6151684c2`. Fleet remains 62 agents / 8 bounded executing agents; `CONTENT_RUNNER_LIVE_ENABLED=0`.
+- Shared responsive Admin and Telegram Mini App owner review shows private drafts, schedule proposals, bounded run errors and daily reserved model-call budget. Pipeline filtering and pagination hide deleted test fixtures without deleting audit ledgers.
+- Signed Admin or fresh signed Telegram owner authentication is mandatory. Agent scopes and raw CMS credentials cannot review. Authenticated identity supplies the audit actor.
+- Owner can edit private copy with exact-revision concurrency checks, preserving slug, cover, publication status and original preparation ledger. Accepted/dismissed decisions apply to an immutable revision/time snapshot and only record readiness; stale proposals are blocked. No public-publish authority, automatic publication or pending publication job is created.
+- Migration `0033_content_owner_review.sql` adds atomic owner operation/review ledgers, canonical retry fingerprints and transactional audit. Lost responses reconcile against committed operation history. Owner review remains available when agent execution is disabled.
+- Local validation: canonical 294/294, npm 229/229; focused owner review covers auth, concurrency, rollback, replay, stale artifacts, safe DOM integration and Telegram owner identity. Mandatory Chromium mobile/Admin browser proof and exact-SHA production verification are release gates, still pending at this checkpoint.
+- Usage: Telegram `/customerapp` -> **Nội dung**; Admin -> **Nội dung / Lịch**. See `docs/content-owner-review.md`. Physical S21 observation, real-customer care evidence and live AI quota evidence remain separate and are not simulated acceptance.
+
 ## 0.0D CONTENT RUNNER — OFFLINE SIMULATION COMPLETE — 2026-10-03 (UTC+7)
 
 This checkpoint supersedes the earlier statement that no content-generation runner exists. Public publishing authority is unchanged.

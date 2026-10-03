@@ -1,5 +1,6 @@
 import { canPublishAutoBlog } from "./auto-bot-ai.js";
 import { carImages, saveCar, reorderCarImages, validCarId } from "./vehicle-persistence.js";
+import { handleContentOwnerReviewRoute } from "./content-owner-review.js";
 
 const BASE="/api/telegram/mini/v1";
 const MAX_AGE_SECONDS=15*60;
@@ -207,6 +208,8 @@ export async function handleTelegramMiniAppApi(request,env){
   if(!env.DB)return json({error:"D1 chưa được kết nối"},503);
   const auth=await authenticate(request,env);
   if(!auth.ok)return json({error:auth.reason==="forbidden"?"Forbidden":"Unauthorized"},auth.reason==="forbidden"?403:401);
+  const reviewBase=BASE+"/content-review";
+  if(u.pathname===reviewBase||u.pathname.startsWith(reviewBase+"/"))return handleContentOwnerReviewRoute(request,env,u.pathname.slice(reviewBase.length),"owner-telegram:"+auth.user.id);
   if(u.pathname===BASE+"/session"&&request.method==="GET")return json({ok:true,user:{id:auth.user.id,first_name:clean(auth.user.first_name,120),username:clean(auth.user.username,120)}});
   if(u.pathname===BASE+"/cars"&&request.method==="GET")return listCars(request,env);
   if(u.pathname===BASE+"/customers"&&request.method==="GET")return listCustomers(request,env);

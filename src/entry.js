@@ -1,6 +1,7 @@
 import { handlePublishingApi } from "./publishing-api.js";
 import { handleContentPrepApi } from "./content-prep-api.js";
 import { handleContentRunnerApi } from "./content-runner-api.js";
+import { handleContentOwnerReviewAdmin } from "./content-owner-review.js";
 import { publishDueArticles } from "./editorial-publishing.js";
 import legacy from "./index.js";
 import { handleCmsApi } from "./cms.js";
@@ -32,6 +33,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const contentReviewResponse = await handleContentOwnerReviewAdmin(request, env);
+      if (contentReviewResponse) return contentReviewResponse;
       const contentRunnerResponse = await handleContentRunnerApi(request, env);
       if (contentRunnerResponse) return contentRunnerResponse;
       const contentPrepResponse = await handleContentPrepApi(request, env);
