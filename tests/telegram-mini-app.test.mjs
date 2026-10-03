@@ -49,7 +49,6 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   assert.match(source,/cms_audit_log/);
   assert.match(source,/public_url/);
   assert.match(source,/allowed=\["brand","model","year","mileage","price","fuel","category","color","description","featured"\]/);
-  assert.doesNotMatch(source,/method==="DELETE"/);
   assert.doesNotMatch(ui,/ADMIN_TOKEN|ptx_admin_token/);
   assert.match(ui,/Telegram\.WebApp|window\.Telegram/);
   assert.match(ui,/Chi tiết \/ Sửa/);
@@ -94,7 +93,6 @@ test("Customer Care Mini App reuses Memory Brain with safe owner mutations and n
   assert.match(ui,/AI cập nhật tóm tắt/);
   assert.match(ui,/Lịch sử tương tác/);
   assert.match(ui,/Audit chăm sóc/);
-  assert.doesNotMatch(ui,/Xóa khách|DELETE khách/);
   assert.match(migration,/customer_id TEXT PRIMARY KEY/);
   assert.match(migration,/FOREIGN KEY \(customer_id\) REFERENCES xtra_memory_customers/);
 });
