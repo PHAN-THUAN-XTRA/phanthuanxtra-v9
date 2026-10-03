@@ -412,6 +412,8 @@ export async function handleAiChat(request,env,ctx){
       reply="Hiện tôi chưa đọc được bài Blog đã xuất bản để trả lời chính xác. Anh/chị vui lòng để lại họ tên và số điện thoại để được hỗ trợ.";
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
+    } else if(/^(hotline|so dien thoai|phone number)( lien he)?( chinh thuc)?( cua (phan thuan( xtra)?|website))?( la gi| bao nhieu)?[?.! ]*$/.test(foldVi(message))){
+      reply=deterministicWebsiteReply('hotline');
     } else try{
       const blogContext=(blogQuery||publishedPostMatch) ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:postPlainText(post.excerpt),content:clean(postPlainText(post.content),1200)}))).slice(0,7000)}` : "";
       const websiteContext=editorial ? `${BRAND_KNOWLEDGE.split("## Hồ sơ truyền thông chính thức")[0]}\n\n${editorial}`.slice(0,MAX_KNOWLEDGE_CONTEXT) : knowledge.text;
