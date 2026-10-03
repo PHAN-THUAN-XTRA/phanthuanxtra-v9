@@ -406,6 +406,14 @@ const DEPARTMENTS=[
     "count": 6
   }
 ];
+const EXECUTION_PROFILES={
+  "agent-27":{status:"executing",workflow:"resolveCustomer",authBoundary:"existing ingress",idempotency:"identity uniqueness/upsert",audit:"memory identity + episodes",retry:"caller/queue",permission:"customer identity only"},
+  "agent-28":{status:"executing",workflow:"extractMemorySignals",authBoundary:"existing customer event",idempotency:"xtra_memory_jobs_processed",audit:"evidence episode + facts",retry:"MEMORY_JOBS retry",permission:"vehicle-interest facts only"},
+  "agent-31":{status:"executing",workflow:"updateCareAutomation",authBoundary:"existing customer event",idempotency:"xtra_memory_jobs_processed",audit:"xtra_customer_care_audit",retry:"MEMORY_JOBS retry",permission:"only new -> contacting may auto-write; important stages require proposal"},
+  "agent-33":{status:"executing",workflow:"careProposal",authBoundary:"existing customer event",idempotency:"pending proposal dedupe + memory job claim",audit:"evidence_episode_id + confidence + rationale",retry:"MEMORY_JOBS retry",permission:"proposal creation only; owner decides consequential stage"},
+  "agent-34":{status:"executing",workflow:"customer care audit",authBoundary:"existing customer event",idempotency:"memory job claim",audit:"append-only care audit",retry:"MEMORY_JOBS retry",permission:"audit records only"}
+};
+const PROMOTION_REQUIREMENTS=["authenticated-or-bounded-ingress","idempotency","audit-evidence","retry-or-reconciliation","least-privilege"];
 const KEYWORDS={
   intelligence:/trend|market|competitor|search|research|thị trường|xu hướng/i,
   content:/content|blog|seo|geo|caption|video|bài|nội dung/i,
@@ -417,7 +425,7 @@ const KEYWORDS={
   governance:/permission|evidence|approval|brand|kill|quyền|bằng chứng|duyệt/i
 };
 export function agentFleet(){
-  return {version:"1.0.0",agents:AGENTS,departments:DEPARTMENTS,total:AGENTS.length,
+  return {version:"1.1.0",agents:AGENTS.map(a=>({...a,execution:EXECUTION_PROFILES[a.id]||{status:a.mode==="read"?"read-only":a.mode==="draft"?"draft-only":"approval-bound"}})),departments:DEPARTMENTS,total:AGENTS.length,promoted:Object.keys(EXECUTION_PROFILES),promotionRequirements:PROMOTION_REQUIREMENTS,
     policy:{sourceOfTruth:"D1/live production",orchestrator:"agent-57",publicWrite:"approval-required",budgetChange:"owner-required",brandPromise:"owner-required",customerDelete:"owner-only",productionDeploy:"GitHub Actions -> Cloudflare API/SDK",killSwitch:"AI_AGENT_FLEET_ENABLED=0"}};
 }
 export function planAgentRun(input={}){
@@ -430,6 +438,8 @@ export function planAgentRun(input={}){
   const approvalRequired=selected.some(a=>a.mode==="approval"||a.mode==="control");
   return {ok:true,task:text,departments,agents:selected.map(a=>a.id),approvalRequired,
     pipeline:["collect","score","brief","draft","validate","approval-gate"],
-    execution:"plan-only",reason:"Production mutations remain behind existing owner/API approval paths."};
+    execution:selected.some(a=>EXECUTION_PROFILES[a.id])?"bounded-existing-workflows":"plan-only",
+    executableAgents:selected.filter(a=>EXECUTION_PROFILES[a.id]).map(a=>a.id),
+    reason:"Only explicitly promoted agents execute through existing bounded workflows; all other production mutations remain behind owner/API approval paths."};
 }
 export function fleetEnabled(env){return String(env?.AI_AGENT_FLEET_ENABLED??"1")!=="0";}
