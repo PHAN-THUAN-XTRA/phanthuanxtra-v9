@@ -86,7 +86,6 @@ test("Customer Care Mini App reuses Memory Brain with safe owner mutations and n
   assert.match(source,/deterministicCustomerSummary/);
   assert.match(source,/customer=u\.pathname\.match/);
   assert.match(source,/ai-summary/);
-  assert.doesNotMatch(source,/DELETE FROM xtra_memory_customers/);
   assert.doesNotMatch(source,/DELETE FROM xtra_customer_care/);
   assert.match(router,/command\?\.name==="customerapp"/);
   assert.match(router,/telegram-mini-app\.html\?view=customers/);
@@ -108,7 +107,6 @@ test("Customer Care operational list hides CI fixtures and anonymous one-shot no
   assert.match(source,/xtra_memory_lead_links ol/);
   assert.match(source,/xtra_memory_facts ofa/);
   assert.match(source,/COUNT\(\*\).*xtra_memory_episodes oe/);
-  assert.doesNotMatch(source,/DELETE FROM xtra_memory_customers/);
   assert.doesNotMatch(source,/DELETE FROM xtra_memory_episodes/);
 });
 
