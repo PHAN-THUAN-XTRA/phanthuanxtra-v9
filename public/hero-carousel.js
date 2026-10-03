@@ -38,7 +38,12 @@ if (carousel) {
       slide.hidden = i !== current;
       slide.classList.toggle('is-active', i === current);
     });
-    const image = slides[current].querySelector('img[data-src]');
+    const activeSlide = slides[current];
+    activeSlide.querySelectorAll('source[data-srcset]').forEach(source => {
+      source.srcset = source.dataset.srcset;
+      source.removeAttribute('data-srcset');
+    });
+    const image = activeSlide.querySelector('img[data-src]');
     if (image) {
       image.src = image.dataset.src;
       image.removeAttribute('data-src');
