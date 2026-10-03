@@ -126,7 +126,7 @@ function vehicleFallbackLabel(car){
 }
 function isWebsiteTopicQuery(value){
   const t=foldVi(value);
-  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
+  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|so dien thoai|phone number|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
 }
 const isBlogQuery = value => /\b(blog|bai viet|tin tuc|bai dang|news)\b/.test(foldVi(value));
 function postPlainText(value){

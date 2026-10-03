@@ -136,7 +136,7 @@ test('expired delegation pauses preparation and renewed scopes resume the saved 
   await f.transport(f.request(f.brief, '', 'POST', short)); f.tick(60001);
   assert.equal((await f.transport(f.request(f.brief, '', 'POST', short))).status, 401);
   assert.equal(runRow(f).stage, 'draft');
-  const renewed = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: f.pipeline, ttl_seconds: 900 }, f.now())).token;
+  const renewed = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: f.pipeline, ttl_seconds: 900 }, Math.min(f.now(), Date.now()))).token;
   assert.equal((await driver(f, { writer: renewed })).status, 'completed'); assert.equal(f.calls(), 1);
 });
 
