@@ -1,3 +1,5 @@
+import { ATOMIC_CONTENT_AGENTS, contentPrepContract } from './content-prep-contract.js';
+
 const AGENTS=[
   {
     "id": "agent-01",
@@ -407,6 +409,7 @@ const DEPARTMENTS=[
   }
 ];
 const EXECUTION_PROFILES={
+  ...ATOMIC_CONTENT_AGENTS,
   "agent-26":{status:"executing",workflow:"createLeadReplaySafe",authBoundary:"public lead ingress + explicit idempotency key/visitor binding",idempotency:"xtra_lead_intake_requests primary-key claim + payload fingerprint",audit:"durable intake ledger + lead/customer link + Memory Brain event",retry:"same-key replay returns canonical lead; failures retain ledger state",permission:"create lead/customer link only; no lead deletion/status escalation"},
   "agent-27":{status:"executing",workflow:"resolveCustomer",authBoundary:"existing ingress",idempotency:"identity uniqueness/upsert",audit:"memory identity + episodes",retry:"caller/queue",permission:"customer identity only"},
   "agent-28":{status:"executing",workflow:"extractMemorySignals",authBoundary:"existing customer event",idempotency:"xtra_memory_jobs_processed",audit:"evidence episode + facts",retry:"MEMORY_JOBS retry",permission:"vehicle-interest facts only"},
@@ -426,7 +429,7 @@ const KEYWORDS={
   governance:/permission|evidence|approval|brand|kill|quyền|bằng chứng|duyệt/i
 };
 export function agentFleet(){
-  return {version:"1.2.0",agents:AGENTS.map(a=>({...a,execution:EXECUTION_PROFILES[a.id]||{status:a.mode==="read"?"read-only":a.mode==="draft"?"draft-only":"approval-bound"}})),departments:DEPARTMENTS,total:AGENTS.length,promoted:Object.keys(EXECUTION_PROFILES),promotionRequirements:PROMOTION_REQUIREMENTS,
+  return {version:"1.3.0",agents:AGENTS.map(a=>({...a,execution:EXECUTION_PROFILES[a.id]||{status:a.mode==="read"?"read-only":a.mode==="draft"?"draft-only":"approval-bound"}})),departments:DEPARTMENTS,total:AGENTS.length,promoted:Object.keys(EXECUTION_PROFILES),promotionRequirements:PROMOTION_REQUIREMENTS,atomicContracts:[contentPrepContract()],
     policy:{sourceOfTruth:"D1/live production",orchestrator:"agent-57",publicWrite:"approval-required",budgetChange:"owner-required",brandPromise:"owner-required",customerDelete:"owner-only",productionDeploy:"GitHub Actions -> Cloudflare API/SDK",killSwitch:"AI_AGENT_FLEET_ENABLED=0"}};
 }
 export function planAgentRun(input={}){

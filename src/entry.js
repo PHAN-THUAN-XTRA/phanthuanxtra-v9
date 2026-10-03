@@ -1,4 +1,5 @@
 import { handlePublishingApi } from "./publishing-api.js";
+import { handleContentPrepApi } from "./content-prep-api.js";
 import { publishDueArticles } from "./editorial-publishing.js";
 import legacy from "./index.js";
 import { handleCmsApi } from "./cms.js";
@@ -30,6 +31,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const contentPrepResponse = await handleContentPrepApi(request, env);
+      if (contentPrepResponse) return contentPrepResponse;
       if (url.pathname === "/telegram-mini-app.html" || url.pathname === "/telegram-mini-app" || url.pathname === "/telegram-mini-app/") {
         const assetUrl = new URL("/telegram-mini-app.html", request.url);
         const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, {

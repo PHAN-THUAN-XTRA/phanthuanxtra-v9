@@ -29,7 +29,7 @@ test("kill switch can disable fleet without changing code",()=>{
 
 test("phase-1 execution promotion is least-privilege and evidence-backed",()=>{
  const f=agentFleet();
- assert.deepEqual(f.promoted,["agent-26","agent-27","agent-28","agent-31","agent-33","agent-34"]);
+ assert.deepEqual(f.promoted,["agent-11","agent-19","agent-26","agent-27","agent-28","agent-31","agent-33","agent-34"]);
  for(const id of f.promoted){
    const a=f.agents.find(x=>x.id===id);
    assert.equal(a.execution.status,"executing");
@@ -41,6 +41,22 @@ test("phase-1 execution promotion is least-privilege and evidence-backed",()=>{
  assert.equal(f.agents.find(x=>x.id==="agent-26").execution.status,"executing");
  assert.equal(f.agents.find(x=>x.id==="agent-20").execution.status,"approval-bound");
  assert.equal(f.agents.find(x=>x.id==="agent-62").execution.status,"approval-bound");
+});
+
+test("atomic content preparation promotion never grants public publish",()=>{
+ const f=agentFleet();
+ for(const id of ['agent-11','agent-19']){
+   const a=f.agents.find(x=>x.id===id);
+   assert.equal(a.execution.atomic,true);
+   assert.equal(a.execution.publicPublish,false);
+ }
+ assert.equal(f.atomicContracts[0].scheduleState,'proposed');
+ assert.equal(f.atomicContracts[0].autoPublish,false);
+ const p=planAgentRun({task:'Content Draft / Scheduling blog và lịch đăng'});
+ assert.deepEqual(p.executableAgents,['agent-11','agent-19']);
+ assert.equal(p.approvalRequired,true);
+ assert.equal(f.agents.find(x=>x.id==='agent-20').execution.status,'approval-bound');
+ assert.equal(f.agents.find(x=>x.id==='agent-21').execution.status,'approval-bound');
 });
 
 test("Lead Intake promotion names the replay-safe durable ledger",()=>{
