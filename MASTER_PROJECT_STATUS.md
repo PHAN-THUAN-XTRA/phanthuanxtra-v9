@@ -1,5 +1,16 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## QWEN IMAGE 2.1 VIEWPOINT ORBIT LoRA — REVIEW / WATCH ONLY — 2026-10-03 (UTC+7)
+
+Read current MASTER before review. Owner specifically requests this candidate; daily research automation **6ac08e9e99008191a00060afeceb181a** was successfully updated to track it, retaining FREE FIRST and owner-only Telegram proposals.
+
+- Primary model card: https://huggingface.co/ML-Intern-lab/Qwen-Image-2.1-viewpoint-orbit-LoRA . Adapter takes one RGBA subject image and a relative camera instruction, returning RGBA. Author documents 768px/40-step evaluation, a split-key adapter for Diffusers and a pinned library commit. Small rotations are more faithful; details may drift at larger angles. Household scanned-object training does not establish vehicle fidelity.
+- Licenses verified directly: adapter https://huggingface.co/ML-Intern-lab/Qwen-Image-2.1-viewpoint-orbit-LoRA/blob/main/LICENSE and base https://huggingface.co/Qwen/Qwen-Image-2.1/blob/main/LICENSE . Both specify Qwen Research License, non-commercial research/evaluation; commercial use requires separate permission. **Commercial media integration remains BLOCKED_BY_LICENSE.** Free weight access is not unrestricted commercial permission.
+- Base model https://huggingface.co/Qwen/Qwen-Image-2.1 is 7B/BF16 and its demonstrated pipeline uses CUDA, with optional CPU offload. The LoRA card reports A100-80GB for training; this is not a minimum inference VRAM specification. Minimum VRAM, S21 feasibility and speed are unverified. Inference GPU work belongs outside the current Workers runtime; this is an architecture assessment, not a deployment benchmark.
+- Author demo https://huggingface.co/spaces/ML-Intern-lab/Qwen-Image-2.1-viewpoint-orbit-LoRA is listed as Running on Zero. Actual anonymous free allowance/availability and user-image retention were not tested; no unlimited-free-service claim. No model or remote code downloaded/run, no customer/vehicle image uploaded, no billing or production change.
+- Decision: **WATCH / non-commercial research evaluation only**. Potential future use is illustrative viewpoint studies, subject to licensing and hardware proof. Generated unseen sides cannot establish real vehicle details and must not replace genuine listing photos. Next research checks: license changes, free demo constraints, pinned reproducibility, identity/alpha consistency and cost before any proposal to integrate.
+- First research brief prepared in `research/upgrade-report.json`; Telegram receipt must be checked after protected merge before claiming this review delivered. This supplements the already verified activation message 202; tomorrow's scheduled research remains future work.
+
 ## DAILY RESEARCH — TELEGRAM VERIFIED / FREE FIRST — 2026-10-03 (UTC+7)
 
 - Existing automation **6ac08e9e99008191a00060afeceb181a** updated successfully and enabled as **PHAN THUẦN XTRA Research**. Schedule retained **07:00 daily, Asia/Ho_Chi_Minh**, next scheduled date **2026-10-04**. It reads current MASTER, researches current primary internet sources, compares against current stack/history and proposes at most three upgrades; it records research and delivery evidence in this sole Markdown file.
