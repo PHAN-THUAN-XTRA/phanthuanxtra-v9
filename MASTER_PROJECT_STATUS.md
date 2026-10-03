@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 AGENT-REACH OPERATIONS CAPABILITY — 2026-10-03 (UTC+7)
+- Owner requested adding `Panniantong/Agent-Reach` and continuing work by priority.
+- Upstream audit: Python 3.10+, MIT, project version 1.5.0; upstream default install is check-only and system mutation requires explicit `--system`.
+- Integration architecture: **operator tooling only**, never bundled into the Cloudflare Worker. Upstream is pinned to audited commit `a19a171fa980a0785849596492e0af4db800c82f`.
+- Added Windows PowerShell bootstrap `scripts/agent-reach.ps1` with default `Check` mode and explicit `Install` mode using a dedicated user venv. Project integration never passes Agent-Reach `--system`.
+- Added `docs/AGENT_REACH.md` safety/usage contract and regression guard `tests/agent-reach-integration.test.mjs`.
+- Credentials/cookies remain outside repository/GitHub Actions/Cloudflare/D1/R2; no social write/post automation is enabled.
+- Status: **SOURCE IMPLEMENTED — CI / AUDIT / MERGE PENDING**.
+
+
 ## 0.0 TELEGRAM VEHICLE MINI APP — FULL MANAGER UPGRADE — 2026-10-03 (UTC+7)
 - Owner approved upgrade after production acceptance showed 7/7 vehicles rendering successfully.
 - Scope: vehicle detail, price/ODO/year/brand/model/fuel/category/color/description editing, gallery reorder, cover selection, public-page action, improved list metadata/search, and per-car audit history.
