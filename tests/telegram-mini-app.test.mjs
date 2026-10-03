@@ -33,9 +33,6 @@ test("Mini App API requires Telegram signature before D1 access",async()=>{
   const response=await handleTelegramMiniAppApi(new Request("https://phanthuanxtra.com/api/telegram/mini/v1/cars"),env);
   assert.equal(response.status,401);
   assert.equal(touched,false);
-  const miniHeaderBlock=headers.slice(headers.indexOf("/telegram-mini-app.html"));
-  assert.ok(miniHeaderBlock.includes("! X-Frame-Options"));
-  assert.ok(miniHeaderBlock.includes("Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org"));
 });
 
 test("Mini App contract is scoped to safe vehicle status management with no delete route",()=>{
@@ -52,3 +49,7 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   assert.match(ui,/Telegram\.WebApp|window\.Telegram/);
   assert.match(router,/command\?\.name==="carapp"/);
   assert.match(router,/web_app:\{url:"https:\/\/phanthuanxtra\.com\/telegram-mini-app\.html"\}/);
+  const miniHeaderBlock=headers.slice(headers.indexOf("/telegram-mini-app.html"));
+  assert.ok(miniHeaderBlock.includes("! X-Frame-Options"));
+  assert.ok(miniHeaderBlock.includes("Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org"));
+});
