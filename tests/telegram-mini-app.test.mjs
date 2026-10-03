@@ -39,6 +39,7 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   const source=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
   const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
   const router=fs.readFileSync(new URL("../src/telegram-router.js",import.meta.url),"utf8");
+  const headers=fs.readFileSync(new URL("../public/_headers",import.meta.url),"utf8");
   assert.match(source,/available","reserved","sold","hidden/);
   assert.match(source,/X-Telegram-Init-Data/);
   assert.match(source,/actor:"telegram-mini-app"/);
