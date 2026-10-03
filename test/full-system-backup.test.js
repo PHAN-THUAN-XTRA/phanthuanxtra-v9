@@ -15,3 +15,12 @@ test("backup preserves the original R2 object key for API download and manifest"
   assert.match(source, /object-manifest\.json/);
   assert.doesNotMatch(source, /const encodedKey=relativeObjectPath/);
 });
+
+
+test("backup retains native D1 row export and byte-preserved Worker bundles", () => {
+  assert.match(source, /output_format: "polling"/);
+  assert.match(source, /verifyD1Backup/);
+  assert.match(source, /script\.multipart/);
+  assert.match(source, /downloadR2Object\(`\/accounts\/\$\{accountId\}\/workers\/scripts/);
+  assert.doesNotMatch(source, /result\.results\?\.rows/);
+});
