@@ -1,5 +1,19 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 TELEGRAM VEHICLE MINI APP — IMPLEMENTATION CHECKPOINT — 2026-10-03 (UTC+7)
+- Goal: owner can open a free Telegram Mini App from the existing Auto Bot and manage the live vehicle catalog without entering or exposing an Admin/CMS token.
+- Branch: `feat/cms-agent-api-v1` (reused as the single active mutation queue; no competing implementation branch).
+- Added `public/telegram-mini-app.html`: Telegram-native vehicle list/search/status UI using `Telegram.WebApp.initData`; no `ADMIN_TOKEN` or CMS credential is stored in the Mini App.
+- Added `src/telegram-mini-app.js`: server-side Telegram initData HMAC-SHA-256 verification, 15-minute freshness gate, existing owner allowlist reuse through `canPublishAutoBlog`, read-only catalog listing, and bounded status updates for `available/reserved/sold/hidden`.
+- Mini App API intentionally exposes no DELETE route. Status changes reuse `saveCar(... actor: "telegram-mini-app")` so the existing CMS audit log remains authoritative.
+- Added Auto Bot command `/carapp`: authorized private chats receive an inline `web_app` button for `https://phanthuanxtra.com/telegram-mini-app.html`.
+- Telegram security basis: trust only signed `initData`; never trust `initDataUnsafe` for authorization.
+- Targeted regression file: `tests/telegram-mini-app.test.mjs` covers valid/tampered/expired initData, auth-before-D1, no-delete contract, no Admin token in UI, and `/carapp` wiring.
+- Baseline publishing API before this change: `tests/publishing-api.test.mjs` PASS 9/9, fail 0.
+- Status at this checkpoint: **SOURCE IMPLEMENTED — CI / PR / MERGE / PRODUCTION RUNTIME EVIDENCE PENDING**. Do not call the Mini App production-ready until exact-lineage CI, deploy, live asset/API checks and Telegram `/carapp` launch evidence pass.
+- Windows 10 owner acceptance after deploy: open private chat with the existing Auto Bot → send `/carapp` → press **Mở quản lý xe** → verify catalog loads → change a non-destructive status → refresh and confirm D1-backed state.
+
+
 ## 0.0 CURRENT PRODUCTION CHECKPOINT — 2026-10-02 (UTC+7)
 - Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`.
 - Current main lineage at this checkpoint: `176f44773c0750824e9681d8acf3df56e67fb94f` (PR #698).
