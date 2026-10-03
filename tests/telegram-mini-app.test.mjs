@@ -99,3 +99,15 @@ test("Customer Care Mini App reuses Memory Brain with safe owner mutations and n
   assert.match(migration,/customer_id TEXT PRIMARY KEY/);
   assert.match(migration,/FOREIGN KEY \(customer_id\) REFERENCES xtra_memory_customers/);
 });
+
+
+test("Customer Care operational list hides CI fixtures and anonymous one-shot noise without deleting memory",()=>{
+  const source=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  assert.match(source,/UPPER\(COALESCE\(c\.display_name,''\)\) NOT LIKE 'CI-%'/);
+  assert.match(source,/UPPER\(ti\.identity_value\) LIKE 'CI-%'/);
+  assert.match(source,/xtra_memory_lead_links ol/);
+  assert.match(source,/xtra_memory_facts ofa/);
+  assert.match(source,/COUNT\(\*\).*xtra_memory_episodes oe/);
+  assert.doesNotMatch(source,/DELETE FROM xtra_memory_customers/);
+  assert.doesNotMatch(source,/DELETE FROM xtra_memory_episodes/);
+});

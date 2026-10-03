@@ -93,6 +93,16 @@ async function listCustomers(request,env){
     FROM xtra_memory_customers c LEFT JOIN xtra_customer_care cc ON cc.customer_id=c.id
     WHERE (?='' OR LOWER(c.id) LIKE ? OR LOWER(COALESCE(c.display_name,'')) LIKE ? OR EXISTS(SELECT 1 FROM xtra_memory_identities qi WHERE qi.customer_id=c.id AND LOWER(qi.identity_value) LIKE ?))
       AND (?='' OR COALESCE(cc.care_status,'new')=?)
+      AND (
+        cc.customer_id IS NOT NULL
+        OR NULLIF(TRIM(COALESCE(c.display_name,'')),'') IS NOT NULL
+        OR EXISTS(SELECT 1 FROM xtra_memory_identities oi WHERE oi.customer_id=c.id AND oi.identity_type IN ('phone','email','telegram') AND NULLIF(TRIM(oi.identity_value),'') IS NOT NULL)
+        OR EXISTS(SELECT 1 FROM xtra_memory_lead_links ol WHERE ol.customer_id=c.id)
+        OR EXISTS(SELECT 1 FROM xtra_memory_facts ofa WHERE ofa.customer_id=c.id AND ofa.status='active')
+        OR (SELECT COUNT(*) FROM xtra_memory_episodes oe WHERE oe.customer_id=c.id) > 1
+      )
+      AND UPPER(COALESCE(c.display_name,'')) NOT LIKE 'CI-%'
+      AND NOT EXISTS(SELECT 1 FROM xtra_memory_identities ti WHERE ti.customer_id=c.id AND UPPER(ti.identity_value) LIKE 'CI-%')
     ORDER BY CASE WHEN cc.follow_up_at IS NOT NULL AND cc.follow_up_at<=CURRENT_TIMESTAMP THEN 0 ELSE 1 END,COALESCE(cc.follow_up_at,c.last_seen_at) DESC LIMIT 300`)
     .bind(q,like,like,like,status,status).all()).results||[];
   return json({ok:true,customers:rows,statuses:[...CARE_STATUSES]});
