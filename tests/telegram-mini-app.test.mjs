@@ -84,7 +84,7 @@ test("Customer Care Mini App reuses Memory Brain with safe owner mutations and n
   assert.match(source,/telegram-customer-mini-app/);
   assert.match(source,/ai-customer-agent/);
   assert.match(source,/deterministicCustomerSummary/);
-  assert.match(source,/customers\/\(cus_/);
+  assert.match(source,/customers\\\/\\\(cus_/);
   assert.match(source,/ai-summary/);
   assert.doesNotMatch(source,/DELETE FROM xtra_memory_customers/);
   assert.doesNotMatch(source,/DELETE FROM xtra_customer_care/);
