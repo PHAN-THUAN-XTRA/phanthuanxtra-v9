@@ -4,7 +4,7 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:
 import { fileURLToPath } from 'node:url';
 
 export async function verifyD1Backup(file) {
-  const db = new DatabaseSync(':memory:');
+  const db = new DatabaseSync(':memory:', { enableForeignKeyConstraints: false });
   try {
     const sql = await readFile(file, 'utf8');
     if (!sql.trim()) throw new Error('Empty D1 export');

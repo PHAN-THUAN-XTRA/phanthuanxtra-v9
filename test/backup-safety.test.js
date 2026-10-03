@@ -10,8 +10,8 @@ const schema=['cars','car_images','posts','leads','customers','xtra_content_prep
 test('D1 backup restores real UTF-8 rows and rejects schema-only data loss',async()=>{
  const dir=await temp();try{
   const file=path.join(dir,'db.sql');await writeFile(file,schema);await assert.rejects(verifyD1Backup(file),/no vehicle data/);
-  await writeFile(file,schema+"INSERT INTO cars VALUES(1,'Phan Thuần');INSERT INTO car_images VALUES(1,'ảnh');INSERT INTO customers VALUES(1,'Khách');");
-  const proof=await verifyD1Backup(file);assert.equal(proof.integrity_check,'ok');assert.equal(proof.row_counts.customers,1);assert.equal(proof.table_count,7);
+  await writeFile(file,"CREATE TABLE z_child(id INTEGER PRIMARY KEY,parent_id INTEGER REFERENCES z_parent(id));INSERT INTO z_child VALUES(1,1);CREATE TABLE z_parent(id INTEGER PRIMARY KEY);INSERT INTO z_parent VALUES(1);"+schema+"INSERT INTO cars VALUES(1,'Phan Thuần');INSERT INTO car_images VALUES(1,'ảnh');INSERT INTO customers VALUES(1,'Khách');");
+  const proof=await verifyD1Backup(file);assert.equal(proof.integrity_check,'ok');assert.equal(proof.row_counts.customers,1);assert.equal(proof.table_count,9);
   await writeFile(file,'bad SQL');await assert.rejects(verifyD1Backup(file));
  }finally{await rm(dir,{recursive:true,force:true});}
 });

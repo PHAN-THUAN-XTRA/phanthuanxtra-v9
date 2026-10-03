@@ -31,6 +31,7 @@ const workerSettings=cf(`/accounts/${accountId}/workers/scripts/${encodeURICompo
 const relatedNames = new Set(["ask-ai-agent", "ask-ai-api", "phanthuanxtra-backup", "phanthuanxtra-developer-gateway", "phanthuanxtra-images", workerName]);
 const inventory = cf(`/accounts/${accountId}/workers/scripts`).result || [];
 const relatedWorkers = inventory.filter(entry => relatedNames.has(entry.id));
+if (relatedWorkers.length !== relatedNames.size) throw new Error("Related Worker backup inventory is incomplete");
 await saveJson("cloudflare/worker-inventory.json", { expected: [...relatedNames], collected: relatedWorkers.map(entry => entry.id) });
 for (const entry of relatedWorkers) {
   const name = encodeURIComponent(entry.id);
