@@ -22,7 +22,7 @@ test("lead is stored behind the idempotency claim and replay does not insert ano
  const lead=source.indexOf("INSERT INTO leads",claim);
  const replay=source.indexOf("if(prior.lead_id)");
  assert.ok(claim>=0&&lead>claim);
- assert.ok(replay>claim&&replay<lead);
+ assert.ok(replay>=0&&replay<claim&&lead>claim);
 });
 test("lead intake keeps consequential lead management outside autonomous permission",()=>{
  const fleet=fs.readFileSync(new URL("../src/agent-fleet.js",import.meta.url),"utf8");
