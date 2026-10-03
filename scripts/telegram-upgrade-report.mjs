@@ -57,4 +57,3 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]) {
   }
   console.log(receipt.skipped?'Existing upgrade delivery receipt found; skipped':'Telegram owner upgrade report delivery: PASS');
 }
-

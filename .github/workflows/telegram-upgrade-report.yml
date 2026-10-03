@@ -36,4 +36,3 @@ jobs:
           name: ${{ steps.delivery.outputs.artifact_name }}
           path: upgrade-delivery-receipt.json
           retention-days: 30
-

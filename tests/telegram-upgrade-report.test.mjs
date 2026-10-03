@@ -29,4 +29,3 @@ test('existing acknowledgment prevents duplicate Telegram calls',async()=>{
  let calls=0;const r=await deliverReport(report,{...env,GITHUB_TOKEN:'fake',GITHUB_REPOSITORY:'owner/repo'},async()=>{calls++;return Response.json({artifacts:[{name:'upgrade-delivery-'+report.id,expired:false}]});});
  assert.equal(calls,1);assert.equal(r.skipped,true);
 });
-
