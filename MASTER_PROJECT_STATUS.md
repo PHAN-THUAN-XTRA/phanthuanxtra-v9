@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 OWNER OPERATIONS POLICY — S21 ULTRA / TELEGRAM / TERMUX FIRST — 2026-10-03 (UTC+7)
+- Owner operating priority is now: **Samsung Galaxy S21 Ultra → Telegram → Termux → browser**.
+- **Windows PowerShell is fallback only**, not the primary operating path.
+- **Wrangler CLI must not be used for production operations.** Production deployment remains **GitHub Actions → Cloudflare API/SDK**, preserving the existing controlled deploy path.
+- Routine owner workflows should be designed to work from Telegram and Termux first; browser is the visual/admin fallback where needed.
+- GitHub remains source of truth. Material changes continue through branch → PR → CI/audit → merge → exact-lineage production verification.
+- Local sync must be non-destructive: prefer `git fetch`, `git switch main`, `git pull --ff-only`; do not use `git reset --hard` or `git clean` as an automatic recovery action.
+- Windows evidence on 2026-10-03 reached main `ffe091e...` fetch/pull but encountered a Windows file-lock prompt while unlinking a Git pack index. This is treated as a **Windows-local fallback issue**, not a production blocker; do not repeatedly retry the locked unlink operation.
+- Agent-Reach local completion should therefore target **Termux-first** where its Python/runtime dependencies are supported; Windows dedicated venv remains fallback.
+- Telegram Mini App remains the preferred day-to-day vehicle-management UI and retains the no-DELETE safety boundary.
+
+
 ## 0.0 AGENT-REACH OPERATIONS CAPABILITY — 2026-10-03 (UTC+7)
 - Owner requested adding `Panniantong/Agent-Reach` and continuing work by priority.
 - Upstream audit: Python 3.10+, MIT, project version 1.5.0; upstream default install is check-only and system mutation requires explicit `--system`.
