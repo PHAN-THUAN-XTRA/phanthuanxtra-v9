@@ -34,7 +34,7 @@ test('live defaults off; preview calls no provider and writes no artifacts or le
 });
 test('credentials require both actions in the same pipeline, deny expiry and never grant publishing', async () => {
   const f = await runnerFixture();
-  const other = (await issueContentPrepToken(f.env, { agent_id: 'agent-19', pipeline_id: 'different-pipeline-001' })).token;
+  const other = (await issueContentPrepToken(f.env, { agent_id: 'agent-19', pipeline_id: 'different-pipeline-001' }, f.now())).token;
   for (const [w, s, status] of [[f.writer, '', 401], [f.scheduler, f.writer, 403], [f.writer, other, 403]]) assert.equal((await f.transport(f.request(f.brief, '', 'POST', w, s))).status, status);
   f.tick(3600001); assert.equal((await f.transport(f.request())).status, 401); assert.equal(f.calls(), 0);
   assert.equal((await worker.fetch(new Request('https://phanthuanxtra.com/api/publish/v1/posts/1/publish', { method: 'POST', headers: { authorization: 'Bearer ' + f.writer } }), f.env)).status, 401);
@@ -74,8 +74,8 @@ test('the global daily cap is shared across runs and cannot be overridden by cal
 test('same request with a changed brief conflicts; other pipelines cannot reconcile it', async () => {
   const f = await runnerFixture(); await f.transport(f.request());
   assert.equal((await f.transport(f.request({ ...f.brief, source: 'Changed source' }))).status, 409);
-  const w = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: 'other-pipeline-0001' })).token;
-  const s = (await issueContentPrepToken(f.env, { agent_id: 'agent-19', pipeline_id: 'other-pipeline-0001' })).token;
+  const w = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: 'other-pipeline-0001' }, f.now())).token;
+  const s = (await issueContentPrepToken(f.env, { agent_id: 'agent-19', pipeline_id: 'other-pipeline-0001' }, f.now())).token;
   assert.equal((await f.transport(f.request(null, '/' + f.brief.request_id, 'GET', w, s))).status, 404);
 });
 test('client reconciles a lost response after completion without another AI call or artifact', async () => {
@@ -132,10 +132,18 @@ test('checkpoint audit failure retains prior stage and retries without exceeding
 });
 test('expired delegation pauses preparation and renewed scopes resume the saved generation', async () => {
   const f = await runnerFixture();
-  const short = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: f.pipeline, ttl_seconds: 60 })).token;
+  const short = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: f.pipeline, ttl_seconds: 60 }, f.now())).token;
   await f.transport(f.request(f.brief, '', 'POST', short)); f.tick(60001);
   assert.equal((await f.transport(f.request(f.brief, '', 'POST', short))).status, 401);
   assert.equal(runRow(f).stage, 'draft');
-  const renewed = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: f.pipeline, ttl_seconds: 900 })).token;
+  const renewed = (await issueContentPrepToken(f.env, { agent_id: 'agent-11', pipeline_id: f.pipeline, ttl_seconds: 900 }, Math.min(f.now(), Date.now()))).token;
   assert.equal((await driver(f, { writer: renewed })).status, 'completed'); assert.equal(f.calls(), 1);
+});
+
+test('synthetic clock signs and verifies credentials at the same instant across wall-clock boundaries', async () => {
+  const f = await runnerFixture({ now: Date.UTC(2025, 0, 1, 0, 0, 0, 999) });
+  const result = await f.transport(f.request());
+  assert.equal(result.status, 202);
+  assert.equal((await result.json()).stage, 'draft');
+  assert.equal(f.calls(), 1);
 });

@@ -550,3 +550,17 @@ test('phone-first handoff accepts a later standalone full name and does not trap
   assert.equal(DB._unknown[0].phone,'0123654897');
   assert.match(named.reply,/chưa xác nhận được Telegram đã nhận/i);
 });
+
+
+test('official hotline questions use authoritative copy without incomplete model output', async () => {
+  for (const message of ['Hotline liên hệ chính thức là gì?', 'hotline lien he la gi?', 'Số điện thoại chính thức của website là gì?']) {
+    let calls = 0;
+    const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ conversation_id: crypto.randomUUID(), message, suppress_crm_notification: true, test_context: 'production-smoke' })
+    }), { DB: mockDb(), AI: { async run() { calls++; return { response: 'Hotline liên' }; } } });
+    const data = await response.json();
+    assert.equal(response.status, 200); assert.equal(data.needs_human, false);
+    assert.match(data.reply, /0866 997 891/); assert.equal(data.ai_model, null); assert.equal(calls, 0);
+  }
+});

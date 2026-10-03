@@ -124,9 +124,10 @@ function vehicleFallbackLabel(car){
   const hasYear=Boolean(year&&new RegExp(`(?:^|\\D)${year}(?:\\D|$)`).test(model));
   return [brand,model,hasYear?"":year].filter(Boolean).join(" ");
 }
+function isOfficialContactQuery(value){return /^(hotline|so dien thoai|phone number)( lien he)?( chinh thuc)?( cua (phan thuan( xtra)?|website))?( la gi| bao nhieu)?[?.! ]*$/.test(foldVi(value));}
 function isWebsiteTopicQuery(value){
   const t=foldVi(value);
-  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
+  return isOfficialContactQuery(value) || /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
 }
 const isBlogQuery = value => /\b(blog|bai viet|tin tuc|bai dang|news)\b/.test(foldVi(value));
 function postPlainText(value){
@@ -412,6 +413,8 @@ export async function handleAiChat(request,env,ctx){
       reply="Hiện tôi chưa đọc được bài Blog đã xuất bản để trả lời chính xác. Anh/chị vui lòng để lại họ tên và số điện thoại để được hỗ trợ.";
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
+    } else if(isOfficialContactQuery(message)){
+      reply=deterministicWebsiteReply('hotline');
     } else try{
       const blogContext=(blogQuery||publishedPostMatch) ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:postPlainText(post.excerpt),content:clean(postPlainText(post.content),1200)}))).slice(0,7000)}` : "";
       const websiteContext=editorial ? `${BRAND_KNOWLEDGE.split("## Hồ sơ truyền thông chính thức")[0]}\n\n${editorial}`.slice(0,MAX_KNOWLEDGE_CONTEXT) : knowledge.text;
