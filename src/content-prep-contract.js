@@ -1,3 +1,4 @@
+import { contentRunnerContract } from './content-runner-contract.js';
 export const CONTENT_PREP_BASE = '/api/agents/content/v1';
 export const CONTENT_PREP_ADMIN = '/api/admin/agents/content-prep';
 export const CONTENT_PREP_VERSION = '1.0.0';
@@ -18,7 +19,7 @@ export const ATOMIC_CONTENT_AGENTS = Object.fromEntries(Object.entries(CONTENT_P
 
 export function contentPrepContract() {
   return {
-    version: CONTENT_PREP_VERSION, atomicAgents: ATOMIC_CONTENT_AGENTS,
+    version: CONTENT_PREP_VERSION, atomicAgents: ATOMIC_CONTENT_AGENTS, runner: contentRunnerContract(),
     credentialEndpoint: `${CONTENT_PREP_ADMIN}/credentials`, ownerReviewEndpoint: CONTENT_PREP_ADMIN,
     reconciliationEndpoint: `${CONTENT_PREP_BASE}/requests/{request_id}`,
     timezone: 'Asia/Ho_Chi_Minh', scheduleFormat: 'YYYY-MM-DD HH:mm',

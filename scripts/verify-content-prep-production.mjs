@@ -5,9 +5,9 @@ const API = '/api/agents/content/v1', ADMIN = '/api/admin/agents/content-prep';
 const pipeline = 'ci-content-' + crypto.randomUUID();
 const draftId = 'draft-' + crypto.randomUUID(), scheduleId = 'schedule-' + crypto.randomUUID();
 let owner, writer, scheduler, postId;
-async function call(path, token, body, method = body ? 'POST' : 'GET') {
+async function call(path, token, body, method = body ? 'POST' : 'GET', extraHeaders = {}) {
   const response = await fetch(base + path, { method, redirect: 'manual', signal: AbortSignal.timeout(25000),
-    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...extraHeaders },
     ...(body ? { body: JSON.stringify(body) } : {}) });
   let value;
   try { value = await response.json(); } catch { value = null; }
@@ -21,6 +21,15 @@ try {
   writer = expect(await call(ADMIN + '/credentials', owner, { agent_id: 'agent-11', pipeline_id: pipeline }), 201, 'Writer credential').token;
   scheduler = expect(await call(ADMIN + '/credentials', owner, { agent_id: 'agent-19', pipeline_id: pipeline }), 201, 'Scheduler credential').token;
   assert.equal(expect(await call(API + '/contract', writer), 200, 'Execution contract').publicPublish, false);
+  const runnerHeaders = { 'x-content-scheduler-credential': 'Bearer ' + scheduler };
+  const runnerBrief = { request_id: 'runner-' + crypto.randomUUID(), source: 'Nguồn tiếng Việt dùng riêng để kiểm chứng preview.', schedule: new Date(Date.now() + 86400000 + 7 * 3600000).toISOString().slice(0, 16).replace('T', ' ') };
+  const preview = expect(await call(API + '/runs/preview', writer, runnerBrief, 'POST', runnerHeaders), 200, 'Runner preview');
+  assert.equal(preview.preview_only, true); assert.equal(preview.persisted, false); assert.equal(preview.model_calls, 0); assert.equal(preview.publicPublish, false);
+  assert.equal(preview.article.content, runnerBrief.source);
+  assert.equal(expect(await call(API + '/runs', writer, runnerBrief, 'POST', runnerHeaders), 503, 'Live runner remains off').error, 'LIVE_RUNNER_DISABLED');
+  expect(await call(API + '/runs/' + runnerBrief.request_id, writer, undefined, 'GET', runnerHeaders), 404, 'Preview leaves no run ledger');
+  expect(await call(API + '/runs/preview', writer, runnerBrief), 401, 'Runner requires both scopes');
+  console.log('CONTENT RUNNER PRODUCTION: deterministic UTF-8 preview; zero model calls/artifacts; live runner disabled; dual scope required: PASS');
   const content = { request_id: draftId, title: 'CI — Nội dung nháp riêng tư', content: 'Kiểm chứng atomic agent: chỉ chuẩn bị nội dung và lịch đề xuất.', tags: ['ci', 'private-fixture'] };
   const draft = expect(await call(API + '/drafts', writer, content), 201, 'Private draft');
   postId = draft.post_id;

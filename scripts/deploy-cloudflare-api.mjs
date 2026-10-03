@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve } from "node:path";
 import { uploadAssetsWithRest, uploadAssetsWithSdk, validateSession } from "./cloudflare-assets-upload.mjs";
+import { withContentRunnerBinding } from "./content-runner-deploy-binding.mjs";
 
 const API_BASE = "https://api.cloudflare.com/client/v4";
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -422,7 +423,7 @@ async function getCurrentBindings() {
   inherited.push({ name: "VEHICLE_JOBS", type: "queue", queue_name: VEHICLE_QUEUE });
   inherited.push({ name: "MEMORY_JOBS", type: "queue", queue_name: MEMORY_QUEUE });
   if (!inherited.some((binding) => binding.name === "ASSETS")) inherited.push({ name: "ASSETS", type: "assets" });
-  return inherited;
+  return withContentRunnerBinding(inherited, JSON.parse(await readFile(resolve(ROOT, 'wrangler.json'), 'utf8')));
 }
 
 function moduleContentType(file) {
