@@ -113,15 +113,32 @@ async function customerDetail(env,id){
     COALESCE(cc.care_status,'new') care_status,COALESCE(cc.note,'') note,cc.follow_up_at,COALESCE(cc.ai_summary,'') ai_summary,cc.updated_by,cc.updated_at care_updated_at
     FROM xtra_memory_customers c LEFT JOIN xtra_customer_care cc ON cc.customer_id=c.id WHERE c.id=? LIMIT 1`).bind(id).first();
   if(!profile)return json({error:"Không tìm thấy khách hàng"},404);
-  const [identities,facts,episodes,leads,audit]=await Promise.all([
+  const [identities,facts,episodes,leads,audit,proposals]=await Promise.all([
     env.DB.prepare("SELECT identity_type,identity_value,verified,last_seen_at FROM xtra_memory_identities WHERE customer_id=? ORDER BY verified DESC,last_seen_at DESC").bind(id).all(),
     env.DB.prepare("SELECT fact_key,fact_value,confidence,last_confirmed_at,status FROM xtra_memory_facts WHERE customer_id=? ORDER BY last_confirmed_at DESC LIMIT 50").bind(id).all(),
     env.DB.prepare("SELECT id,event_type,subject_type,subject_id,summary,outcome,source,happened_at FROM xtra_memory_episodes WHERE customer_id=? ORDER BY happened_at DESC LIMIT 50").bind(id).all(),
     env.DB.prepare("SELECT l.id,l.name,l.phone,l.car_id,l.message,l.status,l.note,l.created_at,l.updated_at FROM xtra_memory_lead_links ll JOIN leads l ON l.id=ll.lead_id WHERE ll.customer_id=? ORDER BY l.created_at DESC LIMIT 30").bind(id).all(),
-    env.DB.prepare("SELECT id,actor,action,summary,created_at FROM xtra_customer_care_audit WHERE customer_id=? ORDER BY created_at DESC,id DESC LIMIT 50").bind(id).all()
+    env.DB.prepare("SELECT id,actor,action,summary,created_at FROM xtra_customer_care_audit WHERE customer_id=? ORDER BY created_at DESC,id DESC LIMIT 50").bind(id).all(),
+    env.DB.prepare("SELECT id,proposal_type,proposed_value,confidence,evidence_episode_id,rationale,status,created_at FROM xtra_customer_care_proposals WHERE customer_id=? AND status='pending' ORDER BY confidence DESC,created_at DESC LIMIT 20").bind(id).all()
   ]);
-  return json({ok:true,customer:profile,identities:identities.results||[],facts:facts.results||[],episodes:episodes.results||[],leads:leads.results||[],audit:audit.results||[]});
+  return json({ok:true,customer:profile,identities:identities.results||[],facts:facts.results||[],episodes:episodes.results||[],leads:leads.results||[],audit:audit.results||[],proposals:proposals.results||[]});
 }
+async function decideCustomerProposal(request,env,id,proposalId){
+  if(!customerIdOk(id)||!/^prop_[A-Za-z0-9-]{20,80}$/.test(proposalId))return json({error:"Proposal không hợp lệ"},400);
+  const body=await request.json().catch(()=>null),decision=clean(body?.decision,20);
+  if(!new Set(["approve","reject"]).has(decision))return json({error:"decision phải là approve hoặc reject"},400);
+  const proposal=await env.DB.prepare("SELECT id,proposal_type,proposed_value,status FROM xtra_customer_care_proposals WHERE id=? AND customer_id=? LIMIT 1").bind(proposalId,id).first();
+  if(!proposal||proposal.status!=="pending")return json({error:"Proposal không còn pending"},404);
+  if(decision==="approve"){
+    if(proposal.proposal_type!=="care_status"||!CARE_STATUSES.has(proposal.proposed_value))return json({error:"Proposal type/value không hỗ trợ"},400);
+    await env.DB.prepare(`INSERT INTO xtra_customer_care(customer_id,care_status,updated_by,updated_at) VALUES (?,?,'telegram-customer-mini-app',CURRENT_TIMESTAMP)
+      ON CONFLICT(customer_id) DO UPDATE SET care_status=excluded.care_status,updated_by='telegram-customer-mini-app',updated_at=CURRENT_TIMESTAMP`).bind(id,proposal.proposed_value).run();
+  }
+  await env.DB.prepare("UPDATE xtra_customer_care_proposals SET status=?,decided_at=CURRENT_TIMESTAMP,decided_by='telegram-customer-mini-app' WHERE id=? AND customer_id=?").bind(decision==="approve"?"approved":"rejected",proposalId,id).run();
+  await env.DB.prepare("INSERT INTO xtra_customer_care_audit(customer_id,actor,action,summary) VALUES (?,'telegram-customer-mini-app','proposal_decision',?)").bind(id,clean(decision+"; "+proposal.proposal_type+"="+proposal.proposed_value,500)).run();
+  return customerDetail(env,id);
+}
+
 async function updateCustomerCare(request,env,id){
   if(!customerIdOk(id))return json({error:"ID khách hàng không hợp lệ"},400);
   const exists=await env.DB.prepare("SELECT id FROM xtra_memory_customers WHERE id=? LIMIT 1").bind(id).first();
@@ -183,6 +200,8 @@ export async function handleTelegramMiniAppApi(request,env){
   const customer=u.pathname.match(/^\/api\/telegram\/mini\/v1\/customers\/(cus_[A-Za-z0-9-]{20,80})$/);
   if(customer&&request.method==="GET")return customerDetail(env,customer[1]);
   if(customer&&request.method==="PATCH")return updateCustomerCare(request,env,customer[1]);
+  const customerProposal=u.pathname.match(/^\/api\/telegram\/mini\/v1\/customers\/(cus_[A-Za-z0-9-]{20,80})\/proposals\/(prop_[A-Za-z0-9-]{20,80})$/);
+  if(customerProposal&&request.method==="POST")return decideCustomerProposal(request,env,customerProposal[1],customerProposal[2]);
   const customerSummary=u.pathname.match(/^\/api\/telegram\/mini\/v1\/customers\/(cus_[A-Za-z0-9-]{20,80})\/ai-summary$/);
   if(customerSummary&&request.method==="POST")return summarizeCustomer(env,customerSummary[1]);
   const detail=u.pathname.match(/^\/api\/telegram\/mini\/v1\/cars\/([A-Za-z0-9_-]{3,81})$/);
