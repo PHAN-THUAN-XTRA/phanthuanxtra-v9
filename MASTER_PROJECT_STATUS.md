@@ -1,5 +1,87 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## S21 ULTRA LOCAL AGENT — DEEP RESEARCH / DEVICE PREFLIGHT READY — 2026-10-03 (UTC+7)
+
+Đã đọc MASTER phiên bản 37 và đối chiếu mã nguồn trên main `d8d492205fdccee773b4eea711d94b00b65a8c69` trước khi thực hiện. Mục tiêu owner: phát triển agent ngay trên S21 Ultra, kết nối PHAN THUẦN XTRA, ưu tiên miễn phí. **Kết luận nghiên cứu: khả thi cho agent văn bản nhỏ chạy theo yêu cầu; chọn mô hình kết hợp điện thoại + API hiện có. Chưa có quyền điều khiển trực tiếp hoặc benchmark trên điện thoại thật.**
+
+### Quyết định kiến trúc
+
+| Phần | Vị trí đề xuất | Phạm vi |
+| --- | --- | --- |
+| Suy luận văn bản nhỏ | S21 / Termux + llama.cpp trước, JNI trong APK sau | Tóm tắt, viết nháp, phân loại yêu cầu; một model, các vai trò chạy tuần tự |
+| Điều phối / bộ kiểm tra | Chương trình cố định trên điện thoại | Kiểm tra schema, nguồn, thời hạn, request_id; model không tự chạy shell |
+| Lưu trạng thái cục bộ | SQLite/app-private storage | Brief, checkpoint, retry; cache có thời hạn, dữ liệu tối thiểu |
+| Dữ liệu thật / quyền / audit | Worker + D1 của PHAN THUẦN XTRA | Xác thực, giới hạn hành động, chống trùng, đối soát |
+| Duyệt / publish | Owner qua Mini App hoặc Admin | Nháp/lịch đề xuất không chuyển thành quyền đăng |
+| Nghiên cứu web 07:00 | Automation hiện có + Telegram | Giữ phía máy chủ; điện thoại ngủ/tắt mạng không làm mất lịch |
+
+Đây là thiết kế đề xuất, không phải danh sách thành phần đã cài trên S21. “Nhiều agent” ở giai đoạn này là các vai trò dùng chung một model, không chạy 62 tiến trình/model trên điện thoại. Học thông tin mới bằng tài liệu/cache được chọn và kiểm chứng; chưa fine-tune trên máy.
+
+### Ba hướng đã đối chiếu
+
+1. **Termux + llama.cpp — chọn cho thử nghiệm đầu tiên.** Tài liệu upstream hỗ trợ Android không root và xây bằng CMake. Khởi đầu CPU, context 2.048, output 256 token, 2–4 thread và một request; đây là cấu hình thử đề xuất, không phải số đo tốc độ. Chỉ thử GPU/Vulkan sau khi xác định SoC và driver thật; không áp dụng cấu hình Snapdragon cho máy Exynos/Mali. Không dùng máy để build APK phát hành chính thức.
+2. **Google AI Edge Gallery — ứng dụng thử khả năng thiết bị.** Repo chính thức ghi Android 12+, có quản lý model và benchmark; license ứng dụng Apache-2.0. License từng model riêng. Gallery không tự có kết nối PHAN THUẦN XTRA; kết quả chạy ở Gallery không chứng minh API/scope của dự án hoạt động.
+3. **Tích hợp native vào APK hiện có — đích dài hạn sau benchmark.** Dùng binding Android của llama.cpp hoặc đánh giá LiteRT với model tương thích. Cần JNI/runtime, quản lý model/checksum, cancel/progress, broker tool và outbox. Không sửa manifest để mở cleartext toàn cục chỉ nhằm nối localhost. Termux CLI pilot dùng trực tiếp engine; native production ưu tiên in-process/IPC được kiểm soát.
+
+Nguồn: [llama.cpp Android](https://github.com/ggml-org/llama.cpp/blob/master/docs/android.md), [Termux](https://github.com/termux/termux-app), [AI Edge Gallery](https://github.com/google-ai-edge/gallery). Termux và plugin phải cùng nguồn ký; không đổi nguồn bằng cách gỡ ứng dụng khi chưa sao lưu dữ liệu.
+
+### Model miễn phí đề xuất và điều chưa biết
+
+- **Qwen3-0.6B-GGUF từ Qwen**: ứng viên khởi đầu nhẹ cho schema/điều hướng và bản nháp ngắn; bản Q8_0 có hướng dẫn chính thức. Chưa đánh giá chất lượng tiếng Việt trên máy anh.
+- **Qwen3-1.7B-GGUF từ Qwen**: thử sau nếu RAM trống và độ trễ cho phép; repo snapshot `7fb011e9aee6e4dc7adf8430df9ea8de6a466aa3` liệt kê Q4_K_M khoảng 1,11 GB. Dung lượng file không bằng RAM chạy; còn KV cache, buffer, hệ điều hành và ứng dụng khác. Chốt file/revision/hash trước tải; không tự động lấy bản latest không kiểm soát.
+- Hai model text này ghi Apache-2.0, khác license research-only của Qwen-Image-2.1. Có chế độ non-thinking; ưu tiên cho tác vụ ngắn để giảm thời gian/pin, vẫn kiểm tra câu trả lời.
+- Chưa biết RAM trống, SoC/driver, nhiệt, dung lượng còn lại của máy anh. Không khẳng định token/giây, chạy NPU hoặc 24/7. Không lấy cấu hình máy tính workspace làm số đo S21.
+- Qwen Image/Viewpoint LoRA không phải lựa chọn cho MVP điện thoại: khác bài toán, yêu cầu tài nguyên và quyền thương mại chưa đáp ứng.
+
+Nguồn: [Qwen 0.6B](https://huggingface.co/Qwen/Qwen3-0.6B-GGUF), [Qwen 1.7B](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF), [snapshot Q4](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/tree/7fb011e9aee6e4dc7adf8430df9ea8de6a466aa3).
+
+### Kết nối hệ thống: có sẵn và còn phải xây
+
+**Đã xác minh từ mã nguồn hiện tại:**
+
+- `android/.../ApiClient.java` sử dụng HTTPS App API; `SecureTokenStore.java` dùng Android Keystore + AES/GCM. Manifest tắt cleartext và backup ứng dụng. Các lớp này hỗ trợ APK operator hiện có, chưa phải mobile autonomous agent.
+- `/api/app/v1/login` cấp phiên Admin; App API có dashboard, xe, lead, bài viết và assistant. **Không giao phiên Admin hoặc APP_API_TOKEN cho vòng lặp model**, vì auth hiện tại không tạo scope chỉ đọc riêng cho từng agent. `/assistant` là suy luận server có quota, không phải model offline.
+- Contract `/api/agents/content/v1` đã có create-draft, prepare-schedule, GET contract và GET requests/{request_id}; credential riêng writer/scheduler, pipeline, mặc định 15 phút/tối đa 1 giờ. Đây là phần kết nối phù hợp cho nội dung do model cục bộ chuẩn bị.
+- `CONTENT_RUNNER_LIVE_ENABLED=0` chặn runner gọi model server; việc local model tạo copy rồi gọi atomic create-draft là luồng riêng. Nó vẫn cần credential hợp lệ, fleet enabled và kiểm tra contract; không có nghĩa được bỏ qua auth hoặc quota của các endpoint khác.
+- `scripts/agent-reach.ps1` hiện dành cho Windows Python Launcher. Chưa có port Termux; không coi script đó là agent Android đã chạy.
+
+**Cần xây sau preflight đạt:** phiên thiết bị có đăng ký/thu hồi; scope đọc dữ liệu tối thiểu theo tác vụ; giao diện cấp credential ngắn hạn bằng phiên owner; mobile tool broker với allowlist cố định; outbox/reconciliation; UI tiến trình/dừng; xử lý mất mạng và rotation. Không thêm API tên giả rồi hướng dẫn gọi như đã triển khai.
+
+Luồng thử đầu tiên: owner nhập brief không nhạy cảm → model cục bộ tạo JSON → bộ kiểm tra schema/độ dài/nguồn → owner xem → credential agent-11 tạo nháp riêng tư → GET đối soát cùng request_id → owner review ở Mini App. Đề xuất lịch chỉ dùng credential agent-19 riêng. Không thêm publish vào toolset. Đọc/sửa CRM thật chỉ mở sau hợp đồng scope riêng; không sao chép toàn bộ D1 xuống máy.
+
+Keystore bảo vệ khóa nhưng không làm cho app đã bị chiếm quyền trở nên an toàn tuyệt đối. Termux file chmod 600 không tương đương hardware-backed Keystore. Không lưu token vào prompt, log, clipboard lâu dài hoặc thư mục Downloads. Nguồn: [Android Keystore](https://developer.android.com/privacy-and-security/keystore).
+
+### Pin, nền và hoạt động offline
+
+Termux upstream cảnh báo Android 12+ có thể dừng tiến trình CPU cao/phantom; WorkManager chạy theo điều kiện hệ thống, không đảm bảo giờ chính xác. Vì vậy MVP chạy khi owner mở tác vụ, có nút dừng, checkpoint trước/sau hành động; không buộc wake-lock suốt ngày. Ứng dụng native có thể dùng foreground work với thông báo khi phù hợp; việc còn sống nền phải được kiểm chứng trên máy thật. Giới hạn nền Android 16 trong tài liệu không được áp dụng như kết luận về máy hiện tại.
+
+Offline chỉ bao gồm model, brief và cache đã có. Tìm web mới, đọc dữ liệu server, đồng bộ nháp và Telegram cần mạng. Không tự chuyển sang API trả phí khi offline/model lỗi. “Free” vẫn dùng pin, lưu trữ, băng thông và quota dịch vụ đang có.
+
+Nguồn: [Android WorkManager](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work), [long-running work](https://developer.android.com/develop/background-work/background-tasks/persistent/how-to/long-running).
+
+### Công cụ sẵn sàng cho S21 và điều kiện nghiệm thu
+
+Đã chuẩn bị `research/s21-preflight.py` (Python standard library). Mặc định chỉ xuất JSON phần cứng tổng hợp: model/SoC/ABI/Android, RAM, dung lượng trống và tool hiện có. Không lấy serial/IMEI, tài khoản, token, ảnh hay danh bạ. `--check-api` chỉ GET public `https://phanthuanxtra.com/api/app/v1/health`, chặn redirect, timeout 10 giây, giới hạn response; không đăng nhập, gọi model, cài package hoặc gửi dữ liệu thiết bị.
+
+Trong Termux đã có Python, tải script từ commit dự án được kiểm chứng vào thư mục làm việc rồi chạy:
+
+```sh
+python s21-preflight.py
+python s21-preflight.py --check-api
+```
+
+Không pipe mã tải từ mạng trực tiếp vào shell. Nếu Python chưa có, cài từ kho Termux chính thức trước. Báo cáo GET health thành công chỉ chứng minh kết nối public, không chứng minh phiên auth hay inference.
+
+Nghiệm thu theo thứ tự:
+
+1. **Preflight thiết bị:** có model/SoC/ABI/RAM thật; đủ dung lượng; health thử trên chính điện thoại. Điểm này hiện **OPEN** vì chưa có kết quả từ S21.
+2. **Local engine:** một model/revision/hash, 20 brief tiếng Việt không chứa dữ liệu khách; ghi load time, first-token time, tổng thời gian, bộ nhớ, nhiệt/pin và tỷ lệ JSON hợp lệ. Mục tiêu thử: không crash, owner chấp nhận độ trễ; mọi JSON sai bị chặn trước API. Chưa có số đo PASS.
+3. **Nháp qua scope:** một draft riêng tư, retry cùng request_id trả cùng artifact, credential hết hạn bị từ chối, zero public publish. Kiểm tra network loss trước/sau commit; không retry POST mù.
+4. **Foreground/resume:** khóa màn hình, mở lại, mất Wi-Fi và đổi mạng; không nhân đôi artifact hoặc giữ lease vô hạn.
+5. **Native APK:** chỉ sau các bước trên; build/sign/CI trên GitHub, cài và quan sát trực tiếp S21; ghi version/hash và kết quả vào MASTER.
+
+**Kết quả thực thi trong workspace:** 5 kiểm thử preflight PASS, chạy offline trên Linux trả android_detected=false đúng như thực tế. Probe public từ workspace bị lỗi network/TLS/JSON tổng quát; không suy diễn thành site down hoặc điện thoại kết nối thất bại. Không chạy model hoặc cài gì trên S21. Trạng thái: **nghiên cứu + preflight sẵn sàng; cài đặt/benchmark/kết nối có auth trên thiết bị còn OPEN**.
+
 ## QWEN REVIEW DELIVERY / DAILY COST BOUNDARY — VERIFIED 2026-10-03
 
 - Research **PR #751** merged `2bab3254e11701c3bd3f1e7ae24fff1936e823ab` after required CI/audit passed. Exact-merge CI **37123590248 PASS**. **Telegram Upgrade Report 37123590263 PASS**, artifact **11273628372**, report `2026-10-03-research`, verified private owner **message 203** confirms the actual Qwen review brief was delivered.
