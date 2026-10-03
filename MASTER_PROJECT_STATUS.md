@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 S21 ULTRA OWNER OPERATIONS ACCEPTANCE — PASS — 2026-10-03 (UTC+7)
+- Owner acceptance **PASS** for the canonical operating chain: **Samsung Galaxy S21 Ultra → Telegram → Termux → browser**.
+- S21 Termux environment verified by owner: Git, Python, pip and curl available; repository safely fast-forwarded to current `main` without destructive reset/clean and without Wrangler.
+- `scripts/complete-termux-gates.sh` reached `COMPLETE: Termux gate finished`, closing the owner-side Termux gate for this acceptance.
+- Telegram vehicle operations acceptance **PASS** on **@phanthuanxtra_auto_bot**; owner confirmed the bot is working and the `/carapp` Telegram Mini App flow operates correctly on the S21 Ultra.
+- Telegram remains the primary day-to-day vehicle-management surface; Termux is the technical/operator surface; browser is the visual/admin fallback; Windows remains fallback only.
+- Production deployments remain **GitHub Actions → Cloudflare API/SDK**. **No Wrangler production operations** are authorized.
+- This acceptance does not authorize destructive local Git recovery, Telegram DELETE behavior, Headroom production proxying, or any expansion of production mutation authority.
+
+
 ## 0.0 CURRENT CANONICAL CLOSURE — 2026-10-03 (UTC+7)
 - Canonical main: `b188d7e61a272c90ff336257c4eea6953c2de27b` (PR #720).
 - Exact-lineage **SUCCESS**: CI `37095698004`, Deploy Cloudflare Worker `37095698016`, Headroom Shadow Benchmark `37095698014`.
