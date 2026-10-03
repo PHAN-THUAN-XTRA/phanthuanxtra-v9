@@ -39,13 +39,17 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   const source=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
   const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
   const router=fs.readFileSync(new URL("../src/telegram-router.js",import.meta.url),"utf8");
+  const headers=fs.readFileSync(new URL("../public/_headers",import.meta.url),"utf8");
   assert.match(source,/available","reserved","sold","hidden/);
   assert.match(source,/X-Telegram-Init-Data/);
   assert.match(source,/actor:"telegram-mini-app"/);
   assert.match(source,/method==="PATCH"/);
   assert.doesNotMatch(source,/method==="DELETE"/);
-  assert.doesNotMatch(ui,/ADMIN_TOKEN|ptx_admin_botFixture/);
+  assert.doesNotMatch(ui,/ADMIN_TOKEN|ptx_admin_token/);
   assert.match(ui,/Telegram\.WebApp|window\.Telegram/);
   assert.match(router,/command\?\.name==="carapp"/);
   assert.match(router,/web_app:\{url:"https:\/\/phanthuanxtra\.com\/telegram-mini-app\.html"\}/);
+  const miniHeaderBlock=headers.slice(headers.indexOf("/telegram-mini-app.html"));
+  assert.ok(miniHeaderBlock.includes("! X-Frame-Options"));
+  assert.ok(miniHeaderBlock.includes("Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org"));
 });
