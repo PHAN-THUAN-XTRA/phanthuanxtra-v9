@@ -39,7 +39,12 @@ jobs:
         run: node scripts/headroom-isolation.mjs
       - name: Read pinned upstream revision
         id: pin
-        run: echo "commit=$(node -p 'require(\"./tools/headroom.json\").commit')" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$(node -e 'const p=require("./tools/headroom.json"); process.stdout.write(p.commit)')"
+          test -n "$commit"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
       - name: Fetch exact Headroom revision
         shell: bash
         run: |
