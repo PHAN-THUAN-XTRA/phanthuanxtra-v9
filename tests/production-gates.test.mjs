@@ -306,7 +306,7 @@ test('production gate: Business Jets lead preserves itinerary for Telegram CRM',
   assert.match(script, /f\.get\("passengers"\)/);
   assert.match(script, /"business-jets"/);
   assert.match(script, /source,message/);
-  assert.match(worker, /source:text\(b\.source\|\|'website-lead',60\)/);
+  assert.match(worker, /source=text\(b\.source\|\|"website-lead",60\)/);\n  assert.match(worker, /notifyTelegramCrm\(e,\{source,name:b\.name,phone:p,car:b\.car_id,message:b\.message\}\)/);
   assert.doesNotMatch(worker, /source:'test-drive',name:b\.name,phone:p/);
 });
 
