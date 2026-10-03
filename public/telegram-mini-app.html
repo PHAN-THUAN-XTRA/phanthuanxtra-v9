@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><title>Quản lý xe | PHAN THUẦN XTRA</title>
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<style>
+:root{font-family:Inter,system-ui,sans-serif;color:var(--tg-theme-text-color,#111);background:var(--tg-theme-bg-color,#f4f4f4)}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:760px;margin:auto;padding:16px}.head{position:sticky;top:0;background:var(--tg-theme-bg-color,#f4f4f4);padding:8px 0 12px;z-index:2}
+h1{font-size:22px;margin:4px 0}.sub,.meta{color:var(--tg-theme-hint-color,#687076);font-size:13px}.tools{display:grid;grid-template-columns:1fr 130px;gap:8px;margin-top:12px}
+input,select,button{font:inherit;border-radius:10px;border:1px solid var(--tg-theme-hint-color,#bbb);padding:11px;background:var(--tg-theme-secondary-bg-color,#fff);color:inherit}
+.card{display:grid;grid-template-columns:92px 1fr;gap:12px;background:var(--tg-theme-secondary-bg-color,#fff);border-radius:14px;padding:12px;margin:10px 0}
+.thumb{width:92px;height:70px;object-fit:cover;border-radius:9px;background:#ddd}.name{font-weight:700}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.actions button{padding:7px 9px;font-size:12px;cursor:pointer}
+.active{border-color:var(--tg-theme-button-color,#2481cc);color:var(--tg-theme-button-color,#2481cc);font-weight:700}
+#notice{padding:10px;border-radius:10px;margin-top:8px;display:none}.ok{display:block!important;background:#e7f5e9;color:#185c25}.err{display:block!important;background:#fde8e8;color:#8a1c1c}
+@media(max-width:480px){.tools{grid-template-columns:1fr}.card{grid-template-columns:72px 1fr}.thumb{width:72px;height:60px}}
+</style></head><body><main class="wrap"><div class="head"><div class="sub">PHAN THUẦN XTRA · TELEGRAM MINI APP</div><h1>Quản lý xe</h1>
+<div class="tools"><input id="q" placeholder="Tìm ID, hãng, mẫu xe…"><select id="filter"><option value="">Tất cả trạng thái</option><option value="available">Đang bán</option><option value="reserved">Đã giữ</option><option value="sold">Đã bán</option><option value="hidden">Đang ẩn</option></select></div>
+<div id="notice"></div><div id="summary" class="meta">Đang xác thực Telegram…</div></div><section id="cars"></section></main>
+<script>
+const tg=window.Telegram?.WebApp;const $=s=>document.querySelector(s);let cars=[];const labels={available:"Đang bán",reserved:"Đã giữ",sold:"Đã bán",hidden:"Đang ẩn"};
+if(tg){tg.ready();tg.expand();}
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function notice(message,error=false){const el=$("#notice");el.textContent=message;el.className=error?"err":"ok";setTimeout(()=>{el.className="";el.style.display="none"},3000)}
+async function api(path,opt={}){const init=tg?.initData||"";if(!init)throw Error("Hãy mở Mini App từ bot Telegram.");opt.headers={...(opt.headers||{}),"X-Telegram-Init-Data":init};if(opt.body)opt.headers["content-type"]="application/json";const r=await fetch(path,opt),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Lỗi máy chủ");return d}
+function render(){const q=$("#q").value.trim().toLowerCase(),status=$("#filter").value;const list=cars.filter(c=>(!status||c.status===status)&&(!q||[c.id,c.brand,c.model].join(" ").toLowerCase().includes(q)));$("#summary").textContent=`${list.length}/${cars.length} xe`;$("#cars").innerHTML=list.map(c=>{const img=c.cover_image||c.images?.[0]?.url||"";return `<article class="card">${img?`<img class="thumb" src="${esc(img)}" alt="">`:`<div class="thumb"></div>`}<div><div class="name">${esc(c.brand)} ${esc(c.model)}</div><div class="meta">${esc(c.id)} · ${esc(c.year||"")} · ${esc(labels[c.status]||c.status)}</div><div class="actions">${Object.entries(labels).map(([s,l])=>`<button data-id="${esc(c.id)}" data-status="${s}" class="${c.status===s?"active":""}">${l}</button>`).join("")}</div></div></article>`}).join("")||"<p class='meta'>Không có xe phù hợp.</p>";document.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>changeStatus(b.dataset.id,b.dataset.status))}
+async function load(){try{const d=await api("/api/telegram/mini/v1/cars");cars=d.cars||[];render()}catch(e){$("#summary").textContent="Không thể mở Mini App";notice(e.message,true)}}
+async function changeStatus(id,status){const car=cars.find(c=>c.id===id);if(!car||car.status===status)return;const text=`${car.brand} ${car.model}: ${labels[car.status]||car.status} → ${labels[status]}`;if(tg?.showConfirm){tg.showConfirm(text,ok=>{if(ok)commit(id,status)})}else if(confirm(text))commit(id,status)}
+async function commit(id,status){try{const d=await api(`/api/telegram/mini/v1/cars/${encodeURIComponent(id)}/status`,{method:"PATCH",body:JSON.stringify({status})});const car=cars.find(c=>c.id===id);if(car)car.status=d.status;render();notice("Đã cập nhật trạng thái xe.")}catch(e){notice(e.message,true)}}
+$("#q").oninput=render;$("#filter").onchange=render;load();
+</script></body></html>
