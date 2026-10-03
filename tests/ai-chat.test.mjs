@@ -521,3 +521,32 @@ test('AI reads the currently deployed Business Jets page for a detailed aircraft
   assert.deepEqual(requested,['/__ptx_editorial__/business-jets.html']);
   assert.match(data.reply,/Legacy 600 khác Praetor 600/);
 });
+
+
+test('phone-first handoff accepts a later standalone full name and does not trap vehicle intent', async () => {
+  const DB=mockDb([{id:'lexus-live',brand:'LEXUS',model:'RX350L',year:2019,status:'available',category:'suv'}]);
+  const env={DB,AI:{async run(){throw new Error('quota 4006');}}};
+  const send=async message=>(await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'phone-first-name-later',visitor_id:'phone-first-name-later',message})
+  }),env)).json();
+
+  const first=await send('hi 0123654897');
+  assert.equal(first.needs_human,true);
+  assert.match(first.reply,/đã nhận số điện thoại/i);
+  assert.equal(DB._unknown[0].phone,'0123654897');
+
+  const vehicle=await send('xe');
+  assert.equal(vehicle.needs_human,false);
+  assert.doesNotMatch(vehicle.reply,/xin thêm họ tên/i);
+
+  const noise=await send('hihi hi');
+  assert.equal(noise.needs_human,true);
+  assert.equal(DB._unknown[0].name,null);
+
+  const named=await send('Phan Tung');
+  assert.equal(named.needs_human,true);
+  assert.equal(DB._unknown[0].name,'Phan Tung');
+  assert.equal(DB._unknown[0].phone,'0123654897');
+  assert.match(named.reply,/đã ghi nhận họ tên, số điện thoại/i);
+});
