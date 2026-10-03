@@ -65,8 +65,8 @@ jobs:
             grep -Eiq "^content-type:[[:space:]]*$mime" "$headers"
             test -s "$body"
           }
-          check_image "/media/editorial/business-jets/green-energy-home-hero.avif" "image/avif"
-          check_image "/media/editorial/business-jets/green-energy-home-hero.webp" "image/webp"
+          check_image "/media/editorial/green-energy/green-energy-home-hero.avif" "image/avif"
+          check_image "/media/editorial/green-energy/green-energy-home-hero.webp" "image/webp"
           echo "Green Energy homepage AVIF/WebP delivery PASS."
       - name: Verify editorial production UTF-8
         run: node scripts/verify-editorial-production.mjs
