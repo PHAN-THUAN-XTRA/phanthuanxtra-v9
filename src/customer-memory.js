@@ -173,6 +173,34 @@ export function extractMemorySignals({message="",cars=[],hasPhone=false}={}){
   };
 }
 
+function careProposal(signals,{hasPhone=false}={}){
+  const type=signals?.eventType||"conversation_turn";
+  if(type==="test_drive_requested")return {value:"appointment",confidence:0.96,rationale:"Khách chủ động yêu cầu lái thử."};
+  if(type==="contact_shared"&&hasPhone)return {value:"contacting",confidence:0.95,rationale:"Khách đã chủ động cung cấp số điện thoại."};
+  if(type==="price_asked"||type==="availability_asked"||type==="vehicle_interest")return {value:"consulting",confidence:0.88,rationale:"Khách thể hiện nhu cầu tư vấn xe có bằng chứng trong hội thoại."};
+  return null;
+}
+async function updateCareAutomation(db,customerId,signals,episodeId,{hasPhone=false}={}){
+  const proposal=careProposal(signals,{hasPhone});
+  if(!proposal)return;
+  const current=await firstBound(db.prepare("SELECT care_status FROM xtra_customer_care WHERE customer_id=? LIMIT 1").bind(customerId));
+  const currentStatus=current?.care_status||"new";
+  // Only the low-risk transition new -> contacting is automatic when the customer explicitly shared a phone.
+  if(proposal.value==="contacting"&&currentStatus==="new"&&proposal.confidence>=0.95){
+    await db.prepare(`INSERT INTO xtra_customer_care(customer_id,care_status,updated_by,updated_at)
+      VALUES (?,'contacting','ai-customer-agent',CURRENT_TIMESTAMP)
+      ON CONFLICT(customer_id) DO UPDATE SET care_status='contacting',updated_by='ai-customer-agent',updated_at=CURRENT_TIMESTAMP`).bind(customerId).run();
+    await db.prepare("INSERT INTO xtra_customer_care_audit(customer_id,actor,action,summary) VALUES (?,'ai-customer-agent','evidence_auto_update',?)")
+      .bind(customerId,clean("care_status=contacting; evidence="+signals.eventType,500)).run();
+    return;
+  }
+  if(currentStatus===proposal.value)return;
+  const existing=await firstBound(db.prepare("SELECT id FROM xtra_customer_care_proposals WHERE customer_id=? AND proposal_type='care_status' AND proposed_value=? AND status='pending' LIMIT 1").bind(customerId,proposal.value));
+  if(existing)return;
+  await db.prepare(`INSERT INTO xtra_customer_care_proposals(id,customer_id,proposal_type,proposed_value,confidence,evidence_episode_id,rationale,status)
+    VALUES (?,?,?,?,?,?,?,'pending')`).bind(makeId("prop"),customerId,"care_status",proposal.value,proposal.confidence,episodeId,proposal.rationale).run();
+}
+
 async function upsertFact(db,customerId,fact,episodeId,conversationId){
   if(!FACT_KEYS.has(fact.key)||!fact.value)return;
   await db.prepare("UPDATE xtra_memory_facts SET status='superseded',last_confirmed_at=CURRENT_TIMESTAMP WHERE customer_id=? AND fact_key=? AND fact_value<>? AND status='active'")
@@ -195,6 +223,7 @@ export async function processMemoryEvent(env,event){
       VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`)
       .bind(episodeId,event.customerId,event.conversationId||null,signals.eventType,signals.subjectType,signals.subjectId,signals.summary,clean(event.outcome,160)||null,clean(event.source,60)||"website").run();
     for(const fact of signals.facts)await upsertFact(db,event.customerId,fact,episodeId,event.conversationId);
+    await updateCareAutomation(db,event.customerId,signals,episodeId,{hasPhone:Boolean(event.hasPhone)});
     await db.prepare("UPDATE xtra_memory_customers SET updated_at=CURRENT_TIMESTAMP,last_seen_at=CURRENT_TIMESTAMP WHERE id=?").bind(event.customerId).run();
     await db.prepare("UPDATE xtra_memory_jobs_processed SET status='done',processed_at=CURRENT_TIMESTAMP WHERE idempotency_key=?").bind(event.idempotencyKey).run();
     return {ok:true,episodeId,eventType:signals.eventType,facts:signals.facts.length};
