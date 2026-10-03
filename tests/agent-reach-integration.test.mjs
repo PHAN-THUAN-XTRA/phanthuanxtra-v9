@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 const ps=fs.readFileSync("scripts/agent-reach.ps1","utf8");
-const doc=fs.readFileSync("docs/AGENT_REACH.md","utf8");
+const doc=fs.readFileSync("MASTER_PROJECT_STATUS.md","utf8");
 
 test("Agent-Reach integration is pinned and safe by default",()=>{
   assert.match(ps,/a19a171fa980a0785849596492e0af4db800c82f/);

@@ -1,5 +1,9 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## HỢP NHẤT FILE MARKDOWN — 2026-10-03 (UTC+7)
+
+Đã đọc MASTER mới nhất trước khi thực thi. Theo yêu cầu owner, hợp nhất nguyên nội dung **11 file .md phụ** vào phụ lục cuối MASTER, kiểm tra từng nội dung được giữ đầy đủ rồi xóa các file nguồn trong repository. Repository chỉ còn **MASTER_PROJECT_STATUS.md** là file Markdown được quản lý. Test Agent-Reach đọc nội dung hợp nhất từ MASTER; các tham chiếu hướng dẫn hiện hành trỏ về phụ lục. Mã nguồn ứng dụng, cấu hình, dữ liệu và tài liệu không phải .md giữ nguyên. Lịch sử Git giữ khả năng khôi phục tài liệu nguồn. Các mục nghiệm thu còn mở không được đánh dấu DONE bởi thao tác hợp nhất này.
+
 ## QUY ĐỊNH BẮT BUỘC — ĐỌC TRƯỚC, GHI SAU THỰC THI
 
 Áp dụng từ 2026-10-03 theo yêu cầu owner cho mọi công việc PHAN THUẦN XTRA.
@@ -80,7 +84,7 @@ Remaining evidence outside the completed virtual release:
 2. **Genuine customer care E2E** from a real customer interaction. No fabricated customer/lead was created to mark this complete.
 3. **Real content AI readiness/quota and bounded provider evidence** before a separately reviewed live-runner configuration change. Content preparation remains live-off; public publishing remains a distinct explicit owner action.
 
-There is no unresolved code/CI/deployment blocker in this completed scope. Native APK distribution, Headroom shadow evaluation and Memory Brain 2 evaluation remain separate optional tracks. See `docs/content-owner-review.md` for use and execution boundaries.
+There is no unresolved code/CI/deployment blocker in this completed scope. Native APK distribution, Headroom shadow evaluation and Memory Brain 2 evaluation remain separate optional tracks. See `MASTER_PROJECT_STATUS.md` (phụ lục: content-owner-review) for use and execution boundaries.
 
 ## 0.0D CONTENT RUNNER — OFFLINE SIMULATION COMPLETE — 2026-10-03 (UTC+7)
 
@@ -97,7 +101,7 @@ This checkpoint supersedes the earlier statement that no content-generation runn
 - Release checkpoint: **PRODUCTION GREEN; VIRTUAL PRIORITY COMPLETE**. PR #738 merged as `831a6136f3965e2309e3ef028645aaf6151684c2` after required CI / Validate and AI Pre-Deploy Audit / Validate succeeded. Exact-merge CI `37107912016` and Deploy Cloudflare Worker `37107912039` succeeded. Migration 0032 applied through Cloudflare API/SDK. Worker version `5a007a30-9391-4d3a-97d1-98297ffc0bc9`, deployment `578a0f0e-f233-4f37-84bb-7dc79de725f1`, API-created 100% traffic; Wrangler production path NOT USED. Production AI generation remains deliberately disabled and is not claimed as tested.
 - Exact-SHA production proof: Blog CMS run `37107973176`, job `111160118896`, at 2026-10-03 14:55 UTC+7 reported **CONTENT RUNNER PRODUCTION: deterministic UTF-8 preview; zero model calls/artifacts; live runner disabled; dual scope required: PASS**. Preview reconciliation returned 404 (no run ledger); live run POST returned 503/LIVE_RUNNER_DISABLED. Atomic private draft/proposal, replay/conflict, reconciliation, isolation and denial of public/Admin/CMS publication PASS. Temporary private draft cleanup PASS, audit retained.
 - All twelve observed post-deploy workflows on this code SHA succeeded: Blog CMS `37107973176`; Homepage Canonical `37107973121`; Admin Redirect `37107973180`; QUEUE-01 `37107973116`; Live Chat AI Identity `37107973106`; Asset Delivery `37107973143`; App Sentiment `37107973132`; App Assistant `37107973126`; Business Jets CRM `37107973091`; Stage 3 Reconciliation `37107973161`; Cloudflare Machine Inventory `37107973130`; Smoke Gate-15 `37107973118`. Existing UTF-8, R2 and draft-image publishing lifecycle deploy checks also succeeded.
-- Operator instructions: `docs/content-runner.md`; virtual command `npm run simulate:content`; delegated preview `node scripts/run-content-brief.mjs brief.json --preview` with only the two scoped credential environment variables.
+- Operator instructions: `MASTER_PROJECT_STATUS.md` (phụ lục: content-runner); virtual command `npm run simulate:content`; delegated preview `node scripts/run-content-brief.mjs brief.json --preview` with only the two scoped credential environment variables.
 - Remaining outside this completed virtual priority: owner-approved quota/readiness and a separately reviewed configuration change before real AI preparation; any public publish decision remains a distinct owner action. Physical S21 proposal/delete-control observation and genuine real-customer care evidence remain separate acceptance items; they cannot be completed by synthetic simulation. No active release blocker is inferred from those evidence items.
 
 
@@ -267,7 +271,7 @@ Owner/operator usage:
 - Upstream audit: Python 3.10+, MIT, project version 1.5.0; upstream default install is check-only and system mutation requires explicit `--system`.
 - Integration architecture: **operator tooling only**, never bundled into the Cloudflare Worker. Upstream is pinned to audited commit `a19a171fa980a0785849596492e0af4db800c82f`.
 - Added Windows PowerShell bootstrap `scripts/agent-reach.ps1` with default `Check` mode and explicit `Install` mode using a dedicated user venv. Project integration never passes Agent-Reach `--system`.
-- Added `docs/AGENT_REACH.md` safety/usage contract and regression guard `tests/agent-reach-integration.test.mjs`.
+- Added `MASTER_PROJECT_STATUS.md` (phụ lục: AGENT_REACH) safety/usage contract and regression guard `tests/agent-reach-integration.test.mjs`.
 - Credentials/cookies remain outside repository/GitHub Actions/Cloudflare/D1/R2; no social write/post automation is enabled.
 - Status: **PR #714 MERGED** as main `133dd1a1dc7186870b9415b34bade19ceabedd98`; PR-head CI, AI Pre-Deploy Audit and deploy validation SUCCESS. Exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37093787053` SUCCESS, including Worker deploy/migrate, UTF-8 checks, R2 E2E and publishing lifecycle. Windows owner-side Agent-Reach installation/doctor remains pending explicit local execution.
 
@@ -597,7 +601,7 @@ Stage 3 starts from the current main/runtime lineage above. Do not assume histor
 
 
 ## 10. APK AUTOMATION — CONSOLIDATED CANONICAL CHECKPOINT
-The former `docs/APK_AUTOMATION_CHECKPOINT.md` has been consolidated into this MASTER. No separate APK checkpoint Markdown is canonical or required.
+The former `MASTER_PROJECT_STATUS.md` (phụ lục: APK_AUTOMATION_CHECKPOINT) has been consolidated into this MASTER. No separate APK checkpoint Markdown is canonical or required.
 
 ### Canonical CI path
 - Canonical Android workflow: `.github/workflows/android-apk.yml`.
@@ -2110,3 +2114,642 @@ Effective immediately for every image generated or prepared by ChatGPT for PHAN 
 Current Green Energy homepage canonical pair:
 - `/media/editorial/green-energy/green-energy-home-hero.avif`
 - `/media/editorial/green-energy/green-energy-home-hero.webp`
+
+
+## PHỤ LỤC HỢP NHẤT TÀI LIỆU — 2026-10-03
+
+Nội dung nguyên bản của 11 tài liệu phụ được giữ dưới đây. Checkpoint hiện hành ở đầu MASTER được ưu tiên nếu khác với hướng dẫn lịch sử. Các file nguồn đã được hợp nhất vào file duy nhất.
+
+
+### Tài liệu nguồn: docs/AGENT_REACH.md
+
+# Agent-Reach operations integration
+
+Upstream: `Panniantong/Agent-Reach`
+
+Pinned commit: `a19a171fa980a0785849596492e0af4db800c82f` (audited 2026-10-03)
+
+## Purpose
+
+Agent-Reach is an **operator/agent capability layer**, not part of the Cloudflare Worker runtime. It may be installed on the owner's Windows workstation in a dedicated venv to provide read-oriented internet research backends and health checks.
+
+## Safety contract
+
+- Do not vendor or execute moving `main`; installation is pinned to the audited commit above.
+- Do not put Agent-Reach Python dependencies into the Worker bundle.
+- Default project script mode is `Check`: no venv/package/config creation.
+- `Install` creates only the dedicated user venv and then invokes Agent-Reach's own safe/default `install --env=local`; it does **not** pass `--system`.
+- Do not import cookies/tokens into the repository, GitHub Actions, Cloudflare Worker, D1 or R2.
+- Login-backed platforms require explicit owner action and should use dedicated accounts where appropriate.
+- Existing native GitHub connector/web tooling remains preferred when already available; Agent-Reach is complementary, not a replacement.
+- No social posting/write automation is enabled by this integration.
+
+## Windows 10 PowerShell
+
+Read-only check:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\agent-reach.ps1 -Mode Check
+```
+
+After explicit owner approval to create a user-local venv and install the pinned package:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\agent-reach.ps1 -Mode Install
+```
+
+The install ends with `agent-reach doctor --json`. Optional channels and any credentials remain separate follow-up decisions.
+
+
+### Tài liệu nguồn: docs/AI_AGENT_FLEET_62.md
+
+# PHAN THUẦN XTRA — 62 AI Agent Fleet
+
+Architecture inspiration: Structure Webworks' published 62-agent social-media operating model. This implementation ports the control-plane principles into the existing Cloudflare Worker + D1 stack; it does not copy their vendor stack.
+
+## Control plane
+
+- 62 logical specialist agents / 8 departments.
+- One governed orchestrator routes tasks by domain.
+- D1/live production remains the source of truth; XTRA Memory Brain remains customer context.
+- Agents are roles/capabilities, not 62 persistent processes. This avoids idle compute, duplicated memory and 62 independent credential surfaces.
+- Pipeline: Collect -> Score -> Brief -> Draft -> Validate -> Approval Gate.
+- Read/analysis agents may operate without production mutation authority.
+- Distribution, CRM and reputation changes are approval-bound.
+- Budget changes and brand promises are owner-required.
+- Customer deletion remains owner-only.
+- Production deployment remains GitHub Actions -> Cloudflare API/SDK; no Wrangler production path.
+- Kill switch: set `AI_AGENT_FLEET_ENABLED=0`.
+- Admin API: `GET /api/admin/agents` returns registry/policy; `POST /api/admin/agents` produces a deterministic execution plan only. It cannot bypass existing write APIs.
+
+## Departments
+
+1. Intelligence — 8
+2. Content — 9
+3. Distribution — 8
+4. CRM — 9
+5. Reputation — 7
+6. Analytics — 8
+7. Operations — 7
+8. Governance — 6
+
+Total: 62.
+
+## Upgrade path
+
+Promote an agent from plan/draft to execution only when a real workflow has an existing authenticated API, idempotency/retry semantics, audit evidence, a bounded permission set, a failure rollback/reconciliation path, and an explicit owner policy for any consequential action.
+
+## Phase 1 execution promotion
+
+Five CRM agents are promoted because their existing Memory Brain workflow already satisfies the promotion gate:
+
+- agent-27 Identity Resolver
+- agent-28 Vehicle Interest Mapper
+- agent-31 Care Status Agent
+- agent-33 Proposal Agent
+- agent-34 CRM Auditor
+
+They execute only through existing bounded code paths. Promotion does not grant generic HTTP, database, publishing or deletion authority. The memory job claim provides idempotency, MEMORY_JOBS provides retry, evidence episodes/facts/proposals provide provenance, and care audit provides traceability. Consequential care-stage changes remain proposals requiring owner decision.
+
+Lead Intake remains approval-bound until its create path has an explicit replay-safe idempotency contract. Public publishing/distribution also remains approval-bound.
+
+
+### Tài liệu nguồn: docs/GEMINI_FREE_FIRST_RUNBOOK.md
+
+# Gemini Free-First Runbook
+
+Last reviewed: 2026-09-27
+
+## Decision
+Use Gemini Developer API only when the current Google project/API key actually exposes a suitable free-tier model. Cloudflare Workers AI remains the automatic fallback. Do not repeatedly deploy guessed Gemini model IDs.
+
+## Current production evidence
+- Main commit: `f1f7b59a8e533f57b395b26ef5c7e7253d129dbe`.
+- Gate 10 run: https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/36327468899
+- Runtime result: `ok=true`, `routing_policy=zero-cost-first`, `selected_provider=gemini`, `fallback_used=false`, `model=gemini-3.5-flash-lite`, `production_mutation=false`.
+- Developer Gateway deployment and website deployment both succeeded on this commit.
+
+The earlier HTTP 404 was resolved by model discovery in PR #532. This evidence verifies Gateway text generation; it does not verify website image redaction or the private ChatGPT publishing Action.
+
+## Internet research conclusion
+Google currently limits Gemini 2.5 access to users/projects that actively used 2.5 in the past. 2.5 is not deprecated, but Google recommends newer models for new projects. Therefore `gemini-2.5-flash` is not a safe default for this new project.
+
+Current candidates to prefer, only if returned for this project:
+1. `gemini-3.5-flash-lite` — cost-efficient/high-volume/simple agentic tasks.
+2. `gemini-3.8-flash` — stronger engineering/agentic tasks.
+3. Another current GA Flash/Flash-Lite model explicitly returned by the project.
+
+Google pricing currently lists free-tier input/output for 3.5 Flash-Lite and 3.8 Flash, subject to project/model limits and eligibility.
+
+## Mandatory model preflight
+Before changing `GEMINI_MODEL`, query:
+`GET https://generativelanguage.googleapis.com/v1beta/models`
+
+Use the API key securely and select only a returned model that supports `generateContent`. Never print/log/commit the API key.
+
+Selection:
+1. Prefer `gemini-3.5-flash-lite` if returned + supports `generateContent`.
+2. Else `gemini-3.8-flash` if returned + supports `generateContent`.
+3. Else another approved GA Flash/Flash-Lite returned by `models.list`.
+4. Else Workers AI fallback.
+
+Do not use Gemini 2.5 here unless `models.list` explicitly confirms it.
+
+## Error policy
+| Result | Action |
+|---|---|
+| 2xx | Gemini usable. |
+| 404 NOT_FOUND | Do not retry same model. Refresh `models.list`; choose available model or fallback. |
+| 429 RESOURCE_EXHAUSTED | Quota/rate limit. Bounded backoff where appropriate, then fallback. |
+| 408 / 5xx | Transient. Bounded exponential backoff + jitter, then fallback. |
+| 400 | Fix request/parameters; no blind retry. |
+| 403 | Verify key/project/API permission; no blind retry. |
+| timeout/network | Bounded retry, then fallback. |
+
+Never retry indefinitely.
+
+## Efficiency rules
+- Cache a validated model; do not call `models.list` per user request.
+- Refresh discovery after 404/NOT_FOUND and during deployment validation.
+- Keep context/output bounded.
+- Prefer Flash-Lite for routine classification/extraction/transformation.
+- Use stronger Flash only when complexity requires it.
+- Keep Workers AI automatic fallback.
+- Keep production mutation disabled.
+- Fallback success does not count as Gemini runtime PASS.
+
+## Gate 10
+Gemini PASS requires:
+- `ok=true`
+- `routing_policy=zero-cost-first`
+- `selected_provider=gemini`
+- `fallback_used=false`
+- `production_mutation=false`
+- non-empty response
+
+Fallback verification requires:
+- `selected_provider=cloudflare-workers-ai`
+- `fallback_used=true`
+- safe `fallback_reason`
+- `production_mutation=false`
+
+## Do not waste time on
+- Redeploying `gemini-2.5-flash` after confirmed 404 without `models.list`.
+- Rotating/deleting secrets merely to force fallback.
+- Treating Ubuntu runner migration notices as Gemini failures.
+- Logging provider bodies, API keys, Authorization headers, or secrets.
+- Weakening Gate 10 just to get green CI.
+- Declaring final GREEN while Gemini unintentionally falls back.
+
+## Sources reviewed
+- https://ai.google.dev/gemini-api/docs/models
+- https://ai.google.dev/gemini-api/docs/deprecations
+- https://ai.google.dev/gemini-api/docs/changelog
+- https://ai.google.dev/gemini-api/docs/pricing
+- https://ai.google.dev/gemini-api/docs/rate-limits
+- https://ai.google.dev/api/models
+- https://ai.google.dev/api/generate-content
+- https://ai.google.dev/gemini-api/docs/troubleshooting
+
+## Next engineering action
+Model discovery is implemented and production-verified in PR #532. Follow up by caching discovery and bounding its request timeout; discovery currently runs per auto-model request. Verify image publishing separately under docs/gemini-editorial-privacy.md.
+
+
+### Tài liệu nguồn: docs/auto-bot-ai.md
+
+# Auto Bot: vehicle Blog and customer chat
+
+## Usage
+
+- `/help`: show commands.
+- Send a vehicle photo with caption `/blog` or `/blog <verified notes>`: analyze the image, ask a model to call `createBlogPost`, validate that call and publish the post. `/news` is an alias. Bot mentions in commands are accepted.
+- `/blog <title>` followed by a new line and the complete body: retain manual text publication.
+- `/chat <question>` or ordinary customer questions: answer using GLM 4.7 Flash, falling back to Qwen 3.8 27B and then Nemotron 3 Super on errors/empty output.
+- Photos with ordinary vehicle inventory captions keep the existing vehicle import route. A caption with a year/ODO/price is treated as inventory unless it is a question. Use `/chat` when intent is ambiguous.
+
+## Publication permission and retries
+
+`TELEGRAM_AUTO_PUBLISH_CHAT_IDS` is an optional comma/whitespace-separated list of numeric Telegram chat IDs. Store it as a GitHub Actions secret for the production deploy workflow or as a Worker binding. When absent, `TELEGRAM_CHAT_ID` is the sole permitted chat. With neither binding present, Blog publication is denied. Group/channel membership must be controlled by the operator: permission is at chat level.
+
+Both manual and generated Blog commands enforce this list before AI, downloads or writes. Customer chat has no publishing tools. AI-generated photo posts use a deterministic slug derived from chat/message IDs, backed by the existing unique posts.slug constraint. Completed retries reuse the post; concurrent inserts cannot create two posts. Concurrent retries can still perform duplicate inference before the insert. Manual text posts retain their existing title slug behavior.
+
+## AI behavior
+
+Vision uses the existing Scout-first vehicle analyzer, including its existing fallbacks. Automatic Blog creation requires a brand, model and confidence of at least 0.85. This score is a model estimate, not independent verification.
+
+Blog composition/tool calling tries Scout, Qwen and Nemotron sequentially, using structured visual observations and sender notes; raw images are not sent to the text-only Nemotron path. Exactly one `createBlogPost` call is accepted. Only title/content/excerpt are accepted from AI; destination, status, category, slug and image are server-controlled. Models are instructed not to invent price, ODO, original year, mechanical/legal status or contact details. Publication goes through the existing CMS persistence and audit log. Only actual persistence success produces a Blog link.
+
+Customer chat does not read live inventory and says when showroom verification is needed. Daily quota errors stop the new chat/tool fallback chains. There is no unbounded tool loop.
+
+## Cost and verification
+
+Cloudflare's allowance is a shared total of 10,000 Neurons/day, not unlimited free use per model. Paid usage beyond the allowance is billed. Qwen's 262,144-token context is a model limit, not an instruction to send that much data. Requests here use bounded input and output.
+
+References (checked 2026-09-23):
+- https://developers.cloudflare.com/workers-ai/platform/pricing/
+- https://developers.cloudflare.com/workers-ai/models/qwen3.8-27b/
+- https://developers.cloudflare.com/workers-ai/models/llama-4-scout-17b-16e-instruct/
+- https://developers.cloudflare.com/changelog/post/2026-07-28-models-require-workers-paid/
+
+Tests: `node --test tests/auto-bot-ai.test.mjs`. These use mocked Workers AI/Telegram/D1/R2 and do not prove production entitlements, latency or real Telegram delivery. After deployment, use an authorized chat to send `/chat` and a photo with `/blog`, then verify the returned public Blog URL and the `telegram_auto_blog_created` model metadata in Worker logs. No real user messages or public test posts are sent by unit tests.
+
+
+### Tài liệu nguồn: docs/chatgpt-editorial-image-delivery.md
+
+# ChatGPT Editorial Image Delivery SOP
+
+## Purpose
+
+For homepage and editorial imagery, ChatGPT must prepare two optimized delivery files from the approved source image:
+
+- AVIF — preferred browser format.
+- WebP — compatibility fallback.
+
+Do not switch production HTML to a newly generated asset until both optimized objects are uploaded to Cloudflare R2 and verified through the production Worker.
+
+## Required workflow
+
+1. Start from the approved source image.
+2. Preserve the intended crop, aspect ratio, branding safe area, and intrinsic dimensions.
+3. Generate both `.avif` and `.webp` variants.
+4. Use stable, semantic filenames. For the Green Energy homepage hero:
+   - `media/editorial/green-energy/green-energy-home-hero.avif`
+   - `media/editorial/green-energy/green-energy-home-hero.webp`
+5. ChatGPT should upload both generated files to the Cloudflare R2 media bucket when an authenticated Cloudflare/R2 write tool is available.
+6. If no authenticated Cloudflare/R2 write tool is available, ChatGPT must not claim that upload succeeded and must not point production HTML at unverified objects.
+7. Verify both public production URLs through the Worker:
+   - HTTP 200
+   - AVIF returns `Content-Type: image/avif`
+   - WebP returns `Content-Type: image/webp`
+   - response body is non-empty
+8. Only after both checks pass, update homepage/editorial markup to prefer AVIF and fall back to WebP.
+9. Update regression tests and Production Asset Delivery Gate to verify the exact assets used by production.
+10. Run AI Pre-Deploy Audit, CI, deployment gates, merge with the expected HEAD SHA, then verify the post-merge production gates.
+
+## Rendering contract
+
+Use `<picture>` when practical:
+
+```html
+<picture>
+  <source type="image/avif" srcset="/media/editorial/green-energy/green-energy-home-hero.avif">
+  <img src="/media/editorial/green-energy/green-energy-home-hero.webp" alt="..." width="1672" height="940">
+</picture>
+```
+
+For lazy carousel slides, the JavaScript lazy-loading implementation must support the `<source>` elements as well as the fallback `<img>`. Never introduce AVIF/WebP source URLs that the carousel does not actually activate.
+
+## Safety rules
+
+- Never delete the source PNG solely because optimized variants exist.
+- Never invent an R2 filename or infer that an upload succeeded.
+- Never treat a green generic asset gate as proof unless it checks the exact asset used by the page.
+- Never merge an image delivery change while its targeted CI or production asset verification is failing.
+
+
+### Tài liệu nguồn: docs/chatgpt-publisher-setup.md
+
+# PHAN THUẦN XTRA — GPT đăng bài
+
+Tài khoản đích: tài khoản ChatGPT cá nhân được chủ dự án chỉ định trong phiên làm việc.
+Không đưa địa chỉ tài khoản, mật khẩu hay khóa kết nối vào kho mã công khai.
+
+## Điều kiện trước khi kết nối
+
+1. PR được merge và Deploy Cloudflare Worker thành công, gồm phép thử
+   `Verify publishing draft image public URL lifecycle`.
+2. Trong Cloudflare Worker `phanthuanxtra-v2`, cấu hình secret `PUBLISH_API_KEY`
+   là khóa ngẫu nhiên riêng (ít nhất 32 byte entropy). Không dùng ADMIN_PASSWORD,
+   ADMIN_TOKEN hoặc CMS_API_KEY. Deployment hiện kế thừa binding trên Worker.
+3. Đưa cùng khóa vào Authentication của GPT Action: API Key → Bearer.
+   Nhập khóa trực tiếp vào hai giao diện bảo mật; không gửi khóa qua chat hay commit.
+   Khi thu hồi, thay/xóa PUBLISH_API_KEY trên Worker.
+
+Khóa này chỉ được truy cập API bài viết/ảnh mới. Không có quyền CRM, khách hàng,
+xe, xóa dữ liệu hoặc Admin. Nó chỉ đọc/sửa/xuất bản các bài được tạo qua kết nối
+GPT; Admin có thể quản lý mọi bài bằng phiên đăng nhập hiện có.
+
+## Cấu hình GPT riêng
+
+Tên: PHAN THUẦN XTRA — Đăng bài
+Mô tả: Soạn bài tiếng Việt, lưu nháp kèm ảnh và xuất bản lên phanthuanxtra.com.
+Chia sẻ: Only me / Chỉ mình tôi.
+
+Trong Actions, nhập schema từ URL sau **sau khi deployment đã thành công**:
+
+https://phanthuanxtra.com/openapi/publishing.json
+
+Bản schema trong repo: `public/openapi/publishing.json`.
+
+Instructions (dán nguyên khối nội dung dưới đây):
+
+```text
+Bạn là trợ lý biên tập PHAN THUẦN XTRA. Soạn bài tiếng Việt rõ ràng, đúng dấu,
+chỉ dùng dữ kiện người dùng cung cấp hoặc nguồn đã kiểm chứng. Không tự bịa giá,
+ODO, thông số xe, tình trạng hàng, thành tích hoặc thông tin pháp lý.
+
+Khi người dùng yêu cầu lưu lên website, dùng createDraft với request_id UUID mới.
+Giữ nguyên request_id khi thử lại cùng yêu cầu; không tạo ID mới do timeout.
+Bài tạo ra luôn là bản nháp. Nếu người dùng chỉ nhờ viết nội dung, trình bày
+bản thảo trước, không tự gửi dữ liệu sang website.
+
+Nếu người dùng đã cung cấp/chọn ảnh để đăng, dùng uploadCover trước, truyền đúng
+một ảnh qua openaiFileIdRefs. Dùng url /media/ trả về làm cover_image. Không dùng
+link tải tạm, file ID, sandbox path hay link ChatGPT làm ảnh trên website.
+Ảnh mới qua Gemini nhận diện biển số, phủ kín rồi kiểm tra lại trước khi lưu.
+Nếu API báo lỗi kiểm tra, dừng đăng và xử lý lại; không dùng ảnh gốc thay thế.
+Cho người dùng xem ảnh trả về để duyệt. AI vẫn có thể bỏ sót; không hứa chính xác tuyệt đối.
+
+Trình bày tiêu đề, nội dung và ảnh để người dùng duyệt. Gọi readDraft trước khi
+báo trạng thái. Chỉ gọi publishArticle khi người dùng yêu cầu xuất bản bản thảo
+đó. Không tự xuất bản khi họ chỉ yêu cầu viết, lưu nháp hay sửa.
+
+Khi xuất bản thành công, trả đúng public_url từ API. Chưa có phản hồi thành công
+thì không nói đã đăng. Khi lỗi/timeout, đọc lại bài hoặc thử lại cùng request_id.
+Không yêu cầu người dùng gửi mật khẩu hay API key trong cuộc trò chuyện.
+Nếu hành động chưa được cấu hình hoặc API trả 401, nói rõ kết nối chưa sẵn sàng.
+```
+
+Gợi ý mở đầu:
+- Viết bài từ thông tin và ảnh tôi gửi, rồi lưu nháp lên website.
+- Đọc lại bài nháp số ... để tôi duyệt.
+- Xuất bản bài nháp tôi vừa duyệt và gửi link.
+
+## Phạm vi API
+
+- POST `/api/publish/v1/media`: ảnh nhị phân (Admin) hoặc `openaiFileIdRefs` (GPT).
+- POST `/api/publish/v1/posts`: tạo nháp, `request_id` bắt buộc và chống trùng.
+- GET `/api/publish/v1/posts/{id}`: đọc trạng thái/nội dung thực tế.
+- PUT `/api/publish/v1/posts/{id}`: sửa nháp; bài đã công khai trả 409.
+- POST `/api/publish/v1/posts/{id}/publish`: xuất bản idempotent, trả public_url.
+
+Ảnh tối đa 10 MiB, tải từ host OpenAI được cho phép và kiểm tra từng redirect.
+Ảnh được chuyển WebP, bỏ metadata, lưu R2 trước khi dùng làm cover.
+
+## Kiểm thử cần có
+
+Backend CI: SQLite, quyền scoped, chống trùng, rollback, file download/redirect,
+nháp không công khai, publish và bài công khai dùng đúng ảnh.
+
+Production API: workflow đăng nhập Admin bằng secret hiện có, tải ảnh fixture,
+lưu nháp, xác minh 404, thử lại không trùng, xuất bản, mở trang UTF-8 kèm ảnh,
+rồi dọn đúng bài/ảnh tạm. Đây chưa phải bằng chứng GPT đã kết nối.
+
+GPT thật: đăng nhập đúng tài khoản → tạo GPT riêng → import schema → cấu hình
+khóa → gửi ảnh và nội dung → lưu nháp → duyệt → đăng → mở link. Ghi lại link GPT,
+ID bài và URL website sau khi kiểm chứng. Nếu thiếu phiên đăng nhập hoặc khóa,
+giữ trạng thái kết nối GPT BLOCKED; không tuyên bố hoàn thành toàn bộ.
+
+
+### Tài liệu nguồn: docs/content-owner-review.md
+
+# Owner content review
+
+Open **Admin → Nội dung / Lịch**, or **Telegram /customerapp → Nội dung** using the existing owner account. Both surfaces use the same review contract and work with the live AI runner disabled. Admin requires its signed session; Telegram requires fresh signed initData and the existing owner allowlist. Scoped agent, CMS and raw owner secrets do not authenticate Admin review.
+
+The list shows existing prepared drafts/articles, current review state, schedule proposal validity, the latest twenty runner checkpoints/errors, and the daily reserved-call budget. Deleted fixtures are excluded from the operational list while their ledgers and audits remain retained; a known draft request key can still reconcile deletion through detail. Pipeline filtering and stable cursor pagination let owners locate older drafts. No delegated credentials, lease secrets, model output or full draft content are returned in the list; the authenticated detail view provides the private article.
+
+Select **Xem / sửa nháp** to inspect the current copy. **Sửa nháp riêng tư → Lưu nháp riêng tư** edits title/content/excerpt/category/tags only. It preserves the slug, cover, draft status and original atomic request ledger. Edits require the exact displayed revision; the D1 transaction rechecks all revision fields. Existing schedule proposals and review decisions for an old revision become inactive; the schedule must be prepared again through the content-prep workflow.
+
+**Đã kiểm tra nháp/lịch** records readiness only. **Bỏ qua** records dismissal. These operations never publish or schedule a post. Decisions are immutable for the exact target + revision + proposed time; a change of copy or a new proposal requires fresh review. A stale/deleted/non-private draft or an elapsed/mismatched proposal cannot be reviewed. Any actual publication remains a separate explicit owner action in the existing Blog/publishing workflow.
+
+Admin API base: `/api/admin/agents/content-prep/review`. Telegram base: `/api/telegram/mini/v1/content-review`, after existing owner authentication. GET base lists; GET `/drafts/{request_key}` shows detail/history; PATCH that draft accepts request_id, expected_revision and private copy fields; POST `/requests/{request_key}/decision` accepts request_id, expected_revision and decision accepted/dismissed. Unknown fields/status/publish/slug/cover/actor overrides and publication routes are rejected.
+
+Migration 0033 stores owner operations and review decisions. Operation IDs and SHA-256 payload fingerprints reconcile retries, including a response lost after commit. Mutation + operation + audit + completion commit atomically; audit failure rolls everything back. Frontend retains the same operation ID for retry and checks owner history after an ambiguous response. Actor is derived from Admin authentication or the signed Telegram user. Owner review remains available with fleet execution disabled, because it grants no agent execution or public publishing authority.
+
+Automated API tests and a mobile browser simulation verify the new surface. A browser viewport is not physical S21 acceptance. The outstanding Customer Care proposal/delete-controls observation and genuine customer evidence remain separate; no customer record is changed for content review testing.
+
+
+### Tài liệu nguồn: docs/content-runner.md
+
+# Content Draft / Scheduling runner
+
+Runner `content-runner/1.0.0` prepares a private draft and a revision-bound schedule proposal. Public publishing requires a separate owner workflow. There is no runner approve/publish endpoint, cron trigger, or editorial pending-job insertion.
+
+## Virtual execution
+
+Use Node 24 and run `npm run simulate:content`. This executes the actual runner, atomic APIs, SQLite migrations and client with a fake AI binding and a virtual retry clock. It makes no network calls and writes no production data. The simulator loses a checkpoint response deliberately, reconciles it, resumes to completion and replays the same request. Assertions require one private draft, one proposal, one simulated inference and zero pending publication jobs. The output includes the temporary fixture article. Real model quality/quota and physical-device acceptance are separate evidence.
+
+## Delegated execution
+
+Owner issues distinct agent-11 and agent-19 credentials for the same pipeline using `/api/admin/agents/content-prep/credentials`. The driver receives these scoped tokens only. It cannot issue tokens or call owner publish APIs. Tokens expire within one hour; expiry requires owner renewal for the same pipeline and resuming the same request_id. Credentials never enter the run ledger, model prompt, audit or client logs.
+
+Brief JSON accepts exactly `request_id`, `source`, optional `instruction`, and `schedule`. Source is bounded to 12,000 characters, instruction to 2,000. Schedule uses `YYYY-MM-DD HH:mm` in Asia/Ho_Chi_Minh and must be future when the run starts. Unknown fields, credential/model/budget/status/publish overrides and unsafe model output fields are rejected. Generated copy still requires owner factual review.
+
+`CONTENT_RUNNER_LIVE_ENABLED=0` is explicit in production configuration. Preview remains available through `POST /api/agents/content/v1/runs/preview`; it returns a deterministic source-only preview and creates no model call, run, post or proposal. Fleet kill switch disables both modes. Live preparation is a separate opt-in configuration change after quota/owner readiness; this delivery does not enable it.
+
+The CLI reads raw scoped token values from `CONTENT_WRITER_CREDENTIAL` and `CONTENT_SCHEDULER_CREDENTIAL` environment variables:
+
+```sh
+node scripts/run-content-brief.mjs brief.json --preview
+```
+
+After a separately reviewed live configuration change, omit `--preview` to execute preparation. It sends credentials only to the canonical HTTPS origin, refuses redirects and advances one durable stage per request. `POST /api/agents/content/v1/runs` carries writer Bearer auth plus `X-Content-Scheduler-Credential: Bearer ...`. GET `/runs/{request_id}` reconciles current result. The same brief/request_id resumes or returns the existing result; changed reuse returns 409. Renewed tokens must have the same action/pipeline scopes. The client stops on stale artifacts, blocked runs, disabled live mode or credential expiry and preserves the request_id for reconciliation.
+
+## Checkpoint and cost contract
+
+Migration 0032 records stages generate → draft → schedule → done. A primary D1 session, compare-and-set lease and fencing token prevent concurrent checkpoint replacement. The generation JSON is saved before draft creation; subsequent retries reuse it. Draft and proposal subrequest IDs derive from the run key and use the existing atomic artifact ledger. Response loss can replay safely. Owner edits/deletion, elapsed schedules and publication invalidate the proposal; completion reconciliation re-reads current artifact state and never resurrects deleted posts.
+
+Hard ceilings: three stage attempts, three reserved model calls per run, twelve reserved calls per UTC day globally, 1,200 output tokens per call, 25-second inference wait and a two-minute lease. Calls are reserved transactionally before inference; timeout/unknown provider outcomes consume the reservation. The generator uses one existing primary model and no automatic fallback chain. Quota/unavailability gets bounded exponential retry; invalid output, stale artifact, budget exhaustion or exhausted attempts blocks the run. Daily exhaustion requires review and a new request on a later day; it is not silently reset. A generation result lost before its checkpoint may require another bounded inference; exactly-once external inference is not claimed.
+
+Checkpoint/audit writes commit together. No delegated credentials are persisted. Partial results remain private. Completed results contain `publicPublish:false`, `autoPublish:false`, and `requires_owner_approval:true`.
+
+
+### Tài liệu nguồn: docs/gemini-editorial-privacy.md
+
+# Gemini editorial cover privacy
+
+## Scope
+New cover uploads through the publishing API (Admin/GPT) and Telegram editorial commands normalize to WebP in memory, ask Gemini for all plate bounds, draw opaque masks with margins, and send the output for a second privacy review. Only a positive, certain review permits R2 storage. Missing configuration, malformed bounds, uncertainty, provider errors and exposed plates fail closed. The original is not stored by these paths. Model inference can miss plates: visually inspect the returned image before publishing. Existing vehicle/legacy upload paths and previously published images are outside this change.
+
+Covers supplied by URL must carry `plate_privacy=gemini-reviewed-v1` in R2 custom metadata. Existing images need re-upload through this pipeline. No raw-image fallback. Both Gemini passes receive image data; use only authorized images. Two calls add latency; Actions uploads can time out, so check saved state and retry as necessary.
+
+## Configuration
+The website Worker `phanthuanxtra-v2` is separate from Developer Gateway. A working Gemini secret on the Gateway does not configure the website Worker.
+
+Configure securely on the website Worker:
+- `IMAGES` and `MEDIA` bindings.
+- `GEMINI_API_KEY` secret for the authorized project.
+- `GEMINI_MODEL`: an explicit image-capable model returned by that project's models.list, not `auto`.
+- `PUBLISH_API_KEY`: dedicated secret shared only with the private GPT Action.
+
+Alternatively deployment syncs GitHub secrets GEMINI_API_KEY/PUBLISH_API_KEY and repository variable GEMINI_PLATE_MODEL (mapped to GEMINI_MODEL). Existing Worker bindings are preserved. Preflight stops deployment before migrations/assets/runtime changes when dependencies are absent. Do not copy secrets into docs, logs, chat or code.
+
+Gate 10 on main commit f1f7b59 verified Gateway Gemini generation with gemini-3.5-flash-lite, fallback_used=false. This proves the Gateway text call only, not image processing or website configuration.
+
+## Validation and release boundary
+Unit/integration tests mock Gemini and Images, checking multiple masks, invalid bounds, provider failures, uncertainty, absence of original writes, and draft/publish lifecycle. They do not prove real model accuracy.
+
+Before production sign-off: configure website dependencies, deploy, complete the production publishing smoke, then use a real multi-plate photo to verify every plate is covered. Exercise the private GPT Action with the intended account and return the actual article URL. Confirm one scheduled and one batch submission through Telegram. Do not label these live checks completed from mocked tests.
+
+
+### Tài liệu nguồn: docs/remaining-acceptance.md
+
+# Nghiệm thu các hạng mục còn lại — PHAN THUẦN XTRA
+
+Cập nhật 2026-10-03, Asia/Ho_Chi_Minh. Tài liệu này là quy trình nghiệm thu, không phải bằng chứng các bước thực tế đã được thực hiện. MASTER_PROJECT_STATUS.md là nguồn trạng thái chính.
+
+## 1. S21 thật: Content Review và Customer Care
+
+Dùng Telegram trên S21 và tài khoản owner đang sử dụng. Gửi `/customerapp`, mở Mini App.
+
+- Tab **Nội dung**: xác nhận chữ tiếng Việt, các nút Lọc/Tải lại, thông báo AI đang tắt, hạn mức và khu vực tiến trình hiển thị đầy đủ; không bị header che hoặc cuộn ngang.
+- Nếu không có nháp thật: ghi nhận màn hình rỗng hoạt động đúng; không coi đây là bằng chứng sửa/review một nháp. Khi có nháp riêng tư do owner chuẩn bị, mở chi tiết và kiểm tra nội dung, lịch đề xuất, thao tác review. **Đã kiểm tra** chỉ ghi nhận review, không đăng bài.
+- Tab **Khách hàng**: mở hồ sơ khách hiện có; xác nhận trạng thái chăm sóc, Follow-up, ghi chú, AI đề xuất chăm sóc, lịch sử tương tác và audit.
+- Nếu không có đề xuất đang chờ: ghi nhận trạng thái rỗng; cần một đề xuất thật để nghiệm thu nút Duyệt/Bỏ qua.
+- Bấm **Xóa khách hàng** để quan sát hộp xác nhận, rồi **Hủy**. Không xác nhận xóa khách thật chỉ để làm kiểm thử.
+- Quay lại danh sách, tải lại và xác nhận khách vẫn còn.
+
+Bằng chứng cần lưu: thời điểm, model máy/phiên bản Telegram, màn hình hoặc video đã che tên/số điện thoại, từng bước PASS/FAIL/N/A. Không gửi initData, token hay thông tin đăng nhập. Chỉ đóng mục S21 khi có quan sát trên thiết bị thật; ảnh viewport CI vẫn là bằng chứng mô phỏng.
+
+## 2. Một luồng Customer Care từ khách thật
+
+Chọn một yêu cầu thật phát sinh qua kênh đang vận hành; không tạo khách/lead giả để đóng mục này.
+
+1. Ghi nhận thời điểm và mã tham chiếu nội bộ của tương tác, khách và lead liên kết.
+2. Mở đúng khách trong Mini App; xác nhận timeline Memory Brain phản ánh yêu cầu và không trộn khách khác.
+3. Kiểm tra đề xuất chăm sóc từ tương tác đó. Nếu pipeline chưa tạo đề xuất hoặc quota chặn xử lý, ghi trạng thái chờ và nguyên nhân; không gán kết quả của khách khác.
+4. Owner đọc lý do rồi Duyệt/Bỏ qua theo nhu cầu thật. Nếu cần follow-up, lưu thời điểm theo lịch đã trao đổi thật với khách.
+5. Tải lại hồ sơ, xác nhận trạng thái, follow-up và audit phản ánh quyết định. Mỗi lần thử lại phải đối chiếu kết quả đã ghi trước khi tạo thao tác mới.
+6. Khi follow-up thực sự diễn ra, ghi kết quả thật. Không tự gửi thông báo hoặc lời hứa cho khách chỉ để nghiệm thu.
+
+Bằng chứng tối thiểu: tương tác nguồn → đúng khách/lead → timeline → đề xuất → quyết định owner → audit/lịch follow-up. Chỉ ghi mã tham chiếu và kết quả tổng hợp vào MASTER; nội dung riêng tư giữ trong hệ thống. Có đủ chứng cứ mới đóng mục E2E thật.
+
+## 3. AI Content: quota, chạy thử có giới hạn và quyền publish
+
+Production hiện giữ `CONTENT_RUNNER_LIVE_ENABLED=0`. Probe ghi nhận lúc **17:05:45 ngày 2026-10-03 (UTC+7)** trả HTTP 429 / Cloudflare 4006, hết free allocation 10.000 neurons. Đây là kết quả tại thời điểm probe, không phải cam kết quota đã hồi phục.
+
+Điều kiện để triển khai bước tiếp theo:
+
+- Probe mới xác nhận đúng tài khoản/credential và model phản hồi được; kết quả thiếu, timeout hoặc quota lỗi không được coi là PASS.
+- Không tự nâng gói trả phí, thay ngân sách hoặc đổi nhà cung cấp.
+- Chuẩn bị thay đổi cấu hình live runner trong PR riêng, giữ hạn mức **12 lượt/ngày UTC, 3 lượt/run, 1.200 output tokens, 25 giây**; CI và AI audit phải xanh trước deploy.
+- Owner cấp hai credential khác nhau cho writer agent-11 và scheduler agent-19, cùng pipeline, thời hạn tối đa một giờ. Không đưa owner credential vào runner.
+- Dùng brief từ nội dung owner đã xác nhận và lịch tương lai theo Asia/Ho_Chi_Minh; chạy một request_id ổn định. Mất phản hồi thì reconcile/resume cùng request_id; không sinh hàng loạt request mới.
+- Kiểm chứng một nháp riêng tư, một đề xuất lịch, ledger/audit, số lượt provider và replay. Kết quả yêu cầu `publicPublish:false`, `autoPublish:false`, **0 pending publication jobs**.
+- Owner review nội dung thực tế. Publish vẫn là thao tác owner riêng; bật AI không cấp quyền public publish cho agent.
+- Nếu quota lỗi, output không hợp lệ hoặc vượt ngân sách: dừng run theo contract, giữ artifact riêng tư và đưa cấu hình live về 0 qua quy trình deploy. Không xóa ledger để thử lại.
+
+Chỉ đóng mục live readiness khi có probe mới PASS và bằng chứng bounded provider/run phù hợp. Luồng offline PASS không thay thế bằng chứng model thật.
+
+## 4. Giới hạn của bản backup đã gửi
+
+Backup run **37114688475** đã gửi Telegram và Gate 14 **37114866763** đã phục hồi thử thành công. Phạm vi gồm source snapshot, D1 chính, R2 chính, sáu Worker và cấu hình đã che bí mật.
+
+Các phạm vi chưa được backup dữ liệu trong bản này:
+
+| Phạm vi | Việc cần làm trước khi tuyên bố đủ |
+| --- | --- |
+| D1 phụ luxury-ui-db, chatbot-db | Export SQL riêng, lưu evidence và phục hồi thử từng DB |
+| R2 phụ ai-pt-xtra-apk, phanthuanxtra-images | Inventory/object count, lấy toàn bộ byte, checksum và kiểm tra restore |
+| KV, Durable Object storage | Xác định binding/dữ liệu thực tế và thiết kế exporter phù hợp từng ứng dụng |
+| Queue đang xử lý | Dùng checkpoint/reconciliation; không tuyên bố snapshot queue từ việc backlog=0 |
+| Khóa bí mật | Quy trình khôi phục credential riêng ở nơi bảo mật; không chép vào Telegram hoặc repo công khai |
+
+Audit 18:58 xác nhận tài nguyên và backlog hiện tại; audit không thay thế nội dung backup. Mọi mở rộng cần receipt và restore proof mới. Không gộp các giới hạn này vào nhãn “backup toàn bộ tài khoản Cloudflare đã xong”.
+
+
+### Tài liệu nguồn: docs/telegram-editorial.md
+
+# Đăng bài qua @phanthuanxtra_auto_bot
+
+Các lệnh dưới đây đăng lên Blog tại phanthuanxtra.com. Nội dung được giữ nguyên,
+không cần Workers AI để soạn lại. Luồng xe và `/blog` một dòng kèm ảnh dùng AI
+vẫn hoạt động như trước. `/blog` hoặc `/news` có tiêu đề và nội dung trên các dòng
+riêng dùng luồng bài tổng quát mới, kể cả khi kèm ảnh.
+
+## Đăng ngay, lưu nháp
+
+Gửi tin nhắn hoặc một ảnh cover có chú thích:
+
+```text
+/post Tiêu đề bài viết
+Nội dung đoạn đầu.
+
+Nội dung đoạn tiếp theo.
+```
+
+Thay `/post` bằng `/draft` để lưu nháp. Bot trả mã bài. Dùng `/publish 12`
+để xuất bản bản nháp số 12. `/publish` không đưa bài đã hẹn lên sớm.
+Bài nháp không có URL công khai; có thể sửa nội dung trong Admin trước khi đăng.
+
+Ảnh cover: một ảnh riêng, tối đa 10 MiB; chuyển WebP, bỏ metadata, lưu R2.
+Ảnh cover mới qua Gemini tìm biển số, phủ kín các vùng tìm được, rồi kiểm tra lại trước khi lưu R2. Lỗi hoặc kết quả không chắc chắn sẽ chặn lưu ảnh. Cần GEMINI_API_KEY và GEMINI_MODEL trên Worker website; cấu hình Gateway riêng không tự cấp quyền cho Worker này. Xem docs/gemini-editorial-privacy.md. Album nhiều ảnh chưa hỗ trợ.
+
+## Hẹn giờ Việt Nam
+
+```text
+/schedule 2026-10-01 09:00
+Tiêu đề bài viết
+Nội dung bài viết.
+```
+
+Ngày giờ luôn là giờ Việt Nam (UTC+07:00), định dạng YYYY-MM-DD HH:mm và phải
+ở tương lai. Bài được công khai ở lượt cron đầu tiên sau giờ hẹn. Cron hiện chạy
+mỗi 5 phút; không cam kết đúng từng giây. Khi cron bị gián đoạn, bài còn chờ được
+xử lý ở lượt chạy lại; mỗi lượt tối đa 20 bài, ưu tiên giờ hẹn sớm nhất.
+
+`/posts`: xem 20 bài gần nhất của chat cùng mã, trạng thái, giờ hẹn và link đã đăng.
+`/cancel 12`: hủy bản nháp/lịch đang chờ; không xóa nội dung, không gỡ bài đã công khai.
+Bài đã hủy không được mở lại bởi webhook lặp. Nếu cần hẹn lại, gửi yêu cầu mới.
+
+## Nhiều bài trong một lần
+
+Gửi tối đa 20 bài bằng tin nhắn:
+
+```text
+/batch
+/post Tiêu đề thứ nhất
+Nội dung thứ nhất.
+---
+/draft Tiêu đề thứ hai
+Nội dung thứ hai.
+---
+/schedule 2026-10-02 10:00
+Tiêu đề thứ ba
+Nội dung thứ ba.
+```
+
+Hoặc đính kèm tệp UTF-8 `.txt` (cùng cú pháp, không cần dòng `/batch` trong tệp)
+hoặc `.json`, tối đa 100 KiB, và đặt chú thích `/batch`. JSON mẫu:
+
+```json
+[
+  {"title":"Bài một","content":"Nội dung một","mode":"draft","category":"Tin tức"},
+  {"title":"Bài hai","content":"Nội dung hai","mode":"schedule","schedule":"2026-10-02 09:00"},
+  {"title":"Bài ba","content":"Nội dung ba","mode":"publish","cover_image":"/media/blog/anh-da-luu.webp"}
+]
+```
+
+JSON bỏ `mode` mặc định lưu nháp. Cover theo lô phải là đường dẫn `/media/` đã có
+trên website. Nếu có bài không hợp lệ, toàn bộ lô không được lưu. Sau khi lưu,
+từng bài được xử lý theo chế độ riêng. Bot trả báo cáo từng bài; `/posts` dùng
+để kiểm tra khi nhận phản hồi lỗi hoặc mất kết nối.
+
+## Vận hành và triển khai
+
+- `TELEGRAM_AUTO_BOT_TOKEN` là token của @phanthuanxtra_auto_bot (có fallback cũ).
+- Chat phải nằm trong `TELEGRAM_AUTO_PUBLISH_CHAT_IDS`, fallback `TELEGRAM_CHAT_ID`.
+  Đây là quyền theo chat: thành viên chat được cấp quyền có thể dùng lệnh.
+- Webhook `/api/telegram/webhook` phải có `TELEGRAM_WEBHOOK_SECRET` hợp lệ;
+  không cấu hình secret thì các lệnh bài tổng quát trả 503 và không ghi dữ liệu.
+- Deploy qua GitHub Actions → Cloudflare API/SDK; không dùng Wrangler.
+- Controller tự áp dụng `0016_editorial_jobs.sql` và giữ cron `*/5 * * * *`.
+- Bài nằm trong `posts`; `editorial_jobs` quản lý yêu cầu, chủ chat và giờ hẹn UTC.
+- D1 batch giữ việc tạo bài, lịch, audit trong một giao dịch. Webhook lặp cùng
+  chat/message_id không tạo lại bài. Gửi một tin nhắn mới là yêu cầu mới.
+- Cron cập nhật bài và lịch trong một giao dịch; chạy trùng không đăng lại.
+  Bài bị Admin lưu trữ hoặc xóa sẽ không bị cron phục hồi.
+- Bot báo trạng thái từ D1 và URL chuẩn; đây không phải phép thử HTTP từ mạng ngoài.
+
+## Kiểm chứng
+
+```sh
+node --test tests/editorial-publishing.test.mjs tests/auto-bot-ai.test.mjs
+```
+
+Kiểm thử dùng SQLite thật để kiểm tra rollback, cạnh tranh, trạng thái công khai,
+chống trùng, hủy, giới hạn lô/tệp, giờ Việt Nam, ảnh WebP và quyền webhook.
+Sau deploy cần thử trên bot thật: tạo nháp → /publish, hẹn giờ → chờ cron,
+hủy một lịch, nhập lô hỗn hợp và mở link public. Chỉ đánh dấu production PASS
+khi đã có bằng chứng những bước này, không suy từ PR merged hoặc unit tests.
