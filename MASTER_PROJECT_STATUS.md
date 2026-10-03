@@ -1785,3 +1785,24 @@ CF-MACHINE-010 live Queue evidence:
 - This upgrade does not authorize deletion of any remaining Worker, D1, R2, DO, DNS or AI resource.
 
 Operational status: Cloudflare Queues migration for the Telegram vehicle draft pipeline is FINAL GREEN. Future production vehicle sessions should use Queue-first processing; cron/D1 direct processing is recovery/fail-safe only.
+
+
+## 37. 2026-10-03 — Mandatory ChatGPT image delivery rule: AVIF + WebP → Cloudflare R2
+
+Effective immediately for every image generated or prepared by ChatGPT for PHAN THUẦN XTRA:
+
+- ChatGPT MUST create two optimized delivery variants from the approved source image: **AVIF** and **WebP**.
+- AVIF is the preferred browser format; WebP is the required compatibility fallback.
+- ChatGPT MUST upload both AVIF and WebP objects to the intended **Cloudflare R2** path when an authenticated Cloudflare/R2 write capability is available.
+- If ChatGPT cannot write to Cloudflare R2 in the current session, it MUST provide both generated files for upload and clearly state that R2 upload is still pending. It MUST NOT claim the files are deployed.
+- Production HTML/CSS/JS MUST NOT be changed to reference a new image until the exact AVIF and WebP objects exist in R2 and their intended public Worker URLs have been verified.
+- After upload, verify each exact public asset URL returns **HTTP 200**, a non-empty body, and the correct MIME type: `image/avif` for AVIF and `image/webp` for WebP.
+- Homepage/editorial rendering SHOULD use `<picture>` with AVIF first and WebP fallback. Lazy-loading code must activate both `<source>` and fallback `<img>` URLs.
+- The original PNG/JPEG source may be retained as a source/archive asset, but production display should use the optimized AVIF/WebP pair unless a documented compatibility requirement says otherwise.
+- Targeted regression tests and **Production Asset Delivery Gate** MUST check the exact AVIF/WebP paths actually referenced by production; a legacy or unrelated green asset check is not sufficient evidence.
+- Required completion sequence: **generate AVIF + WebP → upload to Cloudflare R2 → verify HTTP/MIME → update page → targeted tests → AI Pre-Deploy Audit + CI → deploy/merge → post-merge production asset verification**.
+- Never invent an R2 path, never infer a successful upload, and never declare image delivery FINAL GREEN without exact production evidence.
+
+Current Green Energy homepage canonical pair:
+- `/media/editorial/green-energy/green-energy-home-hero.avif`
+- `/media/editorial/green-energy/green-energy-home-hero.webp`
