@@ -7,7 +7,7 @@
 - Security remains Telegram signed `initData` + freshness + existing owner allowlist. Mini App exposes **no DELETE route** and does not carry Admin/CMS credentials.
 - Hidden vehicles intentionally return no public-page action; other statuses use canonical `/car?id=<id>`.
 - Gallery updates require the complete current image ID set and an existing cover image ID, preserving the existing persistence invariant and audit trail.
-- Status: **SOURCE IMPLEMENTED — CI / PR / MERGE / PRODUCTION ACCEPTANCE PENDING**.
+- Status: **PR #712 MERGED** as main `d79e4f56e5d25833fcc24d23b822358bb977b81a`; exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37093460905` SUCCESS, including deploy/migrate, UTF-8 delivery, R2 E2E and publishing draft lifecycle. Owner `/carapp` full-manager UI acceptance remains pending.
 
 
 ## 0.0 TELEGRAM MINI APP FRAME POLICY HOTFIX — 2026-10-03 (UTC+7)
