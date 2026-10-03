@@ -1,5 +1,19 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 CURRENT CANONICAL CLOSURE — 2026-10-03 (UTC+7)
+- Canonical main: `b188d7e61a272c90ff336257c4eea6953c2de27b` (PR #720).
+- Exact-lineage **SUCCESS**: CI `37095698004`, Deploy Cloudflare Worker `37095698016`, Headroom Shadow Benchmark `37095698014`.
+- Post-deploy production **SUCCESS** on the same lineage: Blog CMS Production E2E, Business Jets CRM Production E2E, App Assistant Production E2E, App Sentiment Production E2E, Stage 3 Production Reconciliation, Homepage Canonical Verify, Admin Redirect Verify, Live Chat AI Identity Verify, QUEUE-01 Production E2E Origin, Production Smoke Gate-15, Production Asset Delivery Gate, and Cloudflare Machine Inventory Audit.
+- Therefore historical sections below that say production `RED/LOCKED`, Cloudflare deploy credential blocked, Gate-15/QUEUE-01/App AI pending, or exact-lineage reconciliation pending are **historical incident records, not current status**. Do not use them to override this top canonical closure.
+- Current control chain: deterministic audit → Jev typed decision when available → LLM/AI audit → Headroom isolated/shadow evidence → CI → GitHub Actions/Cloudflare API-SDK → production E2E/smoke.
+- Headroom measured 490 → 450 tokens (~8.16% saving) while preserving 8/8 required vehicle safety literals; it remains **shadow-only**, not a production LLM proxy.
+- Owner operating priority remains **S21 Ultra → Telegram → Termux → browser**; Windows is fallback; **no Wrangler production operations**.
+- Remaining owner/device-only acceptance: Samsung Galaxy S21 Ultra physical APK regression if Android native distribution is still desired. This cannot be truthfully closed by GitHub CI alone.
+- Remaining optional local capability acceptance: Agent-Reach Termux/Windows install + doctor only if the owner wants local Agent-Reach execution. GitHub/production integration is already merged and green; local install is not a production release blocker.
+- Memory Brain Phase-2 items remain **evaluation candidates, not release blockers**: observe real returning-customer behavior before adding timeline/correction UI, dedupe expansion, broader identity linkage, or retention controls.
+- No new infrastructure, Headroom proxy promotion, vector memory, Durable Objects, or production mutation is authorized merely to clear historical text.
+
+
 ## 0.0 HEADROOM SHADOW BENCHMARK — PROMOTION GATE — 2026-10-03 (UTC+7)
 - Next priority after isolated Headroom evidence: measure **real local compression behavior** on a secret-free PHAN THUẦN XTRA fixture before any production traffic integration.
 - Shadow benchmark installs the exact Headroom commit already pinned in `tools/headroom.json`; it runs with `HEADROOM_OFFLINE=1`, `HEADROOM_BEACON=off`, `DO_NOT_TRACK=1`.
@@ -9,7 +23,7 @@
 - Passing this benchmark only qualifies Headroom for a later, separately reviewed shadow-context experiment. It does **not** authorize production proxying or autonomous mutation.
 - Existing control order remains deterministic audit → Jev → LLM/AI audit → Headroom isolated/shadow evidence → CI → GitHub Actions/Cloudflare API-SDK.
 - Owner operations remain **S21 Ultra → Telegram → Termux → browser**, Windows fallback only, no Wrangler.
-- Status: **SOURCE IMPLEMENTED — LIVE SHADOW BENCHMARK / CI / MERGE PENDING**.
+- Status: **MERGED / EXACT-LINEAGE GREEN** — PR #720 merged as `b188d7e61a272c90ff336257c4eea6953c2de27b`. Shadow benchmark SUCCESS: 490 → 450 tokens (40 saved, ~8.16%), 8/8 required safety literals preserved. Exact-lineage CI, Headroom Shadow Benchmark and Deploy Cloudflare Worker all SUCCESS. Headroom remains shadow-only; this evidence does not authorize production proxying.
 
 
 ## 0.0 HEADROOM GITHUB CAPABILITY — ISOLATED AUDIT — 2026-10-03 (UTC+7)
@@ -21,7 +35,7 @@
 - Headroom receives no Cloudflare, Telegram, Admin/CMS, TypeSafe/Jev, GitHub write, or provider API credential.
 - Existing review order remains deterministic audit → optional Jev typed decision → LLM/AI audit. Headroom is currently a context-efficiency capability under evidence-only evaluation, not an authority for merge/deploy decisions.
 - Owner operations policy remains **S21 Ultra → Telegram → Termux → browser**, Windows fallback only, **no Wrangler production operations**.
-- Status: **SOURCE IMPLEMENTED — CI / AI AUDIT / MERGE PENDING**.
+- Status: **MERGED / EXACT-LINEAGE GREEN** — PR #719 merged as `b914ff574f80fc861719b8190f796e57d8e665aa`; Headroom isolated audit, CI and production deploy completed SUCCESS. Isolation remains the enforced production boundary.
 
 
 ## 0.0 JEV + LLM GITHUB DECISION CASCADE — 2026-10-03 (UTC+7)
@@ -33,7 +47,7 @@
 - High-confidence Jev risk threshold is 0.90 for security or production risk; crossing it blocks the Jev job for human/LLM review rather than autonomously fixing, merging, or deploying.
 - GitHub workflow permissions are read-only and checkout credentials are not persisted.
 - Existing owner operations policy remains **S21 Ultra → Telegram → Termux → browser**, Windows fallback only, and **no Wrangler production operations**.
-- Status: **SOURCE IMPLEMENTED — CI / AI AUDIT / MERGE PENDING**. Live Jev decision evidence additionally requires owner-configured `TYPESAFE_API_KEY` in GitHub Actions secrets.
+- Status: **MERGED / CASCADE ACTIVE** — Jev + LLM Decision Cascade is present in the current control chain and completed SUCCESS on PR #720. Jev remains fail-safe/optional when its GitHub Actions credential is unavailable; no secret value is stored in this MASTER.
 
 
 ## 0.0 OWNER OPERATIONS POLICY — S21 ULTRA / TELEGRAM / TERMUX FIRST — 2026-10-03 (UTC+7)
