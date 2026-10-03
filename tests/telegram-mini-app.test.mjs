@@ -45,8 +45,8 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   assert.match(source,/actor:"telegram-mini-app"/);
   assert.match(source,/method==="PATCH"/);
   assert.doesNotMatch(source,/method==="DELETE"/);
-  assert.doesNotMatch(ui,/ADMIN_TOKEN|ptx_admin_botFixture/);
+  assert.doesNotMatch(ui,/ADMIN_TOKEN|ptx_admin_token/);
   assert.match(ui,/Telegram\.WebApp|window\.Telegram/);
   assert.match(router,/command\?\.name==="carapp"/);
   assert.match(router,/web_app:\{url:"https:\/\/phanthuanxtra\.com\/telegram-mini-app\.html"\}/);
-});
+  assert.match(headers,/\\/telegram-mini-app\\.html[\\s\\S]*! X-Frame-Options[\\s\\S]*Content-Security-Policy: frame-ancestors https:\\/\\/web\\.telegram\\.org https:\\/\\/\\*\\.telegram\\.org/);\n});
