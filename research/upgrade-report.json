@@ -1,8 +1,20 @@
 {
   "schema": 1,
-  "id": "2026-10-03-activation",
+  "id": "2026-10-03-research",
   "date": "2026-10-03",
-  "kind": "activation",
-  "summary": "Đã chuẩn bị đường gửi đề xuất nghiên cứu tới Telegram owner. Lịch AI Tool Radar hiện tại: 07:00 mỗi ngày (giờ Việt Nam). Đây là thông báo kiểm tra kết nối; báo cáo nghiên cứu sẽ có tối đa 3 đề xuất, nguồn, lợi ích, chi phí, rủi ro và bước thử. Không tự nâng cấp production.",
-  "proposals": []
+  "kind": "research",
+  "summary": "Ưu tiên FREE. Đã rà soát Qwen-Image-2.1-viewpoint-orbit-LoRA theo yêu cầu: chỉ nên theo dõi/nghiên cứu, chưa tích hợp thương mại. Lịch nghiên cứu tiếp theo: 07:00 ngày mai, giờ Việt Nam.",
+  "proposals": [
+    {
+      "title": "Theo dõi Qwen Viewpoint Orbit LoRA — chưa deploy",
+      "benefit": "Sinh góc nhìn RGBA từ một ảnh; có thể nghiên cứu minh họa. Chưa chứng minh bảo toàn chi tiết xe.",
+      "cost": "Có demo ZeroGPU; quota miễn phí chưa kiểm chứng. Tự chạy cần GPU, không coi là miễn phí vận hành.",
+      "risk": "License non-commercial; góc lớn có thể bịa chi tiết/logo. Không thay ảnh xe thật hoặc dùng quảng cáo khi chưa có quyền.",
+      "next_step": "Theo dõi license và demo free; thử nghiên cứu phi thương mại chỉ khi có môi trường phù hợp. Không tải/chạy hoặc upload ảnh khách tự động.",
+      "sources": [
+        "https://huggingface.co/ML-Intern-lab/Qwen-Image-2.1-viewpoint-orbit-LoRA",
+        "https://huggingface.co/ML-Intern-lab/Qwen-Image-2.1-viewpoint-orbit-LoRA/blob/main/LICENSE"
+      ]
+    }
+  ]
 }
