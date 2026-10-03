@@ -37,6 +37,7 @@ test("Mini App API requires Telegram signature before D1 access",async()=>{
 
 test("Mini App contract is scoped to safe vehicle status management with no delete route",()=>{
   const source=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  const entry=fs.readFileSync(new URL("../src/entry.js",import.meta.url),"utf8");
   const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
   const router=fs.readFileSync(new URL("../src/telegram-router.js",import.meta.url),"utf8");
   const headers=fs.readFileSync(new URL("../public/_headers",import.meta.url),"utf8");
@@ -52,4 +53,8 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   const miniHeaderBlock=headers.slice(headers.indexOf("/telegram-mini-app.html"));
   assert.ok(miniHeaderBlock.includes("! X-Frame-Options"));
   assert.ok(miniHeaderBlock.includes("Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org"));
+  assert.match(entry,/url\.pathname === "\/telegram-mini-app\.html"/);
+  assert.match(entry,/headers\.delete\("x-frame-options"\)/);
+  assert.match(entry,/headers\.delete\("content-security-policy"\)/);
+  assert.match(entry,/x-ptx-telegram-mini-app/);
 });

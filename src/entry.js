@@ -30,6 +30,25 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      if (url.pathname === "/telegram-mini-app.html" || url.pathname === "/telegram-mini-app" || url.pathname === "/telegram-mini-app/") {
+        const assetUrl = new URL("/telegram-mini-app.html", request.url);
+        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, {
+          method: "GET",
+          headers: new Headers({ "accept": "text/html", "accept-encoding": "identity" }),
+          cf: { cacheTtl: 0, cacheEverything: false }
+        }));
+        if (!assetResponse.ok) return assetResponse;
+        const headers = new Headers(assetResponse.headers);
+        headers.set("content-type", "text/html; charset=utf-8");
+        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
+        headers.set("x-content-type-options", "nosniff");
+        headers.set("x-ptx-telegram-mini-app", "worker-v1");
+        headers.delete("x-frame-options");
+        headers.delete("content-security-policy");
+        headers.delete("content-encoding");
+        headers.delete("content-length");
+        return new Response(assetResponse.body, { status: 200, headers });
+      }
       const adminAssetPath = (() => {
         if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname === "/admin.html") return "/admin";
         if (url.pathname === "/admin-control" || url.pathname === "/admin-control/" || url.pathname === "/admin-control.html") return "/admin-control";
