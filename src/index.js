@@ -30,7 +30,7 @@ function leadIdempotencyKey(r,b,p){
   const supplied=text(r.headers.get("Idempotency-Key")||b?.idempotency_key,160);
   if(supplied)return supplied;
   const visitor=text(b?.visitor_id,160);
-  return visitor?"lead:"+visitor+":"+leadFingerprint(b,p):"";
+  return "lead:"+(visitor||"legacy")+":"+leadFingerprint(b,p);
 }
 async function createLeadReplaySafe(r,e,ctx,b,p){
   const key=leadIdempotencyKey(r,b,p);
