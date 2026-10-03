@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 TELEGRAM VEHICLE MINI APP — FULL MANAGER UPGRADE — 2026-10-03 (UTC+7)
+- Owner approved upgrade after production acceptance showed 7/7 vehicles rendering successfully.
+- Scope: vehicle detail, price/ODO/year/brand/model/fuel/category/color/description editing, gallery reorder, cover selection, public-page action, improved list metadata/search, and per-car audit history.
+- Persistence is reused: `saveCar()`, `carImages()`, `reorderCarImages()`, and `cms_audit_log`; no parallel vehicle write model is introduced.
+- Security remains Telegram signed `initData` + freshness + existing owner allowlist. Mini App exposes **no DELETE route** and does not carry Admin/CMS credentials.
+- Hidden vehicles intentionally return no public-page action; other statuses use canonical `/car?id=<id>`.
+- Gallery updates require the complete current image ID set and an existing cover image ID, preserving the existing persistence invariant and audit trail.
+- Status: **SOURCE IMPLEMENTED — CI / PR / MERGE / PRODUCTION ACCEPTANCE PENDING**.
+
+
 ## 0.0 TELEGRAM MINI APP FRAME POLICY HOTFIX — 2026-10-03 (UTC+7)
 - Owner acceptance found Telegram Web/Desktop error: `phanthuanxtra.com đã từ chối kết nối` after `/carapp` successfully returned the Mini App button.
 - Root cause: global `public/_headers` rule set `X-Frame-Options: DENY` for every static asset, including `/telegram-mini-app.html`.

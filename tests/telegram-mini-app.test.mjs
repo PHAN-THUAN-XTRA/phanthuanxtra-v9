@@ -45,9 +45,17 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   assert.match(source,/X-Telegram-Init-Data/);
   assert.match(source,/actor:"telegram-mini-app"/);
   assert.match(source,/method==="PATCH"/);
+  assert.match(source,/reorderCarImages/);
+  assert.match(source,/cms_audit_log/);
+  assert.match(source,/public_url/);
+  assert.match(source,/allowed=\["brand","model","year","mileage","price","fuel","category","color","description","featured"\]/);
   assert.doesNotMatch(source,/method==="DELETE"/);
   assert.doesNotMatch(ui,/ADMIN_TOKEN|ptx_admin_token/);
   assert.match(ui,/Telegram\.WebApp|window\.Telegram/);
+  assert.match(ui,/Chi tiết \/ Sửa/);
+  assert.match(ui,/Xem trang public/);
+  assert.match(ui,/Thứ tự ảnh \/ Cover/);
+  assert.match(ui,/Lịch sử thay đổi/);
   assert.match(router,/command\?\.name==="carapp"/);
   assert.match(router,/web_app:\{url:"https:\/\/phanthuanxtra\.com\/telegram-mini-app\.html"\}/);
   const miniHeaderBlock=headers.slice(headers.indexOf("/telegram-mini-app.html"));

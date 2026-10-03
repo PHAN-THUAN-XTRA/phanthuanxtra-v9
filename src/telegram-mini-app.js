@@ -1,5 +1,5 @@
 import { canPublishAutoBlog } from "./auto-bot-ai.js";
-import { carImages, saveCar } from "./vehicle-persistence.js";
+import { carImages, saveCar, reorderCarImages, validCarId } from "./vehicle-persistence.js";
 
 const BASE="/api/telegram/mini/v1";
 const MAX_AGE_SECONDS=15*60;
@@ -55,6 +55,30 @@ async function listCars(request,env){
   const cars=await Promise.all(rows.map(async car=>({...car,images:await carImages(env.DB,car.id)})));
   return json({ok:true,cars,statuses:[...STATUSES]});
 }
+async function carDetail(env,id){
+  if(!validCarId(id))return json({error:"ID xe không hợp lệ"},400);
+  const car=await env.DB.prepare("SELECT * FROM cars WHERE id=?").bind(id).first();
+  if(!car)return json({error:"Không tìm thấy xe"},404);
+  const images=await carImages(env.DB,id);
+  const audit=(await env.DB.prepare("SELECT id,actor,action,summary,created_at FROM cms_audit_log WHERE resource='car' AND resource_id=? ORDER BY created_at DESC,id DESC LIMIT 50").bind(id).all()).results||[];
+  return json({ok:true,car:{...car,images},audit,public_url:car.status==="hidden"?null:`https://phanthuanxtra.com/car?id=${encodeURIComponent(id)}`});
+}
+async function updateCar(request,env,id){
+  const body=await request.json().catch(()=>null);
+  if(!body||typeof body!=="object"||Array.isArray(body))return json({error:"JSON không hợp lệ"},400);
+  const allowed=["brand","model","year","mileage","price","fuel","category","color","description","featured"];
+  const patch=Object.fromEntries(allowed.filter(k=>Object.prototype.hasOwnProperty.call(body,k)).map(k=>[k,body[k]]));
+  if(!Object.keys(patch).length)return json({error:"Không có trường được phép cập nhật"},400);
+  const saved=await saveCar(env.DB,patch,{id,mode:"update",actor:"telegram-mini-app"});
+  if(!saved.ok)return json({error:saved.error},saved.status||400);
+  return json({ok:true,id,car:saved.car});
+}
+async function reorderGallery(request,env,id){
+  const body=await request.json().catch(()=>null);
+  if(!body||!Array.isArray(body.image_ids))return json({error:"image_ids phải là mảng"},400);
+  const result=await reorderCarImages(env.DB,id,body.image_ids,body.cover_image_id,{actor:"telegram-mini-app"});
+  return json(result.ok?result:{error:result.error},result.status||400);
+}
 async function updateStatus(request,env,id){
   const body=await request.json().catch(()=>null),status=clean(body?.status,30).toLowerCase();
   if(!STATUSES.has(status))return json({error:"Trạng thái xe không hợp lệ"},400);
@@ -70,7 +94,12 @@ export async function handleTelegramMiniAppApi(request,env){
   if(!auth.ok)return json({error:auth.reason==="forbidden"?"Forbidden":"Unauthorized"},auth.reason==="forbidden"?403:401);
   if(u.pathname===BASE+"/session"&&request.method==="GET")return json({ok:true,user:{id:auth.user.id,first_name:clean(auth.user.first_name,120),username:clean(auth.user.username,120)}});
   if(u.pathname===BASE+"/cars"&&request.method==="GET")return listCars(request,env);
-  const match=u.pathname.match(/^\/api\/telegram\/mini\/v1\/cars\/([A-Za-z0-9_-]{3,81})\/status$/);
-  if(match&&request.method==="PATCH")return updateStatus(request,env,match[1]);
+  const detail=u.pathname.match(/^\/api\/telegram\/mini\/v1\/cars\/([A-Za-z0-9_-]{3,81})$/);
+  if(detail&&request.method==="GET")return carDetail(env,detail[1]);
+  if(detail&&request.method==="PATCH")return updateCar(request,env,detail[1]);
+  const gallery=u.pathname.match(/^\/api\/telegram\/mini\/v1\/cars\/([A-Za-z0-9_-]{3,81})\/images\/order$/);
+  if(gallery&&request.method==="PUT")return reorderGallery(request,env,gallery[1]);
+  const statusMatch=u.pathname.match(/^\/api\/telegram\/mini\/v1\/cars\/([A-Za-z0-9_-]{3,81})\/status$/);
+  if(statusMatch&&request.method==="PATCH")return updateStatus(request,env,statusMatch[1]);
   return json({error:"Not Found"},404);
 }
