@@ -1,0 +1,39 @@
+name: Telegram Upgrade Report
+on:
+  push:
+    branches: [main]
+    paths: ["research/upgrade-report.json"]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: owner-upgrade-report-delivery
+  cancel-in-progress: false
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Verify report and private owner, deliver once
+        id: delivery
+        env:
+          TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
+          TELEGRAM_BACKUP_CHAT_ID: ${{ secrets.TELEGRAM_BACKUP_CHAT_ID }}
+          TELEGRAM_BACKUP_OWNER_ID: "6451516147"
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/telegram-upgrade-report.mjs
+      - name: Retain delivery acknowledgment
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.delivery.outputs.artifact_name }}
+          path: upgrade-delivery-receipt.json
+          retention-days: 30
+
