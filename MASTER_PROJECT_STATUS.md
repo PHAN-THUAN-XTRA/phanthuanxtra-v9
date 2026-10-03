@@ -17,7 +17,7 @@
 - Security remains Telegram signed `initData` + freshness + existing owner allowlist. Mini App exposes **no DELETE route** and does not carry Admin/CMS credentials.
 - Hidden vehicles intentionally return no public-page action; other statuses use canonical `/car?id=<id>`.
 - Gallery updates require the complete current image ID set and an existing cover image ID, preserving the existing persistence invariant and audit trail.
-- Status: **PR #712 MERGED** as main `d79e4f56e5d25833fcc24d23b822358bb977b81a`; exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37093460905` SUCCESS, including deploy/migrate, UTF-8 delivery, R2 E2E and publishing draft lifecycle. Owner `/carapp` full-manager UI acceptance remains pending.
+- Status: **PR #712 MERGED** as main `d79e4f56e5d25833fcc24d23b822358bb977b81a`; exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37093460905` SUCCESS, including deploy/migrate, UTF-8 delivery, R2 E2E and publishing draft lifecycle. Owner `/carapp` full-manager UI acceptance **PASS**: production rendered 7/7 vehicles; owner then verified `tg-652` as **SOLD** in the public catalog/detail with AUDI Q7 3.0 TFSI, model year 2017 and reference price 1.050.000.000 đ, proving the Mini App status mutation propagated to the public D1-backed catalog.
 
 
 ## 0.0 TELEGRAM MINI APP FRAME POLICY HOTFIX — 2026-10-03 (UTC+7)
@@ -25,7 +25,7 @@
 - Root cause: global `public/_headers` rule set `X-Frame-Options: DENY` for every static asset, including `/telegram-mini-app.html`.
 - Fix: path-specific `/telegram-mini-app.html` rule detaches only `X-Frame-Options` using Cloudflare-supported `! X-Frame-Options`, adds Telegram-scoped `Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org`, and disables browser caching for this asset. Global DENY remains intact for all other pages.
 - Regression: `tests/telegram-mini-app.test.mjs` locks the framing exception and continues to enforce no Admin token / no DELETE.
-- Status: **PR #709 MERGED** as main `0728bc6296838b6debbae31a7be27c027d3d0271`; exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37092696328` SUCCESS. Owner must reopen `/carapp` for final Telegram Web/Desktop rendering acceptance.
+- Status: **PR #709 MERGED** as main `0728bc6296838b6debbae31a7be27c027d3d0271`; exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37092696328` SUCCESS. Final Telegram Web/Desktop rendering acceptance **PASS**: owner reopened `/carapp` and the production Mini App rendered the live 7/7 vehicle catalog.
 
 
 ## 0.0 TELEGRAM VEHICLE MINI APP — IMPLEMENTATION CHECKPOINT — 2026-10-03 (UTC+7)
@@ -38,7 +38,7 @@
 - Telegram security basis: trust only signed `initData`; never trust `initDataUnsafe` for authorization.
 - Targeted regression file: `tests/telegram-mini-app.test.mjs` covers valid/tampered/expired initData, auth-before-D1, no-delete contract, no Admin token in UI, and `/carapp` wiring.
 - Baseline publishing API before this change: `tests/publishing-api.test.mjs` PASS 9/9, fail 0.
-- Status update: **PR #707 MERGED** as main `6096f0c75a7dba5e5d7936410e9a552bb1769929`. PR head `0bb7e8db57bc43c4ad8a471125c3bdaa6060369d` passed CI, AI Pre-Deploy Audit and Deploy Cloudflare Worker validation. Exact-lineage push CI and Deploy Cloudflare Worker run `37091711752` completed SUCCESS, including Cloudflare API/SDK deploy+migrate, public boundary, UTF-8, R2 E2E and publishing-draft lifecycle. Final owner Telegram `/carapp` launch/status-change acceptance remains pending.
+- Status update: **PR #707 MERGED** as main `6096f0c75a7dba5e5d7936410e9a552bb1769929`. PR head `0bb7e8db57bc43c4ad8a471125c3bdaa6060369d` passed CI, AI Pre-Deploy Audit and Deploy Cloudflare Worker validation. Exact-lineage push CI and Deploy Cloudflare Worker run `37091711752` completed SUCCESS, including Cloudflare API/SDK deploy+migrate, public boundary, UTF-8, R2 E2E and publishing-draft lifecycle. Final owner Telegram `/carapp` launch/status-change acceptance **PASS**: live catalog rendered 7/7 vehicles and the later `tg-652` SOLD state was observed on the public vehicle presentation.
 - Windows 10 owner acceptance after deploy: open private chat with the existing Auto Bot → send `/carapp` → press **Mở quản lý xe** → verify catalog loads → change a non-destructive status → refresh and confirm D1-backed state.
 
 
