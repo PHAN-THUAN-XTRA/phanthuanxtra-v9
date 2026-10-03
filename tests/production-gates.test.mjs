@@ -272,9 +272,9 @@ test('production gate: homepage Green Energy production delivery gate checks PNG
   assert.ok(workflow.includes('media/editorial/green-energy/green-energy-home-hero.avif'));
   assert.ok(workflow.includes('media/editorial/green-energy/green-energy-home-hero.webp'));
   assert.match(workflow, /visual_status/);
-  assert.match(workflow, /image\\/avif/);
-  assert.match(workflow, /image\\/webp/);
-  assert.match(workflow, /Green Energy homepage AVIF\\/WebP delivery PASS/);
+  assert.ok(workflow.includes('image/avif'));
+  assert.ok(workflow.includes('image/webp'));
+  assert.ok(workflow.includes('Green Energy homepage AVIF/WebP delivery PASS'));
   const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
   assert.doesNotMatch(page, /\\\\n\s+\.energy-visual/);
 });
