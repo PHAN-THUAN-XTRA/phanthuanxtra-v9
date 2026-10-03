@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0B LEAD INTAKE EXECUTION PROMOTION — 2026-10-03 (UTC+7)
+- Phase 2 strengthens public `POST /api/leads` before promoting **agent-26 Lead Intake**. Migration `0030_lead_intake_idempotency.sql` adds a durable D1 intake ledger keyed by an explicit `Idempotency-Key` or a deterministic visitor+payload key.
+- Replay contract: same key + same payload returns the canonical stored lead instead of inserting a duplicate; same key + different payload is rejected with HTTP 409; an in-flight claim cannot race into a second insert.
+- The ledger records payload fingerprint, lead/customer linkage, processing state, Telegram delivery result, attempts and last error. The lead row is persisted behind the successful claim before downstream notification/memory work.
+- **agent-26 is promoted to bounded execution** only for lead creation/customer linking. It has no autonomous permission to delete leads, escalate lead status, publish content, alter budgets or bypass owner approval.
+- The existing Memory Brain event remains the downstream evidence/audit path; its own idempotency claim and queue retry remain unchanged.
+- Fleet executing set after this phase: **agent-26, agent-27, agent-28, agent-31, agent-33, agent-34** (6/62). Promotion count is not a KPI; further agents remain read/draft/approval-bound until their workflows independently satisfy auth/bounded ingress, idempotency, audit/evidence, retry/reconciliation and least privilege.
+- Next candidate class: low-risk content draft/scheduling operations. Public publish/distribution, destructive actions, customer deletion, budget changes and brand promises remain owner/approval-bound.
+
+
 ## 0.0A 62-AGENT CONTROL PLANE + EXECUTION PROMOTION — 2026-10-03 (UTC+7)
 - PR #733 established the production 62-agent control plane inspired by Structure Webworks' published operating model: 62 logical specialist agents, 8 departments, one Chief Orchestrator, shared existing D1/Memory Brain context, approval boundaries and a fleet kill switch. It intentionally does not create 62 persistent services, a second database, or a second customer-memory system.
 - Canonical fleet departments: Intelligence 8, Content 9, Distribution 8, CRM 9, Reputation 7, Analytics 8, Operations 7, Governance 6.
