@@ -1,5 +1,16 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## DAILY AI UPGRADE RESEARCH / TELEGRAM — 2026-10-03 (UTC+7)
+
+Owner requests internet research every day and proposals delivered to the private owner Telegram chat. Reuse existing AI Tool Radar automation **6ac08e9e99008191a00060afeceb181a**, current schedule **07:00 Asia/Ho_Chi_Minh**, instead of creating a duplicate.
+
+- Research execution reads latest MASTER first; uses current primary sources and verifies release dates, runtime fit, license, cost, security and overlap with existing capabilities. At most three actionable proposals; if none qualifies, explicitly report no worthwhile upgrade. Research conclusions do not authorize installation, paid subscriptions, live AI enablement or public publishing.
+- Delivery bridge **Telegram Upgrade Report** watches only main changes to `research/upgrade-report.json`. Production bot credentials remain in existing GitHub secrets. The sender verifies the destination is the known owner's private chat before sending and verifies Telegram's returned chat/message ID. Receipt artifacts are retained 30 days. Report text is plain text, bounded to 3,800 characters, with HTTPS sources. No raw customer or credential data belongs in reports.
+- JSON schema 1: fields `schema,id,date,kind,summary,proposals`. Local date YYYY-MM-DD; id = date + "-research" (or "-activation" only for connection testing). Summary ≤400 chars; 0–3 proposals with title≤120, benefit≤220, cost≤160, risk≤160, next_step≤200 and 1–2 HTTPS source URLs≤250. No extra fields. If no proposal qualifies, send a truthful summary with an empty proposals list.
+- The researching automation may update only report data and research evidence in MASTER through normal branch/PR/check/merge. Main merge triggers owner delivery. It must inspect delivery run and receipt before claiming Telegram success, then record outcome in MASTER without changing the report again. It must reconcile an existing date/report before creating another.
+- Existing receipt prevents duplicate sends; automatic rerun is blocked after attempt one. A timeout/unknown Telegram result requires reconciliation, never blind retry. Exactly-once delivery across a crash before receipt retention is not claimed. Only current local-day reports are sent; stale reports fail.
+- Implementation verification: six targeted sender tests PASS (schema/limits, private owner, acknowledgment, duplicate receipt, timeout/no retry). Initial activation message is a connection test, not a completed research report. **Delivery verification and automation prompt update are pending until the protected merge and actual receipt succeed.**
+
 ## HỢP NHẤT FILE MARKDOWN — 2026-10-03 (UTC+7)
 
 Đã đọc MASTER mới nhất trước khi thực thi. Theo yêu cầu owner, hợp nhất nguyên nội dung **11 file .md phụ** vào phụ lục cuối MASTER, kiểm tra từng nội dung được giữ đầy đủ rồi xóa các file nguồn trong repository. Repository chỉ còn **MASTER_PROJECT_STATUS.md** là file Markdown được quản lý. Test Agent-Reach đọc nội dung hợp nhất từ MASTER; các tham chiếu hướng dẫn hiện hành trỏ về phụ lục. Mã nguồn ứng dụng, cấu hình, dữ liệu và tài liệu không phải .md giữ nguyên. Lịch sử Git giữ khả năng khôi phục tài liệu nguồn. Các mục nghiệm thu còn mở không được đánh dấu DONE bởi thao tác hợp nhất này.
