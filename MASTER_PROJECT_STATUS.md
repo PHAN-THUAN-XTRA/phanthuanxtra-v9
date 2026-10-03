@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 HEADROOM GITHUB CAPABILITY — ISOLATED AUDIT — 2026-10-03 (UTC+7)
+- Owner requested adding **Headroom** to GitHub and continuing automatically by priority.
+- Upstream selected/audited: `headroomlabs-ai/headroom`, Apache-2.0, package `headroom-ai` v0.39.1, pinned commit `793bb85659d9aa907115ec16ea3356c5459f6299`.
+- Headroom is a local-first context optimization/compression layer. Upstream security documentation notes that proxy mode handles provider traffic/credentials, can persist CCR request content, writes operational logs, and has an opt-out anonymous beacon; therefore XTRA does **not** enable proxy/memory/disk CCR in GitHub production gates at this stage.
+- GitHub integration is **audit-only evidence**: fetch exact pinned source, inspect package/license/security metadata, and enforce isolation. It does not install Headroom, start its proxy, wrap an agent, call an LLM provider, or mutate production.
+- Isolation environment sets `HEADROOM_OFFLINE=1`, `HEADROOM_BEACON=off`, and `DO_NOT_TRACK=1`; GitHub workflow permissions are read-only and checkout credentials are not persisted.
+- Headroom receives no Cloudflare, Telegram, Admin/CMS, TypeSafe/Jev, GitHub write, or provider API credential.
+- Existing review order remains deterministic audit → optional Jev typed decision → LLM/AI audit. Headroom is currently a context-efficiency capability under evidence-only evaluation, not an authority for merge/deploy decisions.
+- Owner operations policy remains **S21 Ultra → Telegram → Termux → browser**, Windows fallback only, **no Wrangler production operations**.
+- Status: **SOURCE IMPLEMENTED — CI / AI AUDIT / MERGE PENDING**.
+
+
 ## 0.0 JEV + LLM GITHUB DECISION CASCADE — 2026-10-03 (UTC+7)
 - Owner requested combining **TypeSafe Jev + LLM** in GitHub and continuing work by priority.
 - Architecture: deterministic repository audit first → optional Jev typed risk decisions → existing LLM/AI audit remains the explanatory/fallback review layer. Jev does not replace deterministic tests or the existing LLM gate.
