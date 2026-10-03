@@ -312,6 +312,12 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  if(command?.name==="customerapp"){
+    if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"Chat này chưa được cấp quyền mở quản lý khách hàng."});return;}
+    if(message?.chat?.type&&message.chat.type!=="private"){await tg(token,"sendMessage",{chat_id:chatId,text:"Mini App chăm sóc khách hàng chỉ mở trong chat riêng với bot."});return;}
+    await tg(token,"sendMessage",{chat_id:chatId,text:"🤝 PHAN THUẦN XTRA — CHĂM SÓC KHÁCH HÀNG\nXem hồ sơ Memory Brain, cập nhật trạng thái chăm sóc, lịch follow-up và AI tóm tắt. Không có chức năng xóa khách hàng.",reply_markup:{inline_keyboard:[[{text:"Mở khách hàng",web_app:{url:"https://phanthuanxtra.com/telegram-mini-app.html?view=customers"}}]]}});
+    return;
+  }
   if(command?.name==="carapp"){
     if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"Chat này chưa được cấp quyền mở quản lý xe."});return;}
     if(message?.chat?.type&&message.chat.type!=="private"){await tg(token,"sendMessage",{chat_id:chatId,text:"Mini App quản lý xe chỉ mở trong chat riêng với bot."});return;}
