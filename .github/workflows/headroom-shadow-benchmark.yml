@@ -1,0 +1,69 @@
+name: Headroom Shadow Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "scripts/headroom-shadow-benchmark.py"
+      - "tests/fixtures/headroom-safe-context.json"
+      - ".github/workflows/headroom-shadow-benchmark.yml"
+      - "tools/headroom.json"
+      - "MASTER_PROJECT_STATUS.md"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/headroom-shadow-benchmark.py"
+      - "tests/fixtures/headroom-safe-context.json"
+      - ".github/workflows/headroom-shadow-benchmark.yml"
+      - "tools/headroom.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shadow-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HEADROOM_BEACON: "off"
+      HEADROOM_OFFLINE: "1"
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Resolve pinned Headroom revision
+        id: pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "commit=$(node -e 'const p=require("./tools/headroom.json"); process.stdout.write(p.commit)')" >> "$GITHUB_OUTPUT"
+      - name: Install exact pinned Headroom source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input "https://github.com/headroomlabs-ai/headroom/archive/${{ steps.pin.outputs.commit }}.zip"
+      - name: Run secret-free shadow benchmark
+        run: python scripts/headroom-shadow-benchmark.py
+      - name: Enforce promotion floor
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const r=require("./headroom-shadow-report.json");
+          if(!r.pass_semantics) throw new Error("semantic preservation failed");
+          if(!(r.tokens_after <= r.tokens_before)) throw new Error("compression increased token count");
+          console.log(JSON.stringify(r));
+          NODE
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f headroom-shadow-report.json ]; then
+            echo "### Headroom shadow benchmark" >> "$GITHUB_STEP_SUMMARY"
+            cat headroom-shadow-report.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "Shadow-only: no provider API call, no production traffic, no Cloudflare/Telegram/Admin secrets." >> "$GITHUB_STEP_SUMMARY"
