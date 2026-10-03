@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 TELEGRAM MINI APP FRAME POLICY HOTFIX — 2026-10-03 (UTC+7)
+- Owner acceptance found Telegram Web/Desktop error: `phanthuanxtra.com đã từ chối kết nối` after `/carapp` successfully returned the Mini App button.
+- Root cause: global `public/_headers` rule set `X-Frame-Options: DENY` for every static asset, including `/telegram-mini-app.html`.
+- Fix: path-specific `/telegram-mini-app.html` rule detaches only `X-Frame-Options` using Cloudflare-supported `! X-Frame-Options`, adds Telegram-scoped `Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org`, and disables browser caching for this asset. Global DENY remains intact for all other pages.
+- Regression: `tests/telegram-mini-app.test.mjs` locks the framing exception and continues to enforce no Admin token / no DELETE.
+- Status: **SOURCE FIXED — CI / MERGE / PRODUCTION HEADER VERIFICATION PENDING**.
+
+
 ## 0.0 TELEGRAM VEHICLE MINI APP — IMPLEMENTATION CHECKPOINT — 2026-10-03 (UTC+7)
 - Goal: owner can open a free Telegram Mini App from the existing Auto Bot and manage the live vehicle catalog without entering or exposing an Admin/CMS token.
 - Branch: `feat/cms-agent-api-v1` (reused as the single active mutation queue; no competing implementation branch).
