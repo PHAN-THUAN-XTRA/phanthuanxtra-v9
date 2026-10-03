@@ -5,7 +5,7 @@
 - Root cause: global `public/_headers` rule set `X-Frame-Options: DENY` for every static asset, including `/telegram-mini-app.html`.
 - Fix: path-specific `/telegram-mini-app.html` rule detaches only `X-Frame-Options` using Cloudflare-supported `! X-Frame-Options`, adds Telegram-scoped `Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org`, and disables browser caching for this asset. Global DENY remains intact for all other pages.
 - Regression: `tests/telegram-mini-app.test.mjs` locks the framing exception and continues to enforce no Admin token / no DELETE.
-- Status: **SOURCE FIXED — CI / MERGE / PRODUCTION HEADER VERIFICATION PENDING**.
+- Status: **PR #709 MERGED** as main `0728bc6296838b6debbae31a7be27c027d3d0271`; exact-lineage push CI SUCCESS and Deploy Cloudflare Worker run `37092696328` SUCCESS. Owner must reopen `/carapp` for final Telegram Web/Desktop rendering acceptance.
 
 
 ## 0.0 TELEGRAM VEHICLE MINI APP — IMPLEMENTATION CHECKPOINT — 2026-10-03 (UTC+7)
