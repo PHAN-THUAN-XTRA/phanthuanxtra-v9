@@ -66,3 +66,36 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   assert.match(entry,/headers\.delete\("content-security-policy"\)/);
   assert.match(entry,/x-ptx-telegram-mini-app/);
 });
+
+
+test("Customer Care Mini App reuses Memory Brain with safe owner mutations and no delete",()=>{
+  const source=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
+  const router=fs.readFileSync(new URL("../src/telegram-router.js",import.meta.url),"utf8");
+  const migration=fs.readFileSync(new URL("../migrations/0028_xtra_customer_care.sql",import.meta.url),"utf8");
+  assert.match(source,/CARE_STATUSES/);
+  assert.match(source,/xtra_memory_customers/);
+  assert.match(source,/xtra_memory_identities/);
+  assert.match(source,/xtra_memory_episodes/);
+  assert.match(source,/xtra_memory_facts/);
+  assert.match(source,/xtra_memory_lead_links/);
+  assert.match(source,/xtra_customer_care/);
+  assert.match(source,/xtra_customer_care_audit/);
+  assert.match(source,/telegram-customer-mini-app/);
+  assert.match(source,/ai-customer-agent/);
+  assert.match(source,/deterministicCustomerSummary/);
+  assert.match(source,/customer=u\.pathname\.match/);
+  assert.match(source,/ai-summary/);
+  assert.doesNotMatch(source,/DELETE FROM xtra_memory_customers/);
+  assert.doesNotMatch(source,/DELETE FROM xtra_customer_care/);
+  assert.match(router,/command\?\.name==="customerapp"/);
+  assert.match(router,/telegram-mini-app\.html\?view=customers/);
+  assert.match(router,/Không có chức năng xóa khách hàng/);
+  assert.match(ui,/Chăm sóc khách hàng/);
+  assert.match(ui,/AI cập nhật tóm tắt/);
+  assert.match(ui,/Lịch sử tương tác/);
+  assert.match(ui,/Audit chăm sóc/);
+  assert.doesNotMatch(ui,/Xóa khách|DELETE khách/);
+  assert.match(migration,/customer_id TEXT PRIMARY KEY/);
+  assert.match(migration,/FOREIGN KEY \(customer_id\) REFERENCES xtra_memory_customers/);
+});
