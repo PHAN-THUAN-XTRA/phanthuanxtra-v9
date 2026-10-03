@@ -267,12 +267,12 @@ test('production gate: Green Energy 3D PV ESS visual uses R2 WebP asset', () => 
 });
 
 
-test('production gate: Green Energy 3D production delivery gate checks WebP response', () => {
+test('production gate: homepage Green Energy production delivery gate checks PNG response', () => {
   const workflow = fs.readFileSync(new URL('../.github/workflows/production-asset-gate.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /media\/editorial\/green-energy\/green-energy-pv-ess-3d\.webp/);
+  assert.match(workflow, /media\/editorial\/green-energy\/wide_clean_modern_promotional_banner_hero_image\.png/);
   assert.match(workflow, /visual_status/);
-  assert.match(workflow, /content-type:\[\[:space:\]\]\*image\/webp/);
-  assert.match(workflow, /Green Energy 3D WebP delivery PASS/);
+  assert.match(workflow, /content-type:\[\[:space:\]\]\*image\/png/);
+  assert.match(workflow, /Green Energy homepage PNG delivery PASS/);
   const page = fs.readFileSync(new URL('../public/green-energy.html', import.meta.url), 'utf8');
   assert.doesNotMatch(page, /\\\\n\s+\.energy-visual/);
 });
