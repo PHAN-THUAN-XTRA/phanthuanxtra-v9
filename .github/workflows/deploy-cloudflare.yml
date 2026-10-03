@@ -12,6 +12,7 @@ on:
       - main
     paths-ignore:
       - "docs/**"
+      - "research/**"
       - "AUDIT_*.md"
       - "backup/README.md"
       - "**/*.md"
