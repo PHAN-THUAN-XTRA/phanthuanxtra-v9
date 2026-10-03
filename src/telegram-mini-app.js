@@ -149,7 +149,8 @@ async function summarizeCustomer(env,id){
   }
   await env.DB.prepare(`INSERT INTO xtra_customer_care(customer_id,ai_summary,updated_by,updated_at) VALUES (?,?,'ai-customer-agent',CURRENT_TIMESTAMP)
     ON CONFLICT(customer_id) DO UPDATE SET ai_summary=excluded.ai_summary,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP`).bind(id,summary).run();
-  await env.DB.prepare("INSERT INTO xtra_customer_care_audit(customer_id,actor,action,summary) VALUES (?,'ai-customer-agent','summary_update',?)").bind(id,clean(`model=${model}; ${summary}`,500)).run();
+  const auditSummary=clean("model="+model+"; "+summary,500);
+  await env.DB.prepare("INSERT INTO xtra_customer_care_audit(customer_id,actor,action,summary) VALUES (?,'ai-customer-agent','summary_update',?)").bind(id,auditSummary).run();
   return json({ok:true,customer_id:id,summary,model});
 }
 
