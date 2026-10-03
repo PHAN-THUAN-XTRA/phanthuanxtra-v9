@@ -1,5 +1,19 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0 TELEGRAM AI CUSTOMER CARE AGENT — PRODUCTION GREEN — 2026-10-03 (UTC+7)
+- PR #724 merged at `f612d64feaabbff61282aa5d3d4091f79b44c650`.
+- Existing **@phanthuanxtra_auto_bot** now supports `/customerapp` in owner-authorized private chat and opens the existing Telegram Mini App directly in the **Khách hàng** view.
+- Customer identity remains canonical in XTRA Memory Brain (`xtra_memory_customers`, identities, facts, episodes and lead links). No parallel customer identity database or second bot was introduced.
+- Migration `0028_xtra_customer_care.sql` adds only 1:1 care state + audit: care status, owner note, follow-up timestamp, AI summary, actor and audit history.
+- Care statuses: `new → contacting → consulting → appointment → follow_up → won/lost`.
+- Mini App supports customer search/list, customer detail, Memory facts, interaction timeline, linked leads, care state/note/follow-up updates, AI summary and care audit.
+- Security: Telegram signed `initData` + owner allowlist remain mandatory; customer API has **no DELETE route/action**. Human mutations use actor `telegram-customer-mini-app`; summary writes use `ai-customer-agent`.
+- AI summary is evidence-bounded and has deterministic fallback. At deploy time the Workers AI REST probe reported free allocation exhausted (HTTP 429), so production remains operational without paid AI or fabricated data.
+- Exact-lineage deploy `37098454564`: D1 migration 0028 applied; Cloudflare API/SDK deployment assigned 100% traffic to version `3592f747-718a-42e7-acc9-f27d1101fd13`; Wrangler production path **NOT USED**.
+- Exact-lineage post-deploy gates on `f612d64...`: CI, Stage 3 Production Reconciliation, Production Smoke Gate-15, Production Asset Delivery Gate, QUEUE-01 Production E2E Origin, Blog CMS Production E2E, Business Jets CRM Production E2E, App Assistant Production E2E, App Sentiment Production E2E, Homepage Canonical Verify, Admin Redirect Verify, Live Chat AI Identity Verify and Cloudflare Machine Inventory Audit all **SUCCESS**.
+- Remaining acceptance is owner UX observation on S21 only: send `/customerapp`, open **Mở khách hàng**, confirm list/detail rendering. This is not a code/deploy blocker and requires no production mutation.
+
+
 ## 0.0 FINAL CANONICAL OPERATIONS RECONCILIATION — 2026-10-03 (UTC+7)
 - Canonical source baseline for this reconciliation: `500152aa5cfdf95ca7ba9d7fcb7a6486754cd8b0` (PR #722 merged). Newer merged documentation-only lineage supersedes the older `b188d7e...` status header without invalidating its production E2E evidence.
 - Owner operations acceptance is **PASS**: **Samsung Galaxy S21 Ultra → Telegram → Termux → browser**. Telegram vehicle operations use **@phanthuanxtra_auto_bot**; owner confirmed `/carapp` works on the S21 Ultra.
