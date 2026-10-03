@@ -31,6 +31,6 @@
 # Telegram Mini App must be embeddable by Telegram Web/Desktop.
 # This path-specific block overrides the global DENY only for the Mini App.
 /telegram-mini-app.html
-  X-Frame-Options:
+  ! X-Frame-Options
   Content-Security-Policy: frame-ancestors https://web.telegram.org https://*.telegram.org
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
