@@ -312,6 +312,12 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  if(command?.name==="carapp"){
+    if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"Chat này chưa được cấp quyền mở quản lý xe."});return;}
+    if(message?.chat?.type&&message.chat.type!=="private"){await tg(token,"sendMessage",{chat_id:chatId,text:"Mini App quản lý xe chỉ mở trong chat riêng với bot."});return;}
+    await tg(token,"sendMessage",{chat_id:chatId,text:"🚘 PHAN THUẦN XTRA — QUẢN LÝ XE\nXem, tìm kiếm và cập nhật trạng thái xe. Không có chức năng xóa.",reply_markup:{inline_keyboard:[[{text:"Mở quản lý xe",web_app:{url:"https://phanthuanxtra.com/telegram-mini-app.html"}}]]}});
+    return;
+  }
   const carAdd605=/^\/caradd\s+605\s*$/i.test(caption);
   if(carAdd605){
     try{const sessionKey=await openTg605GalleryRepair(env,chatId,message.message_id);await tg(token,"sendMessage",{chat_id:chatId,text:`🛠 TG-605 GALLERY REPAIR ĐÃ MỞ\\n📦 ${sessionKey}\\nGửi đúng 16 ảnh Defender gốc. Không /carnew, không /carpublish 605. Gallery chỉ thay khi đủ 16 ảnh.`});}
@@ -411,7 +417,7 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     return;
   }
   if (["start", "help"].includes(command?.name)) {
-    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\n/carnew — mở Vehicle Session SẠCH; không thu hồi ảnh pending cũ.\n/carcancel — hủy session đang mở và tháo các pending rows khỏi session.\n/carfinish — chốt ảnh + bài viết gửi sau /carnew và tạo draft.\n/caradd 444 — repair-only: bổ sung đúng 1 ảnh side-profile còn thiếu cho tg-444.\\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
+    await tg(token, "sendMessage", { chat_id: chatId, text: "PHAN THUẦN XTRA AUTO\n/chat <câu hỏi> — tư vấn xe\nẢnh + /blog <ghi chú> — AI phân tích và đăng Blog (chat được cấp quyền)\n/blog <tiêu đề>\\n<nội dung> — đăng bài đã soạn\n/carapp — mở Telegram Mini App quản lý xe.\n/carnew — mở Vehicle Session SẠCH; không thu hồi ảnh pending cũ.\n/carcancel — hủy session đang mở và tháo các pending rows khỏi session.\n/carfinish — chốt ảnh + bài viết gửi sau /carnew và tạo draft.\n/caradd 444 — repair-only: bổ sung đúng 1 ảnh side-profile còn thiếu cho tg-444.\\nẢnh + thông tin xe — tạo draft AVIF/WebP trên R2; không tự đăng.\n/carreview <Inbox ID>\\n<nội dung đã duyệt> — lưu bản biên tập ChatGPT/chủ xe đã duyệt.\n/carpreview <Inbox ID> — xem tiêu đề, thông số, mô tả, ảnh và trạng thái AI.\n/carpublish <Inbox ID> — chỉ đăng sau khi preview." + EDITORIAL_HELP });
     return;
   }
   if (["blog", "news"].includes(command?.name)) {

@@ -19,6 +19,7 @@ import { reconcileSeo } from "./seo-ai.js";
 import { consumeTelegramVehicleDraftJobs, reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
 import { consumeMemoryJobs } from "./customer-memory.js";
 import { handleVideosPage } from "./videos-page.js";
+import { handleTelegramMiniAppApi } from "./telegram-mini-app.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
 
@@ -117,6 +118,8 @@ export default {
       if (appAdminResponse) return appAdminResponse;
       const appApiResponse = await handleAppApi(request, env);
       if (appApiResponse) return appApiResponse;
+      const telegramMiniAppResponse = await handleTelegramMiniAppApi(request, env);
+      if (telegramMiniAppResponse) return telegramMiniAppResponse;
       const vipTelegramResponse = await handleVipTelegram(request, env);
       if (vipTelegramResponse) return vipTelegramResponse;
       const lookupTelegramResponse = await handleTelegramLookup(request, env);
