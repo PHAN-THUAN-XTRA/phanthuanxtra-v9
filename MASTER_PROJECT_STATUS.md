@@ -1,5 +1,24 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## 0.0G REMAINING-WORK RECONCILIATION — 2026-10-03 18:58 (UTC+7)
+
+Latest checkpoint distinguishes completed virtual/release work from evidence that still requires real operation.
+
+- **Backup cleanup CLOSED:** PR #745 merged as `aabac2ad307c3933c0b161b41c52371800a61da4`; exact-merge CI **37115210006**, deployment **37115210027**, and all twelve post-deploy verifiers succeeded. One-shot trigger/marker removed; daily 07:00 UTC+7 and manual backups preserved. Telegram receipts and independent Gate 14 restore remain recorded in 0.0F.
+- **Fresh read-only infrastructure check PASS:** Cloudflare inventory run **37115272197**, rerun job **111197851659**, at **18:58:30 UTC+7**, artifact **11273159005**, contract CF-MACHINE-010. Mutations=0; binding redaction PASS. D1 inventory: luxury-ui-db, chatbot-db, phanthuanxtra-db; R2: ai-pt-xtra-apk, phanthuanxtra-images, phanthuanxtra-media. All four vehicle/memory queues and DLQs reported backlog=0. This observation does not prove export of queue or auxiliary database/storage data.
+- **Offline runner revalidated PASS** on current main: generate → draft → schedule → done; lost response reconciled; same artifact replay; one simulated call, zero real AI calls, one private draft/proposal and **zero pending publication jobs**.
+- **Real AI readiness BLOCKED_BY_QUOTA:** latest recorded provider probe in deploy job **111180658575**, **17:05:45 UTC+7**, returned HTTP 429 / Cloudflare **4006**, daily free allocation 10,000 neurons exhausted. No later successful provider probe is claimed. CONTENT_RUNNER_LIVE_ENABLED remains 0; no billing upgrade, budget change, live enablement or public publish was performed.
+- Added **docs/remaining-acceptance.md** with exact S21 observations, real-customer evidence sequence, quota/live-run prerequisites, bounded limits, reconciliation and rollback, plus explicit backup-scope gaps. The checklist is prepared, not fabricated acceptance evidence.
+
+| Remaining item | Current state | Required completion evidence |
+| --- | --- | --- |
+| S21 Content Review and Customer Care proposal/delete controls | OPEN — physical device evidence unavailable | Owner observes actual device/session, including cancel-delete; records masked screenshots/video and results |
+| Genuine Customer Care E2E | OPEN — no verified real interaction supplied | Genuine interaction → linked customer/lead → Memory Brain → proposal → owner decision/follow-up → audit |
+| Real content AI readiness/live bounded run | BLOCKED_BY_QUOTA at latest probe; live off | Fresh successful provider probe, separately reviewed configuration and one bounded private run; zero publication jobs |
+| Auxiliary D1/R2, KV/DO and secret recovery coverage | OUTSIDE current verified backup scope | Component-specific exports, secure credential recovery and independent restore evidence; no whole-account completeness claim |
+
+No code/CI/deployment blocker remains in the delivered virtual scope. Native APK distribution, Headroom shadow and Memory Brain 2 remain optional tracks rather than prerequisites for this release. Historical TODOs below do not reopen items superseded by newer verified checkpoints.
+
 ## 0.0F OWNER TELEGRAM BACKUP — DELIVERY AND RESTORE VERIFIED — 2026-10-03 (UTC+7)
 
 - Owner-authorized immediate backup completed at 16:59 UTC+7. **Full System Backup 37114688475**, job **111179092047**, source **`9a37cdf93fb97605864334f3ad4a61c40bc4f469`** (PR **#744**) succeeded. Telegram destination was verified as the configured owner's private chat before collection and after every send.
