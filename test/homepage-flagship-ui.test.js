@@ -11,9 +11,9 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/Vượt trên<br><em>xa xỉ\.<\/em>/);
   assert.match(html,/hero-carousel/);
   for (const sector of ['auto','yacht','jet','energy']) assert.match(html,new RegExp(`id="hero-slide-${sector}"`));
-  assert.match(html,/data-srcset="\\/media\\/editorial\\/business-jets\\/green-energy-home-hero\\.avif"/);
-  assert.match(html,/data-srcset="\\/media\\/editorial\\/business-jets\\/green-energy-home-hero\\.webp"/);
-  assert.match(html,/data-src="\\/media\\/editorial\\/business-jets\\/green-energy-home-hero\\.webp"/);
+  assert.match(html,/data-srcset="\\/media\\/editorial\\/green-energy\\/green-energy-home-hero\\.avif"/);
+  assert.match(html,/data-srcset="\\/media\\/editorial\\/green-energy\\/green-energy-home-hero\\.webp"/);
+  assert.match(html,/data-src="\\/media\\/editorial\\/green-energy\\/green-energy-home-hero\\.webp"/);
   assert.match(html,/class="hero-slide-energy-link" href="\/green-energy"/);
   assert.doesNotMatch(html,/id="hero-slide-energy"[^]*?<div class="hero-slide-content">/);
   assert.doesNotMatch(html,/Intel_Solar_Installation_Vietnam\.jpg/);
