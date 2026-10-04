@@ -40,3 +40,31 @@ test('lookup webhook rejects GET and exposes POST contract', async () => {
   const response = await handleTelegramLookup(new Request('https://example.com/api/telegram/lookup-webhook', { method: 'GET' }), {});
   assert.equal(response, null);
 });
+
+
+test('lookup webhook fails closed when secret is missing', async () => {
+  const response = await handleTelegramLookup(new Request('https://example.com/api/telegram/lookup-webhook', { method: 'POST' }), {});
+  assert.equal(response.status, 503);
+  assert.match(await response.text(), /Webhook secret is not configured/);
+});
+
+test('lookup webhook rejects an invalid Telegram secret', async () => {
+  const response = await handleTelegramLookup(new Request('https://example.com/api/telegram/lookup-webhook', {
+    method: 'POST',
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': 'wrong' }
+  }), { TELEGRAM_LOOKUP_WEBHOOK_SECRET: 'expected' });
+  assert.equal(response.status, 401);
+});
+
+test('lookup webhook accepts the standard Telegram secret header before processing', async () => {
+  const response = await handleTelegramLookup(new Request('https://example.com/api/telegram/lookup-webhook', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'X-Telegram-Bot-Api-Secret-Token': 'expected'
+    },
+    body: JSON.stringify({})
+  }), { TELEGRAM_LOOKUP_WEBHOOK_SECRET: 'expected', DB: dbFor(null) });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, ignored: true });
+});
