@@ -1,19 +1,41 @@
 {
   "schema": 1,
-  "id": "2026-10-03-research",
-  "date": "2026-10-03",
+  "id": "2026-10-04-research",
+  "date": "2026-10-04",
   "kind": "research",
-  "summary": "Ưu tiên FREE. Đã rà soát Qwen-Image-2.1-viewpoint-orbit-LoRA theo yêu cầu: chỉ nên theo dõi/nghiên cứu, chưa tích hợp thương mại. Lịch nghiên cứu tiếp theo: 07:00 ngày mai, giờ Việt Nam.",
+  "summary": "Ba thử nghiệm FREE-first đáng giá: llama.cpp Android có attestation cho S21, Clef-flash shadow thay Jev, và dashboard Workers Observability. Qwen Viewpoint vẫn research-only; không có thay đổi license thương mại.",
   "proposals": [
     {
-      "title": "Theo dõi Qwen Viewpoint Orbit LoRA — chưa deploy",
-      "benefit": "Sinh góc nhìn RGBA từ một ảnh; có thể nghiên cứu minh họa. Chưa chứng minh bảo toàn chi tiết xe.",
-      "cost": "Có demo ZeroGPU; quota miễn phí chưa kiểm chứng. Tự chạy cần GPU, không coi là miễn phí vận hành.",
-      "risk": "License non-commercial; góc lớn có thể bịa chi tiết/logo. Không thay ảnh xe thật hoặc dùng quảng cáo khi chưa có quyền.",
-      "next_step": "Theo dõi license và demo free; thử nghiên cứu phi thương mại chỉ khi có môi trường phù hợp. Không tải/chạy hoặc upload ảnh khách tự động.",
+      "title": "Thử llama.cpp Android arm64 có attestation trên S21",
+      "benefit": "Bản upstream mới có gói Android arm64 CPU và attestation; giảm rủi ro tải binary không rõ nguồn, phù hợp preflight S21 hiện có.",
+      "cost": "Mã nguồn miễn phí; tốn pin, nhiệt, dung lượng và thời gian benchmark. Không phát sinh dịch vụ trả phí.",
+      "risk": "Release là pre-release; hiệu năng/ổn định trên đúng SoC S21 chưa đo. Gói Snapdragon không được dùng nếu máy không tương thích.",
+      "next_step": "Sau preflight thiết bị, pin tag/hash/attestation b11381; chạy 20 brief Việt không nhạy cảm, CPU-only, ghi RAM/nhiệt/pin/JSON hợp lệ.",
       "sources": [
-        "https://huggingface.co/ML-Intern-lab/Qwen-Image-2.1-viewpoint-orbit-LoRA",
-        "https://huggingface.co/ML-Intern-lab/Qwen-Image-2.1-viewpoint-orbit-LoRA/blob/main/LICENSE"
+        "https://github.com/ggml-org/llama.cpp/releases/tag/b11381",
+        "https://github.com/ggml-org/llama.cpp/blob/master/docs/android.md"
+      ]
+    },
+    {
+      "title": "Shadow-test Cloudflare Clef-flash trước khi thay Jev",
+      "benefit": "Decision model trả xác suất có cấu trúc; Apache-2.0 và tương thích System One, phù hợp routing/escalation mà không mở quyền ghi.",
+      "cost": "Weights mở; Workers AI vẫn dùng quota/chi phí inference. Free quota đang cạn nên thử chỉ khi quota reset, không nâng gói.",
+      "risk": "Benchmark do nhà cung cấp công bố; chưa có đánh giá tiếng Việt/nội bộ. Không cho model quyết định hành động có hậu quả.",
+      "next_step": "Chạy lại bộ fixture Jev ở chế độ shadow, zero-write; so accuracy/latency/cost và chỉ đề xuất đổi sau khi đạt gate độc lập.",
+      "sources": [
+        "https://developers.cloudflare.com/changelog/",
+        "https://huggingface.co/cloudflare/clef-flash"
+      ]
+    },
+    {
+      "title": "Dựng dashboard Workers Observability chi phí thấp",
+      "benefit": "Ghép lỗi, CPU/wall time, log và trace cạnh traffic/WAF để chẩn đoán production nhanh hơn bằng stack Cloudflare sẵn có.",
+      "cost": "Custom Dashboards có trên mọi account. Workers Free gồm 200.000 log/ngày, giữ 3 ngày; giá đổi từ 01-12-2026 cần rà lại.",
+      "risk": "Bật 100% sampling có thể vượt hạn mức và ghi dữ liệu nhạy cảm. Trace còn beta; không đưa payload/token/customer PII vào log.",
+      "next_step": "Thiết kế dashboard read-only; kiểm kê log hiện có, redaction và sampling 1% trước. Không bật trace/config production trong đợt nghiên cứu.",
+      "sources": [
+        "https://developers.cloudflare.com/changelog/",
+        "https://developers.cloudflare.com/workers/observability/logs/workers-logs/"
       ]
     }
   ]
