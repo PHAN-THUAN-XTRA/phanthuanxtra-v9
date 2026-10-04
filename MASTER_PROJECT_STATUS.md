@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## DEPLOYMENT OWNER ALERTS — IMPLEMENTED / ACCEPTANCE PENDING — 2026-10-04 (UTC+7)
+
+- Owner authorized immediate GitHub → Cloudflare verification and private Telegram deploy/failure alerts. Read current MASTER and confirmed open PR queue empty before editing. Baseline main `56253d8` CI 37167251986 PASS; latest runtime `91f5e44` deployment 37167067604, smoke 37167125597, asset 37167125595 and reconciliation 37167125588 PASS. Fresh public health returned `ok:true`.
+- Reuse existing backup bot secrets and the documented verified private owner, with getChat and returned message chat checks. No new service, paid subscription, Cloudflare credential, customer recipient or production content publication.
+- New Production Owner Alerts workflow reports main production deploy success/failure and failed smoke/asset/reconciliation gates. PR/fork triggers excluded; notification code checked out only from protected main. Success text explicitly distinguishes deployment from separate post-deploy gates.
+- Hourly at minute 17: bounded read-only checks of homepage UTF-8 brand, health ok, and D1 catalog JSON; two attempts per endpoint. Healthy scheduled runs are quiet; website failure alerts are capped at one per Vietnam local day. GitHub schedules can be delayed and this is not real-time monitoring. Failures remain visible in Actions even when an alert is deduplicated.
+- Receipt inventory checked before send; serialized delivery, verified Telegram acknowledgment retained 30 days. Blind reruns/resends disabled; unknown send outcome requires manual reconciliation. A crash after Telegram accepts but before artifact retention is not claimed exactly-once. Activation check sends one initial receipt when this feature lands.
+- Targeted behavior tests 8/8 PASS: event/recipient boundaries, D1/HTTP checks, retry bounds, timezone/dedup, receipt checks and uncertain send handling. Required PR CI/audit, merge, production deploy and real Telegram receipt are PENDING.
+- Codex Security plugin available but not installed/connected in ChatGPT; user account installation remains OPEN. No Codex Security scan or security certification claimed.
+
 ## AI SEARCH / GEO — PRODUCTION ACCEPTANCE PASS — 2026-10-04 (UTC+7)
 
 - Owner-requested bounded integration COMPLETE for website discoverability and offline evaluation. PRs #756 (HTML/catalog/schema), #757 (404 gate/purge), #758 (verified sitemap route repair) merged through the single queue with required exact-head checks. No automatic content generation/publication or paid plan/quota activation.
