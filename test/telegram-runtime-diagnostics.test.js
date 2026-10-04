@@ -9,10 +9,10 @@ test("Telegram visibility command emits safe dispatch diagnostics before authori
   try{
     const request=new Request("https://phanthuanxtra.com/api/telegram/webhook",{
       method:"POST",
-      headers:{"content-type":"application/json"},
+      headers:{"content-type":"application/json","X-Telegram-Bot-Api-Secret-Token":"fixture"},
       body:JSON.stringify({update_id:101,message:{message_id:202,chat:{id:303},text:"/show tg-652"}})
     });
-    const env={DB:{},TELEGRAM_WEBHOOK_SECRET:""};
+    const env={DB:{},TELEGRAM_WEBHOOK_SECRET:"fixture"};
     await handleTelegramIngest(request,env,{});
   } catch(error) {
     assert.match(String(error),/prepare|canPublish|DB/i);
