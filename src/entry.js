@@ -1,3 +1,4 @@
+import { handleAiDiscovery } from "./ai-discovery.js";
 import { handlePublishingApi } from "./publishing-api.js";
 import { handleContentPrepApi } from "./content-prep-api.js";
 import { handleContentRunnerApi } from "./content-runner-api.js";
@@ -33,6 +34,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const discoveryResponse = await handleAiDiscovery(request, env);
+      if (discoveryResponse) return discoveryResponse;
       const contentReviewResponse = await handleContentOwnerReviewAdmin(request, env);
       if (contentReviewResponse) return contentReviewResponse;
       const contentRunnerResponse = await handleContentRunnerApi(request, env);
