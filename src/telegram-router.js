@@ -508,8 +508,9 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
 
 async function autoWebhook(request, env, ctx) {
   const token = autoBotToken(env);
-  const secret = env.TELEGRAM_WEBHOOK_SECRET;
-  if (secret && request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret && request.headers.get("X-Telegram-Webhook-Secret") !== secret) return json({ error: "Unauthorized" }, 401);
+  const secret = clean(env.TELEGRAM_WEBHOOK_SECRET);
+  if (!secret) return json({ error: "Webhook secret is not configured" }, 503);
+  if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret && request.headers.get("X-Telegram-Webhook-Secret") !== secret) return json({ error: "Unauthorized" }, 401);
   const update = await request.json().catch(() => null);
   const message = update?.message || update?.channel_post;
   if (!message?.chat?.id) return json({ ok: true, ignored: true });
@@ -547,8 +548,9 @@ export async function getAutoTelegramWebhookStatus(env, expectedUrl = AUTO_WEBHO
 
 export async function setAutoTelegramWebhook(env, webhookUrl = AUTO_WEBHOOK_URL) {
   const token = autoBotToken(env);
-  const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post"] };
-  if (env.TELEGRAM_WEBHOOK_SECRET) payload.secret_token = env.TELEGRAM_WEBHOOK_SECRET;
+  const secret = clean(env.TELEGRAM_WEBHOOK_SECRET);
+  if (!secret) throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");
+  const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post"], secret_token: secret };
   return tg(token, "setWebhook", payload);
 }
 
