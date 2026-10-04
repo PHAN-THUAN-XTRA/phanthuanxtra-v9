@@ -167,7 +167,7 @@ jobs:
           CF_ZONE_ID: ${{ env.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
-          payload='{"files":["https://phanthuanxtra.com/","https://phanthuanxtra.com/admin.html","https://phanthuanxtra.com/phan-thuan","https://phanthuanxtra.com/green-energy","https://phanthuanxtra.com/yachts","https://phanthuanxtra.com/business-jets"]}'
+          payload='{"files":["https://phanthuanxtra.com/","https://phanthuanxtra.com/admin.html","https://phanthuanxtra.com/cars","https://phanthuanxtra.com/sitemap.xml","https://phanthuanxtra.com/phan-thuan","https://phanthuanxtra.com/green-energy","https://phanthuanxtra.com/yachts","https://phanthuanxtra.com/business-jets"]}'
           purged=0
           for candidate in "${CF_PURGE_TOKEN:-}" "${CF_PURGE_BACKUP_TOKEN:-}"; do
             if [ -z "$candidate" ]; then continue; fi

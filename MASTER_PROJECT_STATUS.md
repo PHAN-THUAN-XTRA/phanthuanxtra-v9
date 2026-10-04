@@ -1,5 +1,12 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## AI SEARCH / GEO — DEPLOYED / ASSET-GATE FOLLOW-UP — 2026-10-04 (UTC+7)
+
+- PR #756 merged as e3de40b457a47f3ede5152d5f9f3a625e7794c6d. Exact head bdf9bab... passed CI / Validate 37166270898 and AI Pre-Deploy Audit / Validate 37166270813. Exact-merge CI 37166322690 and Deploy Cloudflare Worker 37166322704 PASS, including public/UTF-8/R2/publishing lifecycle.
+- Live /cars renders six current D1 cars; cache-busted /sitemap.xml includes the same six canonical vehicle URLs plus three published blog URLs. Origin response is no-store. Plain URL retrieval showed an older sitemap, so existing targeted deployment cache purge now also includes /cars and /sitemap.xml; no resource/budget changes.
+- Production Asset Delivery Gate 37166385544 failed because its old missing-car assertion demanded HTTP 200 and a loading shell. New intended missing-car response is 404/noindex. Follow-up replaces that stale expectation with explicit 404/noindex/Vietnamese missing message and keeps all Admin, homepage and media checks; adds catalog/sitemap smoke checks. This is not a weakened gate or a runtime rollback.
+- Status: GEO runtime deployed; follow-up exact-head required checks, updated production asset gate and full live price/schema acceptance PENDING. External search indexing/citation metrics remain OPEN. Existing AI_SEARCH-backed chat is retained without model, retriever, billing or quota changes.
+
 ## AI SEARCH / GEO — IMPLEMENTATION READY — 2026-10-04 (UTC+7)
 
 - Owner requested AI Search/GEO and suitable free tools from the attached ecosystem diagrams. Current main MASTER was read first; single PR queue was empty. Scope is website discoverability and deterministic offline testing, not autonomous marketing publication or paid AI activation.
