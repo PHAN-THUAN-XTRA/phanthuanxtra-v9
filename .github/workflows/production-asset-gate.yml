@@ -48,7 +48,17 @@ jobs:
           done
           test "$(grep -Foc '</main>' "$home")" = "1"
           test "$(grep -Foc '</html>' "$home")" = "1"
-          check_asset "/car.html?id=__p4_missing__" "vehicleDetail"
+          # Missing vehicles must be a real 404 (no empty indexable loading shell).
+          missing_body="$(mktemp)"
+          missing_headers="$(mktemp)"
+          missing_status="$(curl --silent --show-error --retry 3 --max-time 20 \
+            -D "$missing_headers" -o "$missing_body" -w '%{http_code}' \
+            "$SITE_URL/car.html?id=__p4_missing__")"
+          test "$missing_status" = "404"
+          grep -Eiq '^x-robots-tag:[[:space:]]*noindex' "$missing_headers"
+          grep -Fq "Không tìm thấy xe" "$missing_body"
+          check_asset "/cars" "Kho xe"
+          check_asset "/sitemap.xml" "urlset"
 
           # Homepage Green Energy hero AVIF + WebP must be publicly deliverable through the Worker.
           check_image() {
