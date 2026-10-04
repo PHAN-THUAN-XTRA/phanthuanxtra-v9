@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## DAILY RESEARCH — REPORT READY / TELEGRAM PENDING — 2026-10-04 (UTC+7)
+
+- Đã đọc bản MASTER mới nhất trên main và bản Library cùng danh tính trước khi nghiên cứu. Báo cáo công khai an toàn `2026-10-04-research` chỉ chứa đề xuất; không có dữ liệu khách, token hoặc bí mật.
+- Chọn ba thử nghiệm FREE-first: llama.cpp Android arm64 upstream có attestation cho pilot S21; Cloudflare Clef-flash Apache-2.0 để shadow-test trên fixture Jev; Workers Observability Custom Dashboard với redaction và sampling thấp. Đây là đề xuất thử, không cấp quyền cài đặt, mở quota, đổi budget, thay config production hoặc public publish.
+- llama.cpp release `b11381` ngày 2026-10-03 là pre-release, cung cấp asset Android arm64 CPU và attestation upstream. Chỉ thử sau khi owner chạy preflight thật; không suy diễn hiệu năng, SoC/GPU/NPU hoặc pin/nhiệt trước khi đo.
+- Clef/Clef-flash được Cloudflare công bố 2026-10-01, weights Apache-2.0 và API có cấu trúc tương thích System One. Benchmark công bố là của nhà cung cấp; Workers AI hiện có blocker free-quota nên chỉ shadow-test zero-write khi quota reset, không tự nâng gói.
+- Workers Observability đã hỗ trợ log/trace trong Custom Dashboards. Workers Logs Free hiện nêu 200.000 events/ngày, retention 3 ngày; chính sách giá dự kiến đổi từ 2026-12-01. Bất kỳ pilot sau này phải redaction, không log payload/token/PII, sampling khởi đầu 1% và owner review.
+- Qwen-Image-2.1 và Viewpoint Orbit LoRA: kiểm tra ngày 2026-10-04 không thấy thay đổi license đủ mở đường thương mại; vẫn **WATCH / NON-COMMERCIAL RESEARCH ONLY**. Không xem góc sinh ra là bằng chứng hình dáng xe và không dùng cho media marketing.
+- Pi Durable/PiHarness mới ở beta và Web Search API tính theo giá provider; không được đưa vào proposals hôm nay vì trùng lặp với queue/idempotency hiện có hoặc không đáp ứng ưu tiên free.
+- Nguồn chính thức: https://github.com/ggml-org/llama.cpp/releases/tag/b11381 ; https://developers.cloudflare.com/changelog/ ; https://developers.cloudflare.com/workers/observability/logs/workers-logs/ ; https://huggingface.co/Qwen/Qwen-Image-2.1/blame/main/LICENSE .
+- Delivery state: **PENDING**. Chỉ được ghi Telegram SUCCESS sau khi PR merge, workflow `Telegram Upgrade Report` trả đúng report_id và receipt xác nhận owner_verified + message_id.
+
 ## S21 ULTRA LOCAL AGENT — DEEP RESEARCH / DEVICE PREFLIGHT READY — 2026-10-03 (UTC+7)
 
 Đã đọc MASTER phiên bản 37 và đối chiếu mã nguồn trên main `d8d492205fdccee773b4eea711d94b00b65a8c69` trước khi thực hiện. Mục tiêu owner: phát triển agent ngay trên S21 Ultra, kết nối PHAN THUẦN XTRA, ưu tiên miễn phí. **Kết luận nghiên cứu: khả thi cho agent văn bản nhỏ chạy theo yêu cầu; chọn mô hình kết hợp điện thoại + API hiện có. Chưa có quyền điều khiển trực tiếp hoặc benchmark trên điện thoại thật.**
