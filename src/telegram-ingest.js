@@ -137,7 +137,7 @@ export async function handleTelegramIngest(request,env,ctx){
     if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); if(!(await authorized(request,env)))return json({error:"Unauthorized"},401,{"WWW-Authenticate":"Bearer"});
     try{const result=await setTelegramWebhook(env,`${url.origin}/api/telegram/webhook`); return json({ok:true,webhook:result});}catch(error){console.error("telegram_webhook_setup_failed",String(error?.message||error));return json({ok:false,error:"Telegram setWebhook failed",detail:clean(error?.message||error)||"Unknown Telegram error"},502);}
   }
-  if(url.pathname!=="/api/telegram/webhook")return null; if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); const secret=env.TELEGRAM_WEBHOOK_SECRET; if(secret&&request.headers.get("X-Telegram-Bot-Api-Secret-Token")!==secret)return json({error:"Unauthorized"},401); const update=await request.json().catch(()=>null); const message=update?.message||update?.channel_post||null; if(!message)return json({ok:true,ignored:true}); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500); const photo=pickPhoto(message); const caption=clean(message.caption||message.text); if(!photo&&!caption)return json({ok:true,ignored:true});
+  if(url.pathname!=="/api/telegram/webhook")return null; if(request.method!=="POST")return json({error:"Method Not Allowed"},405,{Allow:"POST"}); const secret=clean(env.TELEGRAM_WEBHOOK_SECRET); if(!secret)return json({error:"Webhook secret is not configured"},503); if(request.headers.get("X-Telegram-Bot-Api-Secret-Token")!==secret)return json({error:"Unauthorized"},401); const update=await request.json().catch(()=>null); const message=update?.message||update?.channel_post||null; if(!message)return json({ok:true,ignored:true}); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},500); const photo=pickPhoto(message); const caption=clean(message.caption||message.text); if(!photo&&!caption)return json({ok:true,ignored:true});
   const chatId=String(message.chat?.id||"");
   console.log("telegram_webhook_dispatch",JSON.stringify({handler:"telegram-ingest",version:"visibility-v1",update_id:update?.update_id??null,chat_id:chatId||null,message_id:message.message_id??null,kind:message.text?"text":message.caption?"caption":photo?"photo":"other",has_command:/^\s*\//.test(caption)}));
   const visibilityCommand=/^(?:\/(hide|show)(?:@\w+)?|(ẩn|an|hiện|hien)\s+xe)\s+([a-z0-9][a-z0-9_-]{2,80})\s*$/iu.exec(caption);
@@ -173,6 +173,6 @@ export async function handleTelegramIngest(request,env,ctx){
   return json({ok:true,received:true,source_hash:sourceHash,inbox_id:inbox?.id||null,queued:Boolean(photo&&ctx)});
 }
 
-export async function setTelegramWebhook(env,webhookUrl){const payload={url:webhookUrl,allowed_updates:["message","channel_post"]};if(env.TELEGRAM_WEBHOOK_SECRET)payload.secret_token=env.TELEGRAM_WEBHOOK_SECRET;return tg(env,"setWebhook",payload);}
+export async function setTelegramWebhook(env,webhookUrl){const secret=clean(env.TELEGRAM_WEBHOOK_SECRET);if(!secret)throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");const payload={url:webhookUrl,allowed_updates:["message","channel_post"],secret_token:secret};return tg(env,"setWebhook",payload);}
 
 export { canAutoPublish, promoteDraft };
