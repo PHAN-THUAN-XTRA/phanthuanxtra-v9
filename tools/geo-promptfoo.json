@@ -1,0 +1,66 @@
+{
+  "description": "PHAN THUAN XTRA GEO: offline retrieval/visibility contract, no LLM",
+  "prompts": [
+    "{{route}}"
+  ],
+  "providers": [
+    "file://geo-provider.mjs"
+  ],
+  "tests": [
+    {
+      "vars": {
+        "route": "/car?id=tg-test"
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "value": "(()=>{const r=JSON.parse(output); return r.status===200 && r.body.includes('<h1>LEXUS RX350L</h1>') && r.body.includes('application/ld+json') && !r.body.includes('Đang tải thông tin');})()"
+        }
+      ]
+    },
+    {
+      "vars": {
+        "route": "/car?id=tg-hidden"
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "value": "(()=>{return JSON.parse(output).status===404;})()"
+        }
+      ]
+    },
+    {
+      "vars": {
+        "route": "/car?id=tg-draft"
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "value": "(()=>{return JSON.parse(output).status===404;})()"
+        }
+      ]
+    },
+    {
+      "vars": {
+        "route": "/cars"
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "value": "(()=>{const r=JSON.parse(output); return r.status===200 && r.body.includes('tg-test') && !r.body.includes('tg-hidden') && !r.body.includes('tg-draft');})()"
+        }
+      ]
+    },
+    {
+      "vars": {
+        "route": "/sitemap.xml"
+      },
+      "assert": [
+        {
+          "type": "javascript",
+          "value": "(()=>{const r=JSON.parse(output); return r.status===200 && r.body.includes('public-post') && !r.body.includes('private-post') && !r.body.includes('tg-hidden');})()"
+        }
+      ]
+    }
+  ]
+}
