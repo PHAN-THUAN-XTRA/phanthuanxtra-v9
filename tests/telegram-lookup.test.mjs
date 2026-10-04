@@ -68,3 +68,33 @@ test('lookup webhook accepts the standard Telegram secret header before processi
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true, ignored: true });
 });
+
+
+test('duplicate lookup delivery is read-only and does not mutate inventory', async () => {
+  let writes = 0;
+  const db = dbFor(null);
+  const originalPrepare = db.prepare;
+  db.prepare = function(sql) {
+    assert.doesNotMatch(sql, /\b(?:INSERT|UPDATE|DELETE|REPLACE)\b/i);
+    writes += /\b(?:INSERT|UPDATE|DELETE|REPLACE)\b/i.test(sql) ? 1 : 0;
+    return originalPrepare.call(this, sql);
+  };
+  const makeRequest = () => new Request('https://example.com/api/telegram/lookup-webhook', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'X-Telegram-Bot-Api-Secret-Token': 'fixture'
+    },
+    body: JSON.stringify({ update_id: 42, message: { message_id: 7, chat: { id: 99 }, text: 'missing-car' } })
+  });
+  const env = { TELEGRAM_LOOKUP_WEBHOOK_SECRET: 'fixture', TELEGRAM_LOOKUP_BOT_TOKEN: 'fixture', DB: db };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: true, result: {} }), { status: 200, headers: { 'content-type': 'application/json' } });
+  try {
+    assert.equal((await handleTelegramLookup(makeRequest(), env)).status, 200);
+    assert.equal((await handleTelegramLookup(makeRequest(), env)).status, 200);
+    assert.equal(writes, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
