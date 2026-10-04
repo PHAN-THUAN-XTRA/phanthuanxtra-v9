@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## DEPLOYMENT OWNER ALERTS — PRODUCTION VERIFIED — 2026-10-04 13:10 (UTC+7)
+
+- Owner-authorized integration PR #760 merged as `26491e8a147c44ac1d243b6d78974a43f03166a5` after exact-head CI 37181862489 and AI Pre-Deploy Audit 37181862439 PASS. Local suites: 323 canonical, 250 predeploy, including 8 new alert behavior tests, all PASS.
+- Exact-merge CI 37181899282 and Cloudflare deployment 37181899292 PASS. Deployment log confirms API-created version `f6017816-5ea5-49d3-b068-8d9ea8f80ec9`, deployment `0d630150-71f1-4c3d-8b76-9494f8f8e033`, 100% traffic. Existing GitHub → Cloudflare API/SDK path verified; no additional hosting/app or credential connection required for this work.
+- Activation workflow 37181899289 PASS: receipt artifact 11295312452 matches source SHA and verified private owner, Telegram message **217**. Public health artifact 11295765843 records homepage, health and D1 catalog checks PASS.
+- Real deployment-result workflow 37181963400 PASS: receipt artifact 11296035004 `owner-alert-workflow-37181899292-1`, verified owner and Telegram message **218**. Both acknowledgment ZIPs were downloaded and inspected; this is actual delivery evidence, not a simulated send.
+- Exact-code smoke 37181963391, asset 37181963413, reconciliation 37181963405, queue 37181963432, blog CMS 37181963480, Cloudflare inventory 37181963483, homepage 37181963388, admin redirect 37181963471, app assistant 37181963401, app sentiment 37181963469 and business-jets CRM 37181963474 PASS. Gate-success alert runs remain silent.
+- Hourly checks at minute 17 are configured on main, with silent healthy checks and at most one site-failure notice per Vietnam day. Future scheduled execution is not yet claimed. Failure paths verified with synthetic tests; production was not deliberately broken. Receipt/crash limitations and no-blind-resend policy remain as documented below.
+- Remaining user action: install/connect Codex Security in ChatGPT. Catalog confirmed uninstalled; no scan has run and no paid plan was activated. This checkpoint supersedes feature implementation/deploy/delivery PENDING below.
+
 ## DEPLOYMENT OWNER ALERTS — IMPLEMENTED / ACCEPTANCE PENDING — 2026-10-04 (UTC+7)
 
 - Owner authorized immediate GitHub → Cloudflare verification and private Telegram deploy/failure alerts. Read current MASTER and confirmed open PR queue empty before editing. Baseline main `56253d8` CI 37167251986 PASS; latest runtime `91f5e44` deployment 37167067604, smoke 37167125597, asset 37167125595 and reconciliation 37167125588 PASS. Fresh public health returned `ok:true`.
