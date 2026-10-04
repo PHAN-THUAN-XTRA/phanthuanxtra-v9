@@ -84,14 +84,17 @@ jobs:
 
       - name: Executor summary
         if: always()
+        env:
+          TASK_ID: ${{ inputs.task_id }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
         run: |
           {
             echo '# AI Unified Executor'
             echo
             echo 'logical_agent=xtra-unified-ai'
             echo 'inference_engine=cloudflare-workers-ai'
-            echo "task_id=${{ inputs.task_id }}"
-            echo "base_branch=${{ inputs.base_branch }}"
+            printf 'task_id=%s\n' "$TASK_ID"
+            printf 'base_branch=%s\n' "$BASE_BRANCH"
             echo '- Single execution queue: **enabled**'
             echo '- Independent peer API calls: **0**'
             echo '- Repository writes: **none**'

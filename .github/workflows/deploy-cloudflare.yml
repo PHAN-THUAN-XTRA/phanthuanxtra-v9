@@ -219,6 +219,8 @@ jobs:
           grep -Fq '.container' /tmp/style.css
           test "$(wc -c < /tmp/style.css)" -gt 10000
           echo "Homepage stylesheet delivery: HTTP 200; text/css; expected luxury layout selectors present."
+      - name: Verify public authentication input boundaries
+        run: node scripts/verify-auth-boundary-production.mjs
       - name: Verify editorial production UTF-8
         run: node scripts/verify-editorial-production.mjs
       - name: Verify Admin UTF-8 asset delivery
