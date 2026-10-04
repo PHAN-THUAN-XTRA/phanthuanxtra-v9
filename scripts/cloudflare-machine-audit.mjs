@@ -432,6 +432,7 @@ report.resources.production_worker_deployments=result(`/accounts/${accountId}/wo
 const prodBindings=bindingInventory(report.resources.production_worker_settings);
 const allWorkers=workerList.map(w=>w.id).filter(Boolean);
 const managedRoutePatterns=[
+  "phanthuanxtra.com/sitemap.xml",
   "phanthuanxtra.com/",
   "phanthuanxtra.com/home",
   "phanthuanxtra.com/home/",

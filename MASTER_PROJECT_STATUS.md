@@ -1,5 +1,12 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## GEO SITEMAP ROUTE — ROOT CAUSE VERIFIED / REPAIR PENDING — 2026-10-04 (UTC+7)
+
+- PR #757 merged as 4f79fb61dfbecc0c527ff773ba8ecbe0fd3a58c2 after required CI 37166579638 and AI audit 37166579660 PASS. Exact-merge CI 37166628215, deployment 37166628176, asset gate 37166700290 and all eleven post-deploy reconciliation/smoke/identity/CMS/queue/CRM checks PASS. Six-car live HTML/canonical/price/gallery checks and hidden tg-652 404 PASS.
+- Earlier cache diagnosis is superseded by machine evidence: read-only Cloudflare audit run 37166700319, artifact 11289638692, confirms exact route phanthuanxtra.com/sitemap.xml belongs to phanthuanxtra-backup, overriding primary wildcard. Bare URL therefore served legacy invented/category URLs with max-age=3600 while query URL reached primary current public-only sitemap. Cache purge alone could not fix route ownership.
+- Bounded repair: add only that known public sitemap exact route to existing primary deployment reconciliation; no route deletion, Worker removal, backup cron/binding change, robots policy change or unrelated route takeover. Read-only audit's managed-route list follows the controller. Production gate now requires the bare sitemap's no-store header and canonical catalog loc, preventing another legacy-route false pass.
+- Status: exact-head required checks, deployment route-update evidence and plain-URL live acceptance PENDING. Do not claim sitemap/GEO fully complete until this boundary passes. No paid AI activation or duplicate daily Telegram delivery.
+
 ## AI SEARCH / GEO — DEPLOYED / ASSET-GATE FOLLOW-UP — 2026-10-04 (UTC+7)
 
 - PR #756 merged as e3de40b457a47f3ede5152d5f9f3a625e7794c6d. Exact head bdf9bab... passed CI / Validate 37166270898 and AI Pre-Deploy Audit / Validate 37166270813. Exact-merge CI 37166322690 and Deploy Cloudflare Worker 37166322704 PASS, including public/UTF-8/R2/publishing lifecycle.

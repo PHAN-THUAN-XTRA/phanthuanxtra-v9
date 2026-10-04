@@ -58,7 +58,13 @@ jobs:
           grep -Eiq '^x-robots-tag:[[:space:]]*noindex' "$missing_headers"
           grep -Fq "Không tìm thấy xe" "$missing_body"
           check_asset "/cars" "Kho xe"
-          check_asset "/sitemap.xml" "urlset"
+          # Bare sitemap must reach the primary Worker, not the legacy backup route.
+          sitemap_headers="$(mktemp)"
+          sitemap_body="$(mktemp)"
+          curl --silent --show-error --fail --max-time 20 \
+            -D "$sitemap_headers" -o "$sitemap_body" "$SITE_URL/sitemap.xml"
+          grep -Eiq '^cache-control:[[:space:]]*no-store' "$sitemap_headers"
+          grep -Fq '<loc>https://phanthuanxtra.com/cars</loc>' "$sitemap_body"
 
           # Homepage Green Energy hero AVIF + WebP must be publicly deliverable through the Worker.
           check_image() {

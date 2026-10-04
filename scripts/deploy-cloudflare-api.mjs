@@ -472,10 +472,10 @@ async function ensureCustomDomainRoute() {
   const wanted = "phanthuanxtra.com/*";
   const current = Array.isArray(routes) ? routes.find((route) => route?.pattern === wanted) : null;
 
-  // Explicit homepage and Blog routes outrank legacy Workers and broader routes.
+  // Explicit homepage, Blog and sitemap routes outrank legacy Workers and broader routes.
   // The Worker origin can serve Blog while the zone otherwise returns a plain
   // text 404 for these paths. Preserve all unrelated route ownership.
-  for (const pattern of ["phanthuanxtra.com/", "phanthuanxtra.com/home", "phanthuanxtra.com/home/", "phanthuanxtra.com/api/blog*", "phanthuanxtra.com/blog*", "phanthuanxtra.com/api/blog/*", "phanthuanxtra.com/blog", "phanthuanxtra.com/blog/*"]) {
+  for (const pattern of ["phanthuanxtra.com/", "phanthuanxtra.com/home", "phanthuanxtra.com/home/", "phanthuanxtra.com/api/blog*", "phanthuanxtra.com/blog*", "phanthuanxtra.com/api/blog/*", "phanthuanxtra.com/blog", "phanthuanxtra.com/blog/*", "phanthuanxtra.com/sitemap.xml"]) {
     const route = Array.isArray(routes) ? routes.find(item => item?.pattern === pattern) : null;
     if (route?.script === WORKER) continue;
     const method = route?.id ? "PUT" : "POST";
