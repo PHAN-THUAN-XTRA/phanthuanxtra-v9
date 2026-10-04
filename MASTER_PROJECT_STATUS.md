@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## TOOL / APP POLICY — FREE-FIRST — 2026-10-04 (UTC+7)
+
+- Owner decision: prioritize free applications, plugins, connectors, open-source tools and existing free quotas whenever they can satisfy the project requirement safely and reliably.
+- Do not treat a paid app, paid subscription, paid quota activation or plan upgrade as a required project action when a suitable free path exists. Any paid activation requires separate owner approval.
+- Codex Security is currently unavailable under the owner's ChatGPT Free access and is therefore DEFERRED / OPTIONAL, not a blocking remaining action. Do not keep asking the owner to install/connect or upgrade solely for Codex Security.
+- Security/review work should first use available free paths such as existing GitHub checks, repository tests/audits, free/open-source tooling and currently available ChatGPT/GitHub capabilities. Record limitations explicitly; do not claim a Codex Security scan unless one actually runs.
+- This policy supersedes earlier MASTER lines that describe Codex Security installation/connection as the remaining required user action.
+
 ## DEPLOYMENT OWNER ALERTS — PRODUCTION VERIFIED — 2026-10-04 13:10 (UTC+7)
 
 - Owner-authorized integration PR #760 merged as `26491e8a147c44ac1d243b6d78974a43f03166a5` after exact-head CI 37181862489 and AI Pre-Deploy Audit 37181862439 PASS. Local suites: 323 canonical, 250 predeploy, including 8 new alert behavior tests, all PASS.
