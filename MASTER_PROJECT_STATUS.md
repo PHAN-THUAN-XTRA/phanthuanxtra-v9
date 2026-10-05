@@ -2971,3 +2971,16 @@ khi đã có bằng chứng những bước này, không suy từ PR merged ho�
 - Post-merge: CI #1480 PASS; Deploy Cloudflare Worker #2054 PASS; job `CI / Validate` PASS; job `Deploy production Worker (Cloudflare API/SDK)` PASS.
 - Safety: không đổi D1 schema, không xóa R2/media, không đổi `/carfinish`, không đổi Workers AI.
 - Quy tắc vận hành: khi photo-only album đã có intake/session, không `/carnew` lại và không gửi lại album chỉ vì thiếu receipt; kiểm tra webhook/runtime trước. Production PASS của thay đổi này được xác nhận ở mức deploy; với từng xe vẫn phải hoàn tất runtime gate `ảnh → nội dung → /carfinish → /carpreview → /carpublish`.
+
+
+## TG-730 PORSCHE 718 BOXSTER — PRODUCTION DATA / GALLERY ACCEPTANCE — 2026-10-05 (UTC+7)
+
+- Production vehicle: `tg-730`, PORSCHE 718 BOXSTER 2024 | RACING YELLOW | MÂM ĐEN CỰC CHẤT, status `available`.
+- Owner-confirmed commercial data applied in D1: price `4,780,000,000 VND`; mileage/ODO `1,100 km`. Do not infer or overwrite these owner values from AI output.
+- Media integrity: 25/25 `car_images` retained; no media deletion and no R2 object deletion. `cars.images_json` remains `[]`; public gallery order is controlled by `car_images.sort_order` and cover by `cars.cover_image` + `car_images.is_cover`.
+- Owner gallery rule corrected and accepted: **when a vehicle album contains a suitable model/person photo, prioritize the best suitable model/person image as cover and gallery image #1**. If no suitable model/person image exists, prefer the best clean exterior 3/4 image. After cover: exterior → exterior/details → luggage/roof as applicable → interior → interior/details, while preserving all valid media.
+- TG-730 implementation: `telegram-754-b655d701bf65d685.webp` (car_image id 1768) is the model/person photo and is now `sort_order=0`, `is_cover=1`, and `cars.cover_image`. Remaining 24 images retain the curated semantic order at `sort_order=1..24`.
+- Runtime evidence: D1 verification returned price `4780000000`, mileage `1100`, cover `telegram-754-b655d701bf65d685.webp`, and exactly 25 ordered image rows `0..24`. Owner screenshots after gallery work confirmed the production vehicle page renders the gallery.
+- Publish consistency incident: `vehicle_ai_drafts.inbox_id=730` had `status=published` while `car_id=NULL`, although the actual car `tg-730` existed. Production record was repaired conditionally to `status=published, car_id=tg-730`; verification PASS at `2026-10-05 09:40:07` UTC timestamp stored by D1.
+- Follow-up code requirement: publishing pipeline must not leave a draft in `published` state without its resulting `car_id`. Add targeted regression coverage before claiming this root cause permanently fixed. Also encode/test the owner gallery rule above so future vehicle publishes do not require manual D1 reordering.
+- Safety: no repeat `/carpublish 730`, no photo resend, no D1/R2 destructive operation, and no claim that Workers AI supplied owner price/ODO.
