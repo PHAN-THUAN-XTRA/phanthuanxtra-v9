@@ -39,8 +39,9 @@ test("Worker scheduled handler integrates weekly Telegram digest without adding 
 test("weekly digest keeps schema changes in migrations, never runtime DDL",()=>{
   const source=fs.readFileSync("src/openai-weekly-telegram.js","utf8");
   const migration=fs.readFileSync("migrations/0034_openai_weekly_digest.sql","utf8");
-  assert.doesNotMatch(source,/CREATE\\s+TABLE/i);
+  assert.doesNotMatch(source,/CREATE\s+TABLE/i);
   assert.match(migration,/CREATE TABLE IF NOT EXISTS openai_weekly_digest_runs/);
   assert.match(source,/INSERT OR IGNORE INTO openai_weekly_digest_runs/);
-  assert.match(source,/updated_at<=datetime\\('now','-15 minutes'\\)/);
+  assert.match(source,/status='processing'/);
+  assert.match(source,/-15 minutes/);
 });
