@@ -35,3 +35,12 @@ test("scheduled webhook self-heal repairs Telegram auth rejection even when URL 
   assert.match(entry,/"auth_rejected"/);
   assert.match(entry,/setAutoTelegramWebhook\(env,TELEGRAM_WEBHOOK_URL\)/);
 });
+
+
+test("photo-only Telegram albums acknowledge cumulative intake without queueing early",()=>{
+  const router=fs.readFileSync("src/telegram-router.js","utf8");
+  assert.match(router,/if\(hasPhoto&&!hasText\)/);
+  assert.match(router,/SELECT COUNT\(\*\) AS count FROM telegram_inbox WHERE chat_id=\? AND file_id<>'' AND bundle_status='pending'/);
+  assert.match(router,/ĐÃ NHẬN ẢNH XE — \$\{received\} ẢNH/);
+  assert.match(router,/Đang chờ nội dung xe; không cần gửi lại ảnh/);
+});
