@@ -3,9 +3,6 @@ name: Full System Backup
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - "ops/full-backup-now-20261005"
   schedule:
     # 07:00 Asia/Ho_Chi_Minh (UTC+7)
     - cron: "0 0 * * *"
