@@ -101,18 +101,6 @@ async function aiDigest(env,items,ms){
   }
 }
 
-async function ensureRunTable(db){
-  await db.prepare(`CREATE TABLE IF NOT EXISTS openai_weekly_digest_runs (
-    week_key TEXT PRIMARY KEY,
-    status TEXT NOT NULL,
-    last_error TEXT,
-    telegram_message_id TEXT,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    sent_at TEXT
-  )`).run();
-}
-
 async function claimWeek(db,key){
   await db.prepare("INSERT OR IGNORE INTO openai_weekly_digest_runs (week_key,status) VALUES (?,'pending')").bind(key).run();
   const claim=await db.prepare(`UPDATE openai_weekly_digest_runs
@@ -162,7 +150,6 @@ export async function reconcileOpenAiWeeklyTelegram(env,scheduledTime=Date.now()
   if(!shouldRunWeekly(nowMs))return {ok:true,skipped:true,reason:"not_due"};
   if(!env?.DB)return {ok:false,skipped:true,reason:"db_missing"};
   if(!env?.TELEGRAM_BOT_TOKEN||!env?.TELEGRAM_CHAT_ID)return {ok:false,skipped:true,reason:"telegram_secrets_missing"};
-  await ensureRunTable(env.DB);
   const key=weeklyKey(nowMs);
   const claim=await claimWeek(env.DB,key);
   if(!claim.claimed)return {ok:true,skipped:true,reason:claim.status==="sent"?"already_sent":"in_progress",week_key:key};
