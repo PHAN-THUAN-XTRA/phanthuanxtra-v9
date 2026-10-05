@@ -17,6 +17,7 @@ import { handleAppApi } from "./app-api.js";
 import { handleAppAdmin } from "./app-admin.js";
 import { handleAdminVehiclePipeline } from "./admin-vehicle-pipeline.js";
 import { reconcileTelegramNotifications } from "./telegram-notifications.js";
+import { reconcileOpenAiWeeklyTelegram } from "./openai-weekly-telegram.js";
 import { handlePublishCore } from "./publish-core.js";
 import { handleBlog } from "./blog.js";
 import { reconcileSeo } from "./seo-ai.js";
@@ -217,6 +218,10 @@ export default {
         console.log("seo_ai_reconcile",JSON.stringify(seo));
       } catch (error) { console.error("seo_ai_reconcile_failed",String(error?.message||error)); }
     }
+    try {
+      const weekly=await reconcileOpenAiWeeklyTelegram(env,controller?.scheduledTime??Date.now());
+      console.log("openai_weekly_telegram",JSON.stringify(weekly));
+    } catch (error) { console.error("openai_weekly_telegram_failed",String(error?.message||error)); }
     try {
       const result=await reconcileTelegramNotifications(env);
       console.log("telegram_notifications_reconcile",JSON.stringify(result));
