@@ -27,3 +27,11 @@ test("Telegram webhook handlers reject mismatched secrets",()=>{
   assert.match(vip,/X-Telegram-Bot-Api-Secret-Token/);
   assert.match(lookup,/X-Telegram-Bot-Api-Secret-Token/);
 });
+
+test("scheduled webhook self-heal repairs Telegram auth rejection even when URL still matches",()=>{
+  const entry=fs.readFileSync("src/entry.js","utf8");
+  assert.match(entry,/authRejected=Boolean\(status\.ok&&\/401\|unauthorized\/i\.test\(String\(status\.last_error_message\|\|""\)\)\)/);
+  assert.match(entry,/if\(!status\.ok\|\|!status\.url_matches_expected\|\|authRejected\)/);
+  assert.match(entry,/"auth_rejected"/);
+  assert.match(entry,/setAutoTelegramWebhook\(env,TELEGRAM_WEBHOOK_URL\)/);
+});
