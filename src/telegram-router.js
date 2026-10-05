@@ -491,8 +491,14 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
       await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ALBUM XE — ${rows.filter(row=>row.file_id).length} ẢNH\n⏳ Đang tạo bản nháp AVIF + WebP...`}).catch(()=>{});
       await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(bundleKey).run();
     }
-    // Photo-only albums stay silent and pending. This lets 20+ photos arrive across
-    // multiple media_group_id values without one Telegram receipt per album.
+    // Photo-only albums remain pending so 20+ photos can arrive across multiple
+    // media_group_id values. Acknowledge the cumulative intake without queueing the
+    // bundle; the following vehicle text still closes the intake window.
+    if(hasPhoto&&!hasText){
+      const intake=(await env.DB.prepare("SELECT COUNT(*) AS count FROM telegram_inbox WHERE chat_id=? AND file_id<>'' AND bundle_status='pending' AND created_at >= datetime('now','-45 seconds')").bind(chatId).first())||{};
+      const received=Math.max(rows.filter(row=>row.file_id).length,Number(intake.count||0));
+      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ẢNH XE — ${received} ẢNH\\n⏳ Đang chờ nội dung xe; không cần gửi lại ảnh.`}).catch(error=>console.error("telegram_album_receipt_failed",clean(error?.message||error)));
+    }
     return;
   }
   const rows = (await env.DB.prepare("SELECT id,file_id,caption,bundle_status FROM telegram_inbox WHERE bundle_key=? ORDER BY id").bind(bundleKey).all()).results || [];
