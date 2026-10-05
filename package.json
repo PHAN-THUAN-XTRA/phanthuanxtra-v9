@@ -14,7 +14,8 @@
     "d1:migrate": "wrangler d1 migrations apply phanthuanxtra-db --remote",
     "d1:local": "wrangler d1 migrations apply phanthuanxtra-db --local",
     "test": "node --test test/*.test.js",
-    "simulate:content": "node scripts/simulate-content-runner.mjs"
+    "simulate:content": "node scripts/simulate-content-runner.mjs",
+    "test:publishing-channels": "node --test tests/telegram.test.mjs tests/telegram-ingest.test.mjs tests/publishing-api.test.mjs tests/admin-vehicle-pipeline.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.121.0"
