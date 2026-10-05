@@ -2957,3 +2957,17 @@ chống trùng, hủy, giới hạn lô/tệp, giờ Việt Nam, ảnh WebP và 
 Sau deploy cần thử trên bot thật: tạo nháp → /publish, hẹn giờ → chờ cron,
 hủy một lịch, nhập lô hỗn hợp và mở link public. Chỉ đánh dấu production PASS
 khi đã có bằng chứng những bước này, không suy từ PR merged hoặc unit tests.
+
+
+## 2026-10-05 — Telegram photo-only album receipt / PR #765
+
+- Sự cố sau khi quay lại vận hành: owner gửi 25 ảnh xe sau `/carnew` nhưng album photo-only không có receipt, làm intake thành công trông như thất bại và có nguy cơ gửi ảnh lặp.
+- Nguyên nhân: nhánh `media_group_id` chủ đích giữ photo-only album ở `pending` để ghép nhiều media group, nhưng không có xác nhận quan sát được cho owner. Đây là lỗi UX/observability; không có bằng chứng D1/R2 làm mất 25 ảnh.
+- Khắc phục: photo-only album vẫn giữ `pending`, không queue sớm; sau khi media group ổn định bot gửi receipt tổng `📥 ĐÃ NHẬN ẢNH XE — N ẢNH` và nhắc `không cần gửi lại ảnh`. Album có caption vẫn dùng nhánh queue hiện hữu.
+- Regression: cập nhật test multi-album để cô lập đúng block `if(hasPhoto&&!hasText)`; không dùng regex xuyên sang nhánh album có caption.
+- PR #765 `fix(telegram): acknowledge photo-only album intake` đã squash-merge vào `main`.
+- Merge commit production: `6f5543e4fcd3aba03ce1379f061efb486d70ad16`.
+- Pre-merge head `dec488f8dc99edf7ae35395a60083f22939745da`: CI #1479 PASS, AI Pre-Deploy Audit #611 PASS, Jev + LLM Decision Cascade #86 PASS, Deploy Cloudflare Worker #2053 PASS.
+- Post-merge: CI #1480 PASS; Deploy Cloudflare Worker #2054 PASS; job `CI / Validate` PASS; job `Deploy production Worker (Cloudflare API/SDK)` PASS.
+- Safety: không đổi D1 schema, không xóa R2/media, không đổi `/carfinish`, không đổi Workers AI.
+- Quy tắc vận hành: khi photo-only album đã có intake/session, không `/carnew` lại và không gửi lại album chỉ vì thiếu receipt; kiểm tra webhook/runtime trước. Production PASS của thay đổi này được xác nhận ở mức deploy; với từng xe vẫn phải hoàn tất runtime gate `ảnh → nội dung → /carfinish → /carpreview → /carpublish`.
