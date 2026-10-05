@@ -56,7 +56,12 @@ async function promoteDraft(env,inboxId,ai,publishMediaKey,publishMediaKeys=[pub
   const vehicle={id:carId,brand:ai.brand,model:ai.model,year:ai.year??null,mileage:ai.mileage??0,price:ai.price??0,fuel:ai.fuel,category,color:ai.color,status:"available",description,features,featured:false,cover_image:imageUrl,images:imageUrls.length?imageUrls:[imageUrl]};
   const saved=await saveCar(env.DB,vehicle,{id:carId,mode:existing?"update":"create",actor:"telegram-ai"});
   if(!saved.ok)throw new Error(saved.error);
-  const published=await publishCar(env,carId); await env.DB.prepare("UPDATE vehicle_ai_drafts SET status='published',updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(inboxId).run(); return {published:true,car_id:carId,telegram:published};
+  const published=await publishCar(env,carId);
+  await env.DB.batch([
+    env.DB.prepare("UPDATE vehicle_ai_drafts SET status='published',car_id=?,error=NULL,updated_at=CURRENT_TIMESTAMP WHERE inbox_id=?").bind(carId,inboxId),
+    env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status=CASE WHEN bundle_status IS NULL THEN bundle_status ELSE 'published' END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(inboxId)
+  ]);
+  return {published:true,car_id:carId,telegram:published};
 }
 
 /** Atomically claims a received inbox row so Telegram retries/concurrent webhook deliveries cannot process it twice. */
