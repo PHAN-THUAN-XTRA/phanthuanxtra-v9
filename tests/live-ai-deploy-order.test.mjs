@@ -11,5 +11,9 @@ test('production AI E2E starts only after successful main push deploy', async ()
   assert.doesNotMatch(workflow, /\n  push:/);
   assert.match(workflow, /Verif(?:y|ying) full-site AI advisory on production/);
   assert.match(workflow, /timeout-minutes: 10/);
-  assert.match(workflow, /--max-time 90/);
+  assert.match(workflow, /--retry 1/);
+  assert.match(workflow, /--retry-delay 2/);
+  assert.match(workflow, /--retry-all-errors/);
+  assert.match(workflow, /--max-time 60/);
+  assert.doesNotMatch(workflow, /--retry [2-9]/);
 });
