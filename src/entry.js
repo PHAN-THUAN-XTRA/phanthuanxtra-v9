@@ -191,9 +191,11 @@ export default {
     try {
       const status=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
       console.log("telegram_webhook_status",JSON.stringify(status));
-      if(!status.ok||!status.url_matches_expected){
+      const authRejected=Boolean(status.ok&&/401|unauthorized/i.test(String(status.last_error_message||"")));
+      if(!status.ok||!status.url_matches_expected||authRejected){
         const result=await setAutoTelegramWebhook(env,TELEGRAM_WEBHOOK_URL);
-        console.log("telegram_webhook_self_heal_ok",JSON.stringify({url:TELEGRAM_WEBHOOK_URL,result,reason:status.ok?"url_mismatch":"status_unavailable"}));
+        const reason=!status.ok?"status_unavailable":!status.url_matches_expected?"url_mismatch":"auth_rejected";
+        console.log("telegram_webhook_self_heal_ok",JSON.stringify({url:TELEGRAM_WEBHOOK_URL,result,reason}));
         const verified=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
         console.log("telegram_webhook_post_heal_status",JSON.stringify(verified));
       }
