@@ -13,10 +13,13 @@ test("text closes a multi-album intake into one vehicle bundle",()=>{
   assert.match(handler,/bundleKey=\`\$\{chatId\}:vehicle:\$\{message\.message_id\}\`/);
 });
 
-test("photo-only albums stay silent so 20+ photos do not spam receipts",()=>{
+test("photo-only albums acknowledge cumulative intake while staying pending",()=>{
   const album=handler.slice(handler.indexOf("if(mediaGroupId){"),handler.indexOf("const rows = (await env.DB.prepare",handler.indexOf("if(mediaGroupId){")));
-  assert.match(album,/Photo-only albums stay silent and pending/);
-  assert.doesNotMatch(album,/Gửi phần thông tin xe trong một tin nhắn tiếp theo/);
+  assert.match(album,/Photo-only albums remain pending/);
+  assert.match(album,/if\(hasPhoto&&!hasText\)/);
+  assert.match(album,/ĐÃ NHẬN ẢNH XE — \$\{received\} ẢNH/);
+  assert.match(album,/không cần gửi lại ảnh/);
+  assert.doesNotMatch(album,/UPDATE telegram_inbox SET bundle_status='queued'.*if\(hasPhoto&&!hasText\)/s);
 });
 
 test("captioned single album still processes immediately",()=>{
