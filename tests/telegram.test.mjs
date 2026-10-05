@@ -52,7 +52,9 @@ test('Telegram publish duplicate protection sends only once',async()=>{
   const cars=new Map([['tg-101',{id:'tg-101',brand:'Lexus',model:'LX 600',year:2024,mileage:1000,price:9000000000,status:'available',features_json:'[]',description:'Xe thực tế.'}]]);
   const posts=new Map();
   const images=new Map();
-  const calls=[];\n  const draftLinks=new Map();\n  const inboxStates=new Map();
+  const calls=[];
+  const draftLinks=new Map();
+  const inboxStates=new Map();
   const DB={
     async batch(statements){for(const statement of statements)await statement.run();return statements.map(()=>({}));},
     prepare(sql){
