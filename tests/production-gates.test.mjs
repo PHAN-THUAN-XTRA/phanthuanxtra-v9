@@ -466,3 +466,13 @@ test('production gate: Defender tg-605 reconciles owner copy and semantic galler
   assert.match(source,/is_cover:i===0\?1:0/);
   assert.doesNotMatch(source.slice(source.indexOf('function reconcileTg605'),source.indexOf('function norm')),/put\(|delete\(|R2|IMAGES/);
 });
+
+
+test('production gate: Cloudflare deploy isolates production secrets from Wrangler dev dependency lifecycle scripts', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/deploy-cloudflare.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /Install dependencies without lifecycle scripts\s+run: npm ci --ignore-scripts/);
+  assert.match(workflow, /Install production dependencies only\s+run: npm ci --omit=dev --ignore-scripts/);
+  assert.match(workflow, /npm install --no-save --ignore-scripts --omit=dev cloudflare@\$\{\{ env\.CLOUDFLARE_SDK_VERSION \}\}/);
+  const deployJob = workflow.slice(workflow.indexOf('  deploy:'), workflow.indexOf('      - name: Resolve Cloudflare API credentials'));
+  assert.doesNotMatch(deployJob, /run: npm ci\s*$/m);
+});
