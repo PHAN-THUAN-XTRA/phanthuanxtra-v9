@@ -19,7 +19,8 @@ test("photo-only albums acknowledge cumulative intake while staying pending",()=
   assert.match(album,/if\(hasPhoto&&!hasText\)/);
   assert.match(album,/ĐÃ NHẬN ẢNH XE — \$\{received\} ẢNH/);
   assert.match(album,/không cần gửi lại ảnh/);
-  assert.doesNotMatch(album,/UPDATE telegram_inbox SET bundle_status='queued'.*if\(hasPhoto&&!hasText\)/s);
+  const photoOnly=album.slice(album.indexOf("if(hasPhoto&&!hasText){"));
+  assert.doesNotMatch(photoOnly,/UPDATE telegram_inbox SET bundle_status='queued'/);
 });
 
 test("captioned single album still processes immediately",()=>{
