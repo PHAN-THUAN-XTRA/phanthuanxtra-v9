@@ -1,0 +1,46 @@
+name: Security Recovery Drill
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/security-recovery-drill.mjs"
+      - "scripts/security-operator.mjs"
+      - "scripts/incident-investigator.mjs"
+      - "test/security-recovery-drill.test.js"
+      - ".github/workflows/security-recovery-drill.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/security-recovery-drill.mjs"
+      - "scripts/security-operator.mjs"
+      - "scripts/incident-investigator.mjs"
+      - "test/security-recovery-drill.test.js"
+      - ".github/workflows/security-recovery-drill.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Run synthetic security recovery drill
+        run: node scripts/security-recovery-drill.mjs
+
+      - name: Upload drill evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-recovery-drill-${{ github.run_id }}
+          path: security-recovery-drill.json
+          retention-days: 30
+          if-no-files-found: error
