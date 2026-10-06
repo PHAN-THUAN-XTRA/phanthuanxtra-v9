@@ -24,6 +24,7 @@ import { reconcileSeo } from "./seo-ai.js";
 import { consumeTelegramVehicleDraftJobs, reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
 import { consumeMemoryJobs } from "./customer-memory.js";
 import { handleVideosPage } from "./videos-page.js";
+import { handleBusinessIntegrations } from "./business-integrations.js";
 import { handleTelegramMiniAppApi } from "./telegram-mini-app.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
@@ -143,6 +144,8 @@ export default {
       if (publishCoreResponse) return publishCoreResponse;
       const aiChatResponse = await handleAiChat(request, env, ctx);
       if (aiChatResponse) return aiChatResponse;
+      const businessIntegrationResponse = await handleBusinessIntegrations(request, env);
+      if (businessIntegrationResponse) return businessIntegrationResponse;
       const adminPipeline = await handleAdminVehiclePipeline(request, env);
       if (adminPipeline instanceof Response) return adminPipeline;
       if (adminPipeline instanceof Request) request = adminPipeline;

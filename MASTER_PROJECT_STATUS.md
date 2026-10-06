@@ -2984,3 +2984,20 @@ khi đã có bằng chứng những bước này, không suy từ PR merged ho�
 - Publish consistency incident: `vehicle_ai_drafts.inbox_id=730` had `status=published` while `car_id=NULL`, although the actual car `tg-730` existed. Production record was repaired conditionally to `status=published, car_id=tg-730`; verification PASS at `2026-10-05 09:40:07` UTC timestamp stored by D1.
 - Follow-up code requirement: publishing pipeline must not leave a draft in `published` state without its resulting `car_id`. Add targeted regression coverage before claiming this root cause permanently fixed. Also encode/test the owner gallery rule above so future vehicle publishes do not require manual D1 reordering.
 - Safety: no repeat `/carpublish 730`, no photo resend, no D1/R2 destructive operation, and no claim that Workers AI supplied owner price/ODO.
+
+## 2026-10-06 — FREE BUSINESS INTEGRATIONS / PR #787
+
+Owner requested deployment of the four free-first gaps identified in the tool audit: code security → lead/email → human live chat → business analytics. Implementation must preserve the existing Cloudflare Worker + D1 + R2 + Workers AI architecture and the production API/SDK deployment path.
+
+PR #787 `feat(integrations): add free security, lead, live-chat and analytics adapters` implements:
+
+- **SonarQube Cloud:** optional GitHub Actions scan using `SonarSource/sonarqube-scan-action@v8.3.0`, full history checkout and `sonar.qualitygate.wait=true`. Activation requires owner-controlled `SONAR_TOKEN`, `SONAR_PROJECT_KEY`, and `SONAR_ORGANIZATION`. Without all three, the workflow reports deferred activation and sends no source to SonarQube Cloud.
+- **Brevo:** optional background notification after the website lead is durably stored in D1. Existing Telegram CRM remains the primary immediate delivery. Brevo requires `BREVO_API_KEY`, verified `BREVO_SENDER_EMAIL`, and `BREVO_TO_EMAIL`; without all three there is no external request. Provider failure cannot roll back or duplicate the D1 lead.
+- **tawk.to:** optional human live-chat adapter. Public config exposes validated embed identifiers only. The tawk third-party script is not loaded during page load; it is fetched only after the visitor explicitly clicks **Chat trực tiếp với showroom**. Activation requires `TAWK_PROPERTY_ID` and `TAWK_WIDGET_ID`.
+- **Data Studio:** new `GET /api/analytics/summary` endpoint guarded by `Authorization: Bearer ANALYTICS_EXPORT_TOKEN`. It exports aggregate counts only (vehicle state, lead funnel state, post counts, customer count, due follow-ups), never names, phones, messages, IP addresses, cookies or customer-memory details. `integrations/data-studio/Code.gs` is a connector template; there is no direct D1 exposure.
+
+Deployment controller and GitHub workflow can sync the six optional Worker bindings when corresponding GitHub secrets are present. Existing bindings are preserved. No D1 migration, R2 deletion/mutation, paid-plan upgrade, autonomous lead-status mutation, or Wrangler production deploy is introduced.
+
+Targeted regression: `test/business-integrations.test.js`.
+
+Release gate remains unchanged: AI Pre-Deploy Audit + CI must be green, then merge with expected HEAD SHA, then main production deploy and public smoke verification. Do not claim SonarQube Cloud, Brevo, tawk.to, or Data Studio as live merely because PR/deploy is green; each external integration requires its real owner-controlled configuration plus a real smoke test.

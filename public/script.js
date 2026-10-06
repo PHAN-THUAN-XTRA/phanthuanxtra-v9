@@ -35,5 +35,30 @@ function addMsg(text,who){const d=document.createElement('div');d.className=`ai-
 let aiConversationId=sessionStorage.getItem('ptx_ai_conversation')||'',aiBusy=false;
 aiForm?.addEventListener('submit',async e=>{e.preventDefault();const message=aiInput.value.trim();if(!message||aiBusy)return;addMsg(message,'user');aiInput.value='';aiBusy=true;try{const r=await fetch('/api/ai-chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,conversation_id:aiConversationId,visitor_id:visitorId})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw Error(d.error||'AI unavailable');if(d.conversation_id){aiConversationId=d.conversation_id;sessionStorage.setItem('ptx_ai_conversation',aiConversationId)}addMsg(d.reply||'Đã ghi nhận yêu cầu.','bot')}catch(x){addMsg('Chưa kết nối được XTRA Intelligence. Vui lòng gọi 0866 997 891 hoặc để lại số điện thoại trong biểu mẫu lái thử.','bot')}finally{aiBusy=false}});
 
+
+const liveChatOpen=$("#liveChatOpen");
+let tawkLoading=false,tawkConfig=null;
+function validTawkId(value){return /^[A-Za-z0-9_-]{6,80}$/.test(String(value||""))}
+function loadTawk(){
+  if(tawkLoading||!tawkConfig)return;
+  if(!validTawkId(tawkConfig.property_id)||!validTawkId(tawkConfig.widget_id))return;
+  tawkLoading=true;liveChatOpen.disabled=true;liveChatOpen.textContent="Đang mở chat...";
+  globalThis.Tawk_API=globalThis.Tawk_API||{};
+  globalThis.Tawk_LoadStart=new Date();
+  globalThis.Tawk_API.onLoad=()=>{globalThis.Tawk_API?.maximize?.();liveChatOpen.textContent="Chat trực tiếp với showroom"};
+  const script=document.createElement("script");
+  script.async=true;script.charset="UTF-8";
+  script.src=`https://embed.tawk.to/${tawkConfig.property_id}/${tawkConfig.widget_id}`;
+  script.onload=()=>{liveChatOpen.disabled=false};
+  script.onerror=()=>{tawkLoading=false;liveChatOpen.disabled=false;liveChatOpen.textContent="Chat trực tiếp với showroom"};
+  document.head.appendChild(script);
+}
+if(liveChatOpen){
+  fetch("/api/integrations/public-config",{cache:"no-store",credentials:"same-origin"})
+    .then(r=>r.ok?r.json():null)
+    .then(config=>{const tawk=config?.tawk;if(tawk?.enabled&&validTawkId(tawk.property_id)&&validTawkId(tawk.widget_id)){tawkConfig=tawk;liveChatOpen.hidden=false;liveChatOpen.addEventListener("click",loadTawk,{once:true})}})
+    .catch(()=>{});
+}
+
 fetch('/api/cars',{cache:'no-store',credentials:'same-origin'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{if(!d||!Array.isArray(d.cars))throw Error();state.cars=d.cars.map(normalizeCar);render()}).catch(()=>{$("#cars").innerHTML='<p class="notice">Không tải được kho xe. Vui lòng gọi 0866 997 891.</p>'});
 })();
