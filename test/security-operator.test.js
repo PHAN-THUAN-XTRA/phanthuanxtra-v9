@@ -104,3 +104,25 @@ test("security workflows use current Node 24 action majors for artifact paths",(
   assert.match(investigator,/actions\/download-artifact@v8/);
   assert.match(investigator,/actions\/upload-artifact@v7/);
 });
+
+
+test("Cloudflare link maze injections stay visible but do not count as actionable WAF attacks",()=>{
+  const rows=[
+    ...Array.from({length:122},()=>({action:"link_maze_injected",clientRequestPath:"/",clientCountryName:"US",source:"linkMaze"})),
+    {action:"managed_challenge",clientRequestPath:"/admin",clientCountryName:"VN",source:"waf"}
+  ];
+  const summary=summarizeSecurityEvents(rows);
+  assert.equal(summary.rawEventCount,123);
+  assert.equal(summary.excludedEventCount,122);
+  assert.equal(summary.eventCount,1);
+  assert.deepEqual(summary.topActions[0],{value:"managed_challenge",count:1});
+  assert.deepEqual(summary.excludedTopActions[0],{value:"link_maze_injected",count:122});
+  const classification=classifySecuritySignals({
+    healthOk:true,homeOk:true,analyticsOk:true,wafTelemetryOk:true,
+    totalRequests:204,error5xx:1,wafEvents:summary.eventCount
+  });
+  assert.ok(!classification.findings.some(x=>x.key.startsWith("waf-spike-")));
+  const cleanup=fs.readFileSync("migrations/0037_security_baseline_linkmaze_cleanup.sql","utf8");
+  assert.match(cleanup,/linkMaze/);
+  assert.match(cleanup,/link_maze_injected/);
+});
