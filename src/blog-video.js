@@ -26,9 +26,8 @@ export function facebookVideoUrl(value) {
 const youtubeEmbed = id => `<div class="blog-video"><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="Video YouTube" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><p class="blog-video-link"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener noreferrer">Xem video đầy đủ trên YouTube ↗</a></p>`;
 
 const facebookEmbed = url => {
-  const safeUrl = esc(url);
   const pluginUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=360`;
-  return `<div class="blog-video blog-video-facebook" style="max-width:380px;margin:28px auto;text-align:center"><iframe src="${pluginUrl}" width="360" height="640" style="width:100%;max-width:360px;aspect-ratio:9/16;border:0;border-radius:16px;overflow:hidden" title="Video Facebook" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div><p class="blog-video-link" style="text-align:center"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">▶ Xem video thực tế trên Facebook ↗</a></p>`;
+  return `<div class="blog-video blog-video-facebook" style="max-width:380px;margin:28px auto;text-align:center"><iframe src="${pluginUrl}" width="360" height="640" style="width:100%;max-width:360px;aspect-ratio:9/16;border:0;border-radius:16px;overflow:hidden" title="Video Facebook" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
 };
 
 export function renderBlogContent(content) {
