@@ -22,7 +22,8 @@ test('standalone Facebook Reel renders inline like the Business Jets video',()=>
   assert.doesNotMatch(html,/Xem video thực tế trên Facebook/);
   assert.match(html,/width=267/);
   assert.match(html,/height=476/);
-  assert.ok(html.includes('aspect-ratio:267/476'));
+  assert.match(html,/article-video-facebook/);
+  assert.doesNotMatch(html,/style=/);
   assert.match(html,/Bordeaux Red/);
 });
 test('Facebook canonical video paths are accepted while untrusted hosts are rejected',()=>{
