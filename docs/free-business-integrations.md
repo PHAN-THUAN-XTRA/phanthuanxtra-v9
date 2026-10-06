@@ -64,3 +64,13 @@ Follow MASTER_PROJECT_STATUS.md:
 6. do not claim Brevo, tawk.to, SonarQube Cloud or Data Studio live until real external credentials/configuration and a real smoke test prove each path.
 
 No D1 schema change, R2 mutation, paid upgrade, destructive operation, or autonomous lead-status mutation is part of this change.
+
+## Production verification
+
+Every production deploy runs `scripts/verify-business-integrations.mjs` after the public Worker boundary is reachable:
+
+- tawk.to: verifies the deployed public config matches configured widget IDs, or proves the adapter remains disabled when no complete configuration exists.
+- Data Studio: verifies unauthenticated denial plus the aggregate-only privacy contract when a token exists; without a token it must fail closed with HTTP 503.
+- Brevo: verifies configuration completeness without transmitting customer data. When no configuration exists it is explicitly reported as DEFERRED; a partial configuration fails the deploy gate. Real provider delivery still requires separate runtime evidence from an authorized test or real lead.
+
+External activation is reported as PASS only when runtime evidence proves it. A green deploy with an intentionally unconfigured provider is DEFERRED, not a claim that the external integration is live.

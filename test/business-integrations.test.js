@@ -99,23 +99,30 @@ test("production wiring keeps third-party integrations opt-in and secret-backed"
   const deploy = fs.readFileSync("scripts/deploy-cloudflare-api.mjs", "utf8");
   const workflow = fs.readFileSync(".github/workflows/deploy-cloudflare.yml", "utf8");
   const sonar = fs.readFileSync(".github/workflows/sonarqube-cloud.yml", "utf8");
+  const runtimeVerify = fs.readFileSync("scripts/verify-business-integrations.mjs", "utf8");
 
   assert.match(index, /sendBrevoLeadNotification/);
   assert.match(entry, /handleBusinessIntegrations/);
   assert.match(page, /id="liveChatOpen"[^>]+hidden/);
   assert.match(script, /https:\/\/embed\.tawk\.to\//);
   assert.match(script, /api\/integrations\/public-config/);
+  assert.doesNotMatch(script, /addEventListener\("click",loadTawk,\{once:true\}\)/);
   for (const name of ["BREVO_API_KEY","BREVO_SENDER_EMAIL","BREVO_TO_EMAIL","TAWK_PROPERTY_ID","TAWK_WIDGET_ID","ANALYTICS_EXPORT_TOKEN"]) {
     assert.ok(deploy.includes(name), "deploy controller missing " + name);
     assert.ok(workflow.includes(name), "deploy workflow missing " + name);
   }
   assert.match(sonar, /SonarSource\/sonarqube-scan-action@v8\.3\.0/);
   assert.match(sonar, /sonar\.qualitygate\.wait=true/);
+  assert.match(workflow, /verify-business-integrations\.mjs/);
+  assert.match(runtimeVerify, /api\/integrations\/public-config/);
+  assert.match(runtimeVerify, /api\/analytics\/summary/);
+  assert.match(runtimeVerify, /runtime adapter is enabled/);
 });
 
 test("Data Studio connector reads aggregate endpoint and does not request lead PII fields", () => {
   const connector = fs.readFileSync("integrations/data-studio/Code.gs", "utf8");
   assert.match(connector, /api\/analytics\/summary/);
   assert.match(connector, /ANALYTICS_EXPORT_TOKEN/);
+  assert.match(connector, /function isAdminUser\(\) \{\s*return false;/);
   assert.doesNotMatch(connector, /\bphone\b|\bemail\b|\bmessage\b/i);
 });

@@ -74,6 +74,7 @@ jobs:
           node --check src/media.js
           node --check src/ai-chat.js
           node --check src/business-integrations.js
+          node --check scripts/verify-business-integrations.mjs
           node --check src/customer-memory.js
           node --check src/plate-branding.js
           node --check public/blog-latest.js
@@ -226,6 +227,15 @@ jobs:
           grep -Fq '.container' /tmp/style.css
           test "$(wc -c < /tmp/style.css)" -gt 10000
           echo "Homepage stylesheet delivery: HTTP 200; text/css; expected luxury layout selectors present."
+      - name: Verify free business integrations production boundary
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+          BREVO_TO_EMAIL: ${{ secrets.BREVO_TO_EMAIL }}
+          TAWK_PROPERTY_ID: ${{ secrets.TAWK_PROPERTY_ID }}
+          TAWK_WIDGET_ID: ${{ secrets.TAWK_WIDGET_ID }}
+          ANALYTICS_EXPORT_TOKEN: ${{ secrets.ANALYTICS_EXPORT_TOKEN }}
+        run: node scripts/verify-business-integrations.mjs
       - name: Verify editorial production UTF-8
         run: node scripts/verify-editorial-production.mjs
       - name: Verify Admin UTF-8 asset delivery

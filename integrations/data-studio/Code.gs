@@ -5,7 +5,7 @@ function getAuthType() {
 }
 
 function isAdminUser() {
-  return true;
+  return false;
 }
 
 function getConfig() {
