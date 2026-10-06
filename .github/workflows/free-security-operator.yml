@@ -2,6 +2,14 @@ name: Free Security Operator
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/free-security-operator.yml"
+      - "scripts/security-operator.mjs"
+      - "scripts/incident-investigator.mjs"
+      - "scripts/security-remediation-notify.mjs"
+      - "migrations/0035_security_operator.sql"
   schedule:
     # 48 runs/day; keeps the monitor inside typical included GitHub Actions budgets
     # more comfortably than a 15-minute cadence while retaining useful detection.
