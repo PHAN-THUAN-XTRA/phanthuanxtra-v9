@@ -2,14 +2,9 @@ name: Free Security Operator
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/free-security-operator.yml"
-      - "scripts/security-operator.mjs"
-      - "scripts/incident-investigator.mjs"
-      - "scripts/security-remediation-notify.mjs"
-      - "migrations/0035_security_operator.sql"
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
   schedule:
     # 48 runs/day; keeps the monitor inside typical included GitHub Actions budgets
     # more comfortably than a 15-minute cadence while retaining useful detection.
@@ -30,6 +25,7 @@ env:
 
 jobs:
   monitor:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
