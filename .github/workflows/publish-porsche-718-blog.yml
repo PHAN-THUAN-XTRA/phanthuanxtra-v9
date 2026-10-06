@@ -49,7 +49,7 @@ jobs:
 
           ⚫ Mâm đen – thân vàng mang đến cảm giác thể thao, khỏe khoắn và sắc nét hơn hẳn khi nhìn trực diện hoặc từ góc 3/4. Khi mui hạ xuống, bộ mâm đen càng làm thân xe trông thấp, rộng và đậm chất roadster. Đây cũng là chi tiết giúp tổng thể chiếc xe lên hình rất bắt mắt, dù xuất hiện trên phố hay trong những buổi gặp mặt của cộng đồng xe thể thao.
 
-          https://www.facebook.com/share/r/1DJpQNsPvQ/
+          https://www.facebook.com/share/r/1MoHVQ4TV4/
 
           ❤️ PHỐI MÀU CỰC KỲ CÁ TÍNH
 
@@ -123,5 +123,5 @@ jobs:
           grep -Fq 'Porsche 718 Boxster 2024' /tmp/page.html
           grep -Fq 'Xem video thực tế trên Facebook' /tmp/page.html
           grep -Fq 'facebook.com/plugins/video.php' /tmp/page.html
-          grep -Fq '1DJpQNsPvQ' /tmp/page.html
+          grep -Fq '1MoHVQ4TV4' /tmp/page.html
           echo "PORSCHE 718 BLOG PUBLISH: PASS"
