@@ -3001,3 +3001,17 @@ Deployment controller and GitHub workflow can sync the six optional Worker bindi
 Targeted regression: `test/business-integrations.test.js`.
 
 Release gate remains unchanged: AI Pre-Deploy Audit + CI must be green, then merge with expected HEAD SHA, then main production deploy and public smoke verification. Do not claim SonarQube Cloud, Brevo, tawk.to, or Data Studio as live merely because PR/deploy is green; each external integration requires its real owner-controlled configuration plus a real smoke test.
+
+## 2026-10-06 — BUSINESS INTEGRATION RUNTIME GATES / PR #788
+
+Follow-up to PR #787. Production evidence is tightened before any external adapter can be described as live.
+
+- tawk.to click-load now permits retry after an external script load failure; duplicate loads remain prevented by the in-memory loading guard.
+- Data Studio connector returns `isAdminUser=false` to minimize connector-side administrative exposure.
+- `scripts/verify-business-integrations.mjs` runs after the public production Worker is reachable. It verifies tawk public configuration, Data Studio aggregate-only authorization/fail-closed behavior, and Brevo configuration completeness.
+- The verification path sends no customer data and makes no Brevo provider request. Brevo delivery remains DEFERRED until separate authorized runtime evidence exists.
+- Missing complete external configuration is reported as DEFERRED when the adapter safely remains disabled; partial/mismatched configuration fails the production gate.
+- No D1 migration, R2 mutation, paid-plan change, or Wrangler production deployment is introduced.
+
+Release contract: merge only after targeted tests, AI Pre-Deploy Audit, CI and PR deploy validation pass; after merge require main production deployment plus the new runtime boundary gate to pass.
+
