@@ -2,8 +2,11 @@ name: Free Security Operator
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/30 * * * *"
 
 permissions:
   contents: read
@@ -19,6 +22,7 @@ env:
 
 jobs:
   monitor:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
