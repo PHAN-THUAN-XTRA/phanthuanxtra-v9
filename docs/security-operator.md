@@ -1,19 +1,59 @@
-# Phan Thuần Xtra Security Operator — Phase 2
+# Phan Thuần Xtra Security Operator — Phase 3
 
-Phase 2 adds a bounded Incident Investigator after the free-first monitor.
+Phase 3 keeps the free-first monitor and bounded Incident Investigator, then adds privacy-minimized telemetry baselines, structured attack analysis, mitigation proposals, and a synthetic recovery drill.
 
-## Trigger
-The investigator runs only when the monitor reports at least one HIGH or CRITICAL finding.
+## Monitor
 
-## Automatic investigation
-It records:
-- incident ID and severity,
-- public health and Cloudflare evidence inherited from the monitor,
-- current main commit, age, and changed files,
-- whether a deterministic remediation candidate is safe.
+The monitor runs every 30 minutes and after a successful production deploy. It checks:
+
+- public health and homepage availability,
+- Cloudflare HTTP request / 5xx analytics,
+- Cloudflare Security Events,
+- D1 incident state and deduplication,
+- owner-verified Telegram delivery.
+
+HTTP analytics and Security Events are queried independently so one unavailable dataset cannot blind the other.
+
+## Telemetry baseline
+
+Migration `0036_security_telemetry_baseline.sql` stores a rolling 14-day baseline. Comparison uses the most recent 7 days and becomes baseline-ready after at least six samples.
+
+Stored fields are aggregate operational evidence only:
+
+- total requests,
+- 5xx count and rate,
+- WAF/security-event count,
+- top action,
+- top path,
+- top country,
+- top Cloudflare security source.
+
+Client IP addresses, User-Agent values, query strings, cookies, request bodies, and secrets are not stored in the baseline table.
+
+## Phase 3 attack assessment
+
+When an existing WAF spike signal is HIGH or CRITICAL, the Incident Investigator adds:
+
+- current event volume,
+- baseline WAF average and current/baseline ratio,
+- top path, country, action, and Cloudflare security source,
+- deterministic confidence,
+- a narrow mitigation proposal.
+
+The proposal is advisory only:
+
+- `apply: false`,
+- owner approval is mandatory,
+- no firewall/WAF mutation is performed,
+- no Under Attack Mode change is performed,
+- no IP block is automatically created.
+
+A path-scoped Rules expression may be included as an `expression_hint` for owner review. It is never submitted to Cloudflare by Phase 3.
 
 ## Automatic draft remediation
-A draft revert PR is allowed only when all conditions are true:
+
+Code remediation remains intentionally narrower than attack analysis. A draft revert PR is allowed only when all conditions are true:
+
 1. severity is CRITICAL,
 2. the incident is a code/runtime signal (homepage, health endpoint, or Worker 5xx),
 3. the latest main commit is at most 60 minutes old,
@@ -22,13 +62,26 @@ A draft revert PR is allowed only when all conditions are true:
 
 Before push, the branch must pass `npm test` and `npm run check`.
 
-The PR is always draft and is never auto-merged.
+The PR is always draft and is never auto-merged by the incident workflow.
 
-## Report-only incidents
-WAF/security-event spikes, HIGH-only incidents, old deploys, merge commits, or high-risk-path changes never produce an automatic code revert. They generate an investigation report and Telegram owner notice only.
+## Recovery drill
 
-## Cost policy
-No paid AI API is required or invoked by Phase 2. There is no paid fallback. Model-based review can be added later only behind an explicit free-only gate.
+`Security Recovery Drill` uses synthetic inputs only. It does not load production secrets and does not call Cloudflare, Telegram, GitHub mutation APIs, or the production site.
 
-## Owner-only actions
-Production merge/deploy/rollback, WAF/firewall mutation, Under Attack Mode, secret rotation, data deletion, permission changes, and paid-plan upgrades remain owner decisions.
+The drill proves:
+
+- healthy state produces no finding,
+- telemetry loss remains report-only,
+- WAF critical events produce a proposal but no code revert,
+- a recent isolated runtime CRITICAL can qualify only for the existing bounded draft-revert path,
+- firewall mutation and production deploy remain disabled.
+
+It runs on relevant pull requests, on the first relevant main push, and can be invoked manually.
+
+## Node 24 action cleanup
+
+Security workflows use Node 24-compatible GitHub Action majors. The previous `DEP0040` / `DEP0169` warnings were emitted by the old artifact action runtime rather than repository source code.
+
+## Cost and owner policy
+
+No paid AI API is required or invoked by this security path. Production merge/deploy/rollback, WAF/firewall mutation, Under Attack Mode, secret rotation, data deletion, permission changes, and paid-plan upgrades remain owner decisions.
