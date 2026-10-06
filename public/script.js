@@ -56,7 +56,7 @@ function loadTawk(){
 if(liveChatOpen){
   fetch("/api/integrations/public-config",{cache:"no-store",credentials:"same-origin"})
     .then(r=>r.ok?r.json():null)
-    .then(config=>{const tawk=config?.tawk;if(tawk?.enabled&&validTawkId(tawk.property_id)&&validTawkId(tawk.widget_id)){tawkConfig=tawk;liveChatOpen.hidden=false;liveChatOpen.addEventListener("click",loadTawk,{once:true})}})
+    .then(config=>{const tawk=config?.tawk;if(tawk?.enabled&&validTawkId(tawk.property_id)&&validTawkId(tawk.widget_id)){tawkConfig=tawk;liveChatOpen.hidden=false;liveChatOpen.addEventListener("click",loadTawk)}})
     .catch(()=>{});
 }
 
