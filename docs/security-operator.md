@@ -30,6 +30,8 @@ Stored fields are aggregate operational evidence only:
 
 Client IP addresses, User-Agent values, query strings, cookies, request bodies, and secrets are not stored in the baseline table.
 
+Cloudflare link-maze injection events are retained in raw report evidence but excluded from actionable WAF spike thresholds and from the attack baseline. These events represent Cloudflare's crawler-protection/link-maze response behavior rather than a direct WAF mitigation signal.
+
 ## Phase 3 attack assessment
 
 When an existing WAF spike signal is HIGH or CRITICAL, the Incident Investigator adds:
