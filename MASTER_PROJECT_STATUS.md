@@ -3001,4 +3001,3 @@ Deployment controller and GitHub workflow can sync the six optional Worker bindi
 Targeted regression: `test/business-integrations.test.js`.
 
 Release gate remains unchanged: AI Pre-Deploy Audit + CI must be green, then merge with expected HEAD SHA, then main production deploy and public smoke verification. Do not claim SonarQube Cloud, Brevo, tawk.to, or Data Studio as live merely because PR/deploy is green; each external integration requires its real owner-controlled configuration plus a real smoke test.
-
