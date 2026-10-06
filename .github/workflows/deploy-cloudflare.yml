@@ -73,6 +73,7 @@ jobs:
           node --check src/vehicle-ai.js
           node --check src/media.js
           node --check src/ai-chat.js
+          node --check src/business-integrations.js
           node --check src/customer-memory.js
           node --check src/plate-branding.js
           node --check public/blog-latest.js
@@ -153,6 +154,12 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_PLATE_MODEL }}
           PUBLISH_API_KEY: ${{ secrets.PUBLISH_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+          BREVO_TO_EMAIL: ${{ secrets.BREVO_TO_EMAIL }}
+          TAWK_PROPERTY_ID: ${{ secrets.TAWK_PROPERTY_ID }}
+          TAWK_WIDGET_ID: ${{ secrets.TAWK_WIDGET_ID }}
+          ANALYTICS_EXPORT_TOKEN: ${{ secrets.ANALYTICS_EXPORT_TOKEN }}
         run: node scripts/deploy-cloudflare-api.mjs
       - name: Diagnose Workers AI account allocation
         shell: bash
