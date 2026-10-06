@@ -34,12 +34,16 @@ test("old or high-severity-only incident remains report only",()=>{
   assert.equal(planRemediation({findings:[{key:"homepage-down",severity:"critical"}]},{sha:"e".repeat(40),age_minutes:120,parentCount:1,changed:["src/index.js"]}).candidate,false);
 });
 
-test("Phase 2 workflow never auto-merges or invokes production rollback",()=>{
-  const yml=fs.readFileSync(".github/workflows/free-security-operator.yml","utf8");
-  assert.match(yml,/gh pr create --draft/);
-  assert.match(yml,/git revert --no-edit/);
-  assert.doesNotMatch(yml,/gh pr merge/);
-  assert.doesNotMatch(yml,/deploy-cloudflare-api\.mjs/);
-  assert.doesNotMatch(yml,/production\/rollback/);
-  assert.match(yml,/cron: "\*\/30 \* \* \* \*"/);
+test("Phase 2 split workflows keep monitor read-only and remediation draft-only",()=>{
+  const monitor=fs.readFileSync(".github/workflows/free-security-operator.yml","utf8");
+  const investigator=fs.readFileSync(".github/workflows/security-incident-investigator.yml","utf8");
+  assert.match(monitor,/cron: "\*\/30 \* \* \* \*"/);
+  assert.match(monitor,/contents: read/);
+  assert.doesNotMatch(monitor,/contents: write/);
+  assert.match(investigator,/workflows: \["Free Security Operator"\]/);
+  assert.match(investigator,/gh pr create --draft/);
+  assert.match(investigator,/git revert --no-edit/);
+  assert.doesNotMatch(investigator,/gh pr merge/);
+  assert.doesNotMatch(investigator,/deploy-cloudflare-api\.mjs/);
+  assert.doesNotMatch(investigator,/production\/rollback/);
 });
