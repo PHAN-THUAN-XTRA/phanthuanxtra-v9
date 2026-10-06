@@ -18,12 +18,18 @@ export function facebookVideoUrl(value) {
     if (u.protocol !== 'https:' || u.username || u.password || u.port) return null;
     const host = u.hostname.toLowerCase();
     if (!['facebook.com','www.facebook.com','m.facebook.com'].includes(host)) return null;
-    if (!/^\/(?:share\/r|reel|watch)(?:\/|$)/.test(u.pathname)) return null;
+    if (!/^\/(?:share\/r|reel|watch|[^/]+\/videos)(?:\/|$)/.test(u.pathname)) return null;
     return u.href;
   } catch { return null; }
 }
 
 const youtubeEmbed = id => `<div class="blog-video"><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="Video YouTube" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><p class="blog-video-link"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener noreferrer">Xem video đầy đủ trên YouTube ↗</a></p>`;
+
+const facebookEmbed = url => {
+  const safeUrl = esc(url);
+  const pluginUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=360`;
+  return `<div class="blog-video blog-video-facebook" style="max-width:380px;margin:28px auto;text-align:center"><iframe src="${pluginUrl}" width="360" height="640" style="width:100%;max-width:360px;aspect-ratio:9/16;border:0;border-radius:16px;overflow:hidden" title="Video Facebook" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div><p class="blog-video-link" style="text-align:center"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">▶ Xem video thực tế trên Facebook ↗</a></p>`;
+};
 
 export function renderBlogContent(content) {
   const raw = String(content ?? '');
@@ -36,7 +42,7 @@ export function renderBlogContent(content) {
     const id = youtubeId(trimmed);
     if (id) return youtubeEmbed(id);
     const facebook = facebookVideoUrl(trimmed);
-    if (facebook) return `<p class="blog-video-link"><a href="${esc(facebook)}" target="_blank" rel="noopener noreferrer">▶ Xem video thực tế trên Facebook ↗</a></p>`;
+    if (facebook) return facebookEmbed(facebook);
     return esc(line);
   }).join('<br>');
 }
