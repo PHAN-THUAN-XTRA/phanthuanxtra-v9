@@ -9,7 +9,7 @@ test("business-jets identifies the currently operated Legacy 600 reference aircr
   for (const source of [html, editorialHtml]) {
     assert.match(source, /Aircraft đang khai thác/);
     assert.match(source, /Embraer Legacy 600/);
-    assert.match(source, /EMB-135BJ \/ ERJ-135BJ/);
+    assert.match(source, /EMB-135BJ \/ Legacy 600 \(ERJ-135BJ\)/);
     assert.match(source, /VN-A268/);
     assert.match(source, /E35L/);
   }
