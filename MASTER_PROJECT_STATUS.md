@@ -3014,4 +3014,3 @@ Follow-up to PR #787. Production evidence is tightened before any external adapt
 - No D1 migration, R2 mutation, paid-plan change, or Wrangler production deployment is introduced.
 
 Release contract: merge only after targeted tests, AI Pre-Deploy Audit, CI and PR deploy validation pass; after merge require main production deployment plus the new runtime boundary gate to pass.
-
