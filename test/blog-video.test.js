@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {youtubeId,renderBlogContent,videoEditorialError} from '../src/blog-video.js';
+import {youtubeId,facebookVideoUrl,renderBlogContent,videoEditorialError} from '../src/blog-video.js';
 import {normalizePostPayload} from '../src/post-persistence.js';
 
 test('full YouTube URLs and legacy iframe become safe embeds with full watch link',()=>{
@@ -10,6 +10,16 @@ test('full YouTube URLs and legacy iframe become safe embeds with full watch lin
   assert.match(html,/youtube-nocookie\.com\/embed\/khK5qPSDcB8/);
   assert.match(html,/youtube\.com\/watch\?v=khK5qPSDcB8/);
   assert.doesNotMatch(html,/onload|<div><iframe src="https:\/\/www\.youtube\.com/);
+});
+test('standalone video URLs render safely inside long-form article content',()=>{
+  const facebook='https://www.facebook.com/share/r/14iJgCScxX2/?mibextid=wwXIfr';
+  assert.equal(facebookVideoUrl(facebook),facebook);
+  assert.equal(facebookVideoUrl('https://facebook.com.evil.test/share/r/14iJgCScxX2/'),null);
+  const html=renderBlogContent('Racing Yellow & mâm đen 20-inch\n'+facebook+'\nBordeaux Red');
+  assert.match(html,/Racing Yellow &amp; mâm đen 20-inch/);
+  assert.match(html,/Xem video thực tế trên Facebook/);
+  assert.match(html,/facebook\.com\/share\/r\/14iJgCScxX2/);
+  assert.match(html,/Bordeaux Red/);
 });
 test('untrusted video HTML never executes',()=>{
   assert.equal(youtubeId('https://youtube.com.evil.test/watch?v=khK5qPSDcB8'),null);

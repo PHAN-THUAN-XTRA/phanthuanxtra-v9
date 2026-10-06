@@ -1,0 +1,129 @@
+name: Publish Porsche 718 Boxster Blog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-porsche-718-blog.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - name: Publish or update Porsche 718 Boxster article
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+
+          status="$(curl --silent --show-error --retry 2 --max-time 20 -o /tmp/login.json -w '%{http_code}' \
+            -X POST "$SITE_URL/api/admin/login" \
+            -H 'content-type: application/json' \
+            --data "$(jq -nc --arg password "$ADMIN_PASSWORD" '{password:$password}')")"
+          echo "Admin login HTTP $status"
+          test "$status" = "200"
+          SESSION="$(jq -r '.token // empty' /tmp/login.json)"
+          test -n "$SESSION"
+
+          SLUG="porsche-718-boxster-2024-racing-yellow-mam-den"
+          TITLE="Porsche 718 Boxster 2024 Racing Yellow – Mâm đen 20-inch cực chất"
+          EXCERPT="Porsche 718 Boxster 2024 Racing Yellow, mui đỏ, nội thất Bordeaux Red, mâm Carrera Sport 20-inch màu đen và gói option chính hãng giá trị cao."
+          CONTENT="$(cat <<'EOF'
+🔥 SIÊU PHẨM CỰC HIẾM – PORSCHE 718 BOXSTER 2024 | RACING YELLOW | MÂM ĐEN CỰC CHẤT 🔥
+
+Một chiếc Porsche dành cho người không muốn hòa lẫn giữa đám đông.
+
+Porsche 718 Boxster sản xuất 2024, đăng ký lần đầu 07/2024, 1 đời chủ mua mới chính hãng, biển số TP.HCM. Xe sử dụng cực ít, tình trạng còn rất mới, sơn zin nguyên bản 100%, lịch sử rõ ràng và sẵn sàng kiểm tra tại Porsche chính hãng.
+
+💛 ĐIỂM NHẤN NGOẠI HÌNH – RACING YELLOW & BỘ MÂM ĐEN 20-INCH
+
+Ngoại thất Racing Yellow rực rỡ vốn đã là một trong những màu sắc thể hiện rõ nhất tinh thần thể thao của Porsche. Nhưng chi tiết khiến chiếc 718 Boxster này trở nên đặc biệt cuốn hút chính là bộ mâm 20-inch Carrera Sport hoàn thiện tông đen, tạo độ tương phản cực mạnh với thân xe vàng.
+
+⚫ Mâm đen – thân vàng mang đến cảm giác thể thao, khỏe khoắn và sắc nét hơn hẳn khi nhìn trực diện hoặc từ góc 3/4. Khi mui hạ xuống, bộ mâm đen càng làm thân xe trông thấp, rộng và đậm chất roadster. Đây cũng là chi tiết giúp tổng thể chiếc xe lên hình rất bắt mắt, dù xuất hiện trên phố hay trong những buổi gặp mặt của cộng đồng xe thể thao.
+
+https://www.facebook.com/share/r/14iJgCScxX2/?mibextid=wwXIfr
+
+❤️ PHỐI MÀU CỰC KỲ CÁ TÍNH
+
+• Ngoại thất: Racing Yellow
+• Mui xếp vải: Đỏ
+• Nội thất: Bordeaux Red – Đỏ Mận
+• Điểm nhấn: Mâm Carrera Sport 20-inch màu đen
+
+Sự kết hợp giữa Vàng – Đỏ – Đen tạo nên một cấu hình rất nổi bật nhưng vẫn giữ đúng chất sang trọng và thể thao đặc trưng của Porsche.
+
+💎 OPTION CHÍNH HÃNG GIÁ TRỊ KHOẢNG 1,18 TỶ ĐỒNG
+
+Xe được trang bị hàng loạt tùy chọn đáng giá: Sport Chrono Package với núm xoay chế độ lái trên vô-lăng, âm thanh vòm BOSE®, ghế thể thao chỉnh điện 14 hướng có nhớ vị trí, logo Porsche dập nổi trên tựa đầu, đèn LED tích hợp PDLS, Porsche Entry & Drive, ParkAssist trước/sau kết hợp Camera lùi, Power Steering Plus, gương chống chói tự động, vô-lăng đa chức năng có sưởi cùng nhiều trang bị cao cấp khác.
+
+🏁 MỘT CHIẾC 718 BOXSTER KHÔNG CHỈ ĐẸP – MÀ CÒN RẤT KHÁC BIỆT
+
+Mui trần thể thao, màu Racing Yellow nổi bật, khoang nội thất Bordeaux Red và đặc biệt là bộ mâm đen 20-inch cực kỳ bắt mắt tạo nên một tổng thể khó nhầm lẫn.
+
+🤝 CAM KẾT TỪ Ô TÔ XUYÊN Á
+
+✅ Xe chính hãng – lịch sử rõ ràng
+✅ Sơn zin nguyên bản 100%
+✅ Không đâm đụng – không ngập nước
+✅ Động cơ, hộp số nguyên bản
+✅ ODO trung thực, không quay tua
+✅ Bao kiểm tra hãng toàn quốc
+✅ Hỗ trợ sang tên và vay ngân hàng
+
+📞 LIÊN HỆ XEM XE TRỰC TIẾP
+
+Ô TÔ XUYÊN Á
+📍 720 Trường Chinh, phường Tân Sơn, TP.HCM
+
+Porsche 718 Boxster Racing Yellow – một cấu hình dành cho người muốn sở hữu sự khác biệt ngay từ ánh nhìn đầu tiên.
+
+#Porsche #Porsche718 #718Boxster #PorscheBoxster #RacingYellow #CarreraSport #XuyenA #OtoXuyenA #XeSang #XeTheThao #MuiTran
+EOF
+)"
+
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 \
+            -H "Authorization: Bearer $SESSION" \
+            "$SITE_URL/api/admin/posts?limit=200" -o /tmp/posts.json
+          POST_ID="$(jq -r --arg slug "$SLUG" '.posts[]? | select(.slug==$slug) | .id' /tmp/posts.json | head -n1)"
+
+          payload="$(jq -nc \
+            --arg title "$TITLE" \
+            --arg slug "$SLUG" \
+            --arg excerpt "$EXCERPT" \
+            --arg content "$CONTENT" \
+            '{title:$title,slug:$slug,excerpt:$excerpt,content:$content,category:"Tin xe",tags:["Porsche","718 Boxster","Racing Yellow","xe thể thao","mui trần"],status:"published"}')"
+
+          if [ -n "$POST_ID" ]; then
+            method=PUT
+            endpoint="$SITE_URL/api/admin/posts/$POST_ID"
+          else
+            method=POST
+            endpoint="$SITE_URL/api/admin/posts"
+          fi
+
+          status="$(curl --silent --show-error --retry 2 --max-time 30 -o /tmp/result.json -w '%{http_code}' \
+            -X "$method" "$endpoint" \
+            -H "Authorization: Bearer $SESSION" \
+            -H 'content-type: application/json; charset=utf-8' \
+            --data "$payload")"
+          echo "Publish HTTP $status"
+          test "$status" = "200" -o "$status" = "201"
+          jq -e --arg slug "$SLUG" '.ok==true and .post.status=="published" and .post.slug==$slug' /tmp/result.json >/dev/null
+
+          page_status="$(curl --compressed --silent --show-error --retry 3 --retry-all-errors --retry-delay 2 --max-time 20 \
+            -o /tmp/page.html -w '%{http_code}' "$SITE_URL/blog/$SLUG?verify=${GITHUB_RUN_ID}")"
+          echo "Public page HTTP $page_status"
+          test "$page_status" = "200"
+          grep -Fq 'Porsche 718 Boxster 2024' /tmp/page.html
+          grep -Fq 'Xem video thực tế trên Facebook' /tmp/page.html
+          grep -Fq '14iJgCScxX2' /tmp/page.html
+          echo "PORSCHE 718 BLOG PUBLISH: PASS"
