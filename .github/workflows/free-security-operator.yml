@@ -6,8 +6,6 @@ on:
     workflows: ["Deploy Cloudflare Worker"]
     types: [completed]
   schedule:
-    # 48 runs/day; keeps the monitor inside typical included GitHub Actions budgets
-    # more comfortably than a 15-minute cadence while retaining useful detection.
     - cron: "*/30 * * * *"
 
 permissions:
@@ -21,7 +19,6 @@ env:
   ZONE_NAME: phanthuanxtra.com
   D1_DATABASE_ID: 8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d
   SECURITY_OPERATOR_REPORT: security-operator-report.json
-  INCIDENT_INVESTIGATION_REPORT: incident-investigation.json
 
 jobs:
   monitor:
@@ -29,11 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
-    permissions:
-      contents: read
-    outputs:
-      incident_count: ${{ steps.classify.outputs.incident_count }}
-      highest_severity: ${{ steps.classify.outputs.highest_severity }}
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -46,7 +38,6 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-          fetch-depth: 2
 
       - uses: actions/setup-node@v5
         with:
@@ -55,20 +46,6 @@ jobs:
       - name: Run free-first security operator
         run: node scripts/security-operator.mjs
 
-      - name: Classify investigator trigger
-        id: classify
-        shell: bash
-        run: |
-          set -euo pipefail
-          node - <<'NODE'
-          const fs=require('fs');
-          const r=JSON.parse(fs.readFileSync('security-operator-report.json','utf8'));
-          const f=Array.isArray(r.findings)?r.findings:[];
-          const rank={high:1,critical:2};
-          const highest=f.reduce((a,x)=>(rank[x.severity]||0)>(rank[a]||0)?x.severity:a,'none');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,'incident_count='+f.length+'\nhighest_severity='+highest+'\n');
-          NODE
-
       - name: Upload security evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,104 +53,4 @@ jobs:
           name: security-operator-${{ github.run_id }}
           path: security-operator-report.json
           retention-days: 7
-          if-no-files-found: warn
-
-  investigate:
-    needs: monitor
-    if: ${{ needs.monitor.outputs.incident_count != '0' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: production
-    permissions:
-      contents: write
-      pull-requests: write
-    env:
-      TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
-      TELEGRAM_BACKUP_CHAT_ID: ${{ secrets.TELEGRAM_BACKUP_CHAT_ID }}
-      TELEGRAM_BACKUP_OWNER_ID: "6451516147"
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: main
-          fetch-depth: 20
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      - uses: actions/download-artifact@v5
-        with:
-          name: security-operator-${{ github.run_id }}
-
-      - name: Build bounded incident investigation
-        id: investigate
-        run: node scripts/incident-investigator.mjs
-
-      - name: Prepare deterministic draft remediation
-        id: remediation
-        if: ${{ steps.investigate.outputs.candidate == 'true' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TARGET_SHA: ${{ steps.investigate.outputs.target_sha }}
-          BRANCH: ${{ steps.investigate.outputs.branch }}
-          INCIDENT_ID: ${{ steps.investigate.outputs.incident_id }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'phanthuanxtra-security[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-
-          existing_url="$(gh pr list --state all --head "$BRANCH" --json url --jq '.[0].url // ""')"
-          if [ -n "$existing_url" ]; then
-            echo "status=existing-draft-pr" >> "$GITHUB_OUTPUT"
-            echo "pr_url=$existing_url" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-            git fetch origin "$BRANCH:$BRANCH"
-            git switch "$BRANCH"
-          else
-            git switch -c "$BRANCH"
-            git revert --no-edit "$TARGET_SHA"
-            npm test
-            npm run check
-            git push --set-upstream origin "$BRANCH"
-          fi
-
-          pr_url="$(gh pr create --draft             --base main             --head "$BRANCH"             --title "fix(security): draft revert ${TARGET_SHA:0:10} after critical incident"             --body "Automated bounded remediation candidate for ${INCIDENT_ID}.
-
-This PR only proposes reverting the latest recent single-parent main commit after a CRITICAL code-runtime signal.
-
-Safety gates:
-- Draft PR only; never auto-merged.
-- Production rollback/deploy is not invoked by this workflow.
-- WAF/firewall, secrets, billing and data are untouched.
-- Full repository tests and npm check ran before push.
-
-Owner review is required before merge.")"
-          echo "status=created-draft-pr" >> "$GITHUB_OUTPUT"
-          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
-
-      - name: Report-only status
-        id: report_only
-        if: ${{ steps.investigate.outputs.candidate != 'true' }}
-        shell: bash
-        run: |
-          echo "status=report-only-no-safe-code-remediation" >> "$GITHUB_OUTPUT"
-          echo "pr_url=" >> "$GITHUB_OUTPUT"
-
-      - name: Notify owner of investigation result
-        env:
-          REMEDIATION_STATUS: ${{ steps.remediation.outputs.status || steps.report_only.outputs.status }}
-          REMEDIATION_PR_URL: ${{ steps.remediation.outputs.pr_url || steps.report_only.outputs.pr_url }}
-        run: node scripts/security-remediation-notify.mjs
-
-      - name: Upload incident investigation evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: incident-investigation-${{ github.run_id }}
-          path: incident-investigation.json
-          retention-days: 30
           if-no-files-found: warn
