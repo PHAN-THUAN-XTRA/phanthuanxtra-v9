@@ -15,7 +15,7 @@ const TOKENS=[
 const TELEGRAM_TOKEN=process.env.TELEGRAM_BACKUP_BOT_TOKEN||"";
 const TELEGRAM_CHAT_ID=process.env.TELEGRAM_BACKUP_CHAT_ID||"";
 const TELEGRAM_OWNER_ID=process.env.TELEGRAM_BACKUP_OWNER_ID||"";
-const INTERVAL_MINUTES=15;
+const INTERVAL_MINUTES=30;
 const REPORT_PATH=process.env.SECURITY_OPERATOR_REPORT||"security-operator-report.json";
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -25,12 +25,30 @@ function clean(v,n=1200){return String(v??"").replace(/\s+/g," ").trim().slice(0
 function sha(v){return crypto.createHash("sha256").update(String(v)).digest("hex")}
 function pct(a,b){return b>0?Math.round((a/b)*10000)/100:0}
 function safeJson(x){try{return JSON.stringify(x)}catch{return "{}"}}
+function sanitizeAnalyticsError(v){
+  let s=clean(v,300);
+  const marker="Actor '";
+  const start=s.indexOf(marker);
+  if(start>=0){
+    const end=s.indexOf("'",start+marker.length);
+    if(end>start)s=s.slice(0,start)+"Cloudflare API token"+s.slice(end+1);
+  }
+  const tokenPrefix="com.cloudflare.api.token.";
+  const idx=s.indexOf(tokenPrefix);
+  if(idx>=0){
+    let end=idx+tokenPrefix.length;
+    while(end<s.length&&/[a-z0-9]/i.test(s[end]))end++;
+    s=s.slice(0,idx)+"Cloudflare API token"+s.slice(end);
+  }
+  return s;
+}
 
-export function classifySecuritySignals({healthOk,homeOk,totalRequests=0,error5xx=0,wafEvents=0}){
+export function classifySecuritySignals({healthOk,homeOk,totalRequests=0,error5xx=0,wafEvents=0,analyticsOk=true,analyticsError=""}){
   const errorRate=pct(error5xx,totalRequests);
   const findings=[];
   if(!healthOk)findings.push({key:"health-endpoint-down",severity:"critical",summary:"/api/health không phản hồi 200 sau retry"});
   if(!homeOk)findings.push({key:"homepage-down",severity:"critical",summary:"Trang chủ không phản hồi 200 sau retry"});
+  if(!analyticsOk)findings.push({key:"security-telemetry-unavailable",severity:"high",summary:analyticsError||"Cloudflare Security Analytics không khả dụng"});
   if(totalRequests>=20&&error5xx>=20&&errorRate>=10)findings.push({key:"worker-5xx-critical",severity:"critical",summary:`Tỷ lệ 5xx cao: ${errorRate}% (${error5xx}/${totalRequests})`});
   else if(totalRequests>=20&&error5xx>=10&&errorRate>=5)findings.push({key:"worker-5xx-high",severity:"high",summary:`Tỷ lệ 5xx tăng: ${errorRate}% (${error5xx}/${totalRequests})`});
   if(wafEvents>=500)findings.push({key:"waf-spike-critical",severity:"critical",summary:`Cloudflare ghi nhận ${wafEvents} security events trong ~${INTERVAL_MINUTES} phút`});
@@ -89,17 +107,33 @@ async function graphql(zoneTag,start,end){
       }
     }
   }`;
-  const r=await cfFetch(GRAPHQL,{method:"POST",body:{query,variables:{zoneTag,start,end}}});
-  if(!r.ok)return{ok:false,attempts:r.attempts};
-  const errors=r.data?.errors;
-  if(Array.isArray(errors)&&errors.length)return{ok:false,errors:errors.map(e=>clean(e?.message||e,300)),token:r.token,status:r.status};
-  const z=r.data?.data?.viewer?.zones?.[0]||{};
-  const sum=a=>(Array.isArray(a)?a:[]).reduce((n,x)=>n+Number(x?.count||0),0);
-  return{
-    ok:true,token:r.token,status:r.status,
-    totalRequests:sum(z.all),error5xx:sum(z.e5),wafEvents:sum(z.waf),
-    wafByAction:Object.fromEntries((Array.isArray(z.waf)?z.waf:[]).slice(0,20).map(x=>[String(x?.dimensions?.action||"unknown"),Number(x?.count||0)]))
-  };
+  const attempts=[];
+  for(const [name,token] of TOKENS){
+    try{
+      const response=await fetch(GRAPHQL,{
+        method:"POST",
+        headers:{Authorization:`Bearer ${token}`,"content-type":"application/json","user-agent":"PTX-Security-Operator/1.0"},
+        body:JSON.stringify({query,variables:{zoneTag,start,end}}),
+        signal:AbortSignal.timeout(20000)
+      });
+      const body=await response.json().catch(()=>({}));
+      const errors=Array.isArray(body?.errors)?body.errors.map(e=>sanitizeAnalyticsError(e?.message||e)):[];
+      attempts.push({token:name,status:response.status,errors});
+      if(response.ok&&errors.length===0&&body?.data){
+        const z=body?.data?.viewer?.zones?.[0]||{};
+        const sum=a=>(Array.isArray(a)?a:[]).reduce((n,x)=>n+Number(x?.count||0),0);
+        return{
+          ok:true,token:name,status:response.status,attempts,
+          totalRequests:sum(z.all),error5xx:sum(z.e5),wafEvents:sum(z.waf),
+          wafByAction:Object.fromEntries((Array.isArray(z.waf)?z.waf:[]).slice(0,20).map(x=>[String(x?.dimensions?.action||"unknown"),Number(x?.count||0)]))
+        };
+      }
+    }catch(error){
+      attempts.push({token:name,error:sanitizeAnalyticsError(error?.message||error)});
+    }
+  }
+  const messages=attempts.flatMap(x=>Array.isArray(x.errors)?x.errors:(x.error?[x.error]:[]));
+  return{ok:false,attempts,errors:[...new Set(messages)].slice(0,4)};
 }
 
 async function d1(sql,params=[]){
@@ -153,18 +187,20 @@ async function telegram(text){
 
 function incidentMessage(finding,ctx){
   const sev=finding.severity==="critical"?"🚨 CRITICAL":"⚠️ HIGH";
-  const recommendation=finding.key.startsWith("waf-")
-    ?"Khuyến nghị: kiểm tra top nguồn/path trong Cloudflare Security Events. Không tự bật Under Attack Mode hoặc block IP để tránh false positive."
-    :finding.key.includes("5xx")
-      ?"Khuyến nghị: kiểm tra deploy gần nhất, Worker logs và Cloudflare status. Không tự rollback nếu chưa xác định commit lỗi."
-      :"Khuyến nghị: kiểm tra route/Worker deployment và Cloudflare status; giữ nguyên dữ liệu D1/R2.";
+  const recommendation=finding.key==="security-telemetry-unavailable"
+    ?"Cần cấp quyền Cloudflare Zone Analytics Read cho token giám sát. Đây là sửa quyền telemetry, không cần nâng gói trả phí."
+    :finding.key.startsWith("waf-")
+      ?"Khuyến nghị: kiểm tra top nguồn/path trong Cloudflare Security Events. Không tự bật Under Attack Mode hoặc block IP để tránh false positive."
+      :finding.key.includes("5xx")
+        ?"Khuyến nghị: kiểm tra deploy gần nhất, Worker logs và Cloudflare status. Không tự rollback nếu chưa xác định commit lỗi."
+        :"Khuyến nghị: kiểm tra route/Worker deployment và Cloudflare status; giữ nguyên dữ liệu D1/R2.";
   return `${sev} · PHAN THUẦN XTRA SECURITY OPERATOR
 ${finding.summary}
 
 Thời điểm: ${ctx.generated_at}
-Requests ~15m: ${ctx.analytics.totalRequests ?? "n/a"}
-5xx ~15m: ${ctx.analytics.error5xx ?? "n/a"}
-WAF events ~15m: ${ctx.analytics.wafEvents ?? "n/a"}
+Requests ~${INTERVAL_MINUTES}m: ${ctx.analytics.totalRequests ?? "n/a"}
+5xx ~${INTERVAL_MINUTES}m: ${ctx.analytics.error5xx ?? "n/a"}
+WAF events ~${INTERVAL_MINUTES}m: ${ctx.analytics.wafEvents ?? "n/a"}
 Health: ${ctx.probes.health.ok?"OK":"FAIL"}
 Homepage: ${ctx.probes.home.ok?"OK":"FAIL"}
 
@@ -190,8 +226,10 @@ export async function runSecurityOperator(){
   const end=new Date();
   const start=new Date(end.getTime()-INTERVAL_MINUTES*60*1000);
   const analytics=zone.ok?await graphql(zone.id,start.toISOString(),end.toISOString()):{ok:false,reason:"zone_unavailable"};
+  const analyticsError=analytics.ok?"":(analytics.errors?.[0]||analytics.reason||"Cloudflare Security Analytics không khả dụng");
   const metrics={
     healthOk:health.ok,homeOk:home.ok,
+    analyticsOk:analytics.ok===true,analyticsError,
     totalRequests:analytics.ok?analytics.totalRequests:0,
     error5xx:analytics.ok?analytics.error5xx:0,
     wafEvents:analytics.ok?analytics.wafEvents:0

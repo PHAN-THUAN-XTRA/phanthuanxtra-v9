@@ -47,3 +47,10 @@ test("Phase 2 split workflows keep monitor read-only and remediation draft-only"
   assert.doesNotMatch(investigator,/deploy-cloudflare-api\.mjs/);
   assert.doesNotMatch(investigator,/production\/rollback/);
 });
+
+
+test("investigator triggers from new monitor notifications, not every persistent finding",()=>{
+  const investigator=fs.readFileSync(".github/workflows/security-incident-investigator.yml","utf8");
+  assert.match(investigator,/Array\.isArray\(r\.notifications\)/);
+  assert.match(investigator,/incident_count='\+n\.length/);
+});

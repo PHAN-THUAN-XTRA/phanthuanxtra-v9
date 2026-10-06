@@ -55,9 +55,10 @@ jobs:
           const fs=require('fs');
           const r=JSON.parse(fs.readFileSync('security-operator-report.json','utf8'));
           const f=Array.isArray(r.findings)?r.findings:[];
+          const n=Array.isArray(r.notifications)?r.notifications:[];
           const rank={high:1,critical:2};
           const highest=f.reduce((a,x)=>(rank[x.severity]||0)>(rank[a]||0)?x.severity:a,'none');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,'incident_count='+f.length+'\nhighest_severity='+highest+'\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'incident_count='+n.length+'\nhighest_severity='+highest+'\n');
           NODE
 
       - name: Build bounded incident investigation

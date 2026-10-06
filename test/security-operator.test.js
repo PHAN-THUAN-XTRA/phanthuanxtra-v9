@@ -31,3 +31,17 @@ test("security operator persists dedupe state in migration and owner Telegram",(
   assert.match(source,/verifyOwnerChat/);
   assert.match(source,/6/);
 });
+
+
+test("security operator surfaces missing analytics telemetry as HIGH",()=>{
+  const r=classifySecuritySignals({healthOk:true,homeOk:true,analyticsOk:false,analyticsError:"Cloudflare API token does not have Zone Analytics Read"});
+  assert.ok(r.findings.some(x=>x.key==="security-telemetry-unavailable"&&x.severity==="high"));
+});
+
+test("security analytics path tries configured tokens and avoids secret identifiers in owner guidance",()=>{
+  const source=fs.readFileSync("scripts/security-operator.mjs","utf8");
+  assert.match(source,/for\(const \[name,token\] of TOKENS\)/);
+  assert.match(source,/sanitizeAnalyticsError/);
+  assert.match(source,/Zone Analytics Read/);
+  assert.match(source,/INTERVAL_MINUTES=30/);
+});
