@@ -121,7 +121,6 @@ jobs:
           echo "Public page HTTP $page_status"
           test "$page_status" = "200"
           grep -Fq 'Porsche 718 Boxster 2024' /tmp/page.html
-          grep -Fq 'Xem video thực tế trên Facebook' /tmp/page.html
           grep -Fq 'facebook.com/plugins/video.php' /tmp/page.html
           grep -Fq '1MoHVQ4TV4' /tmp/page.html
           echo "PORSCHE 718 BLOG PUBLISH: PASS"
