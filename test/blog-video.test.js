@@ -12,15 +12,17 @@ test('full YouTube URLs and legacy iframe become safe embeds with full watch lin
   assert.doesNotMatch(html,/onload|<div><iframe src="https:\/\/www\.youtube\.com/);
 });
 test('standalone Facebook Reel renders inline like the Business Jets video',()=>{
-  const facebook='https://www.facebook.com/share/r/19Tc55Na2m/';
+  const facebook='https://www.facebook.com/reel/1116940724609329/';
   assert.equal(facebookVideoUrl(facebook),facebook);
-  assert.equal(facebookVideoUrl('https://facebook.com.evil.test/share/r/19Tc55Na2m/'),null);
+  assert.equal(facebookVideoUrl('https://facebook.com.evil.test/share/r/1116940724609329/'),null);
   const html=renderBlogContent('Racing Yellow & mâm đen 20-inch\n'+facebook+'\nBordeaux Red');
   assert.match(html,/Racing Yellow &amp; mâm đen 20-inch/);
   assert.match(html,/facebook\.com\/plugins\/video\.php\?href=/);
-  assert.match(html,/19Tc55Na2m/);
+  assert.match(html,/1116940724609329/);
   assert.doesNotMatch(html,/Xem video thực tế trên Facebook/);
-  assert.match(html,/aspect-ratio:9\/16/);
+  assert.match(html,/width=267/);
+  assert.match(html,/height=476/);
+  assert.match(html,/aspect-ratio:267\\/476/);
   assert.match(html,/Bordeaux Red/);
 });
 test('Facebook canonical video paths are accepted while untrusted hosts are rejected',()=>{
