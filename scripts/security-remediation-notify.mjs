@@ -23,6 +23,17 @@ export async function notifyRemediation(env=process.env){
     "Mức độ: "+String(investigation.highest_severity||"unknown").toUpperCase()+"\n"+
     "Xử lý tự động: "+status+"\n";
   if(prUrl)text+="Draft PR: "+prUrl+"\n";
+  const phase3=investigation?.phase3;
+  if(phase3?.mitigation_proposal){
+    const ev=phase3.evidence||{};
+    text+="\nPhase 3 Security proposal:\n"+
+      "- Confidence: "+String(phase3.confidence||"unknown")+"\n"+
+      "- WAF events: "+String(ev.waf_events??"n/a")+"\n"+
+      "- Top path: "+String(ev.top_path||"n/a")+"\n"+
+      "- Top country/source: "+String(ev.top_country||"n/a")+" / "+String(ev.top_source||"n/a")+"\n"+
+      "- Proposed action: "+String(phase3.mitigation_proposal.preferred_action||"review")+"\n"+
+      "- APPLY: false · Owner approval required\n";
+  }
   text+="\nAgent không tự merge, không rollback production, không sửa WAF/firewall và không phát sinh paid-AI.";
   const sent=await api(token,"sendMessage",{chat_id:chat,text:text.slice(0,3900),disable_web_page_preview:"true"});
   verifyOwnerChat(sent.chat,owner);
