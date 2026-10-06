@@ -43,12 +43,13 @@ function sanitizeAnalyticsError(v){
   return s;
 }
 
-export function classifySecuritySignals({healthOk,homeOk,totalRequests=0,error5xx=0,wafEvents=0,analyticsOk=true,analyticsError=""}){
+export function classifySecuritySignals({healthOk,homeOk,totalRequests=0,error5xx=0,wafEvents=0,analyticsOk=true,analyticsError="",wafTelemetryOk=true,wafTelemetryError=""}){
   const errorRate=pct(error5xx,totalRequests);
   const findings=[];
   if(!healthOk)findings.push({key:"health-endpoint-down",severity:"critical",summary:"/api/health không phản hồi 200 sau retry"});
   if(!homeOk)findings.push({key:"homepage-down",severity:"critical",summary:"Trang chủ không phản hồi 200 sau retry"});
   if(!analyticsOk)findings.push({key:"security-telemetry-unavailable",severity:"high",summary:analyticsError||"Cloudflare Security Analytics không khả dụng"});
+  else if(!wafTelemetryOk)findings.push({key:"waf-telemetry-unavailable",severity:"high",summary:wafTelemetryError||"Cloudflare Security Events telemetry không khả dụng"});
   if(totalRequests>=20&&error5xx>=20&&errorRate>=10)findings.push({key:"worker-5xx-critical",severity:"critical",summary:`Tỷ lệ 5xx cao: ${errorRate}% (${error5xx}/${totalRequests})`});
   else if(totalRequests>=20&&error5xx>=10&&errorRate>=5)findings.push({key:"worker-5xx-high",severity:"high",summary:`Tỷ lệ 5xx tăng: ${errorRate}% (${error5xx}/${totalRequests})`});
   if(wafEvents>=500)findings.push({key:"waf-spike-critical",severity:"critical",summary:`Cloudflare ghi nhận ${wafEvents} security events trong ~${INTERVAL_MINUTES} phút`});
@@ -97,43 +98,85 @@ async function zoneId(){
   return {ok:Boolean(id),id:id||null,meta:r.ok?{token:r.token,status:r.status}:{attempts:r.attempts}};
 }
 
-async function graphql(zoneTag,start,end){
-  const query=`query SecurityOperator($zoneTag: string, $start: Time, $end: Time) {
-    viewer {
-      zones(filter: { zoneTag: $zoneTag }) {
-        all: httpRequestsAdaptiveGroups(limit: 10000, filter: { datetime_geq: $start, datetime_lt: $end, requestSource: "eyeball" }) { count }
-        e5: httpRequestsAdaptiveGroups(limit: 10000, filter: { datetime_geq: $start, datetime_lt: $end, requestSource: "eyeball", edgeResponseStatus_geq: 500, edgeResponseStatus_lt: 600 }) { count }
-        waf: firewallEventsAdaptiveGroups(limit: 1000, filter: { datetime_geq: $start, datetime_lt: $end }, orderBy: [count_DESC]) { count dimensions { action } }
-      }
-    }
-  }`;
+async function graphqlQuery(query,variables,preferredToken=null){
+  const ordered=preferredToken
+    ? [...TOKENS].sort(([a],[b])=>a===preferredToken?-1:b===preferredToken?1:0)
+    : TOKENS;
   const attempts=[];
-  for(const [name,token] of TOKENS){
+  for(const [name,token] of ordered){
     try{
       const response=await fetch(GRAPHQL,{
         method:"POST",
         headers:{Authorization:`Bearer ${token}`,"content-type":"application/json","user-agent":"PTX-Security-Operator/1.0"},
-        body:JSON.stringify({query,variables:{zoneTag,start,end}}),
+        body:JSON.stringify({query,variables}),
         signal:AbortSignal.timeout(20000)
       });
       const body=await response.json().catch(()=>({}));
       const errors=Array.isArray(body?.errors)?body.errors.map(e=>sanitizeAnalyticsError(e?.message||e)):[];
       attempts.push({token:name,status:response.status,errors});
-      if(response.ok&&errors.length===0&&body?.data){
-        const z=body?.data?.viewer?.zones?.[0]||{};
-        const sum=a=>(Array.isArray(a)?a:[]).reduce((n,x)=>n+Number(x?.count||0),0);
-        return{
-          ok:true,token:name,status:response.status,attempts,
-          totalRequests:sum(z.all),error5xx:sum(z.e5),wafEvents:sum(z.waf),
-          wafByAction:Object.fromEntries((Array.isArray(z.waf)?z.waf:[]).slice(0,20).map(x=>[String(x?.dimensions?.action||"unknown"),Number(x?.count||0)]))
-        };
-      }
+      if(response.ok&&errors.length===0&&body?.data)return{ok:true,token:name,status:response.status,attempts,data:body.data};
     }catch(error){
       attempts.push({token:name,error:sanitizeAnalyticsError(error?.message||error)});
     }
   }
   const messages=attempts.flatMap(x=>Array.isArray(x.errors)?x.errors:(x.error?[x.error]:[]));
   return{ok:false,attempts,errors:[...new Set(messages)].slice(0,4)};
+}
+
+async function graphql(zoneTag,start,end){
+  // Keep request/error analytics independent from Security Events so a dataset-specific
+  // authorization problem cannot blind the entire monitor.
+  const httpQuery=`query SecurityOperatorHttp($zoneTag: string, $start: Time, $end: Time) {
+    viewer {
+      zones(filter: { zoneTag: $zoneTag }) {
+        all: httpRequestsAdaptiveGroups(limit: 10000, filter: { datetime_geq: $start, datetime_lt: $end, requestSource: "eyeball" }) { count }
+        e5: httpRequestsAdaptiveGroups(limit: 10000, filter: { datetime_geq: $start, datetime_lt: $end, requestSource: "eyeball", edgeResponseStatus_geq: 500, edgeResponseStatus_lt: 600 }) { count }
+      }
+    }
+  }`;
+  const variables={zoneTag,start,end};
+  const http=await graphqlQuery(httpQuery,variables);
+  const httpZone=http.ok?(http.data?.viewer?.zones?.[0]||{}):{};
+  const sum=a=>(Array.isArray(a)?a:[]).reduce((n,x)=>n+Number(x?.count||0),0);
+
+  // Cloudflare documents firewallEventsAdaptive as the Security Events dataset.
+  // Fetch raw sampled events separately; a 1000-row cap still preserves our >=500
+  // critical threshold while avoiding reliance on grouped Security Events dataset access.
+  const wafQuery=`query SecurityOperatorWaf($zoneTag: string, $start: Time, $end: Time) {
+    viewer {
+      zones(filter: { zoneTag: $zoneTag }) {
+        waf: firewallEventsAdaptive(
+          limit: 1000
+          filter: { datetime_geq: $start, datetime_lt: $end }
+          orderBy: [datetime_DESC]
+        ) { action }
+      }
+    }
+  }`;
+  const waf=await graphqlQuery(wafQuery,variables,http.ok?http.token:null);
+  const wafZone=waf.ok?(waf.data?.viewer?.zones?.[0]||{}):{};
+  const wafRows=Array.isArray(wafZone.waf)?wafZone.waf:[];
+  const wafByAction={};
+  for(const event of wafRows){
+    const action=String(event?.action||"unknown");
+    wafByAction[action]=(wafByAction[action]||0)+1;
+  }
+
+  return{
+    ok:http.ok,
+    token:http.token||null,
+    status:http.status||null,
+    attempts:http.attempts||[],
+    errors:http.errors||[],
+    totalRequests:http.ok?sum(httpZone.all):0,
+    error5xx:http.ok?sum(httpZone.e5):0,
+    wafOk:waf.ok,
+    wafToken:waf.token||null,
+    wafAttempts:waf.attempts||[],
+    wafErrors:waf.errors||[],
+    wafEvents:waf.ok?wafRows.length:0,
+    wafByAction
+  };
 }
 
 async function d1(sql,params=[]){
@@ -188,9 +231,11 @@ async function telegram(text){
 function incidentMessage(finding,ctx){
   const sev=finding.severity==="critical"?"🚨 CRITICAL":"⚠️ HIGH";
   const recommendation=finding.key==="security-telemetry-unavailable"
-    ?"Cần cấp quyền Cloudflare Zone Analytics Read cho token giám sát. Đây là sửa quyền telemetry, không cần nâng gói trả phí."
-    :finding.key.startsWith("waf-")
-      ?"Khuyến nghị: kiểm tra top nguồn/path trong Cloudflare Security Events. Không tự bật Under Attack Mode hoặc block IP để tránh false positive."
+    ?"Cần kiểm tra Cloudflare Zone Analytics Read / Account Analytics Read và resource scope của token giám sát. Đây là sửa quyền telemetry, không tự nâng gói trả phí."
+    :finding.key==="waf-telemetry-unavailable"
+      ?"Khuyến nghị: kiểm tra quyền Analytics Read/resource scope cho Security Events. Không tự nâng gói, đổi WAF hoặc block IP."
+      :finding.key.startsWith("waf-")
+        ?"Khuyến nghị: kiểm tra top nguồn/path trong Cloudflare Security Events. Không tự bật Under Attack Mode hoặc block IP để tránh false positive."
       :finding.key.includes("5xx")
         ?"Khuyến nghị: kiểm tra deploy gần nhất, Worker logs và Cloudflare status. Không tự rollback nếu chưa xác định commit lỗi."
         :"Khuyến nghị: kiểm tra route/Worker deployment và Cloudflare status; giữ nguyên dữ liệu D1/R2.";
@@ -227,12 +272,14 @@ export async function runSecurityOperator(){
   const start=new Date(end.getTime()-INTERVAL_MINUTES*60*1000);
   const analytics=zone.ok?await graphql(zone.id,start.toISOString(),end.toISOString()):{ok:false,reason:"zone_unavailable"};
   const analyticsError=analytics.ok?"":(analytics.errors?.[0]||analytics.reason||"Cloudflare Security Analytics không khả dụng");
+  const wafTelemetryError=analytics.wafOk?"":(analytics.wafErrors?.[0]||"Cloudflare Security Events telemetry không khả dụng");
   const metrics={
     healthOk:health.ok,homeOk:home.ok,
     analyticsOk:analytics.ok===true,analyticsError,
+    wafTelemetryOk:analytics.wafOk===true,wafTelemetryError,
     totalRequests:analytics.ok?analytics.totalRequests:0,
     error5xx:analytics.ok?analytics.error5xx:0,
-    wafEvents:analytics.ok?analytics.wafEvents:0
+    wafEvents:analytics.wafOk?analytics.wafEvents:0
   };
   const classification=classifySecuritySignals(metrics);
   const findings=classification.findings;
@@ -295,6 +342,6 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]){
     ok:true,generated_at:report.generated_at,
     findings:report.findings.map(x=>({key:x.key,severity:x.severity})),
     notifications:report.notifications.length,recoveries:report.recoveries.length,
-    analytics_ok:report.analytics.ok===true,state_store_ok:report.state_store?.ok===true
+    analytics_ok:report.analytics.ok===true,waf_telemetry_ok:report.analytics.wafOk===true,state_store_ok:report.state_store?.ok===true
   }));
 }

@@ -45,3 +45,22 @@ test("security analytics path tries configured tokens and avoids secret identifi
   assert.match(source,/Zone Analytics Read/);
   assert.match(source,/INTERVAL_MINUTES=30/);
 });
+
+
+test("security operator isolates HTTP analytics from WAF dataset access",()=>{
+  const source=fs.readFileSync("scripts/security-operator.mjs","utf8");
+  assert.match(source,/httpRequestsAdaptiveGroups/);
+  assert.match(source,/firewallEventsAdaptive\(/);
+  assert.doesNotMatch(source,/firewallEventsAdaptiveGroups/);
+  assert.match(source,/wafTelemetryOk/);
+  assert.match(source,/waf_telemetry_ok/);
+});
+
+test("security operator reports WAF telemetry loss without hiding working HTTP analytics",()=>{
+  const r=classifySecuritySignals({
+    healthOk:true,homeOk:true,analyticsOk:true,wafTelemetryOk:false,
+    wafTelemetryError:"Security Events dataset denied",totalRequests:100,error5xx:0,wafEvents:0
+  });
+  assert.ok(r.findings.some(x=>x.key==="waf-telemetry-unavailable"&&x.severity==="high"));
+  assert.ok(!r.findings.some(x=>x.key==="security-telemetry-unavailable"));
+});
