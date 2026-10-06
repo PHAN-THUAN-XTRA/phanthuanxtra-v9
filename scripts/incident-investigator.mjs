@@ -32,6 +32,53 @@ function latestCommit(){
 function codeRelated(findings=[]){
   return findings.some(x=>["health-endpoint-down","homepage-down","worker-5xx-high","worker-5xx-critical"].includes(x?.key));
 }
+function topValue(items=[]){return Array.isArray(items)&&items[0]?.value?clean(items[0].value,180):null}
+
+export function buildAttackAssessment(report={}){
+  const findings=Array.isArray(report?.findings)?report.findings:[];
+  const attack=findings.find(x=>["waf-spike-high","waf-spike-critical"].includes(x?.key));
+  const analytics=report?.analytics||{};
+  const baseline=report?.baseline?.comparison||{};
+  if(!attack){
+    return{
+      status:"no-waf-attack-signal",
+      confidence:"none",
+      evidence:{waf_events:Number(analytics?.wafEvents||0),baseline_ready:baseline?.ready===true},
+      mitigation_proposal:null
+    };
+  }
+  const wafEvents=Number(analytics?.wafEvents||0);
+  const ratio=Number(baseline?.waf_ratio);
+  const topPath=topValue(analytics?.wafTopPaths);
+  const topCountry=topValue(analytics?.wafTopCountries);
+  const topSource=topValue(analytics?.wafTopSources);
+  const topAction=topValue(analytics?.wafTopActions);
+  const confidence=attack.severity==="critical"||(Number.isFinite(ratio)&&ratio>=8)?"high":(Number.isFinite(ratio)&&ratio>=4)?"medium":"guarded";
+  return{
+    status:"owner-review-required",
+    confidence,
+    evidence:{
+      signal:attack.key,
+      severity:attack.severity,
+      waf_events:wafEvents,
+      baseline_ready:baseline?.ready===true,
+      baseline_avg_waf_events:Number(baseline?.avg_waf_events||0),
+      waf_ratio:Number.isFinite(ratio)?ratio:null,
+      top_path:topPath,
+      top_country:topCountry,
+      top_source:topSource,
+      top_action:topAction
+    },
+    mitigation_proposal:{
+      apply:false,
+      requires_owner_approval:true,
+      preferred_action:"managed_challenge_or_rate_limit_review",
+      expression_hint:topPath?`http.request.uri.path eq ${JSON.stringify(topPath)}`:null,
+      scope_hint:{path:topPath,country:topCountry,security_source:topSource},
+      rationale:"Use sampled Security Events and baseline concentration to propose a narrow mitigation. Validate false-positive risk before any Cloudflare rule change."
+    }
+  };
+}
 function dangerousRevertFiles(files=[]){
   const deny=[
     /^migrations\//,
@@ -83,10 +130,13 @@ export async function investigate(){
     findings:findings.map(x=>({key:x.key,severity:x.severity,summary:clean(x.summary,500)})),
     latest_main_commit:commit,
     remediation,
+    phase3:buildAttackAssessment(report),
     policy:{
       auto_merge:false,
       production_deploy:false,
       firewall_mutation:false,
+      waf_proposal_only:true,
+      waf_owner_approval_required:true,
       secret_rotation:false,
       paid_ai_fallback:false,
       draft_pr_only_for_recent_critical_code_incident:true

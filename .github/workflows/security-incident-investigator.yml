@@ -29,17 +29,17 @@ jobs:
       TELEGRAM_BACKUP_CHAT_ID: ${{ secrets.TELEGRAM_BACKUP_CHAT_ID }}
       TELEGRAM_BACKUP_OWNER_ID: "6451516147"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 20
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
       - name: Download triggering security evidence
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: security-operator-${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
@@ -146,7 +146,7 @@ jobs:
 
       - name: Upload incident investigation evidence
         if: ${{ always() && steps.classify.outputs.incident_count != '0' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: incident-investigation-${{ github.event.workflow_run.id }}
           path: incident-investigation.json

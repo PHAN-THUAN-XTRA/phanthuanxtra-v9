@@ -16,6 +16,8 @@ const TELEGRAM_TOKEN=process.env.TELEGRAM_BACKUP_BOT_TOKEN||"";
 const TELEGRAM_CHAT_ID=process.env.TELEGRAM_BACKUP_CHAT_ID||"";
 const TELEGRAM_OWNER_ID=process.env.TELEGRAM_BACKUP_OWNER_ID||"";
 const INTERVAL_MINUTES=30;
+const BASELINE_DAYS=7;
+const RETENTION_DAYS=14;
 const REPORT_PATH=process.env.SECURITY_OPERATOR_REPORT||"security-operator-report.json";
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -41,6 +43,52 @@ function sanitizeAnalyticsError(v){
     s=s.slice(0,idx)+"Cloudflare API token"+s.slice(end);
   }
   return s;
+}
+
+
+function rankedValues(rows,field,limit=5){
+  const counts=new Map();
+  for(const row of Array.isArray(rows)?rows:[]){
+    const value=clean(row?.[field],180);
+    if(!value)continue;
+    counts.set(value,(counts.get(value)||0)+1);
+  }
+  return [...counts.entries()]
+    .map(([value,count])=>({value,count}))
+    .sort((a,b)=>b.count-a.count||a.value.localeCompare(b.value))
+    .slice(0,limit);
+}
+
+export function summarizeSecurityEvents(rows=[]){
+  const safeRows=Array.isArray(rows)?rows:[];
+  const topActions=rankedValues(safeRows,"action");
+  return{
+    eventCount:safeRows.length,
+    byAction:Object.fromEntries(topActions.map(x=>[x.value,x.count])),
+    topActions,
+    topPaths:rankedValues(safeRows,"clientRequestPath"),
+    topCountries:rankedValues(safeRows,"clientCountryName"),
+    topSources:rankedValues(safeRows,"source")
+  };
+}
+
+export function compareTelemetryBaseline(current={},baseline={}){
+  const n=v=>Number.isFinite(Number(v))?Number(v):0;
+  const samples=n(baseline.sample_count);
+  const avgWaf=n(baseline.avg_waf_events);
+  const avgErrorRate=n(baseline.avg_error_rate);
+  const waf=n(current.wafEvents);
+  const errorRate=n(current.errorRate);
+  return{
+    ready:samples>=6,
+    sample_count:samples,
+    window_days:BASELINE_DAYS,
+    avg_requests:Math.round(n(baseline.avg_total_requests)*100)/100,
+    avg_waf_events:Math.round(avgWaf*100)/100,
+    avg_error_rate:Math.round(avgErrorRate*100)/100,
+    waf_ratio:avgWaf>0?Math.round((waf/avgWaf)*100)/100:(waf>0?null:1),
+    error_rate_delta:Math.round((errorRate-avgErrorRate)*100)/100
+  };
 }
 
 export function classifySecuritySignals({healthOk,homeOk,totalRequests=0,error5xx=0,wafEvents=0,analyticsOk=true,analyticsError="",wafTelemetryOk=true,wafTelemetryError=""}){
@@ -149,18 +197,19 @@ async function graphql(zoneTag,start,end){
           limit: 1000
           filter: { datetime_geq: $start, datetime_lt: $end }
           orderBy: [datetime_DESC]
-        ) { action }
+        ) {
+          action
+          clientCountryName
+          clientRequestPath
+          source
+        }
       }
     }
   }`;
   const waf=await graphqlQuery(wafQuery,variables,http.ok?http.token:null);
   const wafZone=waf.ok?(waf.data?.viewer?.zones?.[0]||{}):{};
   const wafRows=Array.isArray(wafZone.waf)?wafZone.waf:[];
-  const wafByAction={};
-  for(const event of wafRows){
-    const action=String(event?.action||"unknown");
-    wafByAction[action]=(wafByAction[action]||0)+1;
-  }
+  const securityEvents=summarizeSecurityEvents(wafRows);
 
   return{
     ok:http.ok,
@@ -174,14 +223,57 @@ async function graphql(zoneTag,start,end){
     wafToken:waf.token||null,
     wafAttempts:waf.attempts||[],
     wafErrors:waf.errors||[],
-    wafEvents:waf.ok?wafRows.length:0,
-    wafByAction
+    wafEvents:waf.ok?securityEvents.eventCount:0,
+    wafByAction:securityEvents.byAction,
+    wafTopActions:securityEvents.topActions,
+    wafTopPaths:securityEvents.topPaths,
+    wafTopCountries:securityEvents.topCountries,
+    wafTopSources:securityEvents.topSources
   };
 }
 
 async function d1(sql,params=[]){
   if(!ACCOUNT_ID||!D1_DATABASE_ID)return{ok:false,reason:"d1_config_missing"};
   return cfFetch(`/accounts/${ACCOUNT_ID}/d1/database/${encodeURIComponent(D1_DATABASE_ID)}/query`,{method:"POST",body:{sql,params}});
+}
+
+
+function firstD1Row(result){
+  return result?.data?.result?.flatMap?.(x=>x?.results||[])?.[0]||null;
+}
+
+async function loadTelemetryBaseline(){
+  const q=await d1(`SELECT
+      COUNT(*) AS sample_count,
+      AVG(total_requests) AS avg_total_requests,
+      AVG(error_5xx) AS avg_error_5xx,
+      AVG(error_rate) AS avg_error_rate,
+      AVG(waf_events) AS avg_waf_events
+    FROM security_telemetry_samples
+    WHERE sampled_at >= unixepoch() - ?`,[BASELINE_DAYS*86400]);
+  if(!q.ok)return{ok:false,reason:"security_telemetry_samples unavailable"};
+  const row=firstD1Row(q)||{};
+  return{ok:true,...row};
+}
+
+async function recordTelemetrySample(analytics,errorRate){
+  const top=(items)=>clean(Array.isArray(items)&&items[0]?.value||"",180)||null;
+  const insert=await d1(`INSERT INTO security_telemetry_samples
+    (interval_minutes,total_requests,error_5xx,error_rate,waf_events,waf_top_action,waf_top_path,waf_top_country,waf_top_source)
+    VALUES (?,?,?,?,?,?,?,?,?)`,[
+      INTERVAL_MINUTES,
+      Number(analytics?.totalRequests||0),
+      Number(analytics?.error5xx||0),
+      Number(errorRate||0),
+      Number(analytics?.wafEvents||0),
+      top(analytics?.wafTopActions),
+      top(analytics?.wafTopPaths),
+      top(analytics?.wafTopCountries),
+      top(analytics?.wafTopSources)
+    ]);
+  if(!insert.ok)return{ok:false,reason:"telemetry_insert_failed"};
+  const prune=await d1("DELETE FROM security_telemetry_samples WHERE sampled_at < unixepoch() - ?",[RETENTION_DAYS*86400]);
+  return{ok:prune.ok,retention_days:RETENTION_DAYS,reason:prune.ok?null:"telemetry_prune_failed"};
 }
 
 async function incidentRow(key){
@@ -283,11 +375,21 @@ export async function runSecurityOperator(){
   };
   const classification=classifySecuritySignals(metrics);
   const findings=classification.findings;
+  const baselineRaw=await loadTelemetryBaseline();
+  const baselineComparison=compareTelemetryBaseline(
+    {wafEvents:metrics.wafEvents,errorRate:classification.errorRate},
+    baselineRaw.ok?baselineRaw:{}
+  );
   const report={
-    schema:1,generated_at,mode:"free-first",mutations:["D1 incident-state only","Telegram owner notification only"],
-    protections:{automatic:["3x public retry before incident","D1 dedupe","owner-verified Telegram","existing Worker webhook self-heal","existing durable queue recovery"],approval_required:["production rollback","firewall rule changes","Under Attack Mode","paid-plan upgrade"]},
-    probes:{health,home},zone,analytics,classification,findings,notifications:[],recoveries:[]
+    schema:2,generated_at,mode:"free-first",
+    mutations:["D1 incident-state only","D1 telemetry baseline sample only","Telegram owner notification only"],
+    protections:{automatic:["3x public retry before incident","D1 dedupe","privacy-minimized telemetry baseline","owner-verified Telegram","existing Worker webhook self-heal","existing durable queue recovery"],approval_required:["production rollback","firewall rule changes","Under Attack Mode","paid-plan upgrade"]},
+    probes:{health,home},zone,analytics,
+    baseline:{ok:baselineRaw.ok,comparison:baselineComparison},
+    classification,findings,notifications:[],recoveries:[]
   };
+  const telemetryWrite=await recordTelemetrySample(analytics,classification.errorRate);
+  report.baseline_store=telemetryWrite;
 
   // If state table is not yet available, fail closed on incident dedupe to avoid repeated Telegram spam.
   const tableCheck=await d1("SELECT signal_key FROM security_operator_state LIMIT 1");
@@ -342,6 +444,6 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]){
     ok:true,generated_at:report.generated_at,
     findings:report.findings.map(x=>({key:x.key,severity:x.severity})),
     notifications:report.notifications.length,recoveries:report.recoveries.length,
-    analytics_ok:report.analytics.ok===true,waf_telemetry_ok:report.analytics.wafOk===true,state_store_ok:report.state_store?.ok===true
+    analytics_ok:report.analytics.ok===true,waf_telemetry_ok:report.analytics.wafOk===true,baseline_ready:report.baseline?.comparison?.ready===true,state_store_ok:report.state_store?.ok===true
   }));
 }
