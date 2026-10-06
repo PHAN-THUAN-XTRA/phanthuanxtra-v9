@@ -12,12 +12,33 @@ export function youtubeId(value) {
   } catch { return null; }
 }
 
+export function facebookVideoUrl(value) {
+  try {
+    const u = new URL(String(value).trim());
+    if (u.protocol !== 'https:' || u.username || u.password || u.port) return null;
+    const host = u.hostname.toLowerCase();
+    if (!['facebook.com','www.facebook.com','m.facebook.com'].includes(host)) return null;
+    if (!/^\/(?:share\/r|reel|watch)(?:\/|$)/.test(u.pathname)) return null;
+    return u.href;
+  } catch { return null; }
+}
+
+const youtubeEmbed = id => `<div class="blog-video"><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="Video YouTube" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><p class="blog-video-link"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener noreferrer">Xem video đầy đủ trên YouTube ↗</a></p>`;
+
 export function renderBlogContent(content) {
   const raw = String(content ?? '');
   const legacy = raw.match(/<iframe\b[^>]*\bsrc\s*=\s*["'](https:\/\/[^"']+)["'][^>]*>\s*<\/iframe>/i);
-  const id = youtubeId(legacy?.[1] || raw.trim());
-  if (id) return `<div class="blog-video"><iframe src="https://www.youtube-nocookie.com/embed/${id}" title="Video YouTube" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div><p class="blog-video-link"><a href="https://www.youtube.com/watch?v=${id}" target="_blank" rel="noopener noreferrer">Xem video đầy đủ trên YouTube ↗</a></p>`;
-  return esc(raw).replace(/\n/g, '<br>');
+  const legacyId = youtubeId(legacy?.[1] || raw.trim());
+  if (legacyId) return youtubeEmbed(legacyId);
+
+  return raw.split('\n').map(line => {
+    const trimmed = line.trim();
+    const id = youtubeId(trimmed);
+    if (id) return youtubeEmbed(id);
+    const facebook = facebookVideoUrl(trimmed);
+    if (facebook) return `<p class="blog-video-link"><a href="${esc(facebook)}" target="_blank" rel="noopener noreferrer">▶ Xem video thực tế trên Facebook ↗</a></p>`;
+    return esc(line);
+  }).join('<br>');
 }
 
 export function videoEditorialError(post, existing = {}) {
