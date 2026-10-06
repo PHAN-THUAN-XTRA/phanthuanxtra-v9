@@ -15,7 +15,7 @@ test("security operator escalates only meaningful failure thresholds",()=>{
 test("security operator is free-first and approval-gates dangerous remediation",()=>{
   const source=fs.readFileSync("scripts/security-operator.mjs","utf8");
   const workflow=fs.readFileSync(".github/workflows/free-security-operator.yml","utf8");
-  assert.match(workflow,/cron: "\*\/15 \* \* \* \*"/);
+  assert.match(workflow,/cron: "\*\/30 \* \* \* \*"/);
   assert.match(source,/approval_required/);
   assert.match(source,/production rollback/);
   assert.match(source,/Under Attack Mode/);
