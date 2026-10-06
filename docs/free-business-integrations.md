@@ -74,4 +74,3 @@ Every production deploy runs `scripts/verify-business-integrations.mjs` after th
 - Brevo: verifies configuration completeness without transmitting customer data. When no configuration exists it is explicitly reported as DEFERRED; a partial configuration fails the deploy gate. Real provider delivery still requires separate runtime evidence from an authorized test or real lead.
 
 External activation is reported as PASS only when runtime evidence proves it. A green deploy with an intentionally unconfigured provider is DEFERRED, not a claim that the external integration is live.
-
