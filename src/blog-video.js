@@ -27,7 +27,7 @@ const youtubeEmbed = id => `<div class="blog-video"><iframe src="https://www.you
 
 const facebookEmbed = url => {
   const pluginUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&height=476&show_text=false&width=267&t=0`;
-  return `<div class="blog-video blog-video-facebook" style="max-width:300px;margin:28px auto;text-align:center"><iframe src="${pluginUrl}" width="267" height="476" style="width:100%;max-width:267px;aspect-ratio:267/476;border:0;border-radius:16px;overflow:hidden" title="Video Facebook" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+  return `<div class="article-video-facebook blog-video-facebook"><iframe src="${pluginUrl}" width="267" height="476" title="Video Facebook" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
 };
 
 export function renderBlogContent(content) {
