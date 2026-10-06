@@ -1,0 +1,60 @@
+name: SonarQube Cloud
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: sonarqube-cloud-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: SonarQube Cloud / Quality Gate
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect SonarQube Cloud configuration
+        id: sonar_config
+        shell: bash
+        run: |
+          if [ -n "$SONAR_TOKEN" ] && [ -n "$SONAR_PROJECT_KEY" ] && [ -n "$SONAR_ORGANIZATION" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "SonarQube Cloud configuration detected."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "SonarQube Cloud is not activated yet; set SONAR_TOKEN plus SONAR_PROJECT_KEY and SONAR_ORGANIZATION."
+          fi
+
+      - name: Scan and wait for Quality Gate
+        if: steps.sonar_config.outputs.configured == 'true'
+        uses: SonarSource/sonarqube-scan-action@v8.3.0
+        with:
+          args: >
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
+            -Dsonar.sources=src,public,scripts
+            -Dsonar.tests=test,tests
+            -Dsonar.exclusions=public/backup/**,research/**
+            -Dsonar.qualitygate.wait=true
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+
+      - name: Report deferred activation
+        if: steps.sonar_config.outputs.configured != 'true'
+        run: echo "No scan was sent; repository remains on existing CI/security gates until SonarQube Cloud credentials are configured."
