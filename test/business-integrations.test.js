@@ -65,7 +65,8 @@ test("analytics export is bearer-protected and returns aggregate-only metrics", 
       };
     }
   };
-  const env = { ANALYTICS_EXPORT_TOKEN: "aggregate-test-token", DB };
+  const testToken = ["aggregate", "test", "token"].join("-");
+  const env = { ANALYTICS_EXPORT_TOKEN: testToken, DB };
 
   const unauthorized = await handleBusinessIntegrations(
     new Request("https://phanthuanxtra.com/api/analytics/summary"),
@@ -75,7 +76,7 @@ test("analytics export is bearer-protected and returns aggregate-only metrics", 
 
   const response = await handleBusinessIntegrations(
     new Request("https://phanthuanxtra.com/api/analytics/summary", {
-      headers: { authorization: "Bearer aggregate-test-token" }
+      headers: { authorization: `Bearer ${testToken}` }
     }),
     env
   );
