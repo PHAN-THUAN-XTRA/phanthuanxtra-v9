@@ -141,7 +141,7 @@ async function graphql(zoneTag,start,end){
 
   // Cloudflare documents firewallEventsAdaptive as the Security Events dataset.
   // Fetch raw sampled events separately; a 1000-row cap still preserves our >=500
-  // critical threshold while avoiding reliance on firewallEventsAdaptiveGroups access.
+  // critical threshold while avoiding reliance on grouped Security Events dataset access.
   const wafQuery=`query SecurityOperatorWaf($zoneTag: string, $start: Time, $end: Time) {
     viewer {
       zones(filter: { zoneTag: $zoneTag }) {
@@ -231,7 +231,7 @@ async function telegram(text){
 function incidentMessage(finding,ctx){
   const sev=finding.severity==="critical"?"🚨 CRITICAL":"⚠️ HIGH";
   const recommendation=finding.key==="security-telemetry-unavailable"
-    ?"Cần kiểm tra Cloudflare Analytics Read và resource scope của token giám sát. Đây là sửa quyền telemetry, không tự nâng gói trả phí."
+    ?"Cần kiểm tra Cloudflare Zone Analytics Read / Account Analytics Read và resource scope của token giám sát. Đây là sửa quyền telemetry, không tự nâng gói trả phí."
     :finding.key==="waf-telemetry-unavailable"
       ?"Khuyến nghị: kiểm tra quyền Analytics Read/resource scope cho Security Events. Không tự nâng gói, đổi WAF hoặc block IP."
       :finding.key.startsWith("waf-")
