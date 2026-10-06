@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import {planRemediation} from "../scripts/incident-investigator.mjs";
+import {planRemediation,buildAttackAssessment} from "../scripts/incident-investigator.mjs";
 
 test("critical recent code incident can produce draft revert candidate",()=>{
   const report={findings:[{key:"homepage-down",severity:"critical"}]};
@@ -53,4 +53,36 @@ test("investigator triggers from new monitor notifications, not every persistent
   const investigator=fs.readFileSync(".github/workflows/security-incident-investigator.yml","utf8");
   assert.match(investigator,/Array\.isArray\(r\.notifications\)/);
   assert.match(investigator,/incident_count='\+n\.length/);
+});
+
+
+test("Phase 3 WAF assessment is proposal-only and never auto-applies",()=>{
+  const report={
+    findings:[{key:"waf-spike-critical",severity:"critical"}],
+    analytics:{
+      wafEvents:700,
+      wafTopActions:[{value:"managed_challenge",count:650}],
+      wafTopPaths:[{value:"/admin",count:610}],
+      wafTopCountries:[{value:"US",count:410}],
+      wafTopSources:[{value:"waf",count:700}]
+    },
+    baseline:{comparison:{ready:true,avg_waf_events:20,waf_ratio:35}}
+  };
+  const phase3=buildAttackAssessment(report);
+  assert.equal(phase3.status,"owner-review-required");
+  assert.equal(phase3.confidence,"high");
+  assert.equal(phase3.mitigation_proposal.apply,false);
+  assert.equal(phase3.mitigation_proposal.requires_owner_approval,true);
+  assert.match(phase3.mitigation_proposal.expression_hint,/http\.request\.uri\.path/);
+  assert.equal("clientIP" in phase3.evidence,false);
+});
+
+test("Phase 3 does not invent a WAF proposal without a WAF spike signal",()=>{
+  const phase3=buildAttackAssessment({
+    findings:[{key:"security-telemetry-unavailable",severity:"high"}],
+    analytics:{wafEvents:0},
+    baseline:{comparison:{ready:false}}
+  });
+  assert.equal(phase3.status,"no-waf-attack-signal");
+  assert.equal(phase3.mitigation_proposal,null);
 });
