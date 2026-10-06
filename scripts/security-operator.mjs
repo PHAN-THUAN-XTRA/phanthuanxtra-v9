@@ -59,16 +59,30 @@ function rankedValues(rows,field,limit=5){
     .slice(0,limit);
 }
 
+export function isActionableSecurityEvent(row={}){
+  const source=clean(row?.source,80).toLowerCase();
+  const action=clean(row?.action,80).toLowerCase();
+  if(source==="linkmaze")return false;
+  if(action==="link_maze_injected")return false;
+  return true;
+}
+
 export function summarizeSecurityEvents(rows=[]){
   const safeRows=Array.isArray(rows)?rows:[];
-  const topActions=rankedValues(safeRows,"action");
+  const actionableRows=safeRows.filter(isActionableSecurityEvent);
+  const excludedRows=safeRows.filter(x=>!isActionableSecurityEvent(x));
+  const topActions=rankedValues(actionableRows,"action");
   return{
-    eventCount:safeRows.length,
+    rawEventCount:safeRows.length,
+    eventCount:actionableRows.length,
+    excludedEventCount:excludedRows.length,
     byAction:Object.fromEntries(topActions.map(x=>[x.value,x.count])),
     topActions,
-    topPaths:rankedValues(safeRows,"clientRequestPath"),
-    topCountries:rankedValues(safeRows,"clientCountryName"),
-    topSources:rankedValues(safeRows,"source")
+    topPaths:rankedValues(actionableRows,"clientRequestPath"),
+    topCountries:rankedValues(actionableRows,"clientCountryName"),
+    topSources:rankedValues(actionableRows,"source"),
+    excludedTopActions:rankedValues(excludedRows,"action"),
+    excludedTopSources:rankedValues(excludedRows,"source")
   };
 }
 
@@ -224,6 +238,10 @@ async function graphql(zoneTag,start,end){
     wafAttempts:waf.attempts||[],
     wafErrors:waf.errors||[],
     wafEvents:waf.ok?securityEvents.eventCount:0,
+    wafRawEvents:waf.ok?securityEvents.rawEventCount:0,
+    wafExcludedEvents:waf.ok?securityEvents.excludedEventCount:0,
+    wafExcludedTopActions:securityEvents.excludedTopActions,
+    wafExcludedTopSources:securityEvents.excludedTopSources,
     wafByAction:securityEvents.byAction,
     wafTopActions:securityEvents.topActions,
     wafTopPaths:securityEvents.topPaths,
@@ -337,7 +355,7 @@ ${finding.summary}
 Thời điểm: ${ctx.generated_at}
 Requests ~${INTERVAL_MINUTES}m: ${ctx.analytics.totalRequests ?? "n/a"}
 5xx ~${INTERVAL_MINUTES}m: ${ctx.analytics.error5xx ?? "n/a"}
-WAF events ~${INTERVAL_MINUTES}m: ${ctx.analytics.wafEvents ?? "n/a"}
+WAF actionable/raw ~${INTERVAL_MINUTES}m: ${ctx.analytics.wafEvents ?? "n/a"}/${ctx.analytics.wafRawEvents ?? ctx.analytics.wafEvents ?? "n/a"}
 Health: ${ctx.probes.health.ok?"OK":"FAIL"}
 Homepage: ${ctx.probes.home.ok?"OK":"FAIL"}
 
