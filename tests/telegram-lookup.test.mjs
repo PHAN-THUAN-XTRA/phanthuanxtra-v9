@@ -2,6 +2,38 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lookup, formatCar, handleTelegramLookup } from '../src/telegram-lookup.js';
 
+test('lookup authentication fails closed and validates only the standard Telegram header', async t => {
+  t.mock.method(globalThis, 'fetch', () => { throw new Error('Unexpected network access'); });
+  const DB = { prepare() { throw new Error('Unexpected database access'); } };
+  for (const secret of [undefined, '', 'test-secret']) {
+    for (const headers of [{}, { 'X-Telegram-Bot-Api-Secret-Token': 'wrong' }, { 'X-Telegram-Lookup-Webhook-Secret': 'test-secret' }, { 'X-Telegram-Bot-Api-Secret-Token': 'test-secret' }]) {
+      const request = new Request('https://example.com/api/telegram/lookup-webhook', { method: 'POST', headers, body: '{}' });
+      const accepted = secret === 'test-secret' && headers['X-Telegram-Bot-Api-Secret-Token'] === secret;
+      if (!accepted) request.json = () => { throw new Error('Unauthenticated body parsed'); };
+      const response = await handleTelegramLookup(request, { DB, TELEGRAM_LOOKUP_WEBHOOK_SECRET: secret });
+      assert.equal(response.status, !secret ? 503 : accepted ? 200 : 401);
+      if (accepted) assert.deepEqual(await response.json(), { ok: true, ignored: true });
+    }
+  }
+});
+
+test('lookup registration requires and sends secret_token', async t => {
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ ok: true, result: true }));
+  });
+  const request = () => new Request('https://example.com/api/admin/telegram/lookup-webhook', { method: 'POST', headers: { Authorization: 'Bearer admin-fixture' } });
+  const env = { ADMIN_TOKEN: 'admin-fixture', TELEGRAM_LOOKUP_BOT_TOKEN: 'fixture' };
+  for (const secret of [undefined, '']) {
+    assert.equal((await handleTelegramLookup(request(), { ...env, TELEGRAM_LOOKUP_WEBHOOK_SECRET: secret })).status, 503);
+  }
+  assert.equal(calls.length, 0);
+  assert.equal((await handleTelegramLookup(request(), { ...env, TELEGRAM_LOOKUP_WEBHOOK_SECRET: 'test-secret' })).status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].secret_token, 'test-secret');
+});
+
 function dbFor(car) {
   return {
     prepare(sql) {
@@ -22,6 +54,24 @@ function dbFor(car) {
     }
   };
 }
+
+test('correct Telegram secret preserves lookup and reply workflow', async t => {
+  const replies = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    replies.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ ok: true, result: true }));
+  });
+  const response = await handleTelegramLookup(new Request('https://example.com/api/telegram/lookup-webhook', {
+    method: 'POST',
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': 'test-secret' },
+    body: JSON.stringify({ message: { chat: { id: 123 }, text: '/search LX 600' } }),
+  }), { TELEGRAM_LOOKUP_WEBHOOK_SECRET: 'test-secret', TELEGRAM_LOOKUP_BOT_TOKEN: 'fixture', DB: dbFor({ id: 'lx600', brand: 'Lexus', model: 'LX 600' }) });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, found: true, id: 'lx600' });
+  assert.equal(replies.length, 1);
+  assert.equal(replies[0].chat_id, '123');
+  assert.match(replies[0].text, /Lexus LX 600/);
+});
 
 test('lookup returns production car fields and associated media', async () => {
   const car = await lookup(dbFor({ id: 'lx600', brand: 'Lexus', model: 'LX 600', year: 2026, mileage: 1800, price: 9000000000, status: 'available' }), 'LX 600');

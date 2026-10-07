@@ -2,17 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { handleTelegramIngest } from "../src/telegram-ingest.js";
 
-test("Telegram visibility command emits safe dispatch diagnostics before authorization", async () => {
+test("Telegram visibility command emits safe dispatch diagnostics after webhook authentication and before chat authorization", async () => {
   const lines=[];
   const original=console.log;
   console.log=(...args)=>lines.push(args.join(" "));
   try{
     const request=new Request("https://phanthuanxtra.com/api/telegram/webhook",{
       method:"POST",
-      headers:{"content-type":"application/json"},
+      headers:{"content-type":"application/json","X-Telegram-Bot-Api-Secret-Token":"test-secret"},
       body:JSON.stringify({update_id:101,message:{message_id:202,chat:{id:303},text:"/show tg-652"}})
     });
-    const env={DB:{},TELEGRAM_WEBHOOK_SECRET:""};
+    const env={DB:{},TELEGRAM_WEBHOOK_SECRET:"test-secret"};
     await handleTelegramIngest(request,env,{});
   } catch(error) {
     assert.match(String(error),/prepare|canPublish|DB/i);

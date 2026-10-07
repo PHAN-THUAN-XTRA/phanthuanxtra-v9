@@ -503,14 +503,14 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
 async function autoWebhook(request, env, ctx) {
   const token = autoBotToken(env);
   const secret = env.TELEGRAM_WEBHOOK_SECRET;
-  if (secret && request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret && request.headers.get("X-Telegram-Webhook-Secret") !== secret) return json({ error: "Unauthorized" }, 401);
+  if (!secret) return json({ error: "Webhook secret is not configured" }, 503);
+  if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret) return json({ error: "Unauthorized" }, 401);
   const update = await request.json().catch(() => null);
   const message = update?.message || update?.channel_post;
   if (!message?.chat?.id) return json({ ok: true, ignored: true });
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   if (!photo && !caption) return json({ ok: true, ignored: true });
-  if (isEditorialMessage(message) && !secret) return json({ error: "Webhook secret required for editorial publishing" }, 503);
   const chatId = String(message.chat.id);
   // Album items are acknowledged once by the debounced media_group processor below.
   // Non-album updates retain the immediate receipt.
@@ -540,6 +540,7 @@ export async function getAutoTelegramWebhookStatus(env, expectedUrl = AUTO_WEBHO
 }
 
 export async function setAutoTelegramWebhook(env, webhookUrl = AUTO_WEBHOOK_URL) {
+  if (!env.TELEGRAM_WEBHOOK_SECRET) throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");
   const token = autoBotToken(env);
   const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post"] };
   if (env.TELEGRAM_WEBHOOK_SECRET) payload.secret_token = env.TELEGRAM_WEBHOOK_SECRET;

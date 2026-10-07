@@ -560,21 +560,29 @@ async function migrateVideosRoute() {
   }
 }
 
+function requiredTelegramWebhookSecrets(bindings, env = process.env) {
+  const names = ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET"];
+  if (env.TELEGRAM_LOOKUP_BOT_TOKEN || bindings.some(binding => binding.name === "TELEGRAM_LOOKUP_BOT_TOKEN"))
+    names.push("TELEGRAM_LOOKUP_WEBHOOK_SECRET");
+  return names;
+}
+
 async function syncSecretsAndDeploy() {
   const secrets = {};
-  const currentBindingNames = new Set((await api(accountPath(`/workers/scripts/${WORKER}/settings`)))?.bindings?.map((binding) => binding?.name).filter(Boolean) || []);
+  const currentBindings = (await api(accountPath(`/workers/scripts/${WORKER}/settings`)))?.bindings || [];
+  const currentBindingNames = new Set(currentBindings.map(binding => binding?.name).filter(Boolean));
   for (const name of ["ADMIN_PASSWORD", "ADMIN_RECOVERY_ROTATE_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_VIP_BOT_TOKEN"]) {
     const value = process.env[name];
     if (!value) throw new Error(`${name} GitHub secret is absent; refusing production deploy.`);
     secrets[name] = { name, text: value, type: "secret_text" };
   }
-  for (const name of ["TELEGRAM_AUTO_BOT_TOKEN", "TELEGRAM_CRM_BOT_TOKEN", "TELEGRAM_CRM_CHAT_ID"]) {
+  for (const name of ["TELEGRAM_AUTO_BOT_TOKEN", "TELEGRAM_CRM_BOT_TOKEN", "TELEGRAM_CRM_CHAT_ID", ...requiredTelegramWebhookSecrets(currentBindings)]) {
     const value = process.env[name];
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
     else if (currentBindingNames.has(name)) console.log(`${name}: preserving existing Cloudflare Worker binding.`);
     else throw new Error(`${name} is absent from both GitHub Actions and the existing Cloudflare Worker; refusing production deploy.`);
   }
-  for (const name of ["TELEGRAM_WEBHOOK_SECRET", "TELEGRAM_VIP_WEBHOOK_SECRET", "TELEGRAM_AUTO_PUBLISH_CHAT_IDS", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY"]) {
+  for (const name of ["TELEGRAM_AUTO_PUBLISH_CHAT_IDS", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY"]) {
     const value = process.env[name];
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
   }
@@ -623,6 +631,10 @@ console.log("=== PHAN THUẦN XTRA — Cloudflare API/SDK production controller 
 console.log("Wrangler is intentionally not invoked by this controller.");
 // Check new publishing dependencies before changing migrations, assets or runtime.
 const publishingBindings = (await api(accountPath(`/workers/scripts/${WORKER}/settings`)))?.bindings || [];
+for (const name of requiredTelegramWebhookSecrets(publishingBindings)) {
+  if (!process.env[name] && !publishingBindings.some(binding => binding.name === name && binding.type === "secret_text"))
+    throw new Error(`${name} is required for Telegram webhook authentication; configure it before deployment.`);
+}
 for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY"]) {
   if (!publishingBindings.some(binding => binding.name === name) && !process.env[name])
     throw new Error(`${name} is required on the website Worker for editorial publishing; configure it before deployment.`);
