@@ -147,3 +147,54 @@ test("Telegram webhook admin routes reject an invalid bearer token", async () =>
   }),env(),{});
   assert.equal(response.status,401);
 });
+
+for (const selection of ["Auto preferred", "general fallback", "Auto only"]) {
+  test(`general webhook admin routes use runtime token selection: ${selection}`, async t => {
+    const e = { ...env(), TELEGRAM_WEBHOOK_SECRET: crypto.randomUUID() };
+    if (selection !== "general fallback") e.TELEGRAM_AUTO_BOT_TOKEN = crypto.randomUUID();
+    if (selection === "Auto only") delete e.TELEGRAM_BOT_TOKEN;
+    const expected = e.TELEGRAM_AUTO_BOT_TOKEN || e.TELEGRAM_BOT_TOKEN;
+    const calls = [];
+    t.mock.method(globalThis, "fetch", async (url, options) => {
+      const method = String(url).split("/").pop();
+      assert.equal(String(url) === `https://api.telegram.org/bot${expected}/${method}`, true, "admin request must target runtime bot");
+      calls.push({ method, payload: JSON.parse(options.body) });
+      const result = method === "getMe"
+        ? { id: 123456, is_bot: true, username: "ptx_test_bot" }
+        : method === "getWebhookInfo"
+          ? { url: "https://example.com/api/telegram/webhook", pending_update_count: 0 }
+          : true;
+      return new Response(JSON.stringify({ ok: true, result }));
+    });
+    const bearer = await issueAdminToken(e);
+    const headers = { Authorization: `Bearer ${bearer}` };
+    const status = await handleTelegramIngest(new Request("https://example.com/api/admin/telegram/webhook-status", { headers }), e, {});
+    assert.equal(status.status, 200);
+    const body = await status.json();
+    assert.equal(body.url_matches_expected, true);
+    assert.equal(body.bot.id, 123456);
+    assert.deepEqual(calls.map(call => call.method), ["getWebhookInfo", "getMe"]);
+    const registered = await handleTelegramIngest(new Request("https://example.com/api/admin/telegram/webhook", { method: "POST", headers }), e, {});
+    assert.equal(registered.status, 200);
+    assert.deepEqual(calls.map(call => call.method), ["getWebhookInfo", "getMe", "setWebhook"]);
+    assert.equal(calls[2].payload.url, "https://example.com/api/telegram/webhook");
+    assert.equal(calls[2].payload.secret_token === e.TELEGRAM_WEBHOOK_SECRET, true);
+  });
+}
+
+test("legacy ingest replies retain the general token when Auto is configured", async t => {
+  const e = { ...env(), DB: {}, TELEGRAM_AUTO_BOT_TOKEN: crypto.randomUUID(), TELEGRAM_WEBHOOK_SECRET: crypto.randomUUID() };
+  const calls = [];
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(String(url) === `https://api.telegram.org/bot${e.TELEGRAM_BOT_TOKEN}/sendMessage`, true, "legacy ingest must retain general bot");
+    calls.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ ok: true, result: true }));
+  });
+  const response = await handleTelegramIngest(new Request("https://example.com/api/telegram/webhook", {
+    method: "POST", headers: { "X-Telegram-Bot-Api-Secret-Token": e.TELEGRAM_WEBHOOK_SECRET },
+    body: JSON.stringify({ update_id: 1, message: { message_id: 2, chat: { id: 3 }, text: "/show fixture-car" } }),
+  }), e, { waitUntil() { throw new Error("Unexpected queued work"); } });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).authorized, false);
+  assert.equal(calls.length, 1);
+});

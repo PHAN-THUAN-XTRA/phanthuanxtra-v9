@@ -84,9 +84,9 @@ test('Telegram publish duplicate protection sends only once',async()=>{
       }};
     }
   };
-  const env={DB,TELEGRAM_BOT_TOKEN:'test-token',TELEGRAM_CHAT_ID:'-1001'};
+  const env={DB,TELEGRAM_BOT_TOKEN:crypto.randomUUID(),TELEGRAM_AUTO_BOT_TOKEN:crypto.randomUUID(),TELEGRAM_CHAT_ID:'-1001'};
   const originalFetch=global.fetch;
-  global.fetch=async()=>{calls.push(1);return new Response(JSON.stringify({ok:true,result:{message_id:calls.length}}),{status:200,headers:{'content-type':'application/json'}})};
+  global.fetch=async url=>{assert.equal(String(url).startsWith(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/`),true,"publishing must retain general bot");calls.push(1);return new Response(JSON.stringify({ok:true,result:{message_id:calls.length}}),{status:200,headers:{'content-type':'application/json'}})};
   try{
     const draft={brand:'Lexus',model:'LX 600',year:2024,mileage:1000,price:9000000000,confidence:0.95,plate_bbox:VALID_PLATE_BBOX,features:[],missing_fields:[]};
     const first=await promoteDraft(env,101,draft,'vehicles/publish-inbox-101-test.jpg');

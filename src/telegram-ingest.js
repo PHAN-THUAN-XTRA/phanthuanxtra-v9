@@ -12,9 +12,11 @@ const clean=v=>String(v??"").trim();
 const sha256=async value=>{const bytes=new TextEncoder().encode(value),hash=await crypto.subtle.digest("SHA-256",bytes);return[...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,"0")).join("")};
 const AUTO_PUBLISH_MIN_CONFIDENCE=0.85;
 
-async function tg(env,method,payload={}){
-  if(!env.TELEGRAM_BOT_TOKEN)throw new Error("TELEGRAM_BOT_TOKEN is not configured");
-  const r=await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+const webhookBotToken=env=>env.TELEGRAM_AUTO_BOT_TOKEN||env.TELEGRAM_BOT_TOKEN;
+
+async function tg(env,method,payload={},token=env.TELEGRAM_BOT_TOKEN){
+  if(!token)throw new Error("TELEGRAM_BOT_TOKEN is not configured");
+  const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
   const d=await r.json().catch(()=>({}));
   if(!r.ok||!d.ok)throw new Error(clean(d.description)||`Telegram ${method} failed`);
   return d.result;
@@ -30,14 +32,14 @@ function safeWebhookInfo(info,expectedUrl){
   return {ok:true,configured:Boolean(actual),url_configured:Boolean(actual),url:actual||null,url_matches_expected:actual===expectedUrl,expected_url:expectedUrl,has_custom_certificate:Boolean(info?.has_custom_certificate),pending_update_count:Number(info?.pending_update_count||0),last_error_date:info?.last_error_date||null,last_error_message:clean(info?.last_error_message,500)||null,last_synchronization_error_date:info?.last_synchronization_error_date||null,max_connections:info?.max_connections||null,ip_address:info?.ip_address||null};
 }
 
-async function getTelegramWebhookInfo(env){return tg(env,"getWebhookInfo",{});}
+async function getTelegramWebhookInfo(env){return tg(env,"getWebhookInfo",{},webhookBotToken(env));}
 async function getTelegramBotIdentity(env){
-  const bot=await tg(env,"getMe",{});
+  const bot=await tg(env,"getMe",{},webhookBotToken(env));
   return {id:bot?.id??null,username:clean(bot?.username)||null,name:clean([bot?.first_name,bot?.last_name].filter(Boolean).join(" "))||null,is_bot:Boolean(bot?.is_bot)};
 }
 
 export async function getTelegramWebhookStatus(env,expectedUrl){
-  if(!env.TELEGRAM_BOT_TOKEN) return {ok:false,error:"TELEGRAM_BOT_TOKEN is not configured"};
+  if(!webhookBotToken(env)) return {ok:false,error:"TELEGRAM_BOT_TOKEN is not configured"};
   try{return safeWebhookInfo(await getTelegramWebhookInfo(env),expectedUrl);}catch(error){return {ok:false,error:clean(error?.message||error)||"Telegram getWebhookInfo failed"};}
 }
 
@@ -179,6 +181,6 @@ export async function handleTelegramIngest(request,env,ctx){
   return json({ok:true,received:true,source_hash:sourceHash,inbox_id:inbox?.id||null,queued:Boolean(photo&&ctx)});
 }
 
-export async function setTelegramWebhook(env,webhookUrl){const secret=clean(env.TELEGRAM_WEBHOOK_SECRET);if(!secret)throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");const payload={url:webhookUrl,allowed_updates:["message","channel_post"],secret_token:secret};return tg(env,"setWebhook",payload);}
+export async function setTelegramWebhook(env,webhookUrl){const secret=clean(env.TELEGRAM_WEBHOOK_SECRET);if(!secret)throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");const payload={url:webhookUrl,allowed_updates:["message","channel_post"],secret_token:secret};return tg(env,"setWebhook",payload,webhookBotToken(env));}
 
 export { canAutoPublish, promoteDraft };
