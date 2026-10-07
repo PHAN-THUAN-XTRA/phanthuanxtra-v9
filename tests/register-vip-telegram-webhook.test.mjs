@@ -54,6 +54,8 @@ test("VIP registration uses secret_token, preserves pending updates, verifies UR
 
 test("VIP registration refuses missing or invalid secret before network calls",async()=>{
   let called=false;
-  await assert.rejects(()=>run({TELEGRAM_VIP_BOT_TOKEN:"fake-token",TELEGRAM_VIP_WEBHOOK_SECRET:"bad secret"},async()=>{called=true;}),/absent or invalid/);
+  const token="tok_"+crypto.randomUUID().replaceAll("-","_");
+  const invalidSecret=crypto.randomUUID()+" invalid";
+  await assert.rejects(()=>run({TELEGRAM_VIP_BOT_TOKEN:token,TELEGRAM_VIP_WEBHOOK_SECRET:invalidSecret},async()=>{called=true;}),/absent or invalid/);
   assert.equal(called,false);
 });
