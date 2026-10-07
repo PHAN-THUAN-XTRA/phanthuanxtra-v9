@@ -588,7 +588,6 @@ async function syncSecretsAndDeploy() {
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
   }
   if (!currentBindings.some(binding => binding.name === "BREVO_API_KEY" && binding.type === "secret_text")) throw new Error("BREVO_API_KEY must already exist as a Cloudflare secret_text binding; refusing deploy.");
-  console.log("BREVO_API_KEY: preserving existing Cloudflare secret_text binding.");
   await api(accountPath(`/workers/scripts/${WORKER}/secrets-bulk`), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
