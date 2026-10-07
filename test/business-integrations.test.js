@@ -107,7 +107,9 @@ test("production wiring keeps third-party integrations opt-in and secret-backed"
   assert.match(script, /https:\/\/embed\.tawk\.to\//);
   assert.match(script, /api\/integrations\/public-config/);
   assert.doesNotMatch(script, /addEventListener\("click",loadTawk,\{once:true\}\)/);
-  for (const name of ["BREVO_API_KEY","BREVO_SENDER_EMAIL","BREVO_TO_EMAIL","TAWK_PROPERTY_ID","TAWK_WIDGET_ID","ANALYTICS_EXPORT_TOKEN"]) {
+  assert.ok(deploy.includes("BREVO_API_KEY"), "deploy controller missing Cloudflare-only Brevo guard");
+  assert.ok(!workflow.includes("BREVO_API_KEY"), "deploy workflow must not source BREVO_API_KEY from GitHub");
+  for (const name of ["BREVO_SENDER_EMAIL","BREVO_TO_EMAIL","TAWK_PROPERTY_ID","TAWK_WIDGET_ID","ANALYTICS_EXPORT_TOKEN"]) {
     assert.ok(deploy.includes(name), "deploy controller missing " + name);
     assert.ok(workflow.includes(name), "deploy workflow missing " + name);
   }
