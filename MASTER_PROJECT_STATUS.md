@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## TELEGRAM VISIBILITY RUNTIME — PRODUCTION PASS — 2026-10-07 (UTC+7)
+
+- PR #794 `fix(telegram): fail closed webhook auth and harden registration` merged to `main` as `dde4fe41ba04a6c5ce64b108e24994dda0ca4266`; production deploy and webhook security gates passed.
+- Runtime audit of vehicle `tg-652` found `/show tg-652` was initially claimed by the active Telegram router before the ingest visibility handler. PR #795 (`f90139cf844a1a0568e3b48b6c2b9a4e0d398d02`) added recognition but its early return inside `processTelegramUpdate` did not transfer HTTP ownership to ingest; the first production smoke therefore still returned only the generic receipt. This intermediate patch is superseded by #796.
+- PR #796 `fix(telegram): execute show and hide in active webhook router` executes the existing reversible `setCarVisibility` operation directly in the active router, retains `canPublishAutoBlog` chat authorization, writes the existing visibility audit record, and sends explicit Telegram confirmation. No D1/R2 delete is part of the visibility operation.
+- PR #796 head `7188927966a54fe5a7d219a390e107ab2ee86022` passed CI, AI Pre-Deploy Audit, SonarQube Cloud, Jev + LLM Decision Cascade and PR deploy validation. It merged as `202a4b1c932dc1971f562e9f5e3b2ec2148609db`.
+- Exact merge production run **Deploy Cloudflare Worker #2146 / 37591981552** completed SUCCESS. Exact-merge CI and SonarQube also passed.
+- Owner runtime acceptance after deploy: Telegram command `/show tg-652` returned `✅ ĐÃ HIỆN XE tg-652\nTrạng thái: available`. This is the production proof that the command reached the active router and the reversible D1 status mutation succeeded.
+- `tg-652` is the AUDI Q7 3.0 TFSI (Model 2017). Visibility testing must not be interpreted as gallery editing or media deletion; the command changes vehicle status only.
+- Final status: **CLOSED / PRODUCTION PASS** for the `/show` runtime defect. Future `/hide <car-id>` / `/show <car-id>` changes must preserve authorization, audit logging, reversible status-only mutation, explicit Telegram confirmation, and no D1/R2 destructive operation.
+- Remaining unrelated vehicle work is tracked separately; do not reopen this incident for gallery/cover curation.
+
 ## TOOL / APP POLICY — FREE-FIRST — 2026-10-04 (UTC+7)
 
 - Owner decision: prioritize free applications, plugins, connectors, open-source tools and existing free quotas whenever they can satisfy the project requirement safely and reliably.
