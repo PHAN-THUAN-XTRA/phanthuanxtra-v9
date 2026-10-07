@@ -359,7 +359,8 @@ export async function handleAiChat(request,env,ctx){
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"https://phanthuanxtra.com","Access-Control-Allow-Headers":"content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}});
   if(request.method!=="POST")return json({ok:false,error:"Method Not Allowed"},405); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},503);
   const body=await request.json().catch(()=>null); const message=clean(body?.message); if(!message)return json({ok:false,error:"Tin nhắn trống"},400);
-  const suppressCrmNotification = body?.suppress_crm_notification === true && /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
+  const syntheticCrmProbe = /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
+  const suppressCrmNotification = body?.suppress_crm_notification === true && syntheticCrmProbe;
   const preliminaryContact=extractContact(message);
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel);
   const pending=await pendingUnknown(env,conversationId);
@@ -392,13 +393,14 @@ export async function handleAiChat(request,env,ctx){
   const needsHuman = (!allowed&&pendingIncomplete) || !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
+  let crmDelivery=null;
   if(needsHuman){
     const unknown=pending ? {id:pending.id,created:false} : await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
     const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&!pendingWasComplete);
     let sent=false;
     if(contactJustCompleted&&!suppressCrmNotification){
-      const notification=await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message:pending?.question||message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});
-      sent=notification.sent;
+      crmDelivery=await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message:pending?.question||message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});
+      sent=crmDelivery.sent;
     }
     reply=handoffReply(effectiveContact,sent);
   } else {
@@ -449,8 +451,8 @@ export async function handleAiChat(request,env,ctx){
   if(phone)await saveLead(env,conversationId,phone,name,message,customer?.customerId); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,conversationId).run();
   // Every website AI message must reach CRM exactly once. Unknown requests are
   // already notified above; all other messages use the normal AI chat source.
-  if(!needsHuman && !suppressCrmNotification)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
+  if(!needsHuman && !suppressCrmNotification)crmDelivery=await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
   const memoryTask=enqueueMemoryEvent(env,{customerId:customer?.customerId,conversationId,source:"ai-chat",message,outcome:needsHuman?"human_handoff":"assistant_replied",hasPhone:Boolean(phone),cars});
   if(ctx?.waitUntil)ctx.waitUntil(memoryTask);else await memoryTask;
-  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:aiModel,memory:{returning_customer:procedures.returningCustomer,known_contact:Boolean(procedures.knownPhone)}});
+  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:aiModel,memory:{returning_customer:procedures.returningCustomer,known_contact:Boolean(procedures.knownPhone)},...(syntheticCrmProbe?{crm_delivery:{sent:Boolean(crmDelivery?.sent),cleanup_deleted:Boolean(crmDelivery?.cleanupDeleted)}}:{})});
 }
