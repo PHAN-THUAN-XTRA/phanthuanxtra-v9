@@ -93,11 +93,12 @@ export async function handleAdminCars(request, env) {
   }
   if (request.method === "DELETE") {
     if (!id || !safeId(id)) return response({ error: "ID không hợp lệ" }, 400);
-    // DELETE is intentionally non-destructive for vehicles: archive by hiding.
-    // Keep the canonical car row, gallery rows and R2 media so the operation is reversible.
-    const actor = text(request.headers.get("X-PTX-Actor") || "cms-delete-compat", 100);
-    const result = await setCarVisibility(env.DB, id, false, { actor });
-    return response(result.ok ? { ok: true, archived: result.id, visibility: result.visibility, car: result.car } : { error: result.error }, result.status);
+    if ((request.headers.get("X-CMS-Confirm") || "").toLowerCase() !== "delete") return response({ error: "Thiếu X-CMS-Confirm: delete" }, 428);
+    const existing = await env.DB.prepare("SELECT id,brand,model FROM cars WHERE id=?").bind(id).first();
+    if (!existing) return response({ error: "Không tìm thấy xe" }, 404);
+    await env.DB.batch([env.DB.prepare("DELETE FROM car_images WHERE car_id=?").bind(id), env.DB.prepare("DELETE FROM cars WHERE id=?").bind(id)]);
+    await audit(env.DB, "delete", "car", id, `${existing.brand} ${existing.model}`);
+    return response({ ok: true, deleted: id });
   }
   if (request.method !== "POST" && request.method !== "PUT") return response({ error: "Method Not Allowed" }, 405, { Allow: "GET,POST,PUT,DELETE" });
   const body = await readJson(request);
