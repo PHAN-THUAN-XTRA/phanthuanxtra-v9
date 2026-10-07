@@ -102,3 +102,17 @@ test('App API routes assistant through AI Gateway default and exposes bounded se
   assert.match(appApi, /text\(b\.text,2000\)/);
   assert.match(appApi, /skipCache:true/);
 });
+
+
+test('vehicle DELETE compatibility archives by hiding and never deletes canonical car/gallery rows', () => {
+  const cms=fs.readFileSync(new URL('../src/cms.js',import.meta.url),'utf8');
+  const control=fs.readFileSync(new URL('../public/admin-control.html',import.meta.url),'utf8');
+  const vehicleDelete=cms.slice(cms.indexOf('if (request.method === "DELETE")'),cms.indexOf('if (request.method !== "POST"'));
+  assert.match(vehicleDelete,/setCarVisibility\(env\.DB, id, false/);
+  assert.match(vehicleDelete,/archived: result\.id/);
+  assert.doesNotMatch(vehicleDelete,/DELETE FROM cars|DELETE FROM car_images/);
+  assert.doesNotMatch(source,/X-CMS-Confirm","delete"/);
+  assert.match(control,/Lưu trữ\/ẩn xe/);
+  assert.match(control,/\/api\/admin\/cars\/['"]?\+encodeURIComponent\(id\)/);
+  assert.doesNotMatch(control,/Xóa bài xe/);
+});
