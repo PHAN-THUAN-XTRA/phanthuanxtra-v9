@@ -77,3 +77,62 @@ test("shared script binds and submits Business Jets form without homepage catalo
   assert.equal(leadStatus.textContent, "Đã nhận yêu cầu. Chúng tôi sẽ liên hệ sớm.");
   assert.equal(resetCount, 1);
 });
+
+
+test("shared script submits homepage test-drive form with the Telegram test-drive source", async () => {
+  let resetCount = 0;
+  const leadForm = { onsubmit: null, reset() { resetCount += 1; } };
+  const leadStatus = { textContent: "" };
+  const elements = new Map([
+    ["#leadForm", leadForm],
+    ["#leadStatus", leadStatus]
+  ]);
+  const document = {
+    querySelector(selector) { return elements.get(selector) || null; },
+    querySelectorAll() { return []; },
+    addEventListener() {},
+    createElement() { return { className: "", textContent: "", appendChild() {}, replaceChildren() {} }; },
+    head: { appendChild() {} }
+  };
+  const fields = {
+    need: "Lái thử xe",
+    name: "CI WEB FORM",
+    phone: "0900000000",
+    interest: "Lexus RX350L",
+    message: "Hẹn xem xe"
+  };
+  class FakeFormData {
+    get(name) { return fields[name] || ""; }
+  }
+  let request = null;
+  const sandbox = {
+    document,
+    localStorage: storage(),
+    sessionStorage: storage(),
+    FormData: FakeFormData,
+    crypto: { randomUUID: () => "22345678-1234-1234-1234-123456789abc" },
+    fetch: async (url, options) => {
+      request = { url, options };
+      return { ok: true, json: async () => ({ ok: true, stored: true }) };
+    },
+    console,
+    setTimeout,
+    clearTimeout
+  };
+
+  vm.runInNewContext(source, sandbox);
+  assert.equal(typeof leadForm.onsubmit, "function");
+
+  await leadForm.onsubmit({ preventDefault() {} });
+
+  const payload = JSON.parse(request.options.body);
+  assert.equal(request.url, "/api/leads");
+  assert.equal(payload.source, "test-drive");
+  assert.equal(payload.name, "CI WEB FORM");
+  assert.equal(payload.phone, "0900000000");
+  assert.match(payload.message, /Lái thử xe/);
+  assert.match(payload.message, /Lexus RX350L/);
+  assert.match(payload.message, /Hẹn xem xe/);
+  assert.equal(leadStatus.textContent, "Đã nhận yêu cầu. Chúng tôi sẽ liên hệ sớm.");
+  assert.equal(resetCount, 1);
+});
