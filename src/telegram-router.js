@@ -8,6 +8,7 @@ import { answerAutoCustomer, autoBlogSlug, canPublishAutoBlog, createBlogPost, g
 import { boundedBytes, storePublishingImage } from "./publishing-api.js";
 import { imageInputLimit } from "./media-policy.js";
 import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
+import { setCarVisibility } from "./vehicle-persistence.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
@@ -313,7 +314,17 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
   const visibilityCommand=/^(?:\/(hide|show)(?:@\w+)?|(ẩn|an|hiện|hien)\s+xe)\s+([a-z0-9][a-z0-9_-]{2,80})\s*$/iu.exec(caption);
-  if(visibilityCommand)return;
+  if(visibilityCommand){
+    if(!env.DB){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa cấu hình cơ sở dữ liệu xe."}).catch(()=>{});return;}
+    if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"⛔ Chat này chưa được cấp quyền ẩn/hiện xe."}).catch(()=>{});return;}
+    const action=String(visibilityCommand[1]||visibilityCommand[2]||"").toLowerCase();
+    const visible=action==="show"||action==="hiện"||action==="hien";
+    const carId=String(visibilityCommand[3]||"").toLowerCase();
+    const result=await setCarVisibility(env.DB,carId,visible,{actor:`telegram:${chatId}`});
+    const reply=result.ok?(visible?`✅ ĐÃ HIỆN XE ${carId}\nTrạng thái: available`:`🙈 ĐÃ ẨN XE ${carId}\nTrạng thái: hidden\nDữ liệu và ảnh được giữ nguyên.`):`❌ ${result.error||"Không cập nhật được trạng thái xe."}`;
+    await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:reply}).catch(()=>{});
+    return;
+  }
   if(command?.name==="customerapp"){
     if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"Chat này chưa được cấp quyền mở quản lý khách hàng."});return;}
     if(message?.chat?.type&&message.chat.type!=="private"){await tg(token,"sendMessage",{chat_id:chatId,text:"Mini App chăm sóc khách hàng chỉ mở trong chat riêng với bot."});return;}
