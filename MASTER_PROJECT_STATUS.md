@@ -1,5 +1,16 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## VEHICLE ARCHIVE / HIDE DEFAULT — MERGED — 2026-10-07 (UTC+7)
+
+- PR #798 `fix(cars): make archive/hide the default delete behavior` merged to `main` as `2ae6041117da4cfbb23a4e02a73fa0f17aaefe02`.
+- Vehicle DELETE compatibility is now intentionally non-destructive: it delegates to `setCarVisibility(..., false)` and changes the vehicle to `hidden` instead of deleting the canonical record.
+- Admin wording is `Lưu trữ`; the confirmation states that vehicle data and images are retained and the vehicle can be shown again.
+- Safety invariant: the vehicle archive path must not execute `DELETE FROM cars` or `DELETE FROM car_images`; R2 media is retained. Restore remains the existing reversible `hidden -> available` visibility path.
+- Regression coverage in `tests/app-admin-contract.test.mjs` locks the non-destructive behavior. The Admin vehicle renderer was also moved away from `innerHTML` sinks to DOM APIs so the security audit remains fail-closed.
+- PR head `52f37dab2a8a43007c6982b067d7523576cc4c3f` passed CI, AI Pre-Deploy Audit, Jev + LLM Decision Cascade, SonarQube Cloud and deploy validation before merge.
+- Exact-merge production deployment for `2ae6041117da4cfbb23a4e02a73fa0f17aaefe02` was not yet observed at this documentation checkpoint. Do not label this change **PRODUCTION PASS** until the exact-merge deployment and post-deploy gates succeed.
+- This policy supersedes destructive vehicle-delete behavior as the default. Permanent deletion, if ever reintroduced, must be a separate explicitly authorized workflow and must not silently delete R2 media.
+
 ## TELEGRAM VISIBILITY RUNTIME — PRODUCTION PASS — 2026-10-07 (UTC+7)
 
 - PR #794 `fix(telegram): fail closed webhook auth and harden registration` merged to `main` as `dde4fe41ba04a6c5ce64b108e24994dda0ca4266`; production deploy and webhook security gates passed.
