@@ -159,7 +159,6 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_PLATE_MODEL }}
           PUBLISH_API_KEY: ${{ secrets.PUBLISH_API_KEY }}
-          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
           BREVO_TO_EMAIL: ${{ secrets.BREVO_TO_EMAIL }}
           TAWK_PROPERTY_ID: ${{ secrets.TAWK_PROPERTY_ID }}
@@ -238,7 +237,6 @@ jobs:
           echo "Homepage stylesheet delivery: HTTP 200; text/css; expected luxury layout selectors present."
       - name: Verify free business integrations production boundary
         env:
-          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
           BREVO_TO_EMAIL: ${{ secrets.BREVO_TO_EMAIL }}
           TAWK_PROPERTY_ID: ${{ secrets.TAWK_PROPERTY_ID }}
