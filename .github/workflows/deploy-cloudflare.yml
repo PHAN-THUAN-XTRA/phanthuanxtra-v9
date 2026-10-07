@@ -50,9 +50,13 @@ jobs:
         run: |
           node --check scripts/deploy-cloudflare-api.mjs
           node --check scripts/cloudflare-assets-upload.mjs
+          node --check scripts/register-vip-telegram-webhook.mjs
           node --check tests/cloudflare-assets-upload.test.mjs
+          node --check tests/register-vip-telegram-webhook.test.mjs
       - name: Simulate Cloudflare Assets protocol
         run: node --test tests/cloudflare-assets-upload.test.mjs
+      - name: Validate VIP Telegram webhook rollout verifier
+        run: node --test tests/register-vip-telegram-webhook.test.mjs
       - name: Validate JavaScript syntax and tests
         run: |
           set -euo pipefail
@@ -162,6 +166,11 @@ jobs:
           TAWK_WIDGET_ID: ${{ secrets.TAWK_WIDGET_ID }}
           ANALYTICS_EXPORT_TOKEN: ${{ secrets.ANALYTICS_EXPORT_TOKEN }}
         run: node scripts/deploy-cloudflare-api.mjs
+      - name: Register and verify VIP Telegram webhook
+        env:
+          TELEGRAM_VIP_BOT_TOKEN: ${{ secrets.TELEGRAM_VIP_BOT_TOKEN }}
+          TELEGRAM_VIP_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_VIP_WEBHOOK_SECRET }}
+        run: node scripts/register-vip-telegram-webhook.mjs
       - name: Diagnose Workers AI account allocation
         shell: bash
         env:

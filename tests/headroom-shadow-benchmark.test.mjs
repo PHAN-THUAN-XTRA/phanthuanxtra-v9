@@ -7,7 +7,7 @@ test("Headroom shadow benchmark preserves production boundaries",()=>{
  const p=fs.readFileSync("scripts/headroom-shadow-benchmark.py","utf8");
  assert.match(w,/HEADROOM_OFFLINE: "1"/);
  assert.match(w,/HEADROOM_BEACON: "off"/);
- assert.match(w,/permissions:\n  contents: read/);
+ assert.match(w,/permissions:\r?\n  contents: read/);
  assert.match(w,/persist-credentials: false/);
  assert.match(p,/missing_literals/);
  assert.match(p,/tokens_before/);

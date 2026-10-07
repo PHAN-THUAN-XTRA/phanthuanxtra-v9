@@ -1,6 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { lookup, formatCar, handleTelegramLookup } from '../src/telegram-lookup.js';
+
+test('lookup authentication fails closed and validates only the standard Telegram header', async t => {
+  t.mock.method(globalThis, 'fetch', () => { throw new Error('Unexpected network access'); });
+  const DB = { prepare() { throw new Error('Unexpected database access'); } };
+  for (const secret of [undefined, '', 'test-secret']) {
+    for (const headers of [{}, { 'X-Telegram-Bot-Api-Secret-Token': 'wrong' }, { 'X-Telegram-Lookup-Webhook-Secret': 'test-secret' }, { 'X-Telegram-Bot-Api-Secret-Token': 'test-secret' }]) {
+      const request = new Request('https://example.com/api/telegram/lookup-webhook', { method: 'POST', headers, body: '{}' });
+      const accepted = secret === 'test-secret' && headers['X-Telegram-Bot-Api-Secret-Token'] === secret;
+      if (!accepted) request.json = () => { throw new Error('Unauthenticated body parsed'); };
+      const response = await handleTelegramLookup(request, { DB, TELEGRAM_LOOKUP_WEBHOOK_SECRET: secret });
+      assert.equal(response.status, !secret ? 503 : accepted ? 200 : 401);
+      if (accepted) assert.deepEqual(await response.json(), { ok: true, ignored: true });
+    }
+  }
+});
+
+test('lookup registration requires and sends secret_token', async t => {
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ ok: true, result: true }));
+  });
+  const fixtures = { admin: randomUUID(), bot: randomUUID(), webhook: randomUUID() };
+  const request = () => new Request('https://example.com/api/admin/telegram/lookup-webhook', { method: 'POST', headers: { Authorization: `Bearer ${fixtures.admin}` } });
+  const env = { ADMIN_TOKEN: fixtures.admin, TELEGRAM_LOOKUP_BOT_TOKEN: fixtures.bot };
+  for (const secret of [undefined, '']) {
+    assert.equal((await handleTelegramLookup(request(), { ...env, TELEGRAM_LOOKUP_WEBHOOK_SECRET: secret })).status, 503);
+  }
+  assert.equal(calls.length, 0);
+  assert.equal((await handleTelegramLookup(request(), { ...env, TELEGRAM_LOOKUP_WEBHOOK_SECRET: fixtures.webhook })).status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].secret_token, fixtures.webhook);
+});
 
 function dbFor(car) {
   return {
@@ -22,6 +56,40 @@ function dbFor(car) {
     }
   };
 }
+
+test('lookup auth retries have no side effects and an authorized update sends exactly one reply', async t => {
+  const fixtures = { webhook: randomUUID(), bot: randomUUID() };
+  const replies = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    replies.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ ok: true, result: true }));
+  });
+  const env = { TELEGRAM_LOOKUP_WEBHOOK_SECRET: fixtures.webhook, TELEGRAM_LOOKUP_BOT_TOKEN: fixtures.bot, DB: dbFor({ id: 'lx600', brand: 'Lexus', model: 'LX 600' }) };
+  const request = headers => new Request('https://example.com/api/telegram/lookup-webhook', {
+    method: 'POST', headers,
+    body: JSON.stringify({ update_id: 42, message: { message_id: 7, chat: { id: 123 }, text: '/search LX 600' } }),
+  });
+  for (const [headers, secret, status] of [
+    [{ 'X-Telegram-Bot-Api-Secret-Token': fixtures.webhook }, undefined, 503],
+    [{ 'X-Telegram-Bot-Api-Secret-Token': 'wrong' }, fixtures.webhook, 401],
+    [{ 'X-Telegram-Lookup-Webhook-Secret': fixtures.webhook }, fixtures.webhook, 401],
+  ]) {
+    // Repeated rejected deliveries cannot parse the update, read D1, or send replies.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const rejected = request(headers);
+      rejected.json = () => { throw new Error('Unauthenticated body parsed'); };
+      const DB = { prepare() { throw new Error('Unauthenticated database access'); } };
+      assert.equal((await handleTelegramLookup(rejected, { ...env, DB, TELEGRAM_LOOKUP_WEBHOOK_SECRET: secret })).status, status);
+    }
+  }
+  assert.equal(replies.length, 0);
+  const response = await handleTelegramLookup(request({ 'X-Telegram-Bot-Api-Secret-Token': fixtures.webhook }), env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, found: true, id: 'lx600' });
+  assert.equal(replies.length, 1);
+  assert.equal(replies[0].chat_id, '123');
+  assert.match(replies[0].text, /Lexus LX 600/);
+});
 
 test('lookup returns production car fields and associated media', async () => {
   const car = await lookup(dbFor({ id: 'lx600', brand: 'Lexus', model: 'LX 600', year: 2026, mileage: 1800, price: 9000000000, status: 'available' }), 'LX 600');

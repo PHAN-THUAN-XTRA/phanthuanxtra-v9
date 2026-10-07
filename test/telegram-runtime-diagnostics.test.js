@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { handleTelegramIngest } from "../src/telegram-ingest.js";
 
-test("Telegram visibility command emits safe dispatch diagnostics before authorization", async () => {
+test("Telegram visibility command emits safe dispatch diagnostics after webhook authentication and before chat authorization", async () => {
   const lines=[];
   const original=console.log;
   console.log=(...args)=>lines.push(args.join(" "));

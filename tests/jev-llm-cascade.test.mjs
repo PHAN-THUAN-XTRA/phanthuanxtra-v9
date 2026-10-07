@@ -9,7 +9,7 @@ test("Jev GitHub cascade is optional, bounded, and non-mutating",()=>{
  assert.match(s,/jev-latest/);
  assert.match(s,/security_risk>=0\.90/);
  assert.match(s,/production_risk>=0\.90/);
- assert.match(w,/permissions:\n  contents: read/);
+ assert.match(w,/permissions:\r?\n  contents: read/);
  assert.match(w,/persist-credentials: false/);
  assert.match(w,/head -c 120000/);
  assert.doesNotMatch(w,/CLOUDFLARE_API_TOKEN|TELEGRAM_BOT_TOKEN|ADMIN_TOKEN|wrangler/i);
