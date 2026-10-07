@@ -30,3 +30,11 @@ test("Telegram webhook status source exposes the actual configured URL field", a
   const source=await import("node:fs/promises").then(fs=>fs.readFile(new URL("../src/telegram-ingest.js",import.meta.url),"utf8"));
   assert.match(source,/url:actual\|\|null/);
 });
+
+
+test("Auto router yields visibility commands so ingest owns /show and /hide", async () => {
+  const source=await import("node:fs/promises").then(fs=>fs.readFile(new URL("../src/telegram-router.js",import.meta.url),"utf8"));
+  assert.match(source,/const visibilityCommand=.*\/(?:hide\|show)/s);
+  assert.match(source,/if\(visibilityCommand\)return;/);
+  assert.match(source,/export async function handleTelegramRouter[\s\S]*if \(url\.pathname === "\/api\/telegram\/webhook" && request\.method === "POST"\) return autoWebhook/);
+});
