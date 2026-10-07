@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { lookup, formatCar, handleTelegramLookup } from '../src/telegram-lookup.js';
 
 test('lookup authentication fails closed and validates only the standard Telegram header', async t => {
@@ -23,15 +24,16 @@ test('lookup registration requires and sends secret_token', async t => {
     calls.push(JSON.parse(options.body));
     return new Response(JSON.stringify({ ok: true, result: true }));
   });
-  const request = () => new Request('https://example.com/api/admin/telegram/lookup-webhook', { method: 'POST', headers: { Authorization: 'Bearer admin-fixture' } });
-  const env = { ADMIN_TOKEN: 'admin-fixture', TELEGRAM_LOOKUP_BOT_TOKEN: 'fixture' };
+  const fixtures = { admin: randomUUID(), bot: randomUUID(), webhook: randomUUID() };
+  const request = () => new Request('https://example.com/api/admin/telegram/lookup-webhook', { method: 'POST', headers: { Authorization: `Bearer ${fixtures.admin}` } });
+  const env = { ADMIN_TOKEN: fixtures.admin, TELEGRAM_LOOKUP_BOT_TOKEN: fixtures.bot };
   for (const secret of [undefined, '']) {
     assert.equal((await handleTelegramLookup(request(), { ...env, TELEGRAM_LOOKUP_WEBHOOK_SECRET: secret })).status, 503);
   }
   assert.equal(calls.length, 0);
-  assert.equal((await handleTelegramLookup(request(), { ...env, TELEGRAM_LOOKUP_WEBHOOK_SECRET: 'test-secret' })).status, 200);
+  assert.equal((await handleTelegramLookup(request(), { ...env, TELEGRAM_LOOKUP_WEBHOOK_SECRET: fixtures.webhook })).status, 200);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].secret_token, 'test-secret');
+  assert.equal(calls[0].secret_token, fixtures.webhook);
 });
 
 function dbFor(car) {
@@ -55,17 +57,33 @@ function dbFor(car) {
   };
 }
 
-test('correct Telegram secret preserves lookup and reply workflow', async t => {
+test('lookup auth retries have no side effects and an authorized update sends exactly one reply', async t => {
+  const fixtures = { webhook: randomUUID(), bot: randomUUID() };
   const replies = [];
   t.mock.method(globalThis, 'fetch', async (_url, options) => {
     replies.push(JSON.parse(options.body));
     return new Response(JSON.stringify({ ok: true, result: true }));
   });
-  const response = await handleTelegramLookup(new Request('https://example.com/api/telegram/lookup-webhook', {
-    method: 'POST',
-    headers: { 'X-Telegram-Bot-Api-Secret-Token': 'test-secret' },
-    body: JSON.stringify({ message: { chat: { id: 123 }, text: '/search LX 600' } }),
-  }), { TELEGRAM_LOOKUP_WEBHOOK_SECRET: 'test-secret', TELEGRAM_LOOKUP_BOT_TOKEN: 'fixture', DB: dbFor({ id: 'lx600', brand: 'Lexus', model: 'LX 600' }) });
+  const env = { TELEGRAM_LOOKUP_WEBHOOK_SECRET: fixtures.webhook, TELEGRAM_LOOKUP_BOT_TOKEN: fixtures.bot, DB: dbFor({ id: 'lx600', brand: 'Lexus', model: 'LX 600' }) };
+  const request = headers => new Request('https://example.com/api/telegram/lookup-webhook', {
+    method: 'POST', headers,
+    body: JSON.stringify({ update_id: 42, message: { message_id: 7, chat: { id: 123 }, text: '/search LX 600' } }),
+  });
+  for (const [headers, secret, status] of [
+    [{ 'X-Telegram-Bot-Api-Secret-Token': fixtures.webhook }, undefined, 503],
+    [{ 'X-Telegram-Bot-Api-Secret-Token': 'wrong' }, fixtures.webhook, 401],
+    [{ 'X-Telegram-Lookup-Webhook-Secret': fixtures.webhook }, fixtures.webhook, 401],
+  ]) {
+    // Repeated rejected deliveries cannot parse the update, read D1, or send replies.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const rejected = request(headers);
+      rejected.json = () => { throw new Error('Unauthenticated body parsed'); };
+      const DB = { prepare() { throw new Error('Unauthenticated database access'); } };
+      assert.equal((await handleTelegramLookup(rejected, { ...env, DB, TELEGRAM_LOOKUP_WEBHOOK_SECRET: secret })).status, status);
+    }
+  }
+  assert.equal(replies.length, 0);
+  const response = await handleTelegramLookup(request({ 'X-Telegram-Bot-Api-Secret-Token': fixtures.webhook }), env);
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true, found: true, id: 'lx600' });
   assert.equal(replies.length, 1);
