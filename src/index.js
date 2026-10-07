@@ -56,7 +56,7 @@ async function createLeadReplaySafe(r,e,ctx,b,p){
     if(customer?.customerId)await linkLeadCustomer(e,leadId,customer.customerId);
     await e.DB.prepare("UPDATE xtra_lead_intake_requests SET lead_id=?,customer_id=?,status='stored',updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?").bind(leadId,customer?.customerId||null,key).run();
     const delivery=await notifyTelegramCrm(e,{source,name:b.name,phone:p,car:b.car_id,message:b.message});
-    await e.DB.prepare("UPDATE xtra_lead_intake_requests SET delivery_ok=?,status='completed',completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?").bind(delivery?.ok?1:0,key).run();
+    await e.DB.prepare("UPDATE xtra_lead_intake_requests SET delivery_ok=?,status='completed',completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?").bind((delivery?.ok??delivery?.sent)?1:0,key).run();
     const memoryTask=enqueueMemoryEvent(e,{customerId:customer?.customerId,source,message:text(b.message,2000)||text(b.car_id,100)||"Khách gửi biểu mẫu liên hệ",outcome:"lead_created",hasPhone:true,cars:[]});
     const brevoTask=sendBrevoLeadNotification(e,{leadId,source,name:b.name,phone:p,carId:b.car_id,message:b.message});
     const backgroundTask=Promise.all([memoryTask,brevoTask]);
