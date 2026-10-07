@@ -126,3 +126,12 @@ test("Data Studio connector reads aggregate endpoint and does not request lead P
   assert.match(connector, /function isAdminUser\(\) \{\s*return false;/);
   assert.doesNotMatch(connector, /\bphone\b|\bemail\b|\bmessage\b/i);
 });
+
+
+test("deployment controller refuses a missing Cloudflare Brevo secret and does not source it from GitHub", () => {
+  const deploy = fs.readFileSync("scripts/deploy-cloudflare-api.mjs", "utf8");
+  const workflow = fs.readFileSync(".github/workflows/deploy-cloudflare.yml", "utf8");
+  assert.match(deploy, /currentBindings\.some\(binding => binding\.name === "BREVO_API_KEY" && binding\.type === "secret_text"\)/);
+  assert.match(deploy, /BREVO_API_KEY must already exist as a Cloudflare secret_text binding/);
+  assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{\s*secrets\.BREVO_API_KEY/);
+});
