@@ -26,14 +26,46 @@ function carCard(c){
 }
 function render(){const list=filtered(),cars=$("#cars");cars.replaceChildren();if(!list.length){const notice=document.createElement("p");notice.className="notice";notice.textContent="Không tìm thấy xe phù hợp. Gọi 0866 997 891 để được hỗ trợ.";cars.appendChild(notice)}else cars.append(...list.map(carCard));$$("[data-fav]").forEach(b=>b.onclick=()=>{const id=b.dataset.fav;state.favorites.has(id)?state.favorites.delete(id):state.favorites.add(id);save();render()});$$("[data-compare]").forEach(b=>b.onclick=()=>{const id=b.dataset.compare;if(state.compare.has(id))state.compare.delete(id);else if(state.compare.size<3)state.compare.add(id);else alert("Bạn chỉ có thể so sánh tối đa 3 xe.");save();render()});updateCounters()}
 function showCompare(){const selected=state.cars.filter(c=>state.compare.has(c.id));const body=$("#compareBody");if(!selected.length)body.innerHTML='<p class="fav-empty">Chưa có xe nào. Hãy bấm ⇄ trên thẻ xe để thêm.</p>';else{const rows=[["Hãng","brand"],["Mẫu xe","name"],["Năm","year"],["ODO","odo"],["Động cơ","engine"],["Dẫn động","drive"],["Số chỗ","seats"],["Giá tham khảo","price"]];body.innerHTML='<table class="compare-table"><thead><tr><th>Thông tin</th>'+selected.map(c=>`<th>${esc(c.name)}</th>`).join("")+'</tr></thead><tbody>'+rows.map(r=>`<tr><th>${r[0]}</th>${selected.map(c=>`<td>${esc(c[r[1]])}</td>`).join("")}</tr>`).join("")+'</tbody></table><div class="actions"><a class="btn primary" href="tel:+84866997891">Gọi tư vấn</a><a class="btn zalo" href="https://zalo.me/0866997891" target="_blank" rel="noopener noreferrer">Nhắn Zalo</a></div>'}$("#compareModal").hidden=false}
-const menu=$(".menu-toggle"),nav=$("#site-nav");if(menu){menu.onclick=()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open))};$$('#site-nav a').forEach(a=>a.onclick=()=>nav.classList.remove('open'))}
-$$('.filter').forEach(b=>b.onclick=()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.filter=b.dataset.filter;render()});$("#search").oninput=e=>{state.query=e.target.value.slice(0,80);render()};$("#sort").onchange=e=>{state.sort=e.target.value;render()};$("#favoritesOnly").onclick=()=>{state.favoritesOnly=!state.favoritesOnly;$("#favoritesOnly").classList.toggle('active',state.favoritesOnly);render()};$("#compareOpen").onclick=showCompare;$$('[data-close]').forEach(x=>x.onclick=()=>$("#compareModal").hidden=true);document.addEventListener('keydown',e=>{if(e.key==='Escape')$("#compareModal").hidden=true});
-const leadForm=$("#leadForm");if(leadForm)leadForm.onsubmit=async e=>{e.preventDefault();const f=new FormData(leadForm),status=$("#leadStatus"),need=f.get("need")||"",interest=f.get("interest")||"",origin=f.get("origin")||"",destination=f.get("destination")||"",flightDate=f.get("flight_date")||"",passengers=f.get("passengers")||"",source=need==="Business Jets / Private Aviation"?"business-jets":"website-lead",message=[need,interest,origin&&`Điểm đi: ${origin}`,destination&&`Điểm đến: ${destination}`,flightDate&&`Ngày/giờ: ${flightDate}`,passengers&&`Số khách: ${passengers}`,f.get("message")||""].filter(Boolean).join(" | ");status.textContent="Đang gửi...";try{const r=await fetch('/api/leads',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:f.get('name'),phone:f.get('phone'),car_id:'',source,message,visitor_id:visitorId})});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Không gửi được');status.textContent="Đã nhận yêu cầu. Chúng tôi sẽ liên hệ sớm.";leadForm.reset()}catch(x){status.textContent="Chưa gửi được. Vui lòng gọi 0866 997 891."}};
+const menu=$(".menu-toggle"),nav=$("#site-nav");if(menu&&nav){menu.onclick=()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open))};$$('#site-nav a').forEach(a=>a.onclick=()=>nav.classList.remove('open'))}
+$$('.filter').forEach(b=>b.onclick=()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.filter=b.dataset.filter;render()});
+const search=$("#search"),sort=$("#sort"),favoritesOnly=$("#favoritesOnly"),compareOpen=$("#compareOpen");
+if(search)search.oninput=e=>{state.query=e.target.value.slice(0,80);render()};
+if(sort)sort.onchange=e=>{state.sort=e.target.value;render()};
+if(favoritesOnly)favoritesOnly.onclick=()=>{state.favoritesOnly=!state.favoritesOnly;favoritesOnly.classList.toggle('active',state.favoritesOnly);render()};
+if(compareOpen)compareOpen.onclick=showCompare;
+$$('[data-close]').forEach(x=>x.onclick=()=>{const modal=$("#compareModal");if(modal)modal.hidden=true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const modal=$("#compareModal");if(modal)modal.hidden=true}});
+const leadForm=$("#leadForm");if(leadForm)leadForm.onsubmit=async e=>{e.preventDefault();const f=new FormData(leadForm),status=$("#leadStatus"),need=f.get("need")||"",interest=f.get("interest")||"",origin=f.get("origin")||"",destination=f.get("destination")||"",flightDate=f.get("flight_date")||"",passengers=f.get("passengers")||"",source=need==="Business Jets / Private Aviation"?"business-jets":need==="Lái thử xe"?"test-drive":"website-lead",message=[need,interest,origin&&`Điểm đi: ${origin}`,destination&&`Điểm đến: ${destination}`,flightDate&&`Ngày/giờ: ${flightDate}`,passengers&&`Số khách: ${passengers}`,f.get("message")||""].filter(Boolean).join(" | ");status.textContent="Đang gửi...";try{const r=await fetch('/api/leads',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:f.get('name'),phone:f.get('phone'),car_id:'',source,message,visitor_id:visitorId})});const d=await r.json();if(!r.ok||!d.ok)throw Error(d.error||'Không gửi được');status.textContent="Đã nhận yêu cầu. Chúng tôi sẽ liên hệ sớm.";leadForm.reset()}catch(x){status.textContent="Chưa gửi được. Vui lòng gọi 0866 997 891."}};
 const aiFab=$("#aiFab"),aiPanel=$("#aiPanel"),aiClose=$("#aiClose"),aiInline=$("#aiOpenInline"),aiForm=$("#aiForm"),aiInput=$("#aiInput"),aiMessages=$("#aiMessages");
 function openAI(){aiPanel.hidden=false;aiFab.setAttribute('aria-expanded','true');setTimeout(()=>aiInput?.focus(),50)}function closeAI(){aiPanel.hidden=true;aiFab.setAttribute('aria-expanded','false')}aiFab?.addEventListener('click',()=>aiPanel.hidden?openAI():closeAI());aiClose?.addEventListener('click',closeAI);aiInline?.addEventListener('click',openAI);
 function addMsg(text,who){const d=document.createElement('div');d.className=`ai-msg ${who}`;d.textContent=text;aiMessages.appendChild(d);aiMessages.scrollTop=aiMessages.scrollHeight}
 let aiConversationId=sessionStorage.getItem('ptx_ai_conversation')||'',aiBusy=false;
 aiForm?.addEventListener('submit',async e=>{e.preventDefault();const message=aiInput.value.trim();if(!message||aiBusy)return;addMsg(message,'user');aiInput.value='';aiBusy=true;try{const r=await fetch('/api/ai-chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,conversation_id:aiConversationId,visitor_id:visitorId})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw Error(d.error||'AI unavailable');if(d.conversation_id){aiConversationId=d.conversation_id;sessionStorage.setItem('ptx_ai_conversation',aiConversationId)}addMsg(d.reply||'Đã ghi nhận yêu cầu.','bot')}catch(x){addMsg('Chưa kết nối được XTRA Intelligence. Vui lòng gọi 0866 997 891 hoặc để lại số điện thoại trong biểu mẫu lái thử.','bot')}finally{aiBusy=false}});
 
-fetch('/api/cars',{cache:'no-store',credentials:'same-origin'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{if(!d||!Array.isArray(d.cars))throw Error();state.cars=d.cars.map(normalizeCar);render()}).catch(()=>{$("#cars").innerHTML='<p class="notice">Không tải được kho xe. Vui lòng gọi 0866 997 891.</p>'});
+
+const liveChatOpen=$("#liveChatOpen");
+let tawkLoading=false,tawkConfig=null;
+function validTawkId(value){return /^[A-Za-z0-9_-]{6,80}$/.test(String(value||""))}
+function loadTawk(){
+  if(tawkLoading||!tawkConfig)return;
+  if(!validTawkId(tawkConfig.property_id)||!validTawkId(tawkConfig.widget_id))return;
+  tawkLoading=true;liveChatOpen.disabled=true;liveChatOpen.textContent="Đang mở chat...";
+  globalThis.Tawk_API=globalThis.Tawk_API||{};
+  globalThis.Tawk_LoadStart=new Date();
+  globalThis.Tawk_API.onLoad=()=>{globalThis.Tawk_API?.maximize?.();liveChatOpen.textContent="Chat trực tiếp với showroom"};
+  const script=document.createElement("script");
+  script.async=true;script.charset="UTF-8";
+  script.src=`https://embed.tawk.to/${tawkConfig.property_id}/${tawkConfig.widget_id}`;
+  script.onload=()=>{liveChatOpen.disabled=false};
+  script.onerror=()=>{tawkLoading=false;liveChatOpen.disabled=false;liveChatOpen.textContent="Chat trực tiếp với showroom"};
+  document.head.appendChild(script);
+}
+if(liveChatOpen){
+  fetch("/api/integrations/public-config",{cache:"no-store",credentials:"same-origin"})
+    .then(r=>r.ok?r.json():null)
+    .then(config=>{const tawk=config?.tawk;if(tawk?.enabled&&validTawkId(tawk.property_id)&&validTawkId(tawk.widget_id)){tawkConfig=tawk;liveChatOpen.hidden=false;liveChatOpen.addEventListener("click",loadTawk)}})
+    .catch(()=>{});
+}
+
+const carsRoot=$("#cars");if(carsRoot)fetch('/api/cars',{cache:'no-store',credentials:'same-origin'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{if(!d||!Array.isArray(d.cars))throw Error();state.cars=d.cars.map(normalizeCar);render()}).catch(()=>{const notice=document.createElement("p");notice.className="notice";notice.textContent="Không tải được kho xe. Vui lòng gọi 0866 997 891.";carsRoot.replaceChildren(notice)});
 })();

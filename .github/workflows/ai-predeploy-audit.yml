@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - name: Audit PR diff for security, Worker, D1, R2, AI and Telegram risks
         run: node scripts/predeploy-audit.mjs "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
       - name: Run deterministic regression tests

@@ -96,7 +96,7 @@ function isIdentityQuery(value){
 }
 function isVehicleQuery(value){
   const t=foldVi(value);
-  return /\b(mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup|mpv)\b/.test(t);
+  return t.trim()==="xe" || /\b(mua xe|ban xe|xe nao|xe gi|mau xe|dong xe|lai thu|thu doi|dinh gia|gia xe|gia bao nhieu|phu hop|lexus|porsche|mercedes|bmw|audi|toyota|land rover|landrover|range rover|rolls royce|ferrari|aston martin|cadillac|suv|sport|sedan|coupe|pickup|mpv)\b/.test(t);
 }
 function vehicleFallbackCars(query,cars=[]){
   const t=foldVi(query);
@@ -124,9 +124,10 @@ function vehicleFallbackLabel(car){
   const hasYear=Boolean(year&&new RegExp(`(?:^|\\D)${year}(?:\\D|$)`).test(model));
   return [brand,model,hasYear?"":year].filter(Boolean).join(" ");
 }
+function isOfficialContactQuery(value){return /^(hotline|so dien thoai|phone number)( lien he)?( chinh thuc)?( cua (phan thuan( xtra)?|website))?( la gi| bao nhieu)?[?.! ]*$/.test(foldVi(value));}
 function isWebsiteTopicQuery(value){
   const t=foldVi(value);
-  return /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
+  return isOfficialContactQuery(value) || /\b(nang luong xanh|green energy|dien mat troi|solar|pv|ess|energy storage|pin luu tru|hoa luoi|doc lap|hybrid|du thuyen|yacht|marine|chuyen co|business jets?|aviation|legacy 600|embraer|praetor 600e?|lien he|contact|hotline|zalo|dat lich|appointment|blog|bai viet|tin tuc|bai dang|news)\b/.test(t);
 }
 const isBlogQuery = value => /\b(blog|bai viet|tin tuc|bai dang|news)\b/.test(foldVi(value));
 function postPlainText(value){
@@ -314,9 +315,26 @@ function deterministicWebsiteReply(message){
     return "Hotline liên hệ chính thức của PHAN THUẦN XTRA: 0866 997 891. Anh/chị cũng có thể gửi nhu cầu qua khu vực liên hệ hoặc private appointment trên website.";
   return "";
 }
-function extractContact(text){const phone=(text.match(PHONE_RE)?.[0]||"").trim();let name="";const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹ][A-Za-zÀ-ỹ' -]{1,80})/i);if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();return {name,phone};}
+function plausibleStandaloneName(text){
+  const raw=clean(text,120).replace(/[,.!?]+$/g,"").trim();
+  if(!raw||PHONE_RE.test(raw))return "";
+  const folded=foldVi(raw);
+  if(/\b(xe|gia|mua|ban|lai thu|tu van|hotline|blog|du thuyen|chuyen co|nang luong|hello|hi|hihi|alo|ok|cam on)\b/.test(folded))return "";
+  const words=raw.split(/\s+/).filter(Boolean);
+  if(words.length<2||words.length>5)return "";
+  if(!words.every(word=>/^[A-Za-zÀ-ỹĐđ][A-Za-zÀ-ỹĐđ'-]{0,30}$/.test(word)))return "";
+  return raw;
+}
+function extractContact(text,{acceptStandaloneName=false}={}){
+  const phone=(text.match(PHONE_RE)?.[0]||"").trim();
+  let name="";
+  const m=text.match(/(?:tôi|mình|em|anh|chị)\s+(?:tên\s+(?:là)?|là)\s+([A-Za-zÀ-ỹĐđ][A-Za-zÀ-ỹĐđ' -]{1,80})/i);
+  if(m)name=clean(m[1],120).replace(/[,.!?]+$/g,"").trim();
+  else if(acceptStandaloneName)name=plausibleStandaloneName(text);
+  return {name,phone};
+}
 function handoffReply(contact, sent=false){
-  if(contact.name&&contact.phone)return sent ? "Cảm ơn anh/chị. Tôi đã tiếp nhận họ tên và số điện thoại và gửi yêu cầu qua Telegram/CRM để anh Phan Thuần trực tiếp tư vấn." : "Cảm ơn anh/chị. Tôi đã ghi nhận họ tên, số điện thoại và câu hỏi, nhưng chưa xác nhận được Telegram đã nhận. Anh/chị có thể gọi trực tiếp 0866 997 891 để được hỗ trợ.";
+  if(contact.name&&contact.phone)return sent ? "Cảm ơn anh/chị. Tôi đã tiếp nhận, anh Phan Thuần trực tiếp tư vấn." : "Cảm ơn anh/chị. Tôi đã ghi nhận họ tên, số điện thoại và câu hỏi, nhưng chưa xác nhận được Telegram đã nhận. Anh/chị có thể gọi trực tiếp 0866 997 891 để được hỗ trợ.";
   if(contact.name)return `Cảm ơn anh/chị ${contact.name}. Tôi chưa có thông tin xác thực để trả lời chắc chắn; vui lòng cho tôi xin thêm số điện thoại để chuyển anh Phan Thuần trực tiếp tư vấn.`;
   if(contact.phone)return "Cảm ơn anh/chị, tôi đã nhận số điện thoại. Vui lòng cho tôi xin thêm họ tên để hoàn tất thông tin chuyển anh Phan Thuần trực tiếp tư vấn.";
   return "Tôi chưa có thông tin xác thực cho câu hỏi này trong dữ liệu PHAN THUẦN XTRA nên sẽ không đoán. Anh/chị vui lòng cho tôi xin họ tên và số điện thoại, tôi sẽ chuyển yêu cầu trực tiếp đến anh Phan Thuần qua hệ thống Telegram/CRM.";
@@ -341,10 +359,13 @@ export async function handleAiChat(request,env,ctx){
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"https://phanthuanxtra.com","Access-Control-Allow-Headers":"content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}});
   if(request.method!=="POST")return json({ok:false,error:"Method Not Allowed"},405); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},503);
   const body=await request.json().catch(()=>null); const message=clean(body?.message); if(!message)return json({ok:false,error:"Tin nhắn trống"},400);
-  const suppressCrmNotification = body?.suppress_crm_notification === true && /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
-  const contact=extractContact(message);
-  const customer=await resolveCustomer(env,{visitorId:body?.visitor_id,phone:clean(body?.phone,30)||contact.phone,name:clean(body?.name,120)||contact.name,channel:body?.channel});
+  const syntheticCrmProbe = /^ci-ai-chat-\d+$/.test(clean(body?.conversation_id,100)) && clean(body?.test_context,40) === "production-smoke";
+  const suppressCrmNotification = body?.suppress_crm_notification === true && syntheticCrmProbe;
+  const preliminaryContact=extractContact(message);
   const conversationId=await ensureConversation(env,body?.conversation_id,body?.visitor_id,body?.channel);
+  const pending=await pendingUnknown(env,conversationId);
+  const contact=extractContact(message,{acceptStandaloneName:Boolean(pending?.phone&&!pending?.name&&!preliminaryContact.phone)});
+  const customer=await resolveCustomer(env,{visitorId:body?.visitor_id,phone:clean(body?.phone,30)||contact.phone,name:clean(body?.name,120)||contact.name,channel:body?.channel});
   if(customer?.customerId)await attachConversationCustomer(env,conversationId,customer.customerId);
   const history=await loadHistory(env,conversationId);
   const customerMemory=customer?.customerId ? await loadCustomerMemory(env,customer.customerId) : {profile:null,facts:[],episodes:[],knownPhone:false,phone:""};
@@ -358,7 +379,6 @@ export async function handleAiChat(request,env,ctx){
     loadPublishedPosts(env,message),
     loadEditorialKnowledge(env,message,url.origin)
   ]);
-  const pending=await pendingUnknown(env,conversationId);
   const pendingWasComplete=Boolean(pending?.name&&pending?.phone);
   const effectiveContact={name:clean(body?.name,120)||contact.name||clean(pending?.name,120)||procedures.knownName,phone:clean(body?.phone,30)||contact.phone||clean(pending?.phone,30)||clean(customerMemory.phone,30)};
   if(pending && (effectiveContact.name||effectiveContact.phone)){
@@ -369,16 +389,18 @@ export async function handleAiChat(request,env,ctx){
     .sort((a,b)=>b.title.length-a.title.length)[0];
   const publishedPostMatch=Boolean(matchedPost);
   const allowed = identityQuery || vehicleQuery || websiteTopicQuery || publishedPostMatch || Boolean(editorial);
-  const needsHuman = Boolean(pending) || !allowed || (websiteTopicQuery && !knowledge.evidence);
+  const pendingIncomplete=Boolean(pending&&(!effectiveContact.name||!effectiveContact.phone));
+  const needsHuman = (!allowed&&pendingIncomplete) || !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
+  let crmDelivery=null;
   if(needsHuman){
     const unknown=pending ? {id:pending.id,created:false} : await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
     const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&!pendingWasComplete);
     let sent=false;
     if(contactJustCompleted&&!suppressCrmNotification){
-      const notification=await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message:pending?.question||message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});
-      sent=notification.sent;
+      crmDelivery=await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message:pending?.question||message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});
+      sent=crmDelivery.sent;
     }
     reply=handoffReply(effectiveContact,sent);
   } else {
@@ -393,6 +415,8 @@ export async function handleAiChat(request,env,ctx){
       reply="Hiện tôi chưa đọc được bài Blog đã xuất bản để trả lời chính xác. Anh/chị vui lòng để lại họ tên và số điện thoại để được hỗ trợ.";
     } else if(identityFallback && /\b(la ai|ai la)\b/.test(foldVi(message))){
       reply=identityFallback;
+    } else if(isOfficialContactQuery(message)){
+      reply=deterministicWebsiteReply('hotline');
     } else try{
       const blogContext=(blogQuery||publishedPostMatch) ? `\nBÀI BLOG ĐÃ XUẤT BẢN TRÊN WEBSITE (chỉ sử dụng dữ liệu này cho câu hỏi Blog):\n${JSON.stringify(posts.map(post=>({title:post.title,url:`https://phanthuanxtra.com/blog/${encodeURIComponent(post.slug)}`,excerpt:postPlainText(post.excerpt),content:clean(postPlainText(post.content),1200)}))).slice(0,7000)}` : "";
       const websiteContext=editorial ? `${BRAND_KNOWLEDGE.split("## Hồ sơ truyền thông chính thức")[0]}\n\n${editorial}`.slice(0,MAX_KNOWLEDGE_CONTEXT) : knowledge.text;
@@ -427,8 +451,8 @@ export async function handleAiChat(request,env,ctx){
   if(phone)await saveLead(env,conversationId,phone,name,message,customer?.customerId); else await env.DB.prepare("UPDATE ai_conversations SET name=COALESCE(?,name),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,conversationId).run();
   // Every website AI message must reach CRM exactly once. Unknown requests are
   // already notified above; all other messages use the normal AI chat source.
-  if(!needsHuman && !suppressCrmNotification)await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
+  if(!needsHuman && !suppressCrmNotification)crmDelivery=await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
   const memoryTask=enqueueMemoryEvent(env,{customerId:customer?.customerId,conversationId,source:"ai-chat",message,outcome:needsHuman?"human_handoff":"assistant_replied",hasPhone:Boolean(phone),cars});
   if(ctx?.waitUntil)ctx.waitUntil(memoryTask);else await memoryTask;
-  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:aiModel,memory:{returning_customer:procedures.returningCustomer,known_contact:Boolean(procedures.knownPhone)}});
+  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:aiModel,memory:{returning_customer:procedures.returningCustomer,known_contact:Boolean(procedures.knownPhone)},...(syntheticCrmProbe?{crm_delivery:{sent:Boolean(crmDelivery?.sent),cleanup_deleted:Boolean(crmDelivery?.cleanupDeleted)}}:{})});
 }

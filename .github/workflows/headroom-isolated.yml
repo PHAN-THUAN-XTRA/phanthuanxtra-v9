@@ -1,0 +1,80 @@
+name: Headroom Isolated Audit Evidence
+
+on:
+  pull_request:
+    paths:
+      - "tools/headroom.json"
+      - "scripts/headroom-isolation.mjs"
+      - ".github/workflows/headroom-isolated.yml"
+      - "MASTER_PROJECT_STATUS.md"
+  push:
+    branches: [main]
+    paths:
+      - "tools/headroom.json"
+      - "scripts/headroom-isolation.mjs"
+      - ".github/workflows/headroom-isolated.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HEADROOM_BEACON: "off"
+      HEADROOM_OFFLINE: "1"
+      DO_NOT_TRACK: "1"
+      XTRA_PRODUCTION_ACCESS: "false"
+      XTRA_PRODUCTION_SECRETS: "false"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify XTRA Headroom isolation policy
+        run: node scripts/headroom-isolation.mjs
+      - name: Read pinned upstream revision
+        id: pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$(node -e 'const p=require("./tools/headroom.json"); process.stdout.write(p.commit)')"
+          test -n "$commit"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+      - name: Fetch exact Headroom revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-tags --depth 1 https://github.com/headroomlabs-ai/headroom.git /tmp/headroom
+          cd /tmp/headroom
+          git fetch --depth 1 origin "${{ steps.pin.outputs.commit }}"
+          git checkout --detach "${{ steps.pin.outputs.commit }}"
+          test "$(git rev-parse HEAD)" = "${{ steps.pin.outputs.commit }}"
+      - name: Inspect package without installing or running proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/headroom
+          grep -q 'name = "headroom-ai"' pyproject.toml
+          grep -q 'version = "0.39.1"' pyproject.toml
+          grep -q 'license = "Apache-2.0"' pyproject.toml
+          test -f SECURITY.md
+          test -f LICENSE
+      - name: Verify no production mutation or secret path
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$XTRA_PRODUCTION_ACCESS" = "false"
+          test "$XTRA_PRODUCTION_SECRETS" = "false"
+          test "$HEADROOM_OFFLINE" = "1"
+          test "$HEADROOM_BEACON" = "off"
+          env | cut -d= -f1 | grep -Ev '^(GITHUB_|RUNNER_|ACTIONS_)' | grep -E 'CLOUDFLARE_API_TOKEN|TELEGRAM_BOT_TOKEN|ADMIN_TOKEN|TYPESAFE_API_KEY' && exit 1 || true
+      - name: Evidence summary
+        run: |
+          echo "Headroom pinned revision: ${{ steps.pin.outputs.commit }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Mode: audit-only; proxy=false; memory=false; telemetry=false; production access=false" >> "$GITHUB_STEP_SUMMARY"
+          echo "No Headroom package install, proxy start, provider credential, or production mutation performed." >> "$GITHUB_STEP_SUMMARY"

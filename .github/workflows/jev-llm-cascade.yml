@@ -1,0 +1,68 @@
+name: Jev + LLM Decision Cascade
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  decision-cascade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build bounded review state
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_SHA:-}" ] && [ -n "${HEAD_SHA:-}" ]; then
+            git diff --no-ext-diff --unified=2 "$BASE_SHA" "$HEAD_SHA" | head -c 120000 > /tmp/jev-state.txt || true
+          else
+            git show --format=fuller --no-ext-diff HEAD | head -c 120000 > /tmp/jev-state.txt || true
+          fi
+          test -s /tmp/jev-state.txt
+      - name: Deterministic audit first
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "${BASE_SHA:-}" ] && [ -n "${HEAD_SHA:-}" ]; then
+            node scripts/predeploy-audit.mjs "$BASE_SHA" "$HEAD_SHA"
+          else
+            node --check scripts/predeploy-audit.mjs
+          fi
+      - name: Jev typed decision layer
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          AUDIT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          AUDIT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          JEV_STATE_FILE: /tmp/jev-state.txt
+        run: node scripts/jev-predeploy-decision.mjs
+      - name: LLM review policy
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deterministic tests remain mandatory." >> "$GITHUB_STEP_SUMMARY"
+          if [ -f jev-decision.json ]; then
+            echo "Jev decision evidence:" >> "$GITHUB_STEP_SUMMARY"
+            node -e 'const x=require("./jev-decision.json"); console.log(`- security_risk=${x.security_risk}\n- production_risk=${x.production_risk}\n- needs_llm_review=${x.needs_llm_review}`)' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Jev optional layer skipped; existing AI Pre-Deploy Audit / LLM review remains authoritative." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "Jev never receives GitHub/Cloudflare/Telegram secrets and never performs repository or production mutations." >> "$GITHUB_STEP_SUMMARY"

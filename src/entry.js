@@ -1,4 +1,8 @@
+import { handleAiDiscovery } from "./ai-discovery.js";
 import { handlePublishingApi } from "./publishing-api.js";
+import { handleContentPrepApi } from "./content-prep-api.js";
+import { handleContentRunnerApi } from "./content-runner-api.js";
+import { handleContentOwnerReviewAdmin } from "./content-owner-review.js";
 import { publishDueArticles } from "./editorial-publishing.js";
 import legacy from "./index.js";
 import { handleCmsApi } from "./cms.js";
@@ -13,12 +17,14 @@ import { handleAppApi } from "./app-api.js";
 import { handleAppAdmin } from "./app-admin.js";
 import { handleAdminVehiclePipeline } from "./admin-vehicle-pipeline.js";
 import { reconcileTelegramNotifications } from "./telegram-notifications.js";
+import { reconcileOpenAiWeeklyTelegram } from "./openai-weekly-telegram.js";
 import { handlePublishCore } from "./publish-core.js";
 import { handleBlog } from "./blog.js";
 import { reconcileSeo } from "./seo-ai.js";
 import { consumeTelegramVehicleDraftJobs, reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
 import { consumeMemoryJobs } from "./customer-memory.js";
 import { handleVideosPage } from "./videos-page.js";
+import { handleBusinessIntegrations } from "./business-integrations.js";
 import { handleTelegramMiniAppApi } from "./telegram-mini-app.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
@@ -30,6 +36,14 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const discoveryResponse = await handleAiDiscovery(request, env);
+      if (discoveryResponse) return discoveryResponse;
+      const contentReviewResponse = await handleContentOwnerReviewAdmin(request, env);
+      if (contentReviewResponse) return contentReviewResponse;
+      const contentRunnerResponse = await handleContentRunnerApi(request, env);
+      if (contentRunnerResponse) return contentRunnerResponse;
+      const contentPrepResponse = await handleContentPrepApi(request, env);
+      if (contentPrepResponse) return contentPrepResponse;
       if (url.pathname === "/telegram-mini-app.html" || url.pathname === "/telegram-mini-app" || url.pathname === "/telegram-mini-app/") {
         const assetUrl = new URL("/telegram-mini-app.html", request.url);
         const assetResponse = await env.ASSETS.fetch(new Request(assetUrl, {
@@ -130,6 +144,8 @@ export default {
       if (publishCoreResponse) return publishCoreResponse;
       const aiChatResponse = await handleAiChat(request, env, ctx);
       if (aiChatResponse) return aiChatResponse;
+      const businessIntegrationResponse = await handleBusinessIntegrations(request, env);
+      if (businessIntegrationResponse) return businessIntegrationResponse;
       const adminPipeline = await handleAdminVehiclePipeline(request, env);
       if (adminPipeline instanceof Response) return adminPipeline;
       if (adminPipeline instanceof Request) request = adminPipeline;
@@ -179,9 +195,11 @@ export default {
     try {
       const status=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
       console.log("telegram_webhook_status",JSON.stringify(status));
-      if(!status.ok||!status.url_matches_expected){
+      const authRejected=Boolean(status.ok&&/401|unauthorized/i.test(String(status.last_error_message||"")));
+      if(!status.ok||!status.url_matches_expected||authRejected){
         const result=await setAutoTelegramWebhook(env,TELEGRAM_WEBHOOK_URL);
-        console.log("telegram_webhook_self_heal_ok",JSON.stringify({url:TELEGRAM_WEBHOOK_URL,result,reason:status.ok?"url_mismatch":"status_unavailable"}));
+        const reason=!status.ok?"status_unavailable":!status.url_matches_expected?"url_mismatch":"auth_rejected";
+        console.log("telegram_webhook_self_heal_ok",JSON.stringify({url:TELEGRAM_WEBHOOK_URL,result,reason}));
         const verified=await getAutoTelegramWebhookStatus(env,TELEGRAM_WEBHOOK_URL);
         console.log("telegram_webhook_post_heal_status",JSON.stringify(verified));
       }
@@ -203,6 +221,10 @@ export default {
         console.log("seo_ai_reconcile",JSON.stringify(seo));
       } catch (error) { console.error("seo_ai_reconcile_failed",String(error?.message||error)); }
     }
+    try {
+      const weekly=await reconcileOpenAiWeeklyTelegram(env,controller?.scheduledTime??Date.now());
+      console.log("openai_weekly_telegram",JSON.stringify(weekly));
+    } catch (error) { console.error("openai_weekly_telegram_failed",String(error?.message||error)); }
     try {
       const result=await reconcileTelegramNotifications(env);
       console.log("telegram_notifications_reconcile",JSON.stringify(result));

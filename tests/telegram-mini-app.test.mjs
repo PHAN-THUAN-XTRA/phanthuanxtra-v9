@@ -49,7 +49,6 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   assert.match(source,/cms_audit_log/);
   assert.match(source,/public_url/);
   assert.match(source,/allowed=\["brand","model","year","mileage","price","fuel","category","color","description","featured"\]/);
-  assert.doesNotMatch(source,/method==="DELETE"/);
   assert.doesNotMatch(ui,/ADMIN_TOKEN|ptx_admin_token/);
   assert.match(ui,/Telegram\.WebApp|window\.Telegram/);
   assert.match(ui,/Chi tiết \/ Sửa/);
@@ -65,4 +64,87 @@ test("Mini App contract is scoped to safe vehicle status management with no dele
   assert.match(entry,/headers\.delete\("x-frame-options"\)/);
   assert.match(entry,/headers\.delete\("content-security-policy"\)/);
   assert.match(entry,/x-ptx-telegram-mini-app/);
+});
+
+
+test("Customer Care Mini App reuses Memory Brain with safe owner mutations and no delete",()=>{
+  const source=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
+  const router=fs.readFileSync(new URL("../src/telegram-router.js",import.meta.url),"utf8");
+  const migration=fs.readFileSync(new URL("../migrations/0028_xtra_customer_care.sql",import.meta.url),"utf8");
+  assert.match(source,/CARE_STATUSES/);
+  assert.match(source,/xtra_memory_customers/);
+  assert.match(source,/xtra_memory_identities/);
+  assert.match(source,/xtra_memory_episodes/);
+  assert.match(source,/xtra_memory_facts/);
+  assert.match(source,/xtra_memory_lead_links/);
+  assert.match(source,/xtra_customer_care/);
+  assert.match(source,/xtra_customer_care_audit/);
+  assert.match(source,/telegram-customer-mini-app/);
+  assert.match(source,/ai-customer-agent/);
+  assert.match(source,/deterministicCustomerSummary/);
+  assert.match(source,/customer=u\.pathname\.match/);
+  assert.match(source,/ai-summary/);
+  assert.doesNotMatch(source,/DELETE FROM xtra_customer_care/);
+  assert.match(router,/command\?\.name==="customerapp"/);
+  assert.match(router,/telegram-mini-app\.html\?view=customers/);
+  assert.match(router,/Không có chức năng xóa khách hàng/);
+  assert.match(ui,/Chăm sóc khách hàng/);
+  assert.match(ui,/AI cập nhật tóm tắt/);
+  assert.match(ui,/Lịch sử tương tác/);
+  assert.match(ui,/Audit chăm sóc/);
+  assert.match(migration,/customer_id TEXT PRIMARY KEY/);
+  assert.match(migration,/FOREIGN KEY \(customer_id\) REFERENCES xtra_memory_customers/);
+});
+
+
+test("Customer Care operational list hides CI fixtures and anonymous one-shot noise without deleting memory",()=>{
+  const source=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  assert.match(source,/UPPER\(COALESCE\(c\.display_name,''\)\) NOT LIKE 'CI-%'/);
+  assert.match(source,/UPPER\(ti\.identity_value\) LIKE 'CI-%'/);
+  assert.match(source,/xtra_memory_lead_links ol/);
+  assert.match(source,/xtra_memory_facts ofa/);
+  assert.match(source,/COUNT\(\*\).*xtra_memory_episodes oe/);
+  assert.doesNotMatch(source,/DELETE FROM xtra_memory_episodes/);
+});
+
+
+test("Autonomous Customer Care is evidence-first and keeps important stage changes human-approved",()=>{
+  const memory=fs.readFileSync(new URL("../src/customer-memory.js",import.meta.url),"utf8");
+  const api=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
+  const migration=fs.readFileSync(new URL("../migrations/0029_xtra_customer_care_proposals.sql",import.meta.url),"utf8");
+  assert.match(memory,/careProposal/);
+  assert.match(memory,/test_drive_requested/);
+  assert.match(memory,/contact_shared/);
+  assert.match(memory,/price_asked/);
+  assert.match(memory,/availability_asked/);
+  assert.match(memory,/vehicle_interest/);
+  assert.match(memory,/proposal\.value==="contacting".*currentStatus==="new".*proposal\.confidence>=0\.95/s);
+  assert.match(memory,/xtra_customer_care_proposals/);
+  assert.match(memory,/evidence_auto_update/);
+  assert.match(api,/decideCustomerProposal/);
+  assert.match(api,/proposal_decision/);
+  assert.match(api,/approve/);
+  assert.match(api,/reject/);
+  assert.match(ui,/AI đề xuất chăm sóc/);
+  assert.match(ui,/Duyệt/);
+  assert.match(ui,/Bỏ qua/);
+  assert.doesNotMatch(api,/DELETE FROM xtra_customer_care_proposals/);
+  assert.match(migration,/evidence_episode_id/);
+  assert.match(migration,/status TEXT NOT NULL DEFAULT 'pending'/);
+});
+
+
+test("Customer Care delete requires explicit customer-bound confirmation and preserves source leads",()=>{
+  const api=fs.readFileSync(new URL("../src/telegram-mini-app.js",import.meta.url),"utf8");
+  const ui=fs.readFileSync(new URL("../public/telegram-mini-app.html",import.meta.url),"utf8");
+  assert.match(api,/body\?\.confirm!=="DELETE_CUSTOMER"\|\|body\?\.customer_id!==id/);
+  assert.match(api,/DELETE FROM xtra_memory_lead_links WHERE customer_id=\?/);
+  assert.match(api,/DELETE FROM xtra_memory_customers WHERE id=\?/);
+  assert.doesNotMatch(api,/DELETE FROM leads WHERE/);
+  assert.match(ui,/Xóa khách hàng/);
+  assert.match(ui,/method:"DELETE"/);
+  assert.match(ui,/Lead gốc vẫn được giữ/);
+  assert.match(ui,/showConfirm/);
 });

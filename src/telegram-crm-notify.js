@@ -11,6 +11,9 @@ export async function notifyTelegramCrm(env, payload) {
   const testDrive = payload.source === "test-drive";
   const businessJets = payload.source === "business-jets";
   const syntheticBusinessJets = businessJets && /^CI-BUSINESS-JETS-\d+$/i.test(clean(payload.name, 120));
+  const syntheticTestDrive = testDrive && /^CI-WEB-FORM-\d+$/i.test(clean(payload.name, 120));
+  const syntheticAiChat = /^ci-ai-chat-\d+$/i.test(clean(payload.conversationId, 100));
+  const syntheticDelivery = syntheticBusinessJets || syntheticTestDrive || syntheticAiChat;
   const source = businessJets ? "BUSINESS JETS" : testDrive ? "TEST DRIVE FORM" : unknown ? "AI UNKNOWN — CẦN NGƯỜI THẬT" : payload.source === "website-lead" ? "WEBSITE LEAD" : "WEBSITE AI CHAT";
   const lines = [
     businessJets ? "✈️ LEAD — BUSINESS JETS" : testDrive ? "🚗 LEAD — TRẢI NGHIỆM LÁI THỬ" : unknown ? "⚠️ AI KHÔNG CÓ THÔNG TIN XÁC THỰC" : "🤖 LEAD — AI CHAT",
@@ -31,7 +34,7 @@ export async function notifyTelegramCrm(env, payload) {
     const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: lines, disable_web_page_preview: true, disable_notification: syntheticBusinessJets })
+      body: JSON.stringify({ chat_id: chatId, text: lines, disable_web_page_preview: true, disable_notification: syntheticDelivery })
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) {
@@ -41,7 +44,7 @@ export async function notifyTelegramCrm(env, payload) {
     const messageId = data.result?.message_id ?? null;
     const deliveredChatId = data.result?.chat?.id ?? null;
     let cleanupDeleted = false;
-    if (syntheticBusinessJets && messageId != null && deliveredChatId != null) {
+    if (syntheticDelivery && messageId != null && deliveredChatId != null) {
       try {
         const cleanup = await fetch(`https://api.telegram.org/bot${token}/deleteMessage`, {
           method: "POST",
@@ -55,7 +58,7 @@ export async function notifyTelegramCrm(env, payload) {
         console.warn("telegram_crm_e2e_cleanup", String(error?.message || error));
       }
     }
-    return { sent: true, configured: true, messageId, chatId: deliveredChatId, text: lines, synthetic: syntheticBusinessJets, cleanupDeleted };
+    return { sent: true, configured: true, messageId, chatId: deliveredChatId, text: lines, synthetic: syntheticDelivery, cleanupDeleted };
   } catch (error) {
     console.warn("telegram_crm_notify", String(error?.message || error));
     return { sent: false, configured: true };

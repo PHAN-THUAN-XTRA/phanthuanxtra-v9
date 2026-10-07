@@ -312,6 +312,12 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  if(command?.name==="customerapp"){
+    if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"Chat này chưa được cấp quyền mở quản lý khách hàng."});return;}
+    if(message?.chat?.type&&message.chat.type!=="private"){await tg(token,"sendMessage",{chat_id:chatId,text:"Mini App chăm sóc khách hàng chỉ mở trong chat riêng với bot."});return;}
+    await tg(token,"sendMessage",{chat_id:chatId,text:"🤝 PHAN THUẦN XTRA — CHĂM SÓC KHÁCH HÀNG\nXem hồ sơ Memory Brain, cập nhật trạng thái chăm sóc, lịch follow-up và AI tóm tắt. Không có chức năng xóa khách hàng.",reply_markup:{inline_keyboard:[[{text:"Mở khách hàng",web_app:{url:"https://phanthuanxtra.com/telegram-mini-app.html?view=customers"}}]]}});
+    return;
+  }
   if(command?.name==="carapp"){
     if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"Chat này chưa được cấp quyền mở quản lý xe."});return;}
     if(message?.chat?.type&&message.chat.type!=="private"){await tg(token,"sendMessage",{chat_id:chatId,text:"Mini App quản lý xe chỉ mở trong chat riêng với bot."});return;}
@@ -485,8 +491,14 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
       await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ALBUM XE — ${rows.filter(row=>row.file_id).length} ẢNH\n⏳ Đang tạo bản nháp AVIF + WebP...`}).catch(()=>{});
       await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(bundleKey).run();
     }
-    // Photo-only albums stay silent and pending. This lets 20+ photos arrive across
-    // multiple media_group_id values without one Telegram receipt per album.
+    // Photo-only albums remain pending so 20+ photos can arrive across multiple
+    // media_group_id values. Acknowledge the cumulative intake without queueing the
+    // bundle; the following vehicle text still closes the intake window.
+    if(hasPhoto&&!hasText){
+      const intake=(await env.DB.prepare("SELECT COUNT(*) AS count FROM telegram_inbox WHERE chat_id=? AND file_id<>'' AND bundle_status='pending' AND created_at >= datetime('now','-45 seconds')").bind(chatId).first())||{};
+      const received=Math.max(rows.filter(row=>row.file_id).length,Number(intake.count||0));
+      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ẢNH XE — ${received} ẢNH\\n⏳ Đang chờ nội dung xe; không cần gửi lại ảnh.`}).catch(error=>console.error("telegram_album_receipt_failed",clean(error?.message||error)));
+    }
     return;
   }
   const rows = (await env.DB.prepare("SELECT id,file_id,caption,bundle_status FROM telegram_inbox WHERE bundle_key=? ORDER BY id").bind(bundleKey).all()).results || [];
@@ -502,7 +514,7 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
 
 async function autoWebhook(request, env, ctx) {
   const token = autoBotToken(env);
-  const secret = env.TELEGRAM_WEBHOOK_SECRET;
+  const secret = clean(env.TELEGRAM_WEBHOOK_SECRET);
   if (!secret) return json({ error: "Webhook secret is not configured" }, 503);
   if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret) return json({ error: "Unauthorized" }, 401);
   const update = await request.json().catch(() => null);
@@ -540,10 +552,10 @@ export async function getAutoTelegramWebhookStatus(env, expectedUrl = AUTO_WEBHO
 }
 
 export async function setAutoTelegramWebhook(env, webhookUrl = AUTO_WEBHOOK_URL) {
-  if (!env.TELEGRAM_WEBHOOK_SECRET) throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");
   const token = autoBotToken(env);
-  const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post"] };
-  if (env.TELEGRAM_WEBHOOK_SECRET) payload.secret_token = env.TELEGRAM_WEBHOOK_SECRET;
+  const secret = clean(env.TELEGRAM_WEBHOOK_SECRET);
+  if (!secret) throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");
+  const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post"], secret_token: secret };
   return tg(token, "setWebhook", payload);
 }
 

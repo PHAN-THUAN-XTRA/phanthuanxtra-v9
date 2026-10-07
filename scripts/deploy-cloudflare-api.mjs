@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve } from "node:path";
 import { uploadAssetsWithRest, uploadAssetsWithSdk, validateSession } from "./cloudflare-assets-upload.mjs";
+import { withContentRunnerBinding } from "./content-runner-deploy-binding.mjs";
 
 const API_BASE = "https://api.cloudflare.com/client/v4";
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -422,7 +423,7 @@ async function getCurrentBindings() {
   inherited.push({ name: "VEHICLE_JOBS", type: "queue", queue_name: VEHICLE_QUEUE });
   inherited.push({ name: "MEMORY_JOBS", type: "queue", queue_name: MEMORY_QUEUE });
   if (!inherited.some((binding) => binding.name === "ASSETS")) inherited.push({ name: "ASSETS", type: "assets" });
-  return inherited;
+  return withContentRunnerBinding(inherited, JSON.parse(await readFile(resolve(ROOT, 'wrangler.json'), 'utf8')));
 }
 
 function moduleContentType(file) {
@@ -471,10 +472,10 @@ async function ensureCustomDomainRoute() {
   const wanted = "phanthuanxtra.com/*";
   const current = Array.isArray(routes) ? routes.find((route) => route?.pattern === wanted) : null;
 
-  // Explicit homepage and Blog routes outrank legacy Workers and broader routes.
+  // Explicit homepage, Blog and sitemap routes outrank legacy Workers and broader routes.
   // The Worker origin can serve Blog while the zone otherwise returns a plain
   // text 404 for these paths. Preserve all unrelated route ownership.
-  for (const pattern of ["phanthuanxtra.com/", "phanthuanxtra.com/home", "phanthuanxtra.com/home/", "phanthuanxtra.com/api/blog*", "phanthuanxtra.com/blog*", "phanthuanxtra.com/api/blog/*", "phanthuanxtra.com/blog", "phanthuanxtra.com/blog/*"]) {
+  for (const pattern of ["phanthuanxtra.com/", "phanthuanxtra.com/home", "phanthuanxtra.com/home/", "phanthuanxtra.com/api/blog*", "phanthuanxtra.com/blog*", "phanthuanxtra.com/api/blog/*", "phanthuanxtra.com/blog", "phanthuanxtra.com/blog/*", "phanthuanxtra.com/sitemap.xml"]) {
     const route = Array.isArray(routes) ? routes.find(item => item?.pattern === pattern) : null;
     if (route?.script === WORKER) continue;
     const method = route?.id ? "PUT" : "POST";
@@ -582,7 +583,7 @@ async function syncSecretsAndDeploy() {
     else if (currentBindingNames.has(name)) console.log(`${name}: preserving existing Cloudflare Worker binding.`);
     else throw new Error(`${name} is absent from both GitHub Actions and the existing Cloudflare Worker; refusing production deploy.`);
   }
-  for (const name of ["TELEGRAM_AUTO_PUBLISH_CHAT_IDS", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY"]) {
+  for (const name of ["TELEGRAM_AUTO_PUBLISH_CHAT_IDS", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY", "BREVO_API_KEY", "BREVO_SENDER_EMAIL", "BREVO_TO_EMAIL", "TAWK_PROPERTY_ID", "TAWK_WIDGET_ID", "ANALYTICS_EXPORT_TOKEN"]) {
     const value = process.env[name];
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
   }

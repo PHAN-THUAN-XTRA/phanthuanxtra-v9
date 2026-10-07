@@ -32,12 +32,20 @@ jobs:
       CLOUDFLARE_PRIMARY_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
       TELEGRAM_BACKUP_CHAT_ID: ${{ secrets.TELEGRAM_BACKUP_CHAT_ID }}
+      TELEGRAM_BACKUP_OWNER_ID: "6451516147"
     steps:
       - name: Checkout exact triggering commit
         uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Verify private Telegram owner destination
+        run: node scripts/backup-telegram-delivery.mjs --preflight
 
       - name: Verify Cloudflare backup credentials
         shell: bash
@@ -124,54 +132,27 @@ jobs:
         run: |
           set -euo pipefail; verify_dir="$(mktemp -d)"; trap 'rm -rf "$verify_dir"' EXIT; tar -xzf full-system-backup.tar.gz -C "$verify_dir"; test -s "$verify_dir/SHA256SUMS"; (cd "$verify_dir" && sha256sum -c SHA256SUMS); test -s "$verify_dir/manifest.json"; echo "Archive integrity: PASS"
 
+      - name: Encrypt fallback artifact before GitHub upload
+        run: node scripts/backup-safety.mjs encrypt full-system-backup.tar.gz full-system-backup.tar.gz.enc
+
       - name: Upload full backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: phanthuanxtra-full-system-backup-${{ github.run_id }}
           path: |
-            full-system-backup.tar.gz
+            full-system-backup.tar.gz.enc
             full-system-backup.tar.gz.sha256
           retention-days: 30
           if-no-files-found: error
 
       - name: Deliver verified backup to Telegram
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$TELEGRAM_BACKUP_BOT_TOKEN"
-          test -n "$TELEGRAM_BACKUP_CHAT_ID"
-          test -s full-system-backup.tar.gz
-          test -s full-system-backup.tar.gz.sha256
-          test -s "$BACKUP_ROOT/manifest.json"
+        run: node scripts/backup-telegram-delivery.mjs
 
-          archive_bytes="$(stat -c%s full-system-backup.tar.gz)"
-          if [ "$archive_bytes" -gt 49000000 ]; then
-            echo "Backup archive is too large for the configured Telegram delivery limit: $archive_bytes bytes"
-            exit 1
-          fi
-
-          telegram_ok() {
-            local response="$1" label="$2"
-            if ! printf '%s' "$response" | jq -e '.ok == true' >/dev/null; then
-              echo "Telegram delivery failed: $label"
-              printf '%s' "$response" | jq -c '{ok, error_code, description}' 2>/dev/null || true
-              return 1
-            fi
-            echo "Telegram delivery PASS: $label"
-          }
-
-          size="$(du -h full-system-backup.tar.gz | cut -f1)"
-          text=$(printf '📦 <b>Backup phanthuanxtra.com — FULL SYSTEM</b>\n📊 status: success\n💾 archive: %s\n🧩 GitHub + Worker + bindings + D1 + R2 + routes + manifest + SHA-256\n🔐 secret values: excluded' "$size")
-
-          response="$(curl --fail-with-body --silent --show-error --data-urlencode "chat_id=$TELEGRAM_BACKUP_CHAT_ID" --data-urlencode "text=$text" --data-urlencode "parse_mode=HTML" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendMessage")"
-          telegram_ok "$response" "status message"
-
-          response="$(curl --fail-with-body --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz" -F "caption=Full-system backup archive — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument")"
-          telegram_ok "$response" "backup archive"
-
-          response="$(curl --fail-with-body --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@$BACKUP_ROOT/manifest.json" -F "caption=Backup manifest — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument")"
-          telegram_ok "$response" "manifest"
-
-          response="$(curl --fail-with-body --silent --show-error -F "chat_id=$TELEGRAM_BACKUP_CHAT_ID" -F "document=@full-system-backup.tar.gz.sha256" -F "caption=Backup SHA-256 — ${{ github.sha }}" "https://api.telegram.org/bot${TELEGRAM_BACKUP_BOT_TOKEN}/sendDocument")"
-          telegram_ok "$response" "SHA-256"
-          echo "Telegram full-system backup delivery: PASS"
+      - name: Retain delivery receipt without backup data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-delivery-receipt-${{ github.run_id }}
+          path: backup-delivery-receipt.json
+          retention-days: 30
+          if-no-files-found: warn

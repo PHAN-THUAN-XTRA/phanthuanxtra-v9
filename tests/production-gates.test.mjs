@@ -306,7 +306,8 @@ test('production gate: Business Jets lead preserves itinerary for Telegram CRM',
   assert.match(script, /f\.get\("passengers"\)/);
   assert.match(script, /"business-jets"/);
   assert.match(script, /source,message/);
-  assert.match(worker, /source:text\(b\.source\|\|'website-lead',60\)/);
+  assert.match(worker, /source=text\(b\.source\|\|"website-lead",60\)/);
+  assert.match(worker, /notifyTelegramCrm\(e,\{source,name:b\.name,phone:p,car:b\.car_id,message:b\.message\}\)/);
   assert.doesNotMatch(worker, /source:'test-drive',name:b\.name,phone:p/);
 });
 
@@ -314,7 +315,8 @@ test('Business Jets lead stores itinerary in D1 and Telegram accepts correctly c
   const rows=[];
   const DB={prepare(sql){return {bind(...args){return {
     async run(){if(sql.includes('INSERT INTO leads')){rows.push({id:17,name:args[0],phone:args[1],message:args[3]});return {meta:{last_row_id:17}};}return {meta:{changes:1}};},
-    async all(){return {results:rows};}
+    async all(){return {results:rows};},
+    async first(){return null;}
   };}};}};
   const originalFetch=globalThis.fetch;
   let telegramText='';
@@ -463,4 +465,14 @@ test('production gate: Defender tg-605 reconciles owner copy and semantic galler
   assert.match(source,/price:4879000000,mileage:null/);
   assert.match(source,/is_cover:i===0\?1:0/);
   assert.doesNotMatch(source.slice(source.indexOf('function reconcileTg605'),source.indexOf('function norm')),/put\(|delete\(|R2|IMAGES/);
+});
+
+
+test('production gate: Cloudflare deploy isolates production secrets from Wrangler dev dependency lifecycle scripts', () => {
+  const workflow = fs.readFileSync(new URL('../.github/workflows/deploy-cloudflare.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /Install dependencies without lifecycle scripts\s+run: npm ci --ignore-scripts/);
+  assert.match(workflow, /Install production dependencies only\s+run: npm ci --omit=dev --ignore-scripts/);
+  assert.match(workflow, /npm install --no-save --ignore-scripts --omit=dev cloudflare@\$\{\{ env\.CLOUDFLARE_SDK_VERSION \}\}/);
+  const deployJob = workflow.slice(workflow.indexOf('  deploy:'), workflow.indexOf('      - name: Resolve Cloudflare API credentials'));
+  assert.doesNotMatch(deployJob, /run: npm ci\s*$/m);
 });

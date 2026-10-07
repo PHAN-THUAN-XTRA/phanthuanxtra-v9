@@ -29,6 +29,11 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       - name: Install jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Atomic content preparation authorization and private draft E2E
+        run: node scripts/verify-content-prep-production.mjs
       - name: Static Telegram and Android Blog contracts
         shell: bash
         run: |

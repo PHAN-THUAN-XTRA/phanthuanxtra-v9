@@ -53,6 +53,8 @@ test('Telegram publish duplicate protection sends only once',async()=>{
   const posts=new Map();
   const images=new Map();
   const calls=[];
+  const draftLinks=new Map();
+  const inboxStates=new Map();
   const DB={
     async batch(statements){for(const statement of statements)await statement.run();return statements.map(()=>({}));},
     prepare(sql){
@@ -74,6 +76,8 @@ test('Telegram publish duplicate protection sends only once',async()=>{
             else if(sql.includes("UPDATE telegram_posts SET status='published'")){const p=posts.get(args[1]);posts.set(args[1],{...p,status:'published',telegram_message_ids:args[0]});}
             else if(sql.includes("UPDATE telegram_posts SET status='failed'")){const p=posts.get(args[1]);posts.set(args[1],{...p,status:'failed',last_error:args[0]});}
             else if(sql.includes('INSERT INTO car_images')){const list=images.get(args[0])||[];list.push({url:args[1]});images.set(args[0],list);}
+            else if(sql.includes("UPDATE vehicle_ai_drafts SET status='published',car_id=?")) draftLinks.set(args[1],{status:'published',car_id:args[0]});
+            else if(sql.includes("UPDATE telegram_inbox SET status='published'")) inboxStates.set(args[0],{status:'published'});
             return {};
           }
         };
@@ -93,6 +97,8 @@ test('Telegram publish duplicate protection sends only once',async()=>{
     assert.equal(second.telegram.duplicate,true);
     assert.equal(calls.length,callsAfterFirst);
     assert.equal(posts.get('tg-101').status,'published');
+    assert.deepEqual(draftLinks.get(101),{status:'published',car_id:'tg-101'});
+    assert.equal(inboxStates.get(101)?.status,'published');
   }finally{global.fetch=originalFetch;}
 });
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {youtubeId,renderBlogContent,videoEditorialError} from '../src/blog-video.js';
+import {youtubeId,facebookVideoUrl,renderBlogContent,videoEditorialError} from '../src/blog-video.js';
 import {normalizePostPayload} from '../src/post-persistence.js';
 
 test('full YouTube URLs and legacy iframe become safe embeds with full watch link',()=>{
@@ -10,6 +10,26 @@ test('full YouTube URLs and legacy iframe become safe embeds with full watch lin
   assert.match(html,/youtube-nocookie\.com\/embed\/khK5qPSDcB8/);
   assert.match(html,/youtube\.com\/watch\?v=khK5qPSDcB8/);
   assert.doesNotMatch(html,/onload|<div><iframe src="https:\/\/www\.youtube\.com/);
+});
+test('standalone Facebook Reel renders inline like the Business Jets video',()=>{
+  const facebook='https://www.facebook.com/reel/1116940724609329/';
+  assert.equal(facebookVideoUrl(facebook),facebook);
+  assert.equal(facebookVideoUrl('https://facebook.com.evil.test/share/r/1116940724609329/'),null);
+  const html=renderBlogContent('Racing Yellow & mâm đen 20-inch\n'+facebook+'\nBordeaux Red');
+  assert.match(html,/Racing Yellow &amp; mâm đen 20-inch/);
+  assert.match(html,/facebook\.com\/plugins\/video\.php\?href=/);
+  assert.match(html,/1116940724609329/);
+  assert.doesNotMatch(html,/Xem video thực tế trên Facebook/);
+  assert.match(html,/width=267/);
+  assert.match(html,/height=476/);
+  assert.match(html,/article-video-facebook/);
+  assert.doesNotMatch(html,/style=/);
+  assert.match(html,/Bordeaux Red/);
+});
+test('Facebook canonical video paths are accepted while untrusted hosts are rejected',()=>{
+  assert.equal(facebookVideoUrl('https://www.facebook.com/reel/123456789/'),'https://www.facebook.com/reel/123456789/');
+  assert.equal(facebookVideoUrl('https://www.facebook.com/PhanThuanSaigon/videos/1351047426633823/'),'https://www.facebook.com/PhanThuanSaigon/videos/1351047426633823/');
+  assert.equal(facebookVideoUrl('http://www.facebook.com/reel/123/'),null);
 });
 test('untrusted video HTML never executes',()=>{
   assert.equal(youtubeId('https://youtube.com.evil.test/watch?v=khK5qPSDcB8'),null);

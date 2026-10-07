@@ -19,8 +19,15 @@ jobs:
   restore-readability:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    environment: production
+    env:
+      TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
       - name: Resolve backup run ID
         id: backup
         shell: bash
@@ -38,6 +45,9 @@ jobs:
           set -euo pipefail
           mkdir -p restore
           gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name "phanthuanxtra-full-system-backup-$RUN_ID" --dir restore
+          if [ -s "restore/full-system-backup.tar.gz.enc" ]; then
+            node scripts/backup-safety.mjs decrypt restore/full-system-backup.tar.gz.enc restore/full-system-backup.tar.gz
+          fi
           test -s "restore/full-system-backup.tar.gz"
           test -s "restore/full-system-backup.tar.gz.sha256"
       - name: Verify archive checksum and extract
@@ -60,6 +70,10 @@ jobs:
           test -s restore/extracted/d1/production.sql
           sqlite3 restore/restore-check.db < restore/extracted/d1/production.sql
           test "$(sqlite3 restore/restore-check.db 'PRAGMA integrity_check;')" = 'ok'
+      - name: Verify restored D1 row evidence
+        run: |
+          node scripts/backup-safety.mjs verify restore/extracted/d1/production.sql
+          test -s restore/extracted/d1/restore-evidence.json
       - name: Verify R2 object readability
         shell: bash
         run: |

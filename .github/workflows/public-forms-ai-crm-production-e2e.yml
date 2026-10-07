@@ -1,0 +1,77 @@
+name: Public Forms + AI CRM Production E2E
+
+on:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event.workflow_run.event == 'push' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Verify homepage form and AI chat reach Telegram CRM
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_TOKEN"
+
+          session_token="$(node --input-type=module -e 'import {issueAdminToken} from "./src/admin-auth.js"; process.stdout.write(await issueAdminToken({ADMIN_TOKEN:process.env.ADMIN_TOKEN}));')"
+          test -n "$session_token"
+
+          marker="CI-WEB-FORM-${GITHUB_RUN_ID}"
+          visitor_id="ci_web_form_${GITHUB_RUN_ID}"
+          idempotency_key="ci-web-form-${GITHUB_RUN_ID}"
+          message="Lái thử xe | Lexus RX350L | Hẹn xem xe | $marker"
+          payload="$(jq -nc --arg name "$marker" --arg message "$message" --arg visitor_id "$visitor_id" '{source:"test-drive",name:$name,phone:"0900000000",car_id:"",message:$message,visitor_id:$visitor_id}')"
+
+          cleanup_lead() {
+            curl --fail-with-body --silent --show-error --max-time 30               "$SITE_URL/api/admin/leads"               -H "Authorization: Bearer $session_token" > /tmp/web-form-cleanup.json || return 0
+            jq -r --arg marker "$marker" '.leads[] | select(.name == $marker) | .id' /tmp/web-form-cleanup.json | while read -r id; do
+              test -z "$id" && continue
+              curl --fail-with-body --silent --show-error --max-time 30 -X DELETE                 "$SITE_URL/api/admin/leads"                 -H "Authorization: Bearer $session_token"                 -H 'content-type: application/json'                 --data "$(jq -nc --argjson id "$id" '{id:$id}')" | jq -e '.deleted == true' >/dev/null
+            done
+          }
+          trap cleanup_lead EXIT
+          cleanup_lead
+
+          echo "Deploy run ${{ github.event.workflow_run.id }} SHA ${{ github.event.workflow_run.head_sha }}"
+
+          public_status="$(curl --silent --show-error --max-time 60 -o /tmp/web-form-public.json -w '%{http_code}'             -X POST "$SITE_URL/api/leads"             -H 'content-type: application/json'             -H "Idempotency-Key: $idempotency_key"             --data "$payload")"
+          test "$public_status" = "200"
+          jq -e '.ok == true and .stored == true and .replayed == false and (has("lead_id") | not)' /tmp/web-form-public.json >/dev/null
+          echo "Homepage public test-drive form submission: PASS"
+
+          replay_status="$(curl --silent --show-error --max-time 60 -o /tmp/web-form-replay.json -w '%{http_code}'             -X POST "$SITE_URL/api/leads"             -H 'content-type: application/json'             -H "Authorization: Bearer $ADMIN_TOKEN"             -H "Idempotency-Key: $idempotency_key"             --data "$payload")"
+          test "$replay_status" = "200"
+          jq -e '.ok == true and .stored == true and .replayed == true and (.lead_id|type)=="number" and .delivery.ok == true' /tmp/web-form-replay.json >/dev/null
+          lead_id="$(jq -r '.lead_id' /tmp/web-form-replay.json)"
+
+          curl --fail-with-body --silent --show-error --max-time 30             "$SITE_URL/api/admin/leads"             -H "Authorization: Bearer $session_token" > /tmp/web-form-leads.json
+          jq -e --argjson id "$lead_id" --arg marker "$marker"             '.leads[] | select(.id == $id and .name == $marker and .phone == "0900000000" and (.message|contains("Lái thử xe")) and (.message|contains("Lexus RX350L")))'             /tmp/web-form-leads.json >/dev/null
+          echo "Homepage form -> D1 lead $lead_id -> Telegram CRM: PASS"
+
+          ai_conversation="ci-ai-chat-${GITHUB_RUN_ID}"
+          ai_payload="$(jq -nc --arg cid "$ai_conversation" '{conversation_id:$cid,visitor_id:$cid,test_context:"production-smoke",message:"Hotline liên hệ chính thức là gì?"}')"
+          ai_status="$(curl --silent --show-error --max-time 60 -o /tmp/ai-chat.json -w '%{http_code}'             -X POST "$SITE_URL/api/ai-chat"             -H 'content-type: application/json'             --data "$ai_payload")"
+          test "$ai_status" = "200"
+          jq -e '.ok == true and .needs_human == false and (.reply|contains("0866 997 891")) and .crm_delivery.sent == true and .crm_delivery.cleanup_deleted == true' /tmp/ai-chat.json >/dev/null
+          echo "Website AI chat -> Telegram CRM -> synthetic Telegram cleanup: PASS"
+
+          cleanup_lead
+          trap - EXIT
+          echo "Synthetic homepage lead cleanup: PASS"

@@ -407,7 +407,7 @@ test('unknown question is sent to Telegram only after name and phone arrive, wit
     await send('Tôi tên là Nguyễn Văn An');
     assert.equal(calls.length, 0);
     const last = await send('Số điện thoại của tôi là 0909123456');
-    assert.match(last.reply, /gửi yêu cầu qua Telegram\/CRM/i);
+    assert.equal(last.reply, 'Cảm ơn anh/chị. Tôi đã tiếp nhận, anh Phan Thuần trực tiếp tư vấn.');
     assert.equal(calls.length, 1);
     assert.match(calls[0].body.text, /Chính sách bảo hành ngoài website là gì/);
     assert.match(calls[0].body.text, /Nguyễn Văn An/);
@@ -520,4 +520,47 @@ test('AI reads the currently deployed Business Jets page for a detailed aircraft
   assert.equal(data.needs_human,false);
   assert.deepEqual(requested,['/__ptx_editorial__/business-jets.html']);
   assert.match(data.reply,/Legacy 600 khác Praetor 600/);
+});
+
+
+test('phone-first handoff accepts a later standalone full name and does not trap vehicle intent', async () => {
+  const DB=mockDb([{id:'lexus-live',brand:'LEXUS',model:'RX350L',year:2019,status:'available',category:'suv'}]);
+  const env={DB,AI:{async run(){throw new Error('quota 4006');}}};
+  const send=async message=>(await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'phone-first-name-later',visitor_id:'phone-first-name-later',message})
+  }),env)).json();
+
+  const first=await send('hi 0123654897');
+  assert.equal(first.needs_human,true);
+  assert.match(first.reply,/đã nhận số điện thoại/i);
+  assert.equal(DB._unknown[0].phone,'0123654897');
+
+  const vehicle=await send('xe');
+  assert.equal(vehicle.needs_human,false);
+  assert.doesNotMatch(vehicle.reply,/xin thêm họ tên/i);
+
+  const noise=await send('hihi hi');
+  assert.equal(noise.needs_human,true);
+  assert.equal(DB._unknown[0].name,null);
+
+  const named=await send('Phan Tung');
+  assert.equal(named.needs_human,true);
+  assert.equal(DB._unknown[0].name,'Phan Tung');
+  assert.equal(DB._unknown[0].phone,'0123654897');
+  assert.match(named.reply,/chưa xác nhận được Telegram đã nhận/i);
+});
+
+
+test('official hotline questions use authoritative copy without incomplete model output', async () => {
+  for (const message of ['Hotline liên hệ chính thức là gì?', 'hotline lien he la gi?', 'Số điện thoại chính thức của website là gì?']) {
+    let calls = 0;
+    const response = await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ conversation_id: crypto.randomUUID(), message, suppress_crm_notification: true, test_context: 'production-smoke' })
+    }), { DB: mockDb(), AI: { async run() { calls++; return { response: 'Hotline liên' }; } } });
+    const data = await response.json();
+    assert.equal(response.status, 200); assert.equal(data.needs_human, false);
+    assert.match(data.reply, /0866 997 891/); assert.equal(data.ai_model, null); assert.equal(calls, 0);
+  }
 });
