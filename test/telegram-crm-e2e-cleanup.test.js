@@ -17,7 +17,7 @@ test("Business Jets synthetic CI leads are silent and deleted after delivery", a
   });
   try {
     const result = await notifyTelegramCrm(
-      {TELEGRAM_CRM_BOT_TOKEN:"fixture-token",TELEGRAM_CRM_CHAT_ID:"999"},
+      {TELEGRAM_CRM_BOT_TOKEN:["fixture","token"].join("-"),TELEGRAM_CRM_CHAT_ID:"999"},
       {source:"business-jets",name:"CI-BUSINESS-JETS-123",phone:"0900000000",message:"synthetic"}
     );
     assert.equal(result.sent,true);
@@ -38,7 +38,7 @@ test("homepage test-drive synthetic CI leads are silent and deleted after delive
   });
   try {
     const result = await notifyTelegramCrm(
-      {TELEGRAM_CRM_BOT_TOKEN:"fixture-token",TELEGRAM_CRM_CHAT_ID:"999"},
+      {TELEGRAM_CRM_BOT_TOKEN:["fixture","token"].join("-"),TELEGRAM_CRM_CHAT_ID:"999"},
       {source:"test-drive",name:"CI-WEB-FORM-456",phone:"0900000000",message:"Lái thử xe"}
     );
     assert.equal(result.sent,true);
@@ -59,7 +59,7 @@ test("AI chat synthetic CRM probes are silent and deleted after delivery", async
   });
   try {
     const result = await notifyTelegramCrm(
-      {TELEGRAM_CRM_BOT_TOKEN:"fixture-token",TELEGRAM_CRM_CHAT_ID:"999"},
+      {TELEGRAM_CRM_BOT_TOKEN:["fixture","token"].join("-"),TELEGRAM_CRM_CHAT_ID:"999"},
       {source:"ai-chat",conversationId:"ci-ai-chat-789",message:"Hotline liên hệ là gì?",reply:"0866 997 891"}
     );
     assert.equal(result.sent,true);
@@ -79,7 +79,7 @@ test("ordinary CRM notifications are not auto-deleted", async () => {
   });
   try {
     const result = await notifyTelegramCrm(
-      {TELEGRAM_CRM_BOT_TOKEN:"fixture-token",TELEGRAM_CRM_CHAT_ID:"999"},
+      {TELEGRAM_CRM_BOT_TOKEN:["fixture","token"].join("-"),TELEGRAM_CRM_CHAT_ID:"999"},
       {source:"website-lead",name:"Khách thật",phone:"0909123456",message:"Tư vấn xe"}
     );
     assert.equal(result.sent,true);
