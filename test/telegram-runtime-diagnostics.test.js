@@ -32,9 +32,11 @@ test("Telegram webhook status source exposes the actual configured URL field", a
 });
 
 
-test("Auto router yields visibility commands so ingest owns /show and /hide", async () => {
+test("Auto router executes visibility commands in the active webhook owner", async () => {
   const source=await import("node:fs/promises").then(fs=>fs.readFile(new URL("../src/telegram-router.js",import.meta.url),"utf8"));
   assert.ok(source.includes('const visibilityCommand=/^(?:\\/(hide|show)'), "router must recognize /hide and /show visibility commands");
-  assert.match(source,/if\(visibilityCommand\)return;/);
+  assert.match(source,/setCarVisibility\(env\.DB,carId,visible/);
+  assert.match(source,/ĐÃ HIỆN XE/);
+  assert.doesNotMatch(source,/if\(visibilityCommand\)return;/);
   assert.match(source,/export async function handleTelegramRouter[\s\S]*if \(url\.pathname === "\/api\/telegram\/webhook" && request\.method === "POST"\) return autoWebhook/);
 });
