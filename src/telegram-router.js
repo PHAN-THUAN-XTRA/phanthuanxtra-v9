@@ -312,6 +312,8 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
   const photo = pickPhoto(message);
   const caption = clean(message.caption || message.text);
   const command = parseAutoCommand(caption);
+  const visibilityCommand=/^(?:\/(hide|show)(?:@\w+)?|(ẩn|an|hiện|hien)\s+xe)\s+([a-z0-9][a-z0-9_-]{2,80})\s*$/iu.exec(caption);
+  if(visibilityCommand)return;
   if(command?.name==="customerapp"){
     if(!canPublishAutoBlog(env,chatId)){await tg(token,"sendMessage",{chat_id:chatId,text:"Chat này chưa được cấp quyền mở quản lý khách hàng."});return;}
     if(message?.chat?.type&&message.chat.type!=="private"){await tg(token,"sendMessage",{chat_id:chatId,text:"Mini App chăm sóc khách hàng chỉ mở trong chat riêng với bot."});return;}
