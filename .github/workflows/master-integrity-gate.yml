@@ -1,0 +1,40 @@
+name: MASTER Integrity Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    name: MASTER Integrity Gate / Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Regression tests
+        run: node --test tests/master-integrity-gate.test.mjs
+      - name: Validate canonical MASTER against base
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            node scripts/master-integrity-gate.mjs "$PR_BASE_SHA"
+          elif [[ -n "${BEFORE_SHA:-}" && ! "${BEFORE_SHA}" =~ ^0+$ ]]; then
+            node scripts/master-integrity-gate.mjs "$BEFORE_SHA"
+          else
+            node scripts/master-integrity-gate.mjs
+          fi
