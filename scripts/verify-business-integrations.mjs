@@ -64,16 +64,17 @@ async function verifyAnalytics() {
 }
 
 function verifyBrevoConfiguration() {
-  const apiKey = clean(process.env.BREVO_API_KEY, 500);
+  // BREVO_API_KEY is Cloudflare-only by policy. The deployment script verifies
+  // the existing secret_text binding before deploying; do not require or expose
+  // the API key in GitHub Actions to verify the public email configuration.
   const sender = clean(process.env.BREVO_SENDER_EMAIL, 254);
   const recipient = clean(process.env.BREVO_TO_EMAIL, 254);
-  const configured = [apiKey, sender, recipient].filter(Boolean).length;
-  if (configured === 0) {
+  if (!sender && !recipient) {
     console.log("Brevo: DEFERRED; no production provider request made.");
     return;
   }
-  if (configured !== 3) throw new Error("Brevo production configuration is partial.");
-  console.log("Brevo: CONFIGURED; runtime adapter is enabled. Provider delivery requires a separate real lead/sandbox proof.");
+  if (!sender || !recipient) throw new Error("Brevo production email configuration is partial.");
+  console.log("Brevo: EMAILS CONFIGURED; Cloudflare API key binding is verified by the deploy step. Provider delivery requires a separate real lead/sandbox proof.");
 }
 
 await verifyPublicConfig();
