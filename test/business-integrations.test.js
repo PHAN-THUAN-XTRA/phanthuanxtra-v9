@@ -378,3 +378,73 @@ test("Brevo diagnostic workflow uses scoped proof, not a potentially rotated D1 
   assert.match(handler, /verifyBrevoDiagnosticAuth/);
   assert.match(handler, /BREVO_TEST_REPLAY/);
 });
+
+
+test("Brevo Worker preflight checks account without sending email or exposing account data", async t => {
+  const env = brevoTestEnv();
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    calls++;
+    assert.equal(url, "https://api.brevo.com/v3/account");
+    assert.equal(options.method, "GET");
+    assert.equal(options.headers["api-key"], env.BREVO_API_KEY);
+    return Response.json({ email: "internal-owner@invalid.example", plan: ["hidden"] }, { status: 200 });
+  });
+  const signed = await signedDiagnosticRequest(env, "GET");
+  const request = new Request(signed.url + "?probe=account", { headers: signed.headers });
+  const response = await handleBusinessIntegrations(request, env);
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.deepEqual(data, { ok: true, provider: { ok: true, status: 200 } });
+  assert.equal(calls, 1);
+  assert.doesNotMatch(JSON.stringify(data), /internal-owner|hidden|provider.secret/);
+});
+
+test("Brevo Worker preflight exposes only machine-readable Brevo authentication status", async t => {
+  const env = brevoTestEnv();
+  t.mock.method(globalThis, "fetch", async () => Response.json({
+    code: "unauthorized", message: "raw account metadata and provider diagnostics must not leak"
+  }, { status: 401 }));
+  const signed = await signedDiagnosticRequest(env, "GET");
+  const request = new Request(signed.url + "?probe=account", { headers: signed.headers });
+  const response = await handleBusinessIntegrations(request, env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, provider: { ok: false, status: 401, provider_code: "unauthorized" } });
+});
+
+test("Brevo Worker preflight categorizes network and runtime failures without logging secrets", async t => {
+  const env = brevoTestEnv();
+  let mode = 0;
+  const errors = [
+    new TypeError("TLS certificate failure with " + env.BREVO_API_KEY),
+    new TypeError("AbortSignal.timeout is not a function: " + env.BREVO_TO_EMAIL),
+    new TypeError("Failed to fetch confidential information"),
+  ];
+  t.mock.method(globalThis, "fetch", async () => { throw errors[mode]; });
+  for (const [index, code] of ["tls_error", "request_init_error", "connection_error"].entries()) {
+    mode = index;
+    const signed = await signedDiagnosticRequest(env, "GET");
+    const response = await handleBusinessIntegrations(new Request(signed.url + "?probe=account", { headers: signed.headers }), env);
+    const data = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(data.provider.status, 0);
+    assert.equal(data.provider.provider_code, code);
+    assert.equal(data.provider.exception_type, "TypeError");
+    assert.ok(!JSON.stringify(data).includes(env.BREVO_API_KEY));
+    assert.ok(!JSON.stringify(data).includes(env.BREVO_TO_EMAIL));
+    assert.doesNotMatch(JSON.stringify(data), /confidential|certificate failure/);
+  }
+});
+
+test("Brevo workflow preflights read-only account endpoint before its only email send", () => {
+  const workflow = fs.readFileSync(".github/workflows/brevo-transactional-diagnostic.yml", "utf8");
+  const worker = fs.readFileSync("src/business-integrations.js", "utf8");
+  assert.match(worker, /probeBrevoAccount/);
+  assert.match(worker, /new URL\(request\.url\)\.searchParams\.get\("probe"\) === "account"/);
+  assert.match(workflow, /account preflight failed/);
+  assert.match(workflow, /provider.exception_type/);
+  const probe = workflow.indexOf("probe=account");
+  const sender = workflow.indexOf('sign_request POST');
+  assert.ok(probe >= 0 && sender > probe);
+  assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{/);
+});
