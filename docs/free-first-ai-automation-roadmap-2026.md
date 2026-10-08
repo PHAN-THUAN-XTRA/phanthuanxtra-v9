@@ -1,8 +1,8 @@
 # PHAN THUẦN XTRA — Free-first AI & Automation Roadmap (2026-10-08)
 
-**Status: PROPOSAL ONLY — not deployed, not an acceptance certificate.**  
-**Owner preference:** prioritize genuinely usable Free tiers, native Cloudflare/D1/R2/Telegram, explicit permission for paid upgrades and external account connections.  
-**Source of truth:** `MASTER_PROJECT_STATUS.md`; repository `main` and production evidence supersede assumptions.  
+**Status: PROPOSAL ONLY — not deployed, not an acceptance certificate.**
+**Owner preference:** prioritize genuinely usable Free tiers, native Cloudflare/D1/R2/Telegram, explicit permission for paid upgrades and external account connections.
+**Source of truth:** `MASTER_PROJECT_STATUS.md`; repository `main` and production evidence supersede assumptions.
 **Scope:** propose/track integrations and safety gates. This document makes **no** runtime, database, billing, secret, customer-contact or service-activation change.
 
 ## 1. Existing foundation — do not duplicate
