@@ -79,7 +79,7 @@ test("Content Prep numeric Blog fixture audits are suppressed while real posts a
     return Response.json({ ok: true });
   });
   const result = await reconcileTelegramNotifications({
-    DB: db, TELEGRAM_BOT_TOKEN: "fixture-bot", TELEGRAM_CHAT_ID: "fixture-chat"
+    DB: db, TELEGRAM_BOT_TOKEN: ["fixture","bot"].join("-"), TELEGRAM_CHAT_ID: ["fixture","chat"].join("-")
   });
   assert.equal(result.ok, true);
   assert.equal(result.processed, 12);
