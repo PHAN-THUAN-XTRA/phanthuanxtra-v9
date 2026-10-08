@@ -76,7 +76,7 @@ jobs:
             "${signed_headers[@]}" "${endpoint}?probe=account")"
           echo "Brevo /v3/account probe endpoint: HTTP ${probe_status}."
           echo "Brevo account probe result (sanitized):"
-          jq -c '{provider:{ok:.provider.ok,status:.provider.status,provider_code:.provider.provider_code,exception_type:.provider.exception_type},error}' /tmp/brevo-account.json
+          jq -c '{provider:{ok:.provider.ok,status:.provider.status,provider_code:.provider.provider_code,exception_type:.provider.exception_type,redirect_target:.provider.redirect_target,redirect_host:.provider.redirect_host},error}' /tmp/brevo-account.json
           if [ "${probe_status}" != "200" ] || ! jq -e '.ok==true and .provider.ok==true and .provider.status >= 200 and .provider.status < 300' /tmp/brevo-account.json >/dev/null; then
             echo "::error::Brevo account preflight failed. Cloudflare did not send any diagnostic email. Review the sanitized status above."
             exit 1
@@ -123,7 +123,7 @@ jobs:
             -H "X-PTX-Brevo-Signature: ${signature}" \
             "${SITE_URL}/api/admin/integrations/brevo/diagnostic?probe=account")"
           echo "Read-only Worker → Brevo account probe: HTTP ${response_status}."
-          jq -c '{provider:{ok:.provider.ok,status:.provider.status,provider_code:.provider.provider_code,exception_type:.provider.exception_type},error}' /tmp/brevo-readonly.json
+          jq -c '{provider:{ok:.provider.ok,status:.provider.status,provider_code:.provider.provider_code,exception_type:.provider.exception_type,redirect_target:.provider.redirect_target,redirect_host:.provider.redirect_host},error}' /tmp/brevo-readonly.json
           if [ "${response_status}" != "200" ] || ! jq -e '.ok==true and .provider.ok==true' /tmp/brevo-readonly.json >/dev/null; then
             echo "::error::Worker Brevo outbound connectivity/authentication check failed. No email was sent."
             exit 1
