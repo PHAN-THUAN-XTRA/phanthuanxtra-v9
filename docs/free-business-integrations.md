@@ -26,12 +26,13 @@ Without all three, the workflow reports deferred activation and does not send so
 
 ### Brevo
 
-GitHub Actions / Worker secrets:
-- `BREVO_API_KEY`
+**Current owner policy (2026-10-07 and later):** `BREVO_API_KEY` is a **Cloudflare Worker `secret_text` only**. Do not copy, sync or log its value in GitHub Actions, source, reports, browser scripts or client-facing APIs. The production deploy checks for the existing Cloudflare binding without moving its value into GitHub.
+
+Non-secret sender/recipient runtime configuration:
 - `BREVO_SENDER_EMAIL`
 - `BREVO_TO_EMAIL`
 
-All three are required before any Brevo request is made. The sender must already be verified in Brevo. Notifications are plain text, bounded, and tagged `website-lead`. Failure is isolated from lead persistence and never rolls back the D1 lead.
+The runtime sender, recipient and Cloudflare-only API secret must all be available before making a Brevo request. The sender must already be verified in Brevo. Notifications are plain text, bounded, and tagged `website-lead`. A failed notification must never roll back the D1 lead. **Provider acceptance and actual inbox delivery remain separate real-world acceptance gates**, not implied by the deployment configuration check. See [free-first AI automation roadmap](free-first-ai-automation-roadmap-2026.md) for proposed durable outbox, reconciliation and safe retry.
 
 ### tawk.to
 

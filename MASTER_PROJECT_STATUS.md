@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## FREE-FIRST AI / AUTOMATION ROADMAP — PROPOSED — 2026-10-08 (UTC+7)
+
+- Owner asked to record a free-first integration proposal in Markdown and receive automatic proposals. Full scoped plan: [docs/free-first-ai-automation-roadmap-2026.md](docs/free-first-ai-automation-roadmap-2026.md). **Documentation proposal only**; not merged/deployed and no external vendor activation is claimed.
+- A ChatGPT **XTRA Free Tool Radar** weekly advisory task was enabled for Monday morning (~08:00 UTC+7): at most three source-backed Free-first proposals; does not install apps, grant permissions, change this repository/Production, contact customers, or activate paid quotas.
+- **P0 remains Brevo real provider/inbox/Telegram delivery E2E and D1 lead reliability.** Review `src/index.js` and `public/script.js`: `/api/leads` can return `ok:true,stored:false` without D1 while the frontend displays a generic receipt based on `ok` alone. This is a proposed fail-closed fix with regression tests, not yet a production fix. Add durable Brevo outbox/reconciliation with no blind resend after uncertain delivery.
+- **Secret boundary:** `BREVO_API_KEY` must remain a Cloudflare-only `secret_text` binding, never synchronized to GitHub. Follow current owner secret policy over historical notes. Later phases: Turnstile, appointment Calendar/CRM, aggregate-only Data Studio, Search Console/Web Analytics, and gated Content Runner.
+- Preserve MASTER PR/head-SHA/CI/security/deploy/smoke gates and existing open acceptance: real Brevo delivery, Samsung S21 physical UI, and Content Runner quota/safety approval. **Nothing here closes these gates.**
+
 ## GATE 14 BACKUP RESTORE — VERIFIED PASS — 2026-10-08 (UTC+7)
 
 - Full System Backup [run 37723082449, attempt #5](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37723082449) **SUCCESS**. Collector, D1 export, R2 content, SHA256 manifests, compressed archive verification, encryption, GitHub artifact upload and Telegram delivery steps all passed. Artifacts: `phanthuanxtra-full-system-backup-37723082449` (57,984,295 bytes) and `backup-delivery-receipt-37723082449` (790 bytes).
