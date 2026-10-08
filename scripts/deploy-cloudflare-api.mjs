@@ -583,10 +583,11 @@ async function syncSecretsAndDeploy() {
     else if (currentBindingNames.has(name)) console.log(`${name}: preserving existing Cloudflare Worker binding.`);
     else throw new Error(`${name} is absent from both GitHub Actions and the existing Cloudflare Worker; refusing production deploy.`);
   }
-  for (const name of ["TELEGRAM_AUTO_PUBLISH_CHAT_IDS", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY", "BREVO_API_KEY", "BREVO_SENDER_EMAIL", "BREVO_TO_EMAIL", "TAWK_PROPERTY_ID", "TAWK_WIDGET_ID", "ANALYTICS_EXPORT_TOKEN"]) {
+  for (const name of ["TELEGRAM_AUTO_PUBLISH_CHAT_IDS", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLISH_API_KEY", "BREVO_SENDER_EMAIL", "BREVO_TO_EMAIL", "TAWK_PROPERTY_ID", "TAWK_WIDGET_ID", "ANALYTICS_EXPORT_TOKEN"]) {
     const value = process.env[name];
     if (value) secrets[name] = { name, text: value, type: "secret_text" };
   }
+  if (!currentBindings.some(binding => binding.name === "BREVO_API_KEY" && binding.type === "secret_text")) throw new Error("BREVO_API_KEY must already exist as a Cloudflare secret_text binding; refusing deploy.");
   await api(accountPath(`/workers/scripts/${WORKER}/secrets-bulk`), {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

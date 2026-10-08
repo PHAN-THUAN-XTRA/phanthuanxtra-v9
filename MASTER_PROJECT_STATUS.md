@@ -1,5 +1,14 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## BREVO CLOUDFLARE-ONLY SECRET HARDENING — 2026-10-07 (UTC+7)
+
+- Owner confirmed production BREVO_API_KEY is a Cloudflare Secret and requires it to remain Cloudflare-only, not duplicated into GitHub Actions.
+- Deployment hardening removes the Brevo API key from GitHub workflow inputs and environment synchronization.
+- Production deploy now fails closed unless the existing Worker binding BREVO_API_KEY has Cloudflare type secret_text; the existing binding is preserved during upload/deploy.
+- Sender and recipient addresses remain ordinary runtime configuration. No API key value is committed or logged.
+- PR gates, merge, production deployment and end-to-end Brevo delivery remain PENDING.
+
+
 ## TELEGRAM VISIBILITY RUNTIME — PRODUCTION PASS — 2026-10-07 (UTC+7)
 
 - PR #794 `fix(telegram): fail closed webhook auth and harden registration` merged to `main` as `dde4fe41ba04a6c5ce64b108e24994dda0ca4266`; production deploy and webhook security gates passed.
