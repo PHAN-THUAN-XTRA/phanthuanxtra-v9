@@ -150,3 +150,12 @@ test("production E2E checks honor reversible archive instead of physical deletio
   assert.match(fsQueue, /\.car\.status == "hidden"/);
   assert.match(fsSmoke, /admin-detail\.json/);
 });
+
+
+test("smoke gate checks archived vehicle hidden status and public detail denial", () => {
+  const workflow = fs.readFileSync(".github/workflows/production-smoke-gate15.yml", "utf8");
+  assert.match(workflow, /admin-archived-detail\.json/);
+  assert.match(workflow, /\.car\.status == "hidden"/);
+  assert.match(workflow, /public_status.*404/);
+  assert.doesNotMatch(workflow, /\(\.cars \| any\(\.\[\]; \.id == \$id\)\) \| not/);
+});
