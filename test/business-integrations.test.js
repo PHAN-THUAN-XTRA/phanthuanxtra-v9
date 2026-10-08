@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { issueAdminToken } from "../src/admin-auth.js";
+import { verifyBrevoDiagnosticAuth, BREVO_DIAGNOSTIC_PATH } from "../src/brevo-diagnostic-auth.js";
 import {
   businessIntegrationConfig,
   handleBusinessIntegrations,
@@ -176,6 +178,7 @@ test("Brevo production verifier checks sender/recipient without requesting Cloud
 
 const brevoTestEnv = () => ({
   ADMIN_TOKEN: ["owner", "token", "fixture"].join("-"),
+  ADMIN_PASSWORD: ["owner", "password", "fixture"].join("-"),
   BREVO_API_KEY: ["provider", "secret", "fixture"].join("-"),
   BREVO_SENDER_EMAIL: "contact@phanthuanxtra.com",
   BREVO_TO_EMAIL: "phanthuanmodelactor@gmail.com",
@@ -197,9 +200,9 @@ const brevoTestEnv = () => ({
     }
   }
 });
-const probeRequest = (env, method = "POST", confirm = "send-one-brevo-test-email") =>
+const probeRequest = async (env, method = "POST", confirm = "send-one-brevo-test-email") =>
   new Request("https://phanthuanxtra.com/api/admin/integrations/brevo/diagnostic", {
-    method, headers: { authorization: "Bearer " + env.ADMIN_TOKEN, "content-type": "application/json" },
+    method, headers: { authorization: "Bearer " + await issueAdminToken(env), "content-type": "application/json" },
     ...(method === "POST" ? { body: JSON.stringify({ confirm }) } : {})
   });
 
@@ -210,12 +213,12 @@ test("Brevo diagnostic is owner-only, reports presence not secrets, and requires
   const url = "https://phanthuanxtra.com/api/admin/integrations/brevo/diagnostic";
   const unauth = await handleBusinessIntegrations(new Request(url), env);
   assert.equal(unauth.status, 401);
-  const get = await handleBusinessIntegrations(probeRequest(env, "GET"), env);
+  const get = await handleBusinessIntegrations(await probeRequest(env, "GET"), env);
   assert.equal(get.status, 200);
   const status = await get.json();
   assert.deepEqual(status, { ok: true, configured: true, api_key_present: true, sender_valid: true, recipient_valid: true });
   assert.ok(!JSON.stringify(status).includes(env.BREVO_API_KEY));
-  const noConfirmation = await handleBusinessIntegrations(probeRequest(env, "POST", "no"), env);
+  const noConfirmation = await handleBusinessIntegrations(await probeRequest(env, "POST", "no"), env);
   assert.equal(noConfirmation.status, 400);
   assert.equal(outbound, 0);
 });
@@ -247,7 +250,7 @@ test("Brevo diagnostic sends exactly one PII-free email to configured recipient 
     assert.doesNotMatch(payload.textContent, /Lead ID:|Điện thoại:|Họ tên:/);
     return Response.json({ messageId: "test-123@brevo.local" }, { status: 201 });
   });
-  const response = await handleBusinessIntegrations(probeRequest(env), env);
+  const response = await handleBusinessIntegrations(await probeRequest(env), env);
   const result = await response.json();
   assert.equal(response.status, 200);
   assert.equal(result.ok, true);
@@ -266,7 +269,7 @@ test("Brevo diagnostic returns sanitized upstream failures, never raw provider t
   t.mock.method(globalThis, "fetch", async () => Response.json({
     code: "permission_denied", message: "Do not expose customer details or provider internal response"
   }, { status: 403 }));
-  const res = await handleBusinessIntegrations(probeRequest(env), env);
+  const res = await handleBusinessIntegrations(await probeRequest(env), env);
   const data = await res.json();
   assert.equal(res.status, 502);
   assert.equal(data.status, 403);
@@ -280,12 +283,98 @@ test("Brevo diagnostic rate-limits owner requests and fails closed when bindings
   env.DB.prepare = () => ({ bind() { return this; }, async first() { return 3; } });
   let sent = false;
   t.mock.method(globalThis, "fetch", async () => { sent = true; throw Error("unexpected network"); });
-  const limited = await handleBusinessIntegrations(probeRequest(env), env);
+  const limited = await handleBusinessIntegrations(await probeRequest(env), env);
   assert.equal(limited.status, 429);
   assert.equal(sent, false);
   delete env.BREVO_API_KEY;
-  const incomplete = await handleBusinessIntegrations(probeRequest(env), env);
+  const incomplete = await handleBusinessIntegrations(await probeRequest(env), env);
   assert.equal(incomplete.status, 503);
   assert.equal((await incomplete.json()).api_key_present, false);
   assert.equal(sent, false);
+});
+
+
+async function signedDiagnosticRequest(env, method = "GET", { timestamp, nonce, signature } = {}) {
+  const ts = String(timestamp ?? Math.floor(Date.now() / 1000));
+  const id = nonce ?? crypto.randomUUID();
+  const message = ["ptx-brevo-diagnostic-v1", method, BREVO_DIAGNOSTIC_PATH, ts, id].join("\n");
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(env.ADMIN_PASSWORD), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const digest = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(message)));
+  const mac = signature ?? Array.from(digest, x => x.toString(16).padStart(2, "0")).join("");
+  return new Request("https://phanthuanxtra.com" + BREVO_DIAGNOSTIC_PATH, {
+    method,
+    headers: {
+      "x-ptx-brevo-timestamp": ts, "x-ptx-brevo-nonce": id, "x-ptx-brevo-signature": mac,
+      "content-type": "application/json"
+    },
+    ...(method === "POST" ? { body: JSON.stringify({ confirm: "send-one-brevo-test-email" }) } : {})
+  });
+}
+
+test("Brevo diagnostic accepts purpose-bound short-lived GitHub signature without Admin session", async t => {
+  const env = brevoTestEnv();
+  let outbound = 0;
+  t.mock.method(globalThis, "fetch", async () => { outbound++; throw Error("unexpected outbound"); });
+  const request = await signedDiagnosticRequest(env);
+  const verification = await verifyBrevoDiagnosticAuth(request, env);
+  assert.deepEqual(verification, { ok: true, principal: "ci", nonce: request.headers.get("x-ptx-brevo-nonce") });
+  const status = await handleBusinessIntegrations(request, env);
+  assert.equal(status.status, 200);
+  assert.equal((await status.json()).configured, true);
+  const expired = await signedDiagnosticRequest(env, "GET", { timestamp: Math.floor(Date.now() / 1000) - 180 });
+  assert.equal((await verifyBrevoDiagnosticAuth(expired, env)).ok, false);
+  const forged = await signedDiagnosticRequest(env, "GET", { signature: "a".repeat(64) });
+  assert.equal((await verifyBrevoDiagnosticAuth(forged, env)).ok, false);
+  const wrongMethod = await signedDiagnosticRequest(env, "POST", { nonce: request.headers.get("x-ptx-brevo-nonce"), timestamp: request.headers.get("x-ptx-brevo-timestamp"), signature: request.headers.get("x-ptx-brevo-signature") });
+  assert.equal((await verifyBrevoDiagnosticAuth(wrongMethod, env)).ok, false);
+  assert.equal(outbound, 0);
+});
+
+test("Brevo signed CI POST accepts one email and rejects a repeated nonce", async t => {
+  const env = brevoTestEnv();
+  const auditIds = [];
+  let attempts = 0;
+  env.DB.prepare = sql => {
+    let values = [];
+    return {
+      bind(...args) { values = args; return this; },
+      async first() {
+        if (sql.includes("resource_id=?")) return auditIds.includes(values[0]) ? 1 : 0;
+        if (sql.includes("created_at>=datetime")) return attempts;
+        throw Error("Unexpected D1: " + sql);
+      },
+      async run() {
+        if (!sql.includes("INSERT INTO cms_audit_log")) throw Error("Unexpected D1 insert: " + sql);
+        if (sql.includes("'send-attempt'")) { attempts++; auditIds.push(values[0]); }
+        return { success: true };
+      }
+    };
+  };
+  let sends = 0;
+  t.mock.method(globalThis, "fetch", async () => { sends++; return Response.json({messageId:"signed-ci-test@brevo.local"}, {status: 201}); });
+  const signed = await signedDiagnosticRequest(env, "POST");
+  const replay = signed.clone();
+  const first = await handleBusinessIntegrations(signed, env);
+  assert.equal(first.status, 200);
+  assert.equal((await first.json()).accepted_by_provider, true);
+  assert.equal(sends, 1);
+  const again = await handleBusinessIntegrations(replay, env);
+  assert.equal(again.status, 409);
+  assert.equal((await again.json()).error, "BREVO_TEST_REPLAY");
+  assert.equal(sends, 1);
+  assert.equal(attempts, 1);
+});
+
+test("Brevo diagnostic workflow uses scoped proof, not a potentially rotated D1 login credential", () => {
+  const workflow = fs.readFileSync(".github/workflows/brevo-transactional-diagnostic.yml", "utf8");
+  const handler = fs.readFileSync("src/business-integrations.js", "utf8");
+  assert.match(workflow, /ptx-brevo-diagnostic-v1/);
+  assert.match(workflow, /DIAG_METHOD/);
+  assert.ok(workflow.includes(String.raw`parts.join("\n")`), "CI signature must use the same newline-delimited message as Worker");
+  assert.ok(!workflow.includes(String.raw`parts.join("\\n")`), "CI signature must not sign a literal backslash-n");
+  assert.doesNotMatch(workflow, /api\/admin\/login/);
+  assert.doesNotMatch(workflow, /BREVO_API_KEY:/);
+  assert.match(handler, /verifyBrevoDiagnosticAuth/);
+  assert.match(handler, /BREVO_TEST_REPLAY/);
 });
