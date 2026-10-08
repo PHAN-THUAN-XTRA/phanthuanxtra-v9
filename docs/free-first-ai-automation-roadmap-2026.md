@@ -1,9 +1,17 @@
 # PHAN THUẦN XTRA — Free-first AI & Automation Roadmap (2026-10-08)
 
-**Status: PROPOSAL ONLY — not deployed, not an acceptance certificate.**
+**Document status: MERGED TO `main` via PR #816 (2026-10-08); implementation status: PROPOSED / OPEN, not a production acceptance certificate.**
 **Owner preference:** prioritize genuinely usable Free tiers, native Cloudflare/D1/R2/Telegram, explicit permission for paid upgrades and external account connections.
 **Source of truth:** `MASTER_PROJECT_STATUS.md`; repository `main` and production evidence supersede assumptions.
 **Scope:** propose/track integrations and safety gates. This document makes **no** runtime, database, billing, secret, customer-contact or service-activation change.
+
+## Documentation closure and remaining gates — verified 2026-10-08
+
+- PR [#816](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/816) squash-merged at `d17978d64922005b78fb49ec6f277b6352d7c56e`; merge changed only three Markdown files.
+- On that exact main SHA, [CI](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824606), [MASTER Integrity](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824597), and [SonarQube Cloud](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824614) returned PASS. The PR head previously passed its 9 applicable checks, with only pull-request production deployment skipped by design.
+- No Worker deployment occurred for this docs-only merge (deployment workflow ignores Markdown-only main pushes); no independent production HTTP smoke was observed as part of this documentation closure.
+- Weekly ChatGPT advisory task **XTRA Free Tool Radar** remains enabled for Monday mornings (~08:00 ICT), recommendations only.
+- Brevo real inbox/provider/Telegram E2E and fail-closed lead receipt, durable outbox, S21 physical acceptance and Content Runner live approval remain OPEN. The roadmap below describes proposed follow-up work, **not completed production features**.
 
 ## 1. Existing foundation — do not duplicate
 
