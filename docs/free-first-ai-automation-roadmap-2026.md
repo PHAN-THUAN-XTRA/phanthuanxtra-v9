@@ -1,6 +1,6 @@
 # PHAN THUẦN XTRA — Free-first AI & Automation Roadmap (2026-10-08)
 
-**Document status: MERGED TO `main` via PR #816 (2026-10-08); implementation status: PROPOSED / OPEN, not a production acceptance certificate.**
+**Document status: MERGED TO `main` via PR #816; Brevo transactional provider-to-Gmail delivery: PRODUCTION PASS (2026-10-08); additional lead reliability and automation: PROPOSED / OPEN.**
 **Owner preference:** prioritize genuinely usable Free tiers, native Cloudflare/D1/R2/Telegram, explicit permission for paid upgrades and external account connections.
 **Source of truth:** `MASTER_PROJECT_STATUS.md`; repository `main` and production evidence supersede assumptions.
 **Scope:** propose/track integrations and safety gates. This document makes **no** runtime, database, billing, secret, customer-contact or service-activation change.
@@ -12,6 +12,13 @@
 - No Worker deployment occurred for this docs-only merge (deployment workflow ignores Markdown-only main pushes); no independent production HTTP smoke was observed as part of this documentation closure.
 - Weekly ChatGPT advisory task **XTRA Free Tool Radar** remains enabled for Monday mornings (~08:00 ICT), recommendations only.
 - Brevo real inbox/provider/Telegram E2E and fail-closed lead receipt, durable outbox, S21 physical acceptance and Content Runner live approval remain OPEN. The roadmap below describes proposed follow-up work, **not completed production features**.
+
+## Brevo transactional delivery — production PASS (2026-10-08, 14:01 ICT)
+
+- [Brevo Transactional Diagnostic #13](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37740884826) completed SUCCESS for production main `5c111f4e1c4268baef3dac190ebb4d9a1aac4371`. Owner inspected sanitized output and confirmed Worker `/v3/account` HTTP 200, provider send HTTP 201 and `messageId`. The workflow itself asserts `accepted_by_provider=true` and a 2xx provider send.
+- Verified independently in the authorized Gmail account: diagnostic `a4c461b2` reached **INBOX** at **14:01:16 ICT**; CI Test Drive lead **#227** reached **SPAM**, while CI Business Jets lead **#228** reached **INBOX** at about 13:59 ICT. These were synthetic CI leads, never customer requests. Do not record recipient address, synthetic phone fields, or full email bodies in public documents.
+- **Close only** the previous transactional-email connectivity/provider acceptance/actual receiving-inbox gate. Open: inconsistent Gmail Inbox placement, D1 lead fail-closed receipt, durable outbox + replay-safe retries, Telegram receipt reconciliation for the same lead, and all unrelated owner production acceptance. No more diagnostic sends or key changes are required.
+- Follow-up: review SPF/DKIM/DMARC configuration and sender reputation, preferably read-only first. Sender-domain DNS changes or marketing campaigns require explicit separate authorization. Earlier historical “Brevo inbox OPEN” statements below reflect a checkpoint **before** this successful production evidence.
 
 ## 1. Existing foundation — do not duplicate
 
@@ -63,6 +70,7 @@ Proposed design and safeguards:
 
 ## 5. Staged implementation checklist
 
+- [x] P0-0 — Brevo transactional production send and real Gmail receipt proven 2026-10-08 ([diagnostic #13](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37740884826)); one synthetic CI lead was classified Spam, so inbox placement still needs improvement.
 - [ ] P0-a — Resolve form false-success when D1 is unavailable; regression tests.
 - [ ] P0-b — Brevo configured sender/recipient/Cloudflare-only secret binding verified without exposing values.
 - [ ] P0-c — Durable email outbox, safe retry + provider webhook reconciliation; tests.
