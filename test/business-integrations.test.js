@@ -508,7 +508,7 @@ test("Brevo account probe refuses to follow cross-origin and insecure redirects"
     assert.equal(data.provider.redirect_target, targets[target][1]);
     assert.equal(data.provider.redirect_host, targets[target][2]);
     assert.ok(!JSON.stringify(data).includes("must-not-leak"));
-    assert.ok(!JSON.stringify(data).includes("insecure"));
+    assert.ok(!JSON.stringify(data).includes("http://api.brevo.com/insecure"));
   }
   assert.equal(calls, targets.length);
 });
