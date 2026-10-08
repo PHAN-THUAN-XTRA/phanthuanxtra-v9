@@ -80,7 +80,7 @@ export async function sendBrevoLeadNotification(env = {}, lead = {}) {
     `Điện thoại: ${clean(lead.phone, 40) || "(không cung cấp)"}`,
     `Xe/dịch vụ: ${clean(lead.carId, 120) || "(không chỉ định)"}`,
     `Nội dung: ${clean(lead.message, 2000) || "(không có)"}`,
-  ].filter(Boolean).join("\\n");
+  ].filter(Boolean).join("\n");
   return sendBrevoEmail(env, { subject, textContent, kind: "lead", tags: ["website-lead"] });
 }
 
@@ -130,7 +130,9 @@ export async function handleBusinessIntegrations(request, env = {}) {
     return json({ ok: true, ...businessIntegrationConfig(env) });
   }
 
-  if (url.pathname === "/api/admin/integrations/brevo/diagnostic") return handleBrevoAdminDiagnostic(request, env);\n\n  if (url.pathname !== "/api/analytics/summary") return null;
+  if (url.pathname === "/api/admin/integrations/brevo/diagnostic") return handleBrevoAdminDiagnostic(request, env);
+
+  if (url.pathname !== "/api/analytics/summary") return null;
   if (request.method !== "GET") return json({ error: "Method Not Allowed" }, 405, { allow: "GET" });
 
   const token = clean(env.ANALYTICS_EXPORT_TOKEN, 500);
