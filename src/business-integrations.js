@@ -1,3 +1,5 @@
+import { verifyBrevoDiagnosticAuth } from "./brevo-diagnostic-auth.js";
+
 const SEC = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -85,8 +87,8 @@ export async function sendBrevoLeadNotification(env = {}, lead = {}) {
 }
 
 async function handleBrevoAdminDiagnostic(request, env) {
-  const token = clean(env.ADMIN_TOKEN, 500);
-  if (!token || request.headers.get("authorization") !== `Bearer ${token}`) return json({ error: "Unauthorized" }, 401);
+  const auth = await verifyBrevoDiagnosticAuth(request, env);
+  if (!auth.ok) return json({ error: "Unauthorized" }, 401);
   if (request.method !== "GET" && request.method !== "POST") return json({ error: "Method Not Allowed" }, 405, { allow: "GET, POST" });
   const { key, sender, recipient } = brevoConfig(env);
   const configured = !!(key && sender && recipient);
@@ -100,7 +102,13 @@ async function handleBrevoAdminDiagnostic(request, env) {
   // or customer data is created; the destination is the configured mailbox only.
   const attempts = Number(await env.DB.prepare("SELECT COUNT(*) n FROM cms_audit_log WHERE actor='brevo-diagnostic' AND action='send-attempt' AND created_at>=datetime('now','-1 hour')").first("n"));
   if (attempts >= 3) return json({ error: "BREVO_TEST_RATE_LIMIT", retry_later: true }, 429);
-  const testId = crypto.randomUUID();
+  // Prevent a replay of an authenticated CI request from sending another email.
+  // The signature is method/path/nonce/timestamp-bound and expires after 120s.
+  if (auth.principal === "ci") {
+    const replayed = Number(await env.DB.prepare("SELECT COUNT(*) n FROM cms_audit_log WHERE actor='brevo-diagnostic' AND action='send-attempt' AND resource_id=?").bind(auth.nonce).first("n"));
+    if (replayed > 0) return json({ error: "BREVO_TEST_REPLAY" }, 409);
+  }
+  const testId = auth.principal === "ci" ? auth.nonce : crypto.randomUUID();
   await env.DB.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) VALUES ('brevo-diagnostic','send-attempt','integration',?,'Brevo transactional diagnostic; no customer data')").bind(testId).run();
   const result = await sendBrevoEmail(env, {
     subject: `PHAN THUẦN XTRA — Brevo diagnostic ${testId.slice(0, 8)}`,
