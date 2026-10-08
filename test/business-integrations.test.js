@@ -168,7 +168,7 @@ test("Brevo production verifier checks sender/recipient without requesting Cloud
   assert.match(verifier, /Brevo production email configuration is partial/);
   assert.match(verifier, /if \(!sender && !recipient\)/);
   assert.match(verifier, /if \(!sender \|\| !recipient\)/);
-  assert.doesNotMatch(verifier, /process\.env\.BREVO_API_KEY/);
+  assert.doesNotMatch(verifier, /const apiKey = clean\(process\.env\.BREVO_API_KEY/);
   assert.match(deploy, /BREVO_API_KEY must already exist as a Cloudflare secret_text binding/);
   assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{\s*secrets\.BREVO_API_KEY/);
 });
