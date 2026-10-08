@@ -50,6 +50,24 @@ function brevoTransportFailure(error) {
   return { ok: false, status: 0, provider_code, exception_type };
 }
 
+// Never follow an unverified redirect with the Cloudflare-only Brevo API key.
+// Hostname is public infrastructure metadata; omit redirect paths and query.
+function safeBrevoRedirect(response) {
+  const location = response.headers.get("location");
+  if (!location) return { provider_code: "redirect_response", redirect_target: "missing" };
+  try {
+    const url = new URL(location, "https://api.brevo.com/v3/account");
+    if (!["http:", "https:"].includes(url.protocol)) return { provider_code: "redirect_response", redirect_target: "invalid" };
+    const host = url.hostname.toLowerCase();
+    const publicHost = /^[a-z0-9.-]{1,150}$/.test(host) ? host : "invalid";
+    return {
+      provider_code: "redirect_response",
+      redirect_target: url.protocol === "https:" ? (url.origin === "https://api.brevo.com" ? "same_origin" : "different_origin") : "insecure_http",
+      redirect_host: publicHost,
+    };
+  } catch { return { provider_code: "redirect_response", redirect_target: "invalid" }; }
+}
+
 async function probeBrevoAccount(env) {
   const { key } = brevoConfig(env);
   if (!key) return { ok: false, status: 0, provider_code: "not_configured" };
@@ -57,11 +75,12 @@ async function probeBrevoAccount(env) {
     const response = await fetch("https://api.brevo.com/v3/account", {
       method: "GET",
       headers: { accept: "application/json", "api-key": key },
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(8000),
     });
     // Brevo /account can contain identifying account details: do not read or
     // expose them on success, and only parse the machine-readable error code.
+    if (response.status >= 300 && response.status < 400) return { ok: false, status: response.status, ...safeBrevoRedirect(response) };
     if (response.ok) return { ok: true, status: response.status };
     const payload = await response.json().catch(() => ({}));
     return { ok: false, status: response.status, provider_code: providerCode(payload?.code) };
