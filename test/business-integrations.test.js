@@ -159,3 +159,16 @@ test("smoke gate checks archived vehicle hidden status and public detail denial"
   assert.match(workflow, /public_status.*404/);
   assert.doesNotMatch(workflow, /\(\.cars \| any\(\.\[\]; \.id == \$id\)\) \| not/);
 });
+
+
+test("Brevo production verifier checks sender/recipient without requesting Cloudflare-only API key", () => {
+  const verifier = fs.readFileSync("scripts/verify-business-integrations.mjs", "utf8");
+  const deploy = fs.readFileSync("scripts/deploy-cloudflare-api.mjs", "utf8");
+  const workflow = fs.readFileSync(".github/workflows/deploy-cloudflare.yml", "utf8");
+  assert.match(verifier, /Brevo production email configuration is partial/);
+  assert.match(verifier, /if \(!sender && !recipient\)/);
+  assert.match(verifier, /if \(!sender \|\| !recipient\)/);
+  assert.doesNotMatch(verifier, /process\.env\.BREVO_API_KEY/);
+  assert.match(deploy, /BREVO_API_KEY must already exist as a Cloudflare secret_text binding/);
+  assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{\s*secrets\.BREVO_API_KEY/);
+});
