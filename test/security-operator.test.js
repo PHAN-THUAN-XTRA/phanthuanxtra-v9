@@ -126,3 +126,12 @@ test("Cloudflare link maze injections stay visible but do not count as actionabl
   assert.match(cleanup,/linkMaze/);
   assert.match(cleanup,/link_maze_injected/);
 });
+
+test("dedicated analytics credential takes precedence without altering deploy or backup tokens",()=>{
+  const source=fs.readFileSync("scripts/security-operator.mjs","utf8");
+  const workflow=fs.readFileSync(".github/workflows/free-security-operator.yml","utf8");
+  assert.match(source,/\["analytics",process\.env\.CLOUDFLARE_SECURITY_ANALYTICS_API_TOKEN\|\|""\]/);
+  assert.ok(source.indexOf('["analytics",')<source.indexOf('["primary",'));
+  assert.match(workflow,/CLOUDFLARE_SECURITY_ANALYTICS_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_SECURITY_ANALYTICS_API_TOKEN \}\}/);
+  assert.match(source,/if\(!token\)continue;/);
+});
