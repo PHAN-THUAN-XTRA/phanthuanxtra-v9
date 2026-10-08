@@ -123,6 +123,7 @@ export function classifySecuritySignals({healthOk,homeOk,totalRequests=0,error5x
 async function cfFetch(path,{method="GET",body=null}={}){
   const attempts=[];
   for(const [name,token] of TOKENS){
+    if(!token)continue;
     try{
       const r=await fetch(path.startsWith("http")?path:API+path,{
         method,
@@ -167,6 +168,7 @@ async function graphqlQuery(query,variables,preferredToken=null){
     : TOKENS;
   const attempts=[];
   for(const [name,token] of ordered){
+    if(!token)continue;
     try{
       const response=await fetch(GRAPHQL,{
         method:"POST",
