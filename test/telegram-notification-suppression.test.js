@@ -82,7 +82,8 @@ test("Content Prep numeric Blog fixture audits are suppressed while real posts a
     DB: db, TELEGRAM_BOT_TOKEN: ["fixture","bot"].join("-"), TELEGRAM_CHAT_ID: ["fixture","chat"].join("-")
   });
   assert.equal(result.ok, true);
-  assert.equal(result.processed, 12);
+  // The reconciler counts suppressed audit entries; sent notifications only advance the cursor.
+  assert.equal(result.processed, 8);
   assert.equal(result.last_audit_id, 12);
   assert.equal(cursor, 12);
   assert.equal(sent.length, 4, "only legitimate CMS notifications should reach Telegram");
