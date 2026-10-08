@@ -24,12 +24,51 @@ export function businessIntegrationConfig(env = {}) {
   return { tawk: { enabled: true, property_id: propertyId, widget_id: widgetId } };
 }
 
-export async function sendBrevoLeadNotification(env = {}, lead = {}) {
-  const apiKey = clean(env.BREVO_API_KEY, 500);
-  const sender = validEmail(env.BREVO_SENDER_EMAIL);
-  const recipient = validEmail(env.BREVO_TO_EMAIL);
-  if (!apiKey || !sender || !recipient) return { ok: false, skipped: true, reason: "not_configured" };
+// Provider diagnostics contain only status and a bounded error code; never log API
+// keys, customer fields, request bodies, or arbitrary upstream response messages.
+const providerCode = value => /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(String(value ?? "")) ? String(value) : "unknown";
+const safeMessageId = value => /^[A-Za-z0-9@._<>-]{1,200}$/.test(String(value ?? "")) ? String(value) : null;
+const brevoConfig = env => ({
+  key: clean(env.BREVO_API_KEY, 500),
+  sender: validEmail(env.BREVO_SENDER_EMAIL),
+  recipient: validEmail(env.BREVO_TO_EMAIL),
+});
 
+async function sendBrevoEmail(env, { subject, textContent, kind, tags }) {
+  const { key, sender, recipient } = brevoConfig(env);
+  if (!key || !sender || !recipient) {
+    console.warn("brevo_send_skipped", JSON.stringify({ kind, reason: "not_configured", api_key_present: !!key, sender_valid: !!sender, recipient_valid: !!recipient }));
+    return { ok: false, skipped: true, reason: "not_configured" };
+  }
+  console.info("brevo_send_attempt", JSON.stringify({ kind, endpoint: "smtp/email" }));
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { accept: "application/json", "content-type": "application/json", "api-key": key },
+      body: JSON.stringify({
+        sender: { name: "PHAN THUẦN XTRA", email: sender },
+        to: [{ email: recipient, name: "PHAN THUẦN XTRA CRM", contactPixelTrackingConsent: false }],
+        subject, textContent, tags,
+      }),
+      redirect: "error",
+      signal: AbortSignal.timeout(8000),
+    });
+    // Only known machine-readable fields are read from the provider response.
+    const payload = await response.json().catch(() => ({}));
+    const code = response.ok ? null : providerCode(payload?.code);
+    const messageId = response.ok ? safeMessageId(payload?.messageId) : null;
+    const outcome = { ok: response.ok, status: response.status, ...(code ? { provider_code: code } : {}), ...(messageId ? { message_id: messageId } : {}) };
+    console[response.ok ? "info" : "warn"]("brevo_send_result", JSON.stringify({ kind, status: response.status, ...(code ? { provider_code: code } : {}) }));
+    return outcome;
+  } catch (error) {
+    // Network and timeout errors can contain sensitive request data in .message.
+    const type = error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network_error";
+    console.warn("brevo_send_result", JSON.stringify({ kind, status: 0, provider_code: type }));
+    return { ok: false, status: 0, provider_code: type };
+  }
+}
+
+export async function sendBrevoLeadNotification(env = {}, lead = {}) {
   const leadId = Number.isFinite(Number(lead.leadId)) ? Number(lead.leadId) : null;
   const source = clean(lead.source || "website-lead", 60);
   const subject = `PHAN THUẦN XTRA — lead ${leadId ? "#" + leadId : "mới"}`;
@@ -42,34 +81,37 @@ export async function sendBrevoLeadNotification(env = {}, lead = {}) {
     `Xe/dịch vụ: ${clean(lead.carId, 120) || "(không chỉ định)"}`,
     `Nội dung: ${clean(lead.message, 2000) || "(không có)"}`,
   ].filter(Boolean).join("\n");
+  return sendBrevoEmail(env, { subject, textContent, kind: "lead", tags: ["website-lead"] });
+}
 
+async function handleBrevoAdminDiagnostic(request, env) {
+  const token = clean(env.ADMIN_TOKEN, 500);
+  if (!token || request.headers.get("authorization") !== `Bearer ${token}`) return json({ error: "Unauthorized" }, 401);
+  if (request.method !== "GET" && request.method !== "POST") return json({ error: "Method Not Allowed" }, 405, { allow: "GET, POST" });
+  const { key, sender, recipient } = brevoConfig(env);
+  const configured = !!(key && sender && recipient);
+  if (request.method === "GET") return json({ ok: true, configured, api_key_present: !!key, sender_valid: !!sender, recipient_valid: !!recipient });
+  if (!configured) return json({ ok: false, reason: "not_configured", api_key_present: !!key, sender_valid: !!sender, recipient_valid: !!recipient }, 503);
+  if (!env.DB) return json({ ok: false, reason: "audit_unavailable" }, 503);
+  if (!(request.headers.get("content-type") || "").toLowerCase().startsWith("application/json")) return json({ error: "JSON_REQUIRED" }, 415);
+  const body = await request.json().catch(() => null);
+  if (body?.confirm !== "send-one-brevo-test-email") return json({ error: "CONFIRMATION_REQUIRED" }, 400);
+  // Explicit owner action, limited to three attempts per hour. No real lead row
+  // or customer data is created; the destination is the configured mailbox only.
+  const attempts = Number(await env.DB.prepare("SELECT COUNT(*) n FROM cms_audit_log WHERE actor='brevo-diagnostic' AND action='send-attempt' AND created_at>=datetime('now','-1 hour')").first("n"));
+  if (attempts >= 3) return json({ error: "BREVO_TEST_RATE_LIMIT", retry_later: true }, 429);
+  const testId = crypto.randomUUID();
+  await env.DB.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) VALUES ('brevo-diagnostic','send-attempt','integration',?,'Brevo transactional diagnostic; no customer data')").bind(testId).run();
+  const result = await sendBrevoEmail(env, {
+    subject: `PHAN THUẦN XTRA — Brevo diagnostic ${testId.slice(0, 8)}`,
+    textContent: "Đây là email kiểm thử tích hợp Brevo từ Cloudflare Worker. Không chứa dữ liệu khách hàng.",
+    kind: "diagnostic", tags: ["integration-diagnostic"],
+  });
+  const summary = `http=${result.status ?? 0};code=${providerCode(result.provider_code || (result.ok ? "accepted" : "unknown"))}`;
   try {
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        "api-key": apiKey,
-      },
-      body: JSON.stringify({
-        sender: { name: "PHAN THUẦN XTRA", email: sender },
-        to: [{ email: recipient, name: "PHAN THUẦN XTRA CRM", contactPixelTrackingConsent: false }],
-        subject,
-        textContent,
-        tags: ["website-lead"],
-      }),
-      redirect: "error",
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!response.ok) {
-      console.warn("brevo_lead_notify_failed", response.status);
-      return { ok: false, status: response.status };
-    }
-    return { ok: true, status: response.status };
-  } catch (error) {
-    console.warn("brevo_lead_notify_failed", clean(error?.message || error, 180));
-    return { ok: false, status: 0 };
-  }
+    await env.DB.prepare("INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary) VALUES ('brevo-diagnostic','send-result','integration',?,?)").bind(testId, summary).run();
+  } catch { console.warn("brevo_diagnostic_audit_result_failed"); }
+  return json({ ...result, test_id: testId, accepted_by_provider: result.ok === true }, result.ok ? 200 : 502);
 }
 
 async function count(db, sql) {
@@ -87,6 +129,8 @@ export async function handleBusinessIntegrations(request, env = {}) {
     if (request.method !== "GET") return json({ error: "Method Not Allowed" }, 405, { allow: "GET" });
     return json({ ok: true, ...businessIntegrationConfig(env) });
   }
+
+  if (url.pathname === "/api/admin/integrations/brevo/diagnostic") return handleBrevoAdminDiagnostic(request, env);
 
   if (url.pathname !== "/api/analytics/summary") return null;
   if (request.method !== "GET") return json({ error: "Method Not Allowed" }, 405, { allow: "GET" });

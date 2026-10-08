@@ -1,0 +1,48 @@
+name: Brevo Transactional Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brevo-transactional-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  send-one-controlled-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - name: Authenticate, inspect secret presence, and send one provider test email
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v jq >/dev/null
+          test -n "${ADMIN_PASSWORD}"
+          login="$(jq -nc --arg password "${ADMIN_PASSWORD}" '{password:$password}')"
+          login_status="$(curl --silent --show-error --max-time 20 -o /tmp/brevo-login.json -w '%{http_code}' \
+            -X POST "${SITE_URL}/api/admin/login" -H 'content-type: application/json' --data "${login}")"
+          test "${login_status}" = "200"
+          token="$(jq -r '.token // empty' /tmp/brevo-login.json)"
+          test -n "${token}"
+          echo "::add-mask::${token}"
+          endpoint="${SITE_URL}/api/admin/integrations/brevo/diagnostic"
+          state_status="$(curl --silent --show-error --max-time 20 -o /tmp/brevo-state.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${token}" "${endpoint}")"
+          test "${state_status}" = "200"
+          jq -e '.ok==true and .configured==true and .api_key_present==true and .sender_valid==true and .recipient_valid==true' /tmp/brevo-state.json >/dev/null
+          echo "Brevo runtime binding presence: PASS (values not printed)."
+          result_status="$(curl --silent --show-error --max-time 25 -o /tmp/brevo-result.json -w '%{http_code}' \
+            -X POST "${endpoint}" -H "Authorization: Bearer ${token}" -H 'content-type: application/json' \
+            --data '{"confirm":"send-one-brevo-test-email"}')"
+          echo "Brevo provider result (sanitized):"
+          jq -c '{ok,accepted_by_provider,status,provider_code,message_id,test_id,error}' /tmp/brevo-result.json
+          test "${result_status}" = "200"
+          jq -e '.ok == true and .accepted_by_provider == true and .status >= 200 and .status < 300' /tmp/brevo-result.json >/dev/null
+          echo "Brevo API accepted one controlled diagnostic email; Gmail inbox delivery still requires independent confirmation."

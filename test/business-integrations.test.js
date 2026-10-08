@@ -172,3 +172,120 @@ test("Brevo production verifier checks sender/recipient without requesting Cloud
   assert.match(deploy, /BREVO_API_KEY must already exist as a Cloudflare secret_text binding/);
   assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{\s*secrets\.BREVO_API_KEY/);
 });
+
+
+const brevoTestEnv = () => ({
+  ADMIN_TOKEN: ["owner", "token", "fixture"].join("-"),
+  BREVO_API_KEY: ["provider", "secret", "fixture"].join("-"),
+  BREVO_SENDER_EMAIL: "contact@phanthuanxtra.com",
+  BREVO_TO_EMAIL: "phanthuanmodelactor@gmail.com",
+  DB: {
+    prepare(sql) {
+      let bound = [];
+      return {
+        bind(...values) { bound = values; return this; },
+        async first() {
+          assert.match(sql, /SELECT COUNT\(\*\) n FROM cms_audit_log/);
+          return 0;
+        },
+        async run() {
+          assert.match(sql, /INSERT INTO cms_audit_log/);
+          assert.ok(bound[0]);
+          return { success: true };
+        }
+      };
+    }
+  }
+});
+const probeRequest = (env, method = "POST", confirm = "send-one-brevo-test-email") =>
+  new Request("https://phanthuanxtra.com/api/admin/integrations/brevo/diagnostic", {
+    method, headers: { authorization: "Bearer " + env.ADMIN_TOKEN, "content-type": "application/json" },
+    ...(method === "POST" ? { body: JSON.stringify({ confirm }) } : {})
+  });
+
+test("Brevo diagnostic is owner-only, reports presence not secrets, and requires explicit confirmation", async t => {
+  const env = brevoTestEnv();
+  let outbound = 0;
+  t.mock.method(globalThis, "fetch", async () => { outbound++; throw Error("unexpected outbound request"); });
+  const url = "https://phanthuanxtra.com/api/admin/integrations/brevo/diagnostic";
+  const unauth = await handleBusinessIntegrations(new Request(url), env);
+  assert.equal(unauth.status, 401);
+  const get = await handleBusinessIntegrations(probeRequest(env, "GET"), env);
+  assert.equal(get.status, 200);
+  const status = await get.json();
+  assert.deepEqual(status, { ok: true, configured: true, api_key_present: true, sender_valid: true, recipient_valid: true });
+  assert.ok(!JSON.stringify(status).includes(env.BREVO_API_KEY));
+  const noConfirmation = await handleBusinessIntegrations(probeRequest(env, "POST", "no"), env);
+  assert.equal(noConfirmation.status, 400);
+  assert.equal(outbound, 0);
+});
+
+test("Brevo diagnostic sends exactly one PII-free email to configured recipient and returns provider evidence", async t => {
+  const env = brevoTestEnv();
+  const audit = [];
+  const realPrepare = env.DB.prepare;
+  env.DB.prepare = sql => {
+    const statement = realPrepare(sql);
+    const oldBind = statement.bind;
+    statement.bind = (...args) => {
+      if (sql.includes("INSERT INTO cms_audit_log")) audit.push({ sql, args });
+      return oldBind.apply(statement, args);
+    };
+    return statement;
+  };
+  let sends = 0;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    sends++;
+    assert.equal(url, "https://api.brevo.com/v3/smtp/email");
+    assert.equal(options.method, "POST");
+    assert.equal(options.headers["api-key"], env.BREVO_API_KEY);
+    const payload = JSON.parse(options.body);
+    assert.equal(payload.to[0].email, env.BREVO_TO_EMAIL);
+    assert.equal(payload.sender.email, env.BREVO_SENDER_EMAIL);
+    assert.deepEqual(payload.tags, ["integration-diagnostic"]);
+    assert.match(payload.subject, /Brevo diagnostic/);
+    assert.doesNotMatch(payload.textContent, /Lead ID:|Điện thoại:|Họ tên:/);
+    return Response.json({ messageId: "test-123@brevo.local" }, { status: 201 });
+  });
+  const response = await handleBusinessIntegrations(probeRequest(env), env);
+  const result = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(result.ok, true);
+  assert.equal(result.accepted_by_provider, true);
+  assert.equal(result.status, 201);
+  assert.equal(result.message_id, "test-123@brevo.local");
+  assert.match(result.test_id, /^[a-f0-9-]{36}$/);
+  assert.equal(sends, 1);
+  assert.equal(audit.length, 2);
+  assert.ok(!JSON.stringify(result).includes(env.BREVO_API_KEY));
+  assert.ok(!JSON.stringify(audit).includes(env.BREVO_API_KEY));
+});
+
+test("Brevo diagnostic returns sanitized upstream failures, never raw provider text", async t => {
+  const env = brevoTestEnv();
+  t.mock.method(globalThis, "fetch", async () => Response.json({
+    code: "permission_denied", message: "Do not expose customer details or provider internal response"
+  }, { status: 403 }));
+  const res = await handleBusinessIntegrations(probeRequest(env), env);
+  const data = await res.json();
+  assert.equal(res.status, 502);
+  assert.equal(data.status, 403);
+  assert.equal(data.provider_code, "permission_denied");
+  assert.equal(data.accepted_by_provider, false);
+  assert.ok(!JSON.stringify(data).includes("customer details"));
+});
+
+test("Brevo diagnostic rate-limits owner requests and fails closed when bindings are incomplete", async t => {
+  const env = brevoTestEnv();
+  env.DB.prepare = () => ({ bind() { return this; }, async first() { return 3; } });
+  let sent = false;
+  t.mock.method(globalThis, "fetch", async () => { sent = true; throw Error("unexpected network"); });
+  const limited = await handleBusinessIntegrations(probeRequest(env), env);
+  assert.equal(limited.status, 429);
+  assert.equal(sent, false);
+  delete env.BREVO_API_KEY;
+  const incomplete = await handleBusinessIntegrations(probeRequest(env), env);
+  assert.equal(incomplete.status, 503);
+  assert.equal((await incomplete.json()).api_key_present, false);
+  assert.equal(sent, false);
+});
