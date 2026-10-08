@@ -1,5 +1,12 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## S21 ULTRA — NO WRANGLER / TELEGRAM CHAT DIAGNOSTIC — 2026-10-08 (UTC+7)
+
+- **Owner rule:** Never install or run Wrangler on Samsung S21 Ultra / Termux. Use S21 only for Jarvis XTRA launcher, Telegram, browser and safe read-only HTTP checks. Cloudflare investigation/deployment belongs in authorized GitHub Actions, Cloudflare Dashboard or a desktop environment.
+- **Observed:** `command -v wrangler` returned `Chưa cài Wrangler`; this is expected and must not be treated as a dependency to install.
+- **Verified connectivity:** `/api/app/v1/health` HTTP 200 (app-api 1.1.0); `/api/health` HTTP 200 (V10 Admin CMS); phone `https://api.telegram.org` HTTP 302 (reachable). Telegram `/chat` acknowledged a vehicle-buying question, then reported processing failure. These probes do not establish AI quota, queue or webhook success. **Root cause remains OPEN.**
+- **Next diagnostic:** inspect Telegram `/chat` server-side handler and Cloudflare runtime logs, with secrets redacted; do not resend the message repeatedly or change production car-publishing flow. No runtime fix or deployment is claimed by this documentation checkpoint.
+
 ## ONE-MASTER PR #823 — POST-MERGE VERIFIED PASS — 2026-10-08 (UTC+7)
 
 - **CLOSED / MERGED:** [PR #823](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/823) merged by squash at `539a49a53c589c115e5bf6e27efbc6b743830227`. The exact PR head `5905d09a19bd91eb8ee4eed2c45e80a2d9d54b22` passed **9 successful checks**; the pull-request production deploy check was **SKIPPED as designed**.
