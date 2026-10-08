@@ -277,7 +277,7 @@ test("Brevo diagnostic returns sanitized upstream failures, never raw provider t
 
 test("Brevo diagnostic rate-limits owner requests and fails closed when bindings are incomplete", async t => {
   const env = brevoTestEnv();
-  env.DB.prepare = () => ({ async first() { return { n: 3 }; } });
+  env.DB.prepare = () => ({ bind() { return this; }, async first() { return { n: 3 }; } });
   let sent = false;
   t.mock.method(globalThis, "fetch", async () => { sent = true; throw Error("unexpected network"); });
   const limited = await handleBusinessIntegrations(probeRequest(env), env);
