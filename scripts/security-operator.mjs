@@ -9,6 +9,7 @@ const ZONE_NAME=process.env.ZONE_NAME||"phanthuanxtra.com";
 const D1_DATABASE_ID=process.env.D1_DATABASE_ID||"";
 const ACCOUNT_ID=process.env.CLOUDFLARE_ACCOUNT_ID||"";
 const TOKENS=[
+  ["analytics",process.env.CLOUDFLARE_SECURITY_ANALYTICS_API_TOKEN||""],
   ["primary",process.env.CLOUDFLARE_API_TOKEN||""],
   ["backup",process.env.CLOUDFLARE_BACKUP_API_TOKEN||""]
 ].filter(([,v])=>v);
