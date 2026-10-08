@@ -65,13 +65,26 @@ jobs:
           fi
           echo "Brevo runtime binding presence: PASS (secret values not printed)."
 
+          # Read-only provider probe isolates Cloudflare egress/DNS/TLS/API-key
+          # failures before making any request that sends an email.
+          sign_request GET
+          probe_status="$(curl --silent --show-error --max-time 20 -o /tmp/brevo-account.json -w '%{http_code}' \
+            "${signed_headers[@]}" "${endpoint}?probe=account")"
+          echo "Brevo /v3/account probe endpoint: HTTP ${probe_status}."
+          echo "Brevo account probe result (sanitized):"
+          jq -c '{provider:{ok:.provider.ok,status:.provider.status,provider_code:.provider.provider_code,exception_type:.provider.exception_type},error}' /tmp/brevo-account.json
+          if [ "${probe_status}" != "200" ] || ! jq -e '.ok==true and .provider.ok==true and .provider.status >= 200 and .provider.status < 300' /tmp/brevo-account.json >/dev/null; then
+            echo "::error::Brevo account preflight failed. Cloudflare did not send any diagnostic email. Review the sanitized status above."
+            exit 1
+          fi
+
           sign_request POST
           result_status="$(curl --silent --show-error --max-time 25 -o /tmp/brevo-result.json -w '%{http_code}' \
             -X POST "${endpoint}" "${signed_headers[@]}" -H 'content-type: application/json' \
             --data '{"confirm":"send-one-brevo-test-email"}')"
           echo "Brevo diagnostic endpoint: HTTP ${result_status}."
           echo "Brevo provider result (sanitized):"
-          jq -c '{ok,accepted_by_provider,status,provider_code,message_id,test_id,error}' /tmp/brevo-result.json
+          jq -c '{ok,accepted_by_provider,status,provider_code,exception_type,message_id,test_id,error}' /tmp/brevo-result.json
           if [ "${result_status}" != "200" ]; then
             echo "::error::Brevo diagnostic reported failure (HTTP ${result_status})."
             exit 1
