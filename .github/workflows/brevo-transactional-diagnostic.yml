@@ -19,30 +19,62 @@ jobs:
       SITE_URL: https://phanthuanxtra.com
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
     steps:
-      - name: Authenticate, inspect secret presence, and send one provider test email
+      - name: Verify runtime configuration and send one signed test
         shell: bash
         run: |
           set -euo pipefail
           command -v jq >/dev/null
-          test -n "${ADMIN_PASSWORD}"
-          login="$(jq -nc --arg password "${ADMIN_PASSWORD}" '{password:$password}')"
-          login_status="$(curl --silent --show-error --max-time 20 -o /tmp/brevo-login.json -w '%{http_code}' \
-            -X POST "${SITE_URL}/api/admin/login" -H 'content-type: application/json' --data "${login}")"
-          test "${login_status}" = "200"
-          token="$(jq -r '.token // empty' /tmp/brevo-login.json)"
-          test -n "${token}"
-          echo "::add-mask::${token}"
+          command -v node >/dev/null
+          if [ -z "${ADMIN_PASSWORD}" ]; then
+            echo "::error::GitHub Actions ADMIN_PASSWORD secret is unavailable."
+            exit 1
+          fi
+
           endpoint="${SITE_URL}/api/admin/integrations/brevo/diagnostic"
+          diagnostic_path="/api/admin/integrations/brevo/diagnostic"
+          sign_request() {
+            local method="$1"
+            local ts nonce signature
+            ts="$(date +%s)"
+            nonce="$(cat /proc/sys/kernel/random/uuid)"
+            export DIAG_METHOD="${method}" DIAG_TIMESTAMP="${ts}" DIAG_NONCE="${nonce}"
+            signature="$(node -e '
+              const { createHmac } = require("node:crypto");
+              const parts = ["ptx-brevo-diagnostic-v1", process.env.DIAG_METHOD, "/api/admin/integrations/brevo/diagnostic", process.env.DIAG_TIMESTAMP, process.env.DIAG_NONCE];
+              process.stdout.write(createHmac("sha256", process.env.ADMIN_PASSWORD).update(parts.join("\\n")).digest("hex"));
+            ')"
+            signed_headers=(
+              -H "X-PTX-Brevo-Timestamp: ${ts}"
+              -H "X-PTX-Brevo-Nonce: ${nonce}"
+              -H "X-PTX-Brevo-Signature: ${signature}"
+            )
+          }
+
+          sign_request GET
           state_status="$(curl --silent --show-error --max-time 20 -o /tmp/brevo-state.json -w '%{http_code}' \
-            -H "Authorization: Bearer ${token}" "${endpoint}")"
-          test "${state_status}" = "200"
-          jq -e '.ok==true and .configured==true and .api_key_present==true and .sender_valid==true and .recipient_valid==true' /tmp/brevo-state.json >/dev/null
-          echo "Brevo runtime binding presence: PASS (values not printed)."
+            "${signed_headers[@]}" "${endpoint}")"
+          echo "Brevo configuration check: HTTP ${state_status}."
+          if [ "${state_status}" != "200" ]; then
+            echo "::error::Brevo diagnostic GET authorization failed (HTTP ${state_status}); no test email was sent."
+            exit 1
+          fi
+          if ! jq -e '.ok==true and .configured==true and .api_key_present==true and .sender_valid==true and .recipient_valid==true' /tmp/brevo-state.json >/dev/null; then
+            jq -c '{configured,api_key_present,sender_valid,recipient_valid,error}' /tmp/brevo-state.json
+            echo "::error::Brevo Worker runtime configuration is incomplete; no test email was sent."
+            exit 1
+          fi
+          echo "Brevo runtime binding presence: PASS (secret values not printed)."
+
+          sign_request POST
           result_status="$(curl --silent --show-error --max-time 25 -o /tmp/brevo-result.json -w '%{http_code}' \
-            -X POST "${endpoint}" -H "Authorization: Bearer ${token}" -H 'content-type: application/json' \
+            -X POST "${endpoint}" "${signed_headers[@]}" -H 'content-type: application/json' \
             --data '{"confirm":"send-one-brevo-test-email"}')"
+          echo "Brevo diagnostic endpoint: HTTP ${result_status}."
           echo "Brevo provider result (sanitized):"
           jq -c '{ok,accepted_by_provider,status,provider_code,message_id,test_id,error}' /tmp/brevo-result.json
-          test "${result_status}" = "200"
+          if [ "${result_status}" != "200" ]; then
+            echo "::error::Brevo diagnostic reported failure (HTTP ${result_status})."
+            exit 1
+          fi
           jq -e '.ok == true and .accepted_by_provider == true and .status >= 200 and .status < 300' /tmp/brevo-result.json >/dev/null
-          echo "Brevo API accepted one controlled diagnostic email; Gmail inbox delivery still requires independent confirmation."
+          echo "Brevo API accepted one controlled diagnostic email; independent Gmail receipt is still required."
