@@ -186,7 +186,7 @@ const brevoTestEnv = () => ({
         bind(...values) { bound = values; return this; },
         async first() {
           assert.match(sql, /SELECT COUNT\(\*\) n FROM cms_audit_log/);
-          return { n: 0 };
+          return 0;
         },
         async run() {
           assert.match(sql, /INSERT INTO cms_audit_log/);
@@ -277,7 +277,7 @@ test("Brevo diagnostic returns sanitized upstream failures, never raw provider t
 
 test("Brevo diagnostic rate-limits owner requests and fails closed when bindings are incomplete", async t => {
   const env = brevoTestEnv();
-  env.DB.prepare = () => ({ bind() { return this; }, async first() { return { n: 3 }; } });
+  env.DB.prepare = () => ({ bind() { return this; }, async first() { return 3; } });
   let sent = false;
   t.mock.method(globalThis, "fetch", async () => { sent = true; throw Error("unexpected network"); });
   const limited = await handleBusinessIntegrations(probeRequest(env), env);
