@@ -464,3 +464,51 @@ test("post-deploy Brevo egress checker is strictly read-only and cannot send tra
   assert.ok(section.includes('parts.join("\\n")'.replace("\\\\n", "\\n")));
   assert.doesNotMatch(section, /BREVO_API_KEY|api\/admin\/login/);
 });
+
+
+test("Brevo account probe reports same-origin redirect without following the API key", async t => {
+  const env = brevoTestEnv();
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    calls++;
+    assert.equal(url, "https://api.brevo.com/v3/account");
+    assert.equal(init.redirect, "manual");
+    return new Response(null, { status: 302, headers: { location: "https://api.brevo.com/v3/account/?internal_session=never-expose" } });
+  });
+  const signed = await signedDiagnosticRequest(env);
+  const res = await handleBusinessIntegrations(new Request(signed.url + "?probe=account", { headers: signed.headers }), env);
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.deepEqual(data.provider, {
+    ok: false, status: 302, provider_code: "redirect_response",
+    redirect_target: "same_origin", redirect_host: "api.brevo.com"
+  });
+  assert.equal(calls, 1);
+  assert.ok(!JSON.stringify(data).includes("internal_session"));
+  assert.ok(!JSON.stringify(data).includes(env.BREVO_API_KEY));
+});
+
+test("Brevo account probe refuses to follow cross-origin and insecure redirects", async t => {
+  const env = brevoTestEnv();
+  const targets = [
+    ["https://other-brevo.example/sensitive?secret=must-not-leak", "different_origin", "other-brevo.example"],
+    ["http://api.brevo.com/insecure", "insecure_http", "api.brevo.com"]
+  ];
+  let target = 0, calls = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    calls++;
+    return new Response(null, { status: 307, headers: { location: targets[target][0] } });
+  });
+  for (target = 0; target < targets.length; target++) {
+    const signed = await signedDiagnosticRequest(env);
+    const res = await handleBusinessIntegrations(new Request(signed.url + "?probe=account", { headers: signed.headers }), env);
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.provider.provider_code, "redirect_response");
+    assert.equal(data.provider.redirect_target, targets[target][1]);
+    assert.equal(data.provider.redirect_host, targets[target][2]);
+    assert.ok(!JSON.stringify(data).includes("must-not-leak"));
+    assert.ok(!JSON.stringify(data).includes("insecure"));
+  }
+  assert.equal(calls, targets.length);
+});
