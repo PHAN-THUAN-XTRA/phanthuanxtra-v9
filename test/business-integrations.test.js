@@ -137,3 +137,16 @@ test("deployment controller refuses a missing Cloudflare Brevo secret and does n
   assert.match(deploy, /BREVO_API_KEY must already exist as a Cloudflare secret_text binding/);
   assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{\s*secrets\.BREVO_API_KEY/);
 });
+
+
+test("production E2E checks honor reversible archive instead of physical deletion", () => {
+  const fsSmoke = fs.readFileSync(".github/workflows/production-smoke-gate15.yml", "utf8");
+  const fsQueue = fs.readFileSync(".github/workflows/queue-01-e2e-origin.yml", "utf8");
+  for (const workflow of [fsSmoke, fsQueue]) {
+    assert.match(workflow, /\.archived == env\.TEST_CAR_ID/);
+    assert.match(workflow, /\.visibility == "hidden"/);
+    assert.doesNotMatch(workflow, /\.deleted == env\.TEST_CAR_ID/);
+  }
+  assert.match(fsQueue, /\.car\.status == "hidden"/);
+  assert.match(fsSmoke, /admin-detail\.json/);
+});
