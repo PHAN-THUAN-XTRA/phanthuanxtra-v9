@@ -1,5 +1,14 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## ONE-MASTER PR #823 — POST-MERGE VERIFIED PASS — 2026-10-08 (UTC+7)
+
+- **CLOSED / MERGED:** [PR #823](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/823) merged by squash at `539a49a53c589c115e5bf6e27efbc6b743830227`. The exact PR head `5905d09a19bd91eb8ee4eed2c45e80a2d9d54b22` passed **9 successful checks**; the pull-request production deploy check was **SKIPPED as designed**.
+- **Exact-merge Git tree verification:** 385 tracked blobs, **exactly one active `.md` path, `MASTER_PROJECT_STATUS.md`**. Four subsidiary Markdown files were removed in the **same commit** after their complete original content was embedded once each in the `ARCHIVED SOURCE DOCUMENTS` appendix; source bodies were re-fetched and compared as exact full UTF-8 substrings against the proposed merged master. The original deleted files remain accessible via Git history. `integrations/data-studio/Code.gs` and all non-Markdown code/CI resources remain.
+- **Post-merge verification on the exact SHA:** [CI / Validate — PASS](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37743059012), [MASTER Integrity Gate — PASS](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37743058901), and [SonarQube Cloud — PASS](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37743058917). These checks confirm the documentation merge, not unrelated service acceptance.
+- **Permanent operating rule:** before starting any PHAN THUẦN XTRA action, read the current `main:MASTER_PROJECT_STATUS.md`, reconcile the latest completed/open gates, and append independently verified results to the **same canonical Markdown**. Do not recreate separate `.md` files; old paths below are archived snapshots, not active instructions.
+- **No production runtime redeploy was required** by this Markdown-only PR; it changed neither application code nor GitHub workflow, Cloudflare secret, D1/R2 data, domain, billing or customer communications. Existing Brevo transactional Gmail E2E **PASS** remains valid; Spam/deliverability, D1 lead/outbox robustness, same-lead Telegram reconciliation, S21 device physical acceptance and Content Runner quota/safety gates remain **OPEN** independently.
+- **Receipt scope:** this checkpoint records the verified first consolidation merge. It does not claim unrelated historic pending gates are complete; the source-archive appendix is preserved as historical evidence.
+
 ## ONE-MASTER MARKDOWN CONSOLIDATION — 2026-10-08 (UTC+7)
 
 - **Owner decision:** `MASTER_PROJECT_STATUS.md` is the **only canonical .md file** in the active repository after this documentation-only consolidation. Every future PHAN THUẦN XTRA operation MUST read the current `main:MASTER_PROJECT_STATUS.md` first, review the newest checkpoint and open safety gates, and update the same document after verified execution. Do not recreate separate project-status, roadmap, README or runbook .md files.
