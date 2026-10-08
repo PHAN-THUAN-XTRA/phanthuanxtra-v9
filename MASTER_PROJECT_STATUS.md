@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## FREE-FIRST ROADMAP PR #816 — DOCS MERGE VERIFIED — 2026-10-08 (UTC+7)
+
+- **Documentation closed / merged:** [PR #816](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/816) squash-merged into `main` at exact SHA `d17978d64922005b78fb49ec6f277b6352d7c56e`. Only `MASTER_PROJECT_STATUS.md`, `docs/free-business-integrations.md`, and `docs/free-first-ai-automation-roadmap-2026.md` changed in that merge; Brevo runtime work from PRs #815 and #817 was preserved.
+- **Pre-merge gate:** final head `7b673056f635f18e381508a4ea0597bd4c31362e` passed 9 checks, including CI, AI Pre-Deploy Audit, MASTER Integrity, SonarQube, decision cascade, DeepSeek and Headroom. The pull-request production deploy job was SKIPPED by design.
+- **Post-merge evidence on the exact merge SHA:** [CI / Validate](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824606) PASS; [MASTER Integrity](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824597) PASS; [SonarQube Cloud](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824614) PASS. [PR completion receipt](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/816#issuecomment-6054095707).
+- **Runtime boundary:** `.github/workflows/deploy-cloudflare.yml` ignores `**/*.md` on pushes to main. A production Worker deploy was neither required nor triggered by this docs-only merge; no independent HTTP production smoke was verified in this documentation checkpoint. Do not claim a new runtime deployment.
+- **Advisory task:** `XTRA Free Tool Radar` is enabled in ChatGPT for Monday morning (~08:00 Vietnam time), reporting a maximum of three evidence-backed Free-first recommendations. It cannot autonomously edit GitHub, deploy, activate paid services or contact customers.
+- **Still OPEN:** Brevo actual provider event + receiving inbox / Telegram E2E, D1 `stored:false` response correctness, durable delivery/outbox safety, Samsung S21 physical UI acceptance and Content Runner quota/security approval. Subsequent independent Brevo PRs must be evaluated against their own verified deploy and delivery evidence; merging #816 did not close these tasks.
+- The older `FREE-FIRST AI / AUTOMATION ROADMAP — PROPOSED` section immediately below documents the original authoring checkpoint; its phrase `not merged/deployed` is **superseded for documentation merge status only** by this verified record. Its runtime/acceptance cautions remain valid.
+
 ## FREE-FIRST AI / AUTOMATION ROADMAP — PROPOSED — 2026-10-08 (UTC+7)
 
 - Owner asked to record a free-first integration proposal in Markdown and receive automatic proposals. Full scoped plan: [docs/free-first-ai-automation-roadmap-2026.md](docs/free-first-ai-automation-roadmap-2026.md). **Documentation proposal only**; not merged/deployed and no external vendor activation is claimed.
