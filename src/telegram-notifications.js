@@ -14,12 +14,41 @@ function isAutomationAudit(event){
   const explicitE2eSummary=/\bPTX-E2E(?:\b|[-_:])/i.test(summary)
     || /\bPHAN THUẦN XTRA Blog E2E\b/i.test(summary);
   if(explicitE2eSummary)return true;
+  // Content Prep production E2E uses numeric post IDs, not CI-prefixed car IDs.
+  // Match only its two exact fixture titles so genuine Blog/car alerts still send.
+  const title=summary.replace(/^(?:draft|published|archived):\s*/i,"").trim();
+  if(event?.resource==="post"&&(
+    title==="CI — Nội dung nháp riêng tư"||
+    title==="CI — Nháp đã được owner kiểm tra"
+  ))return true;
   return event?.resource==="car"
     && /^(?:stage3-|ci-e2e-|ci-origin-e2e-)/i.test(id);
 }
 
 function textFor(event,car){
-  const name=[event.summary?.split(" ")?.[0],event.summary?.split(" ")?.slice(1).join(" ")].filter(Boolean).join(" ")||event.resource_id;
+  const name=clean(event.summary||event.resource_id)||String(event.resource_id);
+  if(event.resource==="post"){
+    if(event.action==="delete")return `🗑️ ĐÃ XOÁ BÀI BLOG KHỎI WEBSITE
+📝 ${name}
+🆔 ${event.resource_id}
+🌐 phanthuanxtra.com
+✅ Đã ghi audit: xoá bài Blog.`;
+    if(event.action==="update")return `✏️ ĐÃ CẬP NHẬT BÀI BLOG
+📝 ${name}
+🆔 ${event.resource_id}
+🌐 phanthuanxtra.com
+✅ Thay đổi đã ghi vào D1.`;
+    return `🆕 ĐÃ TẠO BÀI BLOG
+📝 ${name}
+🆔 ${event.resource_id}
+🌐 phanthuanxtra.com
+✅ Bài đã ghi vào D1.`;
+  }
+  if(event.resource!=="car")return `📋 NHẬT KÝ CMS
+🔖 Loại: ${clean(event.resource)}
+📝 ${name}
+🆔 ${event.resource_id}
+✅ Đã ghi audit: ${clean(event.action)}.`;
   if(event.action==="delete")return `🗑️ ĐÃ XOÁ BÀI XE KHỎI WEBSITE
 🚗 ${name}
 🆔 ${event.resource_id}
