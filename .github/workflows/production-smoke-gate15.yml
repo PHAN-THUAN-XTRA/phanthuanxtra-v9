@@ -146,13 +146,22 @@ jobs:
             test "$ADMIN_LAST_STATUS" = "200"
             sleep 2
           done
-          jq -e --arg id "$TEST_CAR_ID" '.cars | any(.[]; .id == $id and .brand == "PT XTRA TEST")' /tmp/admin-cars.json >/dev/null
+          # Admin list may be paginated; verify the exact newly created record by ID instead.
+          admin_request /tmp/admin-detail.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars/$TEST_CAR_ID"
+          test "$ADMIN_LAST_STATUS" = "200"
+          jq -e --arg id "$TEST_CAR_ID" '.car.id == $id and .car.brand == "PT XTRA TEST"' /tmp/admin-detail.json >/dev/null
           admin_request /tmp/admin-delete.json -X DELETE "$SITE_URL/api/admin/cars/$TEST_CAR_ID" -H "Authorization: Bearer $ADMIN_SESSION"
           test "$ADMIN_LAST_STATUS" = "200"
-          jq -e '.ok == true and .deleted == env.TEST_CAR_ID' /tmp/admin-delete.json >/dev/null
+          jq -e '.ok == true and .archived == env.TEST_CAR_ID and .visibility == "hidden"' /tmp/admin-delete.json >/dev/null
           admin_request /tmp/admin-cars-after-delete.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars"
           test "$ADMIN_LAST_STATUS" = "200"
-          jq -e --arg id "$TEST_CAR_ID" '(.cars | any(.[]; .id == $id)) | not' /tmp/admin-cars-after-delete.json >/dev/null
+          # Archive is non-destructive: Admin may continue listing hidden vehicles.
+          admin_request /tmp/admin-archived-detail.json -H "Authorization: Bearer $ADMIN_SESSION" "$SITE_URL/api/admin/cars/$TEST_CAR_ID"
+          test "$ADMIN_LAST_STATUS" = "200"
+          jq -e --arg id "$TEST_CAR_ID" '.car.id == $id and .car.status == "hidden"' /tmp/admin-archived-detail.json >/dev/null
+          public_status="$(curl --silent --show-error --max-time 20 -o /tmp/public-archived-car.json -w '%{http_code}' "$SITE_URL/api/cars/$TEST_CAR_ID")"
+          echo "Archived car public detail HTTP $public_status"
+          test "$public_status" = "404"
       - name: Require Admin credential for production E2E gate
         if: ${{ env.ADMIN_PASSWORD == '' }}
         run: |

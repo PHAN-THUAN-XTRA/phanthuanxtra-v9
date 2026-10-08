@@ -159,7 +159,7 @@ jobs:
             -H "Authorization: Bearer $SESSION" \
             | tee /tmp/delete.json
 
-          jq -e '.ok == true and .deleted == env.TEST_CAR_ID' \
+          jq -e '.ok == true and .archived == env.TEST_CAR_ID and .visibility == "hidden"' \
             /tmp/delete.json >/dev/null
 
           status="$(curl --silent --show-error --retry 2 --max-time 20 \
@@ -168,10 +168,11 @@ jobs:
             -H "Authorization: Bearer $SESSION" \
             "$BASE_URL/api/admin/cars/$TEST_CAR_ID")"
 
-          echo "D1 read after delete HTTP $status"
-          test "$status" = "404"
+          echo "D1 read after archive HTTP $status"
+          test "$status" = "200"
+          jq -e --arg id "$TEST_CAR_ID" '.car.id == $id and .car.status == "hidden"' /tmp/read-after-delete.json >/dev/null
 
-          echo 'D1 CRUD delete: OK'
+          echo 'D1 CRUD archive (non-destructive): OK'
 
           printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=' \
             | base64 -d > /tmp/xtra-e2e.png

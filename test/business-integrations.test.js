@@ -107,7 +107,9 @@ test("production wiring keeps third-party integrations opt-in and secret-backed"
   assert.match(script, /https:\/\/embed\.tawk\.to\//);
   assert.match(script, /api\/integrations\/public-config/);
   assert.doesNotMatch(script, /addEventListener\("click",loadTawk,\{once:true\}\)/);
-  for (const name of ["BREVO_API_KEY","BREVO_SENDER_EMAIL","BREVO_TO_EMAIL","TAWK_PROPERTY_ID","TAWK_WIDGET_ID","ANALYTICS_EXPORT_TOKEN"]) {
+  assert.ok(deploy.includes("BREVO_API_KEY"), "deploy controller missing Cloudflare-only Brevo guard");
+  assert.ok(!workflow.includes("BREVO_API_KEY"), "deploy workflow must not source BREVO_API_KEY from GitHub");
+  for (const name of ["BREVO_SENDER_EMAIL","BREVO_TO_EMAIL","TAWK_PROPERTY_ID","TAWK_WIDGET_ID","ANALYTICS_EXPORT_TOKEN"]) {
     assert.ok(deploy.includes(name), "deploy controller missing " + name);
     assert.ok(workflow.includes(name), "deploy workflow missing " + name);
   }
@@ -125,4 +127,35 @@ test("Data Studio connector reads aggregate endpoint and does not request lead P
   assert.match(connector, /ANALYTICS_EXPORT_TOKEN/);
   assert.match(connector, /function isAdminUser\(\) \{\s*return false;/);
   assert.doesNotMatch(connector, /\bphone\b|\bemail\b|\bmessage\b/i);
+});
+
+
+test("deployment controller refuses a missing Cloudflare Brevo secret and does not source it from GitHub", () => {
+  const deploy = fs.readFileSync("scripts/deploy-cloudflare-api.mjs", "utf8");
+  const workflow = fs.readFileSync(".github/workflows/deploy-cloudflare.yml", "utf8");
+  assert.match(deploy, /currentBindings\.some\(binding => binding\.name === "BREVO_API_KEY" && binding\.type === "secret_text"\)/);
+  assert.match(deploy, /BREVO_API_KEY must already exist as a Cloudflare secret_text binding/);
+  assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{\s*secrets\.BREVO_API_KEY/);
+});
+
+
+test("production E2E checks honor reversible archive instead of physical deletion", () => {
+  const fsSmoke = fs.readFileSync(".github/workflows/production-smoke-gate15.yml", "utf8");
+  const fsQueue = fs.readFileSync(".github/workflows/queue-01-e2e-origin.yml", "utf8");
+  for (const workflow of [fsSmoke, fsQueue]) {
+    assert.match(workflow, /\.archived == env\.TEST_CAR_ID/);
+    assert.match(workflow, /\.visibility == "hidden"/);
+    assert.doesNotMatch(workflow, /\.deleted == env\.TEST_CAR_ID/);
+  }
+  assert.match(fsQueue, /\.car\.status == "hidden"/);
+  assert.match(fsSmoke, /admin-detail\.json/);
+});
+
+
+test("smoke gate checks archived vehicle hidden status and public detail denial", () => {
+  const workflow = fs.readFileSync(".github/workflows/production-smoke-gate15.yml", "utf8");
+  assert.match(workflow, /admin-archived-detail\.json/);
+  assert.match(workflow, /\.car\.status == "hidden"/);
+  assert.match(workflow, /public_status.*404/);
+  assert.doesNotMatch(workflow, /\(\.cars \| any\(\.\[\]; \.id == \$id\)\) \| not/);
 });
