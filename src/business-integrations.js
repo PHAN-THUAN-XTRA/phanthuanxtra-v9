@@ -40,11 +40,11 @@ function brevoTransportFailure(error) {
   const description = String(error?.message ?? "").slice(0, 1000).toLowerCase();
   const cause = String(error?.cause?.code ?? "");
   let provider_code = "network_error";
-  if (exception_type === "TimeoutError" || exception_type === "AbortError" || /timeout|timed out|aborted/.test(description)) provider_code = "timeout";
+  if (/unsupported|not a function|not defined|invalid header|invalid url/.test(description)) provider_code = "request_init_error";
+  else if (exception_type === "TimeoutError" || exception_type === "AbortError" || /timeout|timed out|aborted/.test(description)) provider_code = "timeout";
   else if (/tls|ssl|certificate|cert[_ -]/.test(description) || /^ERR_TLS_/.test(cause)) provider_code = "tls_error";
   else if (/dns|resolve|hostname/.test(description) || ["ENOTFOUND","EAI_AGAIN"].includes(cause)) provider_code = "dns_error";
   else if (/redirect/.test(description)) provider_code = "redirect_error";
-  else if (/unsupported|not a function|not defined|invalid header|invalid url/.test(description)) provider_code = "request_init_error";
   else if (/blocked|forbidden|restricted|disallowed/.test(description)) provider_code = "egress_blocked";
   else if (/failed to fetch|fetch failed|connect|connection|socket/.test(description) || ["ECONNRESET","ETIMEDOUT","ECONNREFUSED"].includes(cause)) provider_code = "connection_error";
   return { ok: false, status: 0, provider_code, exception_type };
