@@ -118,7 +118,7 @@ test("production wiring keeps third-party integrations opt-in and secret-backed"
   assert.match(workflow, /verify-business-integrations\.mjs/);
   assert.match(runtimeVerify, /api\/integrations\/public-config/);
   assert.match(runtimeVerify, /api\/analytics\/summary/);
-  assert.match(runtimeVerify, /runtime adapter is enabled/);
+  assert.match(runtimeVerify, /Cloudflare API key binding is verified by the deploy step/);
 });
 
 test("Data Studio connector reads aggregate endpoint and does not request lead PII fields", () => {
