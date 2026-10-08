@@ -2,6 +2,9 @@ name: Brevo Transactional Diagnostic
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Cloudflare Worker"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -91,3 +94,37 @@ jobs:
           fi
           jq -e '.ok == true and .accepted_by_provider == true and .status >= 200 and .status < 300' /tmp/brevo-result.json >/dev/null
           echo "Brevo API accepted one controlled diagnostic email; independent Gmail receipt is still required."
+
+  read-only-egress-probe:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: production
+    env:
+      SITE_URL: https://phanthuanxtra.com
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - name: Read-only Brevo account egress check after deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${ADMIN_PASSWORD}"
+          ts="$(date +%s)"
+          nonce="$(cat /proc/sys/kernel/random/uuid)"
+          export DIAG_METHOD=GET DIAG_TIMESTAMP="${ts}" DIAG_NONCE="${nonce}"
+          signature="$(node -e '
+            const {createHmac}=require("node:crypto");
+            const parts=["ptx-brevo-diagnostic-v1","GET","/api/admin/integrations/brevo/diagnostic",process.env.DIAG_TIMESTAMP,process.env.DIAG_NONCE];
+            process.stdout.write(createHmac("sha256",process.env.ADMIN_PASSWORD).update(parts.join("\n")).digest("hex"));
+          ')"
+          response_status="$(curl --silent --show-error --max-time 20 -o /tmp/brevo-readonly.json -w '%{http_code}' \
+            -H "X-PTX-Brevo-Timestamp: ${ts}" -H "X-PTX-Brevo-Nonce: ${nonce}" \
+            -H "X-PTX-Brevo-Signature: ${signature}" \
+            "${SITE_URL}/api/admin/integrations/brevo/diagnostic?probe=account")"
+          echo "Read-only Worker → Brevo account probe: HTTP ${response_status}."
+          jq -c '{provider:{ok:.provider.ok,status:.provider.status,provider_code:.provider.provider_code,exception_type:.provider.exception_type},error}' /tmp/brevo-readonly.json
+          if [ "${response_status}" != "200" ] || ! jq -e '.ok==true and .provider.ok==true' /tmp/brevo-readonly.json >/dev/null; then
+            echo "::error::Worker Brevo outbound connectivity/authentication check failed. No email was sent."
+            exit 1
+          fi
+          echo "Brevo Worker outbound account API check: PASS. No email sent."
