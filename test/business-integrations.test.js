@@ -354,11 +354,12 @@ test("Brevo signed CI POST accepts one email and rejects a repeated nonce", asyn
   let sends = 0;
   t.mock.method(globalThis, "fetch", async () => { sends++; return Response.json({messageId:"signed-ci-test@brevo.local"}, {status: 201}); });
   const signed = await signedDiagnosticRequest(env, "POST");
+  const replay = signed.clone();
   const first = await handleBusinessIntegrations(signed, env);
   assert.equal(first.status, 200);
   assert.equal((await first.json()).accepted_by_provider, true);
   assert.equal(sends, 1);
-  const again = await handleBusinessIntegrations(signed.clone(), env);
+  const again = await handleBusinessIntegrations(replay, env);
   assert.equal(again.status, 409);
   assert.equal((await again.json()).error, "BREVO_TEST_REPLAY");
   assert.equal(sends, 1);
