@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## ONE-MASTER MARKDOWN CONSOLIDATION — 2026-10-08 (UTC+7)
+
+- **Owner decision:** `MASTER_PROJECT_STATUS.md` is the **only canonical .md file** in the active repository after this documentation-only consolidation. Every future PHAN THUẦN XTRA operation MUST read the current `main:MASTER_PROJECT_STATUS.md` first, review the newest checkpoint and open safety gates, and update the same document after verified execution. Do not recreate separate project-status, roadmap, README or runbook .md files.
+- The following **four ancillary Markdown sources** are preserved **verbatim and in full** in the archived-source appendix at the bottom of this MASTER, then removed from the active Git tree in the same commit: `docs/free-business-integrations.md`, `docs/free-first-ai-automation-roadmap-2026.md`, `docs/security-operator.md`, `integrations/data-studio/README.md`. These old paths and relative links are **historical references only**; search this MASTER by the archived source path/heading for current access. Original file versions remain recoverable through Git history.
+- **Scope and safeguards:** no application code, GitHub workflow, Cloudflare Worker, D1, R2, domain/DNS, customer records, API keys, payment plans or production settings are altered. Data Studio connector `integrations/data-studio/Code.gs` remains in place; the historical README guidance is preserved below. Security Operator and Brevo/CRM gates retain their last evidence-based statuses.
+- **Acceptance:** verify that the committed Git tree contains exactly one `.md` file, `MASTER_PROJECT_STATUS.md`; verify all four source bodies are embedded byte-for-byte as UTF-8 text and CI/AI Audit/MASTER Integrity pass. This is a documentation consolidation, not a Brevo, Security Operator, AI or mobile device production re-acceptance.
+- **Checkpoint timing:** this section describes the consolidation contract. GitHub PR/commit IDs, check outcomes and final merge receipt must be verified independently before claiming repository completion.
+
 ## BREVO TRANSACTIONAL EMAIL — PRODUCTION DELIVERY PASS — 2026-10-08 (UTC+7)
 
 - **Production transactional email transport/receipt: PASS.** [Brevo Transactional Diagnostic workflow #13, run 37740884826](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37740884826) completed **SUCCESS** on deployed main `5c111f4e1c4268baef3dac190ebb4d9a1aac4371`. Its `send-one-controlled-test` job passed the signed Worker diagnostic, configuration preflight, read-only Brevo account probe, and one controlled send. The `read-only-egress-probe` workflow-run job was skipped on this manual dispatch as designed.
@@ -3098,3 +3106,320 @@ Follow-up to PR #787. Production evidence is tightened before any external adapt
 - No D1 migration, R2 mutation, paid-plan change, or Wrangler production deployment is introduced.
 
 Release contract: merge only after targeted tests, AI Pre-Deploy Audit, CI and PR deploy validation pass; after merge require main production deployment plus the new runtime boundary gate to pass.
+
+
+---
+
+## ARCHIVED SOURCE DOCUMENTS — FULL CONTENT RETAINED IN THE SOLE MASTER (2026-10-08)
+
+These four snapshots are preserved verbatim; their former paths no longer identify active files. Source contents below are immutable historical records and may contain outdated links or statuses; newer MASTER checkpoints above override them. All original blobs remain in Git history.
+
+---
+
+### SOURCE SNAPSHOT 1/4 — `docs/free-business-integrations.md` (original blob `a9a123571b450971bf66b996a51189bd1c2203b0`)
+
+# Free business integrations — PHAN THUẦN XTRA
+
+Status: code integration prepared for SonarQube Cloud, Brevo, tawk.to and Data Studio. External services remain fail-closed until their owner-controlled credentials or public widget identifiers are configured. No paid-plan upgrade is performed by this change.
+
+## Design boundary
+
+The existing Cloudflare Worker + D1 + R2 + Workers AI architecture remains authoritative. Integrations are adapters only:
+
+- SonarQube Cloud: CI static analysis and Quality Gate. No production runtime dependency.
+- Brevo: optional background notification for a newly persisted website lead. D1 remains the lead system of record; Telegram CRM remains intact.
+- tawk.to: optional human live chat. The third-party script is not loaded until the visitor explicitly clicks the live-chat button.
+- Data Studio: bearer-protected aggregate analytics endpoint plus a connector template. No PII export and no direct D1 access.
+
+## Required external configuration
+
+### SonarQube Cloud
+
+GitHub secret:
+- `SONAR_TOKEN`
+
+GitHub repository variables:
+- `SONAR_PROJECT_KEY`
+- `SONAR_ORGANIZATION`
+
+Without all three, the workflow reports deferred activation and does not send source to SonarQube Cloud.
+
+### Brevo
+
+**Current owner policy (2026-10-07 and later):** `BREVO_API_KEY` is a **Cloudflare Worker `secret_text` only**. Do not copy, sync or log its value in GitHub Actions, source, reports, browser scripts or client-facing APIs. The production deploy checks for the existing Cloudflare binding without moving its value into GitHub.
+
+Non-secret sender/recipient runtime configuration:
+- `BREVO_SENDER_EMAIL`
+- `BREVO_TO_EMAIL`
+
+The runtime sender, recipient and Cloudflare-only API secret must all be available before making a Brevo request. The sender must already be verified in Brevo. Notifications are plain text, bounded, and tagged `website-lead`. A failed notification must never roll back the D1 lead. **Provider acceptance and actual inbox delivery remain separate real-world acceptance gates**, not implied by the deployment configuration check. See [free-first AI automation roadmap](free-first-ai-automation-roadmap-2026.md) for proposed durable outbox, reconciliation and safe retry.
+
+### tawk.to
+
+GitHub Actions / Worker bindings:
+- `TAWK_PROPERTY_ID`
+- `TAWK_WIDGET_ID`
+
+The public configuration endpoint returns only validated widget identifiers; these are public embed identifiers, not authentication credentials. If either value is absent/invalid, the live-chat button remains hidden.
+
+### Data Studio
+
+GitHub Actions / Worker secret:
+- `ANALYTICS_EXPORT_TOKEN`
+
+Endpoint:
+- `GET /api/analytics/summary`
+- `Authorization: Bearer <ANALYTICS_EXPORT_TOKEN>`
+
+The response contains aggregate counts only. The connector template lives in `integrations/data-studio/Code.gs`.
+
+## Release gates
+
+Follow MASTER_PROJECT_STATUS.md:
+
+1. targeted tests and `npm test`;
+2. AI Pre-Deploy Audit and CI green;
+3. merge with expected HEAD SHA;
+4. main production deployment green;
+5. verify `/api/health` and the new public config endpoint;
+6. do not claim Brevo, tawk.to, SonarQube Cloud or Data Studio live until real external credentials/configuration and a real smoke test prove each path.
+
+No D1 schema change, R2 mutation, paid upgrade, destructive operation, or autonomous lead-status mutation is part of this change.
+
+## Production email acceptance — 2026-10-08
+
+- **Brevo transactional: PRODUCTION PASS (transport + actual Gmail receipt).** [Controlled diagnostic #13](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37740884826) succeeded on production SHA `5c111f4e1c4268baef3dac190ebb4d9a1aac4371`. Authorized owner reported provider account HTTP 200, send HTTP 201 and a `messageId`; the workflow requires sanitized accepted-by-provider confirmation.
+- The authorized recipient Gmail shows diagnostic `a4c461b2` in INBOX at 14:01:16 ICT and synthetic CI lead alerts #227 (Spam, test-drive) / #228 (Inbox, business-jets). These are **tests only**, not real customer orders. Avoid publishing recipient address or synthetic lead personal fields.
+- **Do not equate this result with flawless deliverability or complete CRM reliability.** Inbox placement/spam, durable outbox/retry safety, D1 lead receipt correctness and same-lead Telegram reconciliation remain open. No more diagnostic sends or API-key rotation are requested.
+- Earlier statements about deferred real-world Brevo receipt are **historical and superseded for this one verified transactional path**; tawk.to, Data Studio and other services require separate activation evidence. Keep the Cloudflare-only `BREVO_API_KEY` secret boundary.
+
+## Production verification
+
+Every production deploy runs `scripts/verify-business-integrations.mjs` after the public Worker boundary is reachable:
+
+- tawk.to: verifies the deployed public config matches configured widget IDs, or proves the adapter remains disabled when no complete configuration exists.
+- Data Studio: verifies unauthenticated denial plus the aggregate-only privacy contract when a token exists; without a token it must fail closed with HTTP 503.
+- Brevo: verifies configuration completeness without transmitting customer data. When no configuration exists it is explicitly reported as DEFERRED; a partial configuration fails the deploy gate. Real provider delivery still requires separate runtime evidence from an authorized test or real lead.
+
+External activation is reported as PASS only when runtime evidence proves it. A green deploy with an intentionally unconfigured provider is DEFERRED, not a claim that the external integration is live.
+
+---
+
+### SOURCE SNAPSHOT 2/4 — `docs/free-first-ai-automation-roadmap-2026.md` (original blob `c3959c8fd50708186371fb3335ea91e895e23b88`)
+
+# PHAN THUẦN XTRA — Free-first AI & Automation Roadmap (2026-10-08)
+
+**Document status: MERGED TO `main` via PR #816; Brevo transactional provider-to-Gmail delivery: PRODUCTION PASS (2026-10-08); additional lead reliability and automation: PROPOSED / OPEN.**
+**Owner preference:** prioritize genuinely usable Free tiers, native Cloudflare/D1/R2/Telegram, explicit permission for paid upgrades and external account connections.
+**Source of truth:** `MASTER_PROJECT_STATUS.md`; repository `main` and production evidence supersede assumptions.
+**Scope:** propose/track integrations and safety gates. This document makes **no** runtime, database, billing, secret, customer-contact or service-activation change.
+
+## Documentation closure and remaining gates — verified 2026-10-08
+
+- PR [#816](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/816) squash-merged at `d17978d64922005b78fb49ec6f277b6352d7c56e`; merge changed only three Markdown files.
+- On that exact main SHA, [CI](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824606), [MASTER Integrity](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824597), and [SonarQube Cloud](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37738824614) returned PASS. The PR head previously passed its 9 applicable checks, with only pull-request production deployment skipped by design.
+- No Worker deployment occurred for this docs-only merge (deployment workflow ignores Markdown-only main pushes); no independent production HTTP smoke was observed as part of this documentation closure.
+- Weekly ChatGPT advisory task **XTRA Free Tool Radar** remains enabled for Monday mornings (~08:00 ICT), recommendations only.
+- Brevo real inbox/provider/Telegram E2E and fail-closed lead receipt, durable outbox, S21 physical acceptance and Content Runner live approval remain OPEN. The roadmap below describes proposed follow-up work, **not completed production features**.
+
+## Brevo transactional delivery — production PASS (2026-10-08, 14:01 ICT)
+
+- [Brevo Transactional Diagnostic #13](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37740884826) completed SUCCESS for production main `5c111f4e1c4268baef3dac190ebb4d9a1aac4371`. Owner inspected sanitized output and confirmed Worker `/v3/account` HTTP 200, provider send HTTP 201 and `messageId`. The workflow itself asserts `accepted_by_provider=true` and a 2xx provider send.
+- Verified independently in the authorized Gmail account: diagnostic `a4c461b2` reached **INBOX** at **14:01:16 ICT**; CI Test Drive lead **#227** reached **SPAM**, while CI Business Jets lead **#228** reached **INBOX** at about 13:59 ICT. These were synthetic CI leads, never customer requests. Do not record recipient address, synthetic phone fields, or full email bodies in public documents.
+- **Close only** the previous transactional-email connectivity/provider acceptance/actual receiving-inbox gate. Open: inconsistent Gmail Inbox placement, D1 lead fail-closed receipt, durable outbox + replay-safe retries, Telegram receipt reconciliation for the same lead, and all unrelated owner production acceptance. No more diagnostic sends or key changes are required.
+- Follow-up: review SPF/DKIM/DMARC configuration and sender reputation, preferably read-only first. Sender-domain DNS changes or marketing campaigns require explicit separate authorization. Earlier historical “Brevo inbox OPEN” statements below reflect a checkpoint **before** this successful production evidence.
+
+## 1. Existing foundation — do not duplicate
+
+- Production Worker is `phanthuanxtra-v2` via `src/entry.js`/`wrangler.json`, D1 for CRM, R2 for media, Telegram for owner workflow, CMS and existing XTRA AI chat.
+- `src/index.js` contains lead intake and replay/idempotency handling; `src/customer-memory.js` plus D1 migrations already support customer memory/care. `public/admin-control.html` has a Marketing Operations tab with a *Weekly Tool Radar* discovery link.
+- `src/business-integrations.js` has the optional Brevo lead notification adapter, optional tawk.to public config and bearer-protected aggregate `/api/analytics/summary`. `integrations/data-studio/Code.gs` is a report connector template.
+- `src/content-runner*.js` exists, but `wrangler.json` sets `CONTENT_RUNNER_LIVE_ENABLED=0`. Treat live Content Runner as deferred until existing quota/security/owner gates pass.
+- Code presence is **not** proof of external activation. Brevo real delivery E2E, S21 physical UI acceptance and live Content Runner were explicitly open in the MASTER checkpoint dated 2026-10-08.
+
+## 2. Ranked proposals (Free tier first)
+
+| Priority | Initiative | Reuse before adding | Minimal acceptance |
+| --- | --- | --- | --- |
+| **P0** | **Brevo V2: actual email delivery, retry, lead receipt correctness** | Existing Brevo adapter, D1 lead store, Telegram CRM and deployment gates | One synthetic lead stored exactly once; Telegram evidence; Brevo provider event and real inbox receipt; bounded retry without duplicate customer notifications; UI never claims stored when `stored:false` |
+| **P1** | **Cloudflare Turnstile for public intake and AI abuse boundary** | Existing Workers and Cloudflare security controls | Server-side token validation, expiry/replay tests, accessibility and legitimate-lead smoke, graceful provider outage path |
+| **P1** | **CRM follow-up + Google Calendar (or individual Free Cal.com)** | Existing D1 `xtra_customer_care` state, installed Calendar connector and Telegram | Staff confirms availability/consent; events linked to customer/lead id; no duplicate appointments; no automatic promise of booking before calendar confirmation |
+| **P2** | **Data Studio / Looker Studio dashboard** | Existing `/api/analytics/summary` aggregate endpoint and connector template | Token-protected, no PII; totals reconcile against authorized D1 aggregates; documented refresh budget |
+| **P2** | **Search Console and Cloudflare Web Analytics** | Existing SEO pages/metadata and Cloudflare runtime | Domain ownership and appropriate read access confirmed; no client-side secrets; useful search/traffic/funnel baseline |
+| **P3** | **Content Runner + human-reviewed creative tooling** | Existing Content Runner, editorial approval, vehicle gallery and R2 media pipeline | Draft-only default, owner approval, no fabricated vehicle images/specifications, quotas respected, regression/production gates all PASS |
+| **Optional** | **tawk.to human chat** | Existing button + click-to-load adapter | Enable only when showroom staff can monitor it; do not add a second paid AI chatbot |
+
+Free availability is **subject to current vendor quotas and permitted use**; verify official pricing, commercial usage, anti-abuse limits, regional availability and API fees immediately before enabling anything. Do not infer that an app's free UI plan includes free production APIs.
+
+## 3. P0 Brevo V2 — concrete engineering proposal
+
+Observed at documentation review:
+
+1. `src/index.js` stores the lead in D1, calls Telegram CRM, then invokes `sendBrevoLeadNotification()` inside `ctx.waitUntil()` via `Promise.all()`. This is not yet a dedicated durable Brevo outbox with auditable provider-delivery reconciliation.
+2. For an unavailable D1 binding, `/api/leads` has a response `{ ok:true, stored:false }`; `public/script.js` checks `ok` only and can display **"Đã nhận yêu cầu. Chúng tôi sẽ liên hệ sớm."** without a stored lead. **Proposed fix:** client must require `stored===true` and backend must fail closed for mandatory lead persistence, with targeted regression tests.
+3. Brevo `BREVO_API_KEY` is a **Cloudflare-only `secret_text` binding** by current MASTER owner policy; never copy it to GitHub secrets, repo, report, browser or logs. Sender/recipient addresses are not API credentials; verify the sender domain/account with the provider.
+4. The `scripts/verify-business-integrations.mjs` deploy smoke proves boundary/configuration, **not** real Brevo delivery. Do not mark this gate PASS based only on a green CI/deploy.
+
+Proposed design and safeguards:
+
+- Atomic/idempotent D1 lead acceptance plus outbox intent (or a recoverable two-phase equivalent); store a distinct notification idempotency key, attempt count, last error category, timestamps and provider message identifier; never store Brevo API key in D1.
+- An authenticated bounded worker/cron sender consumes pending work. Rate limit, exponential backoff, terminal failure classification, observability and a dead-letter/manual reconciliation path. Do **not** blindly resend when the upstream outcome is uncertain; reconcile provider state first.
+- Where provider supports them, use signed/verified delivery webhooks and dedupe provider events. Keep only operational metadata needed for audit; redact customer PII. Delivery events are not proof of a human reading the email.
+- Verify synthetic end-to-end path: exactly one lead; exactly one intended alert; real Brevo event plus inbox receipt; failure/retry and duplicate-request tests; secret not exposed; independent Telegram behavior unchanged.
+- Do **not** enroll customers into marketing campaigns or send unsolicited customer mail without an appropriate consent/legal basis. Lead notifications to the authorized business mailbox are a distinct transactional workflow.
+
+## 4. Automation: Weekly Free Tool Radar
+
+- **Schedule:** each Monday morning, approximately 08:00 Vietnam time; the ChatGPT scheduled task is an **advisory report**, not a GitHub Actions deployment workflow.
+- **Input:** official vendor pages for current Free quotas/pricing; recent relevant AI/security/CRM tools; available repository state and MASTER status.
+- **Filter:** prefer no additional vendor when native Cloudflare/D1/Telegram suffices; reject trials masquerading as sustainable Free, unreviewed payment plans, unclear data handling, duplicate capabilities, or expensive maintenance.
+- **Output:** at most **three** genuinely useful proposals with source links, purpose, Free restrictions, integration effort, risks, exact validation gates and recommendation priority. If no useful new proposal exists, state that.
+- **Decision flow:** radar `suggested` → human `approved` → separate PR with targeted tests → exact-head CI/AI audit/MASTER gates → merge authorization and verified production rollout. Radar never changes production, installs plugins, grants permission, edits customer data, triggers billing, or creates customer-facing content automatically.
+- **Privacy:** proposals contain no customer identities, phone numbers, API keys or real prospect messages; avoid pasting secrets into AI tools.
+
+## 5. Staged implementation checklist
+
+- [x] P0-0 — Brevo transactional production send and real Gmail receipt proven 2026-10-08 ([diagnostic #13](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37740884826)); one synthetic CI lead was classified Spam, so inbox placement still needs improvement.
+- [ ] P0-a — Resolve form false-success when D1 is unavailable; regression tests.
+- [ ] P0-b — Brevo configured sender/recipient/Cloudflare-only secret binding verified without exposing values.
+- [ ] P0-c — Durable email outbox, safe retry + provider webhook reconciliation; tests.
+- [ ] P0-d — Synthetic real-inbox/provider/Telegram E2E evidence linked in MASTER.
+- [ ] P1-a — Turnstile protection after UX/accessibility and server-verification review.
+- [ ] P1-b — Calendar appointment confirmation with manual review and duplicate prevention.
+- [ ] P2-a — Activate aggregate dashboard safely; report source-of-truth parity.
+- [ ] P2-b — Verify Search Console ownership and basic analytics.
+- [ ] P3-a — Review Content Runner quota and owner-approved publish gate before live use.
+- [x] Weekly advisory radar task requested/created 2026-10-08; **not** an automatic deployment or code-writing agent.
+
+## 6. Mandatory release gates and boundaries
+
+Follow the existing MASTER contract: targeted regression tests, `CI / Validate`, `AI Pre-Deploy Audit / Validate`, `MASTER Integrity Gate / Validate` and applicable SonarQube/review checks; use exact-head SHA for merge decision, then exact-main-sha Cloudflare deploy, production smoke and independent external delivery receipts. A docs-only PR requires checks appropriate to the changed files; it does **not** close Brevo/Calendar/AI runtime gates.
+
+No autonomous paid-plan upgrade, extra secret exposure, D1/R2 delete, vehicle-image mutation, lead-status mutation, public content publication, or customer contact is authorized by this proposal.
+
+## Reference paths
+
+- `MASTER_PROJECT_STATUS.md`
+- `docs/free-business-integrations.md`
+- `src/index.js`, `src/business-integrations.js`, `src/customer-memory.js`
+- `public/script.js`, `public/admin-control.html`
+- `integrations/data-studio/README.md`, `integrations/data-studio/Code.gs`
+- `scripts/verify-business-integrations.mjs`, `wrangler.json`
+
+---
+
+### SOURCE SNAPSHOT 3/4 — `docs/security-operator.md` (original blob `f884d8d68a4927b3dc81a09b8939685fb3e0e066`)
+
+# Phan Thuần Xtra Security Operator — Phase 3
+
+Phase 3 keeps the free-first monitor and bounded Incident Investigator, then adds privacy-minimized telemetry baselines, structured attack analysis, mitigation proposals, and a synthetic recovery drill.
+
+## Monitor
+
+The monitor runs every 30 minutes and after a successful production deploy. It checks:
+
+- public health and homepage availability,
+- Cloudflare HTTP request / 5xx analytics,
+- Cloudflare Security Events,
+- D1 incident state and deduplication,
+- owner-verified Telegram delivery.
+
+HTTP analytics and Security Events are queried independently so one unavailable dataset cannot blind the other.
+
+## Telemetry baseline
+
+Migration `0036_security_telemetry_baseline.sql` stores a rolling 14-day baseline. Comparison uses the most recent 7 days and becomes baseline-ready after at least six samples.
+
+Stored fields are aggregate operational evidence only:
+
+- total requests,
+- 5xx count and rate,
+- WAF/security-event count,
+- top action,
+- top path,
+- top country,
+- top Cloudflare security source.
+
+Client IP addresses, User-Agent values, query strings, cookies, request bodies, and secrets are not stored in the baseline table.
+
+Cloudflare link-maze injection events are retained in raw report evidence but excluded from actionable WAF spike thresholds and from the attack baseline. These events represent Cloudflare's crawler-protection/link-maze response behavior rather than a direct WAF mitigation signal.
+
+## Phase 3 attack assessment
+
+When an existing WAF spike signal is HIGH or CRITICAL, the Incident Investigator adds:
+
+- current event volume,
+- baseline WAF average and current/baseline ratio,
+- top path, country, action, and Cloudflare security source,
+- deterministic confidence,
+- a narrow mitigation proposal.
+
+The proposal is advisory only:
+
+- `apply: false`,
+- owner approval is mandatory,
+- no firewall/WAF mutation is performed,
+- no Under Attack Mode change is performed,
+- no IP block is automatically created.
+
+A path-scoped Rules expression may be included as an `expression_hint` for owner review. It is never submitted to Cloudflare by Phase 3.
+
+## Automatic draft remediation
+
+Code remediation remains intentionally narrower than attack analysis. A draft revert PR is allowed only when all conditions are true:
+
+1. severity is CRITICAL,
+2. the incident is a code/runtime signal (homepage, health endpoint, or Worker 5xx),
+3. the latest main commit is at most 60 minutes old,
+4. the latest commit has exactly one parent,
+5. it does not touch migrations, wrangler config, deploy workflow/controller, backup controller, or Developer Gateway.
+
+Before push, the branch must pass `npm test` and `npm run check`.
+
+The PR is always draft and is never auto-merged by the incident workflow.
+
+## Recovery drill
+
+`Security Recovery Drill` uses synthetic inputs only. It does not load production secrets and does not call Cloudflare, Telegram, GitHub mutation APIs, or the production site.
+
+The drill proves:
+
+- healthy state produces no finding,
+- telemetry loss remains report-only,
+- WAF critical events produce a proposal but no code revert,
+- a recent isolated runtime CRITICAL can qualify only for the existing bounded draft-revert path,
+- firewall mutation and production deploy remain disabled.
+
+It runs on relevant pull requests, on the first relevant main push, and can be invoked manually.
+
+## Node 24 action cleanup
+
+Security workflows use Node 24-compatible GitHub Action majors. The previous `DEP0040` / `DEP0169` warnings were emitted by the old artifact action runtime rather than repository source code.
+
+## Cost and owner policy
+
+No paid AI API is required or invoked by this security path. Production merge/deploy/rollback, WAF/firewall mutation, Under Attack Mode, secret rotation, data deletion, permission changes, and paid-plan upgrades remain owner decisions.
+
+---
+
+### SOURCE SNAPSHOT 4/4 — `integrations/data-studio/README.md` (original blob `67dd76d74fa160e7b55b0cf1a54189e44b6283f2`)
+
+# PHAN THUẦN XTRA — Data Studio connector
+
+This connector reads only aggregate, non-PII metrics from:
+
+`https://phanthuanxtra.com/api/analytics/summary`
+
+The Worker endpoint is fail-closed. It returns HTTP 503 until `ANALYTICS_EXPORT_TOKEN` is configured, and HTTP 401 for an invalid bearer token.
+
+## Activation
+
+1. Create a Google Apps Script community connector project.
+2. Paste `Code.gs` into the project.
+3. Add Script Property `ANALYTICS_EXPORT_TOKEN` with the same random value stored on the Cloudflare Worker / GitHub Actions secret.
+4. Optionally set `PTX_ANALYTICS_ENDPOINT`; otherwise the canonical production endpoint is used.
+5. Deploy the connector and create a Data Studio report.
+
+Do not put the token in the report, sheet cells, repository, browser JavaScript, or URL query string.
+
+The connector intentionally exposes counts only: vehicle states, lead funnel states, published/draft posts, customer count, and due follow-ups. It does not export names, phone numbers, messages, IP addresses, cookies, or customer-memory details.
