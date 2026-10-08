@@ -241,6 +241,7 @@ test("Brevo diagnostic sends exactly one PII-free email to configured recipient 
     sends++;
     assert.equal(url, "https://api.brevo.com/v3/smtp/email");
     assert.equal(options.method, "POST");
+    assert.equal(options.redirect, "manual");
     assert.equal(options.headers["api-key"], env.BREVO_API_KEY);
     const payload = JSON.parse(options.body);
     assert.equal(payload.to[0].email, env.BREVO_TO_EMAIL);
@@ -511,4 +512,57 @@ test("Brevo account probe refuses to follow cross-origin and insecure redirects"
     assert.ok(!JSON.stringify(data).includes("http://api.brevo.com/insecure"));
   }
   assert.equal(calls, targets.length);
+});
+
+
+test("Brevo POST preserves provider 201 when redirect mode is manual", async t => {
+  const env = brevoTestEnv();
+  let outbound = 0;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    outbound++;
+    assert.equal(url, "https://api.brevo.com/v3/smtp/email");
+    assert.equal(options.method, "POST");
+    assert.equal(options.redirect, "manual");
+    assert.equal(options.headers["api-key"], env.BREVO_API_KEY);
+    return Response.json({ messageId: "approved-1@brevo.local" }, { status: 201 });
+  });
+  const result = await sendBrevoLeadNotification(env, {
+    leadId: 123, source: "test-drive", name: "CI Brevo", phone: "0900000000"
+  });
+  assert.deepEqual(result, { ok: true, status: 201, message_id: "approved-1@brevo.local" });
+  assert.equal(outbound, 1);
+});
+
+test("Brevo POST fails closed on cross-origin redirect without forwarding secret or resending", async t => {
+  const env = brevoTestEnv();
+  let outbound = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    outbound++;
+    return new Response(null, {
+      status: 307,
+      headers: { location: "https://different-host.example/collect?api_key=should-never-expose" }
+    });
+  });
+  const result = await sendBrevoLeadNotification(env, {
+    leadId: 124, source: "test-drive", name: "CI Brevo", phone: "0900000000"
+  });
+  assert.deepEqual(result, {
+    ok: false, status: 307, provider_code: "redirect_response",
+    redirect_target: "different_origin", redirect_host: "different-host.example"
+  });
+  assert.equal(outbound, 1);
+  assert.ok(!JSON.stringify(result).includes(env.BREVO_API_KEY));
+  assert.doesNotMatch(JSON.stringify(result), /should-never-expose|\/collect/);
+});
+
+test("Brevo mail sender uses manual redirect mode and never automatically forwards API credentials", () => {
+  const source = fs.readFileSync("src/business-integrations.js", "utf8");
+  const start = source.indexOf("async function sendBrevoEmail(");
+  const end = source.indexOf("export async function sendBrevoLeadNotification", start);
+  const send = source.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(send, /redirect: "manual"/);
+  assert.doesNotMatch(send, /redirect: "follow"|redirect: "error"/);
+  assert.match(send, /response.status >= 300 && response.status < 400/);
+  assert.match(send, /safeBrevoRedirect\(response\)/);
 });
