@@ -454,6 +454,8 @@ test("post-deploy Brevo egress checker is strictly read-only and cannot send tra
   const workflow = fs.readFileSync(".github/workflows/brevo-transactional-diagnostic.yml", "utf8");
   assert.match(workflow, /workflow_run:/);
   assert.match(workflow, /workflows: \["Deploy Cloudflare Worker"\]/);
+  const manual = workflow.slice(workflow.indexOf("  send-one-controlled-test:"), workflow.indexOf("  read-only-egress-probe:"));
+  assert.match(manual, /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
   const section = workflow.slice(workflow.indexOf("  read-only-egress-probe:"));
   assert.match(section, /github\.event\.workflow_run\.head_branch == 'main'/);
   assert.match(section, /github\.event\.workflow_run\.conclusion == 'success'/);
