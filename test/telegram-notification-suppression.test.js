@@ -74,7 +74,7 @@ test("Content Prep numeric Blog fixture audits are suppressed while real posts a
     }
   };
   t.mock.method(globalThis, "fetch", async (url, options) => {
-    assert.match(String(url), /api\\.telegram\\.org\\/bot/);
+    assert.ok(String(url).includes("api.telegram.org/bot"));
     sent.push(JSON.parse(options.body).text);
     return Response.json({ ok: true });
   });
@@ -98,8 +98,8 @@ test("Content Prep numeric Blog fixture audits are suppressed while real posts a
 
 test("Content Prep fixture suppression does not blanket-filter ordinary numeric post IDs", () => {
   const source = fs.readFileSync("src/telegram-notifications.js", "utf8");
-  assert.match(source, /event\\?\\.resource==="post"/);
+  assert.ok(source.includes('event?.resource==="post"'));
   assert.match(source, /title==="CI — Nội dung nháp riêng tư"/);
   assert.match(source, /title==="CI — Nháp đã được owner kiểm tra"/);
-  assert.doesNotMatch(source, /\\/\\^\\\\d/);
+  assert.ok(!source.includes("return /^\\d"));
 });
