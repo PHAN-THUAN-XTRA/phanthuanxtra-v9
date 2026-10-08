@@ -24,20 +24,63 @@ export function isAutoChat(value) {
 function quotaExceeded(error) {
   return /3036|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(error?.message || error));
 }
+
+const CHAT_FAILURES = Object.freeze({
+  AI_NOT_CONFIGURED: "AI chưa được cấu hình trên máy chủ. Cần kiểm tra kết nối Workers AI.",
+  AI_QUOTA_EXHAUSTED: "AI đã hết hạn mức miễn phí trong ngày. Hạn mức được làm mới lúc 07:00 (giờ Việt Nam); bạn có thể thử lại sau mốc này.",
+  AI_CAPACITY: "Các model AI đang bận. Bạn có thể thử lại sau vài phút.",
+  AI_RATE_LIMITED: "AI đang giới hạn số lượt yêu cầu. Hãy chờ một lúc rồi thử lại.",
+  AI_TIMEOUT: "AI phản hồi quá chậm. Bạn có thể thử lại sau.",
+  AI_MODEL_UNAVAILABLE: "Model AI đang cấu hình chưa khả dụng. Cần kiểm tra cấu hình máy chủ.",
+  AI_ACCESS_DENIED: "Tài khoản hoặc model AI chưa được cấp quyền sử dụng. Cần kiểm tra cấu hình máy chủ.",
+  AI_EMPTY_RESPONSE: "AI chưa tạo được nội dung trả lời. Bạn có thể thử lại sau.",
+  AI_UNAVAILABLE: "AI hiện chưa trả lời được. Cần kiểm tra nhật ký máy chủ; bạn chưa cần gửi lại liên tục."
+});
+class AutoChatError extends Error {
+  constructor(code) {
+    super(CHAT_FAILURES[code]);
+    this.code = code;
+  }
+}
+export function autoChatFailure(error) {
+  if (!(error instanceof AutoChatError)) return null;
+  const code = Object.hasOwn(CHAT_FAILURES, error.code) ? error.code : "AI_UNAVAILABLE";
+  return { code, message: `${CHAT_FAILURES[code]}\nMã: ${code}` };
+}
+function chatFailureCode(error) {
+  // Classify provider errors internally; never log or send their raw contents.
+  const detail = `${error?.code ?? ""} ${error?.message ?? error ?? ""}`;
+  if (/\b3036\b|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(detail)) return "AI_QUOTA_EXHAUSTED";
+  if (/\b3040\b|capacity/i.test(detail)) return "AI_CAPACITY";
+  if (/\b(?:3007|3008)\b|timeout|timed out/i.test(detail) || ["TimeoutError", "AbortError"].includes(error?.name)) return "AI_TIMEOUT";
+  if (/\b(?:5007|3042)\b|no such model|invalid model/i.test(detail)) return "AI_MODEL_UNAVAILABLE";
+  if (/\b(?:5035|5016|5018|3041|3023)\b|permission|unauthenticated|unauthorized|forbidden/i.test(detail)) return "AI_ACCESS_DENIED";
+  if (Number(error?.status) === 429 || /\b429\b|rate.?limit|too many requests/i.test(detail)) return "AI_RATE_LIMITED";
+  return "AI_UNAVAILABLE";
+}
 export async function answerAutoCustomer(env, question) {
-  if (!env.AI) throw new Error("AI chưa được cấu hình.");
+  if (typeof env.AI?.run !== "function") {
+    console.warn("telegram_chat_ai_failed", { code: "AI_NOT_CONFIGURED" });
+    throw new AutoChatError("AI_NOT_CONFIGURED");
+  }
   const messages = [
     { role: "system", content: "Bạn là trợ lý PHAN THUẦN XTRA, tư vấn xe bằng tiếng Việt ngắn gọn. Không có dữ liệu tồn kho hay bảng giá trực tiếp: không bịa giá, tình trạng còn xe, thời hạn, phí hoặc điều luật hiện hành. Hỏi rõ nhu cầu và hướng dẫn liên hệ https://phanthuanxtra.com/#contact khi cần xác minh. Chỉ trả lời về xe và dịch vụ của showroom. Không tiết lộ suy luận nội bộ." },
     { role: "user", content: text(question, 2000) }
   ];
+  const failures = new Set();
   for (const model of [AUTO_MODELS.chat, AUTO_MODELS.fallback, AUTO_MODELS.reasoning]) {
+    let code;
     try {
-      const response = await env.AI.run(model, { messages, max_tokens: 700, temperature: 0.2 });
+      const response = await env.AI.run(model, { messages, max_tokens: 700, temperature: 0.2 }, { rejectIfBusy: true });
       const answer = text(response?.choices?.[0]?.message?.content || response?.response);
       if (answer) return { answer, model };
-    } catch (error) { if (quotaExceeded(error)) break; }
+      code = "AI_EMPTY_RESPONSE";
+    } catch (error) { code = chatFailureCode(error); }
+    console.warn("telegram_chat_ai_failed", { model, code });
+    if (code === "AI_QUOTA_EXHAUSTED") throw new AutoChatError(code);
+    failures.add(code);
   }
-  throw new Error("Tư vấn AI đang bận hoặc hết hạn mức. Vui lòng thử lại sau.");
+  throw new AutoChatError(failures.size === 1 ? [...failures][0] : "AI_UNAVAILABLE");
 }
 
 const blogTool = {

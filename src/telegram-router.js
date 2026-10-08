@@ -4,7 +4,7 @@ import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { promoteDraft } from "./telegram-ingest.js";
 import { savePost } from "./post-persistence.js";
 import { getPost } from "./post-persistence.js";
-import { answerAutoCustomer, autoBlogSlug, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
+import { answerAutoCustomer, autoBlogSlug, autoChatFailure, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
 import { boundedBytes, storePublishingImage } from "./publishing-api.js";
 import { imageInputLimit } from "./media-policy.js";
 import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
@@ -452,7 +452,14 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
   }
   if (!photo && (command?.name === "chat" || isAutoChat(caption))) {
     if (command && !command.body) { await tg(token, "sendMessage", { chat_id: chatId, text: "Nhập /chat cùng câu hỏi về xe của bạn." }); return; }
-    const result = await answerAutoCustomer(env, command?.body || caption);
+    let result;
+    try { result = await answerAutoCustomer(env, command?.body || caption); }
+    catch (error) {
+      const failure = autoChatFailure(error);
+      if (!failure) throw error;
+      await tg(token, "sendMessage", { chat_id: chatId, text: failure.message });
+      return;
+    }
     await tg(token, "sendMessage", { chat_id: chatId, text: result.answer });
     return;
   }
