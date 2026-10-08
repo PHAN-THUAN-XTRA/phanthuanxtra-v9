@@ -371,8 +371,8 @@ test("Brevo diagnostic workflow uses scoped proof, not a potentially rotated D1 
   const handler = fs.readFileSync("src/business-integrations.js", "utf8");
   assert.match(workflow, /ptx-brevo-diagnostic-v1/);
   assert.match(workflow, /DIAG_METHOD/);
-  assert.ok(workflow.includes(String.raw`parts.join("\\n")`), "CI signature must use the same newline-delimited message as Worker");
-  assert.ok(!workflow.includes(String.raw`parts.join("\\\\n")`), "CI signature must not sign a literal backslash-n");
+  assert.ok(workflow.includes(String.raw`parts.join("\n")`), "CI signature must use the same newline-delimited message as Worker");
+  assert.ok(!workflow.includes(String.raw`parts.join("\\n")`), "CI signature must not sign a literal backslash-n");
   assert.doesNotMatch(workflow, /api\/admin\/login/);
   assert.doesNotMatch(workflow, /BREVO_API_KEY:/);
   assert.match(handler, /verifyBrevoDiagnosticAuth/);
