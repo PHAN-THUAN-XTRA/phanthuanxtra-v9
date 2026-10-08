@@ -9,6 +9,7 @@ const ZONE_NAME=process.env.ZONE_NAME||"phanthuanxtra.com";
 const D1_DATABASE_ID=process.env.D1_DATABASE_ID||"";
 const ACCOUNT_ID=process.env.CLOUDFLARE_ACCOUNT_ID||"";
 const TOKENS=[
+  ["analytics",process.env.CLOUDFLARE_SECURITY_ANALYTICS_API_TOKEN||""],
   ["primary",process.env.CLOUDFLARE_API_TOKEN||""],
   ["backup",process.env.CLOUDFLARE_BACKUP_API_TOKEN||""]
 ].filter(([,v])=>v);
@@ -122,6 +123,7 @@ export function classifySecuritySignals({healthOk,homeOk,totalRequests=0,error5x
 async function cfFetch(path,{method="GET",body=null}={}){
   const attempts=[];
   for(const [name,token] of TOKENS){
+    if(!token)continue;
     try{
       const r=await fetch(path.startsWith("http")?path:API+path,{
         method,
@@ -166,6 +168,7 @@ async function graphqlQuery(query,variables,preferredToken=null){
     : TOKENS;
   const attempts=[];
   for(const [name,token] of ordered){
+    if(!token)continue;
     try{
       const response=await fetch(GRAPHQL,{
         method:"POST",
