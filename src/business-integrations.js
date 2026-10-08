@@ -111,9 +111,17 @@ async function sendBrevoEmail(env, { subject, textContent, kind, tags }) {
         to: [{ email: recipient, name: "PHAN THUẦN XTRA CRM", contactPixelTrackingConsent: false }],
         subject, textContent, tags,
       }),
-      redirect: "error",
+      // Cloudflare's outbound fetch with redirect:error threw TypeError before
+      // receiving a provider response. manual preserves the HTTP response without
+      // ever forwarding the API key to a redirected origin.
+      redirect: "manual",
       signal: AbortSignal.timeout(8000),
     });
+    if (response.status >= 300 && response.status < 400) {
+      const rejectedRedirect = { ok: false, status: response.status, ...safeBrevoRedirect(response) };
+      console.warn("brevo_send_result", JSON.stringify({ kind, status: rejectedRedirect.status, provider_code: rejectedRedirect.provider_code, redirect_target: rejectedRedirect.redirect_target, redirect_host: rejectedRedirect.redirect_host }));
+      return rejectedRedirect;
+    }
     // Only known machine-readable fields are read from the provider response.
     const payload = await response.json().catch(() => ({}));
     const code = response.ok ? null : providerCode(payload?.code);
