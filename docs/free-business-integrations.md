@@ -66,6 +66,13 @@ Follow MASTER_PROJECT_STATUS.md:
 
 No D1 schema change, R2 mutation, paid upgrade, destructive operation, or autonomous lead-status mutation is part of this change.
 
+## Production email acceptance — 2026-10-08
+
+- **Brevo transactional: PRODUCTION PASS (transport + actual Gmail receipt).** [Controlled diagnostic #13](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37740884826) succeeded on production SHA `5c111f4e1c4268baef3dac190ebb4d9a1aac4371`. Authorized owner reported provider account HTTP 200, send HTTP 201 and a `messageId`; the workflow requires sanitized accepted-by-provider confirmation.
+- The authorized recipient Gmail shows diagnostic `a4c461b2` in INBOX at 14:01:16 ICT and synthetic CI lead alerts #227 (Spam, test-drive) / #228 (Inbox, business-jets). These are **tests only**, not real customer orders. Avoid publishing recipient address or synthetic lead personal fields.
+- **Do not equate this result with flawless deliverability or complete CRM reliability.** Inbox placement/spam, durable outbox/retry safety, D1 lead receipt correctness and same-lead Telegram reconciliation remain open. No more diagnostic sends or API-key rotation are requested.
+- Earlier statements about deferred real-world Brevo receipt are **historical and superseded for this one verified transactional path**; tawk.to, Data Studio and other services require separate activation evidence. Keep the Cloudflare-only `BREVO_API_KEY` secret boundary.
+
 ## Production verification
 
 Every production deploy runs `scripts/verify-business-integrations.mjs` after the public Worker boundary is reachable:
