@@ -1,5 +1,11 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## GATE 14 BACKUP RESTORE — VERIFIED PASS — 2026-10-08 (UTC+7)
+
+- Full System Backup [run 37723082449, attempt #5](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37723082449) **SUCCESS**. Collector, D1 export, R2 content, SHA256 manifests, compressed archive verification, encryption, GitHub artifact upload and Telegram delivery steps all passed. Artifacts: `phanthuanxtra-full-system-backup-37723082449` (57,984,295 bytes) and `backup-delivery-receipt-37723082449` (790 bytes).
+- Independently triggered Gate 14 [run 37726826770](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37726826770) **SUCCESS** (`workflow_run` after successful backup). All restore-readability job steps passed: download/decrypt artifact, SHA256 archive and internal manifest verification, SQL import into clean local SQLite and `PRAGMA integrity_check`, required D1 table/row evidence, and R2 manifest versus extracted-object file count. No production database or bucket was restored into or modified by this gate.
+- **Scope:** Verified non-destructive local backup readability/restore drill, not a full Cloudflare infrastructure disaster-recovery cutover. This meets the existing Gate 14 workflow's acceptance contract. Historical OPEN backup checkpoint below is superseded by this evidence; issue #806 may be closed after this documentation PR passes required checks and merges.
+
 ## SECURITY ANALYTICS RECOVERY / BACKUP ACCEPTANCE CHECKPOINT — 2026-10-08 (UTC+7)
 
 - **Security telemetry RECOVERED (verified):** PR #809 merged as `329390e16dfd278016be417cf032b0ec32337fba`. Production deploy run [37726129025](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37726129025) completed SUCCESS. Free Security Operator run [37726226647](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37726226647) completed SUCCESS on the same SHA; its job log reports `ok=true`, `findings=[]`, `recoveries=1`, `analytics_ok=true`, `waf_telemetry_ok=true`, `baseline_ready=true`, and `state_store_ok=true`. GitHub uploaded the `security-operator-37726226647` evidence artifact. Dedicated production environment secret `CLOUDFLARE_SECURITY_ANALYTICS_API_TOKEN` is owner-confirmed; do not record or expose its value. No WAF mutation or paid-plan change was needed.
