@@ -30,6 +30,46 @@ export function businessIntegrationConfig(env = {}) {
 // keys, customer fields, request bodies, or arbitrary upstream response messages.
 const providerCode = value => /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(String(value ?? "")) ? String(value) : "unknown";
 const safeMessageId = value => /^[A-Za-z0-9@._<>-]{1,200}$/.test(String(value ?? "")) ? String(value) : null;
+
+// Strictly categorical exception metadata: never echo Error.message, Error.cause,
+// provider response bodies, URLs containing tokens, or any customer fields.
+function brevoTransportFailure(error) {
+  const className = String(error?.name || "");
+  const exception_type = ["TypeError", "Error", "NetworkError", "TimeoutError", "AbortError", "SecurityError", "NotSupportedError", "InvalidStateError"].includes(className)
+    ? className : "other";
+  const description = String(error?.message ?? "").slice(0, 1000).toLowerCase();
+  const cause = String(error?.cause?.code ?? "");
+  let provider_code = "network_error";
+  if (exception_type === "TimeoutError" || exception_type === "AbortError" || /timeout|timed out|aborted/.test(description)) provider_code = "timeout";
+  else if (/tls|ssl|certificate|cert[_ -]/.test(description) || /^ERR_TLS_/.test(cause)) provider_code = "tls_error";
+  else if (/dns|resolve|hostname/.test(description) || ["ENOTFOUND","EAI_AGAIN"].includes(cause)) provider_code = "dns_error";
+  else if (/redirect/.test(description)) provider_code = "redirect_error";
+  else if (/unsupported|not a function|not defined|invalid header|invalid url/.test(description)) provider_code = "request_init_error";
+  else if (/blocked|forbidden|restricted|disallowed/.test(description)) provider_code = "egress_blocked";
+  else if (/failed to fetch|fetch failed|connect|connection|socket/.test(description) || ["ECONNRESET","ETIMEDOUT","ECONNREFUSED"].includes(cause)) provider_code = "connection_error";
+  return { ok: false, status: 0, provider_code, exception_type };
+}
+
+async function probeBrevoAccount(env) {
+  const { key } = brevoConfig(env);
+  if (!key) return { ok: false, status: 0, provider_code: "not_configured" };
+  try {
+    const response = await fetch("https://api.brevo.com/v3/account", {
+      method: "GET",
+      headers: { accept: "application/json", "api-key": key },
+      redirect: "error",
+      signal: AbortSignal.timeout(8000),
+    });
+    // Brevo /account can contain identifying account details: do not read or
+    // expose them on success, and only parse the machine-readable error code.
+    if (response.ok) return { ok: true, status: response.status };
+    const payload = await response.json().catch(() => ({}));
+    return { ok: false, status: response.status, provider_code: providerCode(payload?.code) };
+  } catch (error) {
+    return brevoTransportFailure(error);
+  }
+}
+
 const brevoConfig = env => ({
   key: clean(env.BREVO_API_KEY, 500),
   sender: validEmail(env.BREVO_SENDER_EMAIL),
@@ -63,10 +103,9 @@ async function sendBrevoEmail(env, { subject, textContent, kind, tags }) {
     console[response.ok ? "info" : "warn"]("brevo_send_result", JSON.stringify({ kind, status: response.status, ...(code ? { provider_code: code } : {}) }));
     return outcome;
   } catch (error) {
-    // Network and timeout errors can contain sensitive request data in .message.
-    const type = error?.name === "TimeoutError" || error?.name === "AbortError" ? "timeout" : "network_error";
-    console.warn("brevo_send_result", JSON.stringify({ kind, status: 0, provider_code: type }));
-    return { ok: false, status: 0, provider_code: type };
+    const failure = brevoTransportFailure(error);
+    console.warn("brevo_send_result", JSON.stringify({ kind, status: 0, provider_code: failure.provider_code, exception_type: failure.exception_type }));
+    return failure;
   }
 }
 
@@ -92,7 +131,15 @@ async function handleBrevoAdminDiagnostic(request, env) {
   if (request.method !== "GET" && request.method !== "POST") return json({ error: "Method Not Allowed" }, 405, { allow: "GET, POST" });
   const { key, sender, recipient } = brevoConfig(env);
   const configured = !!(key && sender && recipient);
-  if (request.method === "GET") return json({ ok: true, configured, api_key_present: !!key, sender_valid: !!sender, recipient_valid: !!recipient });
+  if (request.method === "GET") {
+    if (new URL(request.url).searchParams.get("probe") === "account") {
+      if (!configured) return json({ ok: false, reason: "not_configured" }, 503);
+      const provider = await probeBrevoAccount(env);
+      console[provider.ok ? "info" : "warn"]("brevo_account_probe", JSON.stringify(provider));
+      return json({ ok: true, provider }, 200);
+    }
+    return json({ ok: true, configured, api_key_present: !!key, sender_valid: !!sender, recipient_valid: !!recipient });
+  }
   if (!configured) return json({ ok: false, reason: "not_configured", api_key_present: !!key, sender_valid: !!sender, recipient_valid: !!recipient }, 503);
   if (!env.DB) return json({ ok: false, reason: "audit_unavailable" }, 503);
   if (!(request.headers.get("content-type") || "").toLowerCase().startsWith("application/json")) return json({ error: "JSON_REQUIRED" }, 415);
