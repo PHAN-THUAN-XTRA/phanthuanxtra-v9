@@ -448,3 +448,17 @@ test("Brevo workflow preflights read-only account endpoint before its only email
   assert.ok(probe >= 0 && sender > probe);
   assert.doesNotMatch(workflow, /BREVO_API_KEY:\s*\$\{\{/);
 });
+
+
+test("post-deploy Brevo egress checker is strictly read-only and cannot send transactional email", () => {
+  const workflow = fs.readFileSync(".github/workflows/brevo-transactional-diagnostic.yml", "utf8");
+  assert.match(workflow, /workflow_run:/);
+  assert.match(workflow, /workflows: \["Deploy Cloudflare Worker"\]/);
+  const section = workflow.slice(workflow.indexOf("  read-only-egress-probe:"));
+  assert.match(section, /github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.match(section, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.match(section, /probe=account/);
+  assert.doesNotMatch(section, /sign_request POST|method:\s*POST|curl[^\n]*-X POST|send-one-brevo-test-email/);
+  assert.ok(section.includes('parts.join("\\n")'.replace("\\\\n", "\\n")));
+  assert.doesNotMatch(section, /BREVO_API_KEY|api\/admin\/login/);
+});
