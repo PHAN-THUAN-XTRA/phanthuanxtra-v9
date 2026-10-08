@@ -41,7 +41,7 @@ jobs:
             signature="$(node -e '
               const { createHmac } = require("node:crypto");
               const parts = ["ptx-brevo-diagnostic-v1", process.env.DIAG_METHOD, "/api/admin/integrations/brevo/diagnostic", process.env.DIAG_TIMESTAMP, process.env.DIAG_NONCE];
-              process.stdout.write(createHmac("sha256", process.env.ADMIN_PASSWORD).update(parts.join("\\n")).digest("hex"));
+              process.stdout.write(createHmac("sha256", process.env.ADMIN_PASSWORD).update(parts.join("\n")).digest("hex"));
             ')"
             signed_headers=(
               -H "X-PTX-Brevo-Timestamp: ${ts}"
