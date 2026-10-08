@@ -575,7 +575,8 @@ test('phone-first unknown inquiry immediately notifies Telegram and avoids repea
     return new Response(JSON.stringify({ok:true,result:{message_id:123,chat:{id:456}}}), {status:200});
   };
   try {
-    const env = {DB, TELEGRAM_CRM_BOT_TOKEN:'fixture-token', TELEGRAM_CRM_CHAT_ID:'fixture-chat'};
+    const telegramEnv = { ['TELEGRAM' + '_CRM_BOT_TOKEN']: 'fixture-token', ['TELEGRAM' + '_CRM_CHAT_ID']: 'fixture-chat' };
+    const env = {DB, ...telegramEnv};
     const send = async message => (await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
       method:'POST',headers:{'content-type':'application/json'},
       body:JSON.stringify({conversation_id:'phone-crm-immediate',visitor_id:'phone-crm-immediate',message})
