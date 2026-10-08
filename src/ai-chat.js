@@ -396,9 +396,13 @@ export async function handleAiChat(request,env,ctx){
   let crmDelivery=null;
   if(needsHuman){
     const unknown=pending ? {id:pending.id,created:false} : await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
+    // A phone number is actionable even before the visitor supplies a name.
+    // Notify once on the first phone capture; send an updated handoff when the
+    // visitor later completes the name, without repeating on every message.
+    const phoneJustCaptured=Boolean(effectiveContact.phone&&!pending?.phone);
     const contactJustCompleted=Boolean(effectiveContact.name&&effectiveContact.phone&&!pendingWasComplete);
     let sent=false;
-    if(contactJustCompleted&&!suppressCrmNotification){
+    if((phoneJustCaptured||contactJustCompleted)&&!suppressCrmNotification){
       crmDelivery=await notifyTelegramCrm(env,{source:"ai-unknown",unknownId:unknown.id,conversationId,name:effectiveContact.name,phone:effectiveContact.phone,message:pending?.question||message,reply:"Khách hỏi ngoài dữ liệu xác thực; cần anh Phan Thuần tư vấn trực tiếp."});
       sent=crmDelivery.sent;
     }
