@@ -564,3 +564,32 @@ test('official hotline questions use authoritative copy without incomplete model
     assert.match(data.reply, /0866 997 891/); assert.equal(data.ai_model, null); assert.equal(calls, 0);
   }
 });
+
+test('phone-first unknown inquiry immediately notifies Telegram and avoids repeat on noise', async () => {
+  const DB = mockDb();
+  const deliveries = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    if (!String(url).includes('api.telegram.org')) throw new Error('unexpected external request');
+    deliveries.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ok:true,result:{message_id:123,chat:{id:456}}}), {status:200});
+  };
+  try {
+    const env = {DB, TELEGRAM_CRM_BOT_TOKEN:'fixture-token', TELEGRAM_CRM_CHAT_ID:'fixture-chat'};
+    const send = async message => (await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+      method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({conversation_id:'phone-crm-immediate',visitor_id:'phone-crm-immediate',message})
+    }),env)).json();
+    const first = await send('hi 0124569873');
+    assert.equal(first.needs_human,true);
+    assert.equal(deliveries.length,1,'phone capture must alert Telegram immediately');
+    assert.match(deliveries[0].text,/0124569873/);
+    await send('hihi hi');
+    assert.equal(deliveries.length,1,'repeated unknown message must not duplicate first phone alert');
+    await send('Nguyen Van Test');
+    assert.equal(deliveries.length,2,'completed name sends a single enriched follow-up');
+    assert.match(deliveries[1].text,/Nguyen Van Test/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
