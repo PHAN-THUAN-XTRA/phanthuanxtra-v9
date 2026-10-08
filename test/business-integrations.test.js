@@ -149,4 +149,7 @@ test("production E2E checks honor reversible archive instead of physical deletio
   }
   assert.match(fsQueue, /\.car\.status == "hidden"/);
   assert.match(fsSmoke, /admin-detail\.json/);
+  assert.match(fsSmoke, /admin-detail-after-archive\.json/);
+  assert.match(fsSmoke, /\.car\.status == "hidden"/);
+  assert.doesNotMatch(fsSmoke, /\(\.cars \| any\(\.\[\]; \.id == \$id\)\) \| not/);
 });
