@@ -1,5 +1,14 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## TELEGRAM /CHAT PR #825 — MERGED AND DEPLOYED — 2026-10-09 (UTC+7)
+
+- **Code merged:** [PR #825](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/825) squash-merged as `27cccea655270d39781e9b128774dccd1a5c1691` after exact head `5edbd3b9e915aa559ae8bcdb01e6f6005c7db40f` passed nine checks; the PR production deploy job was skipped as designed. CI, AI Pre-Deploy Audit, MASTER Integrity, SonarQube and decision cascade were successful.
+- **Exact-merge deployment PASS:** [Deploy Cloudflare Worker run 37868449880](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37868449880) completed SUCCESS on `27cccea655270d39781e9b128774dccd1a5c1691`. Post-merge [CI 37868450022](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37868450022), [MASTER Integrity 37868449894](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37868449894) and [SonarQube 37868449930](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/37868449930) also passed on that exact commit.
+- **Acceptance still OPEN:** no real post-deploy Telegram AI answer has been observed in this session. One owner `/chat` retest is needed to obtain either a successful answer or the new sanitized diagnostic code. Provider quota/capacity/access must be resolved from that evidence; this deployment alone does not prove inference is restored.
+- A direct public health probe from this workspace failed at the outbound proxy CONNECT stage (curl 28 / HTTP 000); it did not receive a server response and is not evidence that production is down. Earlier S21 HTTP 200 remains owner-reported connectivity evidence only.
+- **S21 operating policy retained:** no Wrangler CLI installation or use on the S21. The local launcher opens existing cloud services; deployment continues through GitHub Actions and Cloudflare API/SDK. No new provider, billing plan, secret, webhook registration or customer message was activated by this code repair.
+- The October 8 authoring checkpoint below is preserved as history. Its PR/merge/deployment PENDING items are superseded by this receipt only; device inference acceptance and unrelated project gates remain separate.
+
 ## TELEGRAM /CHAT — SAFE DIAGNOSTIC REPAIR — 2026-10-08 (UTC+7)
 
 - **Owner-reported device evidence:** the S21 Termux launcher installs and displays its menu. The public App API health request returned HTTP 200 / version 1.1.0. A subsequent Telegram `/chat` received an acknowledgement followed by the generic failure reply. This verifies neither AI inference success nor a TechEnClair JARVIS installation on Android; mobile AI acceptance remains OPEN.
