@@ -81,3 +81,31 @@ export async function verifyTg756Production(queryD1) {
   expect(Number(old[4].id)===Number(imageRows[0].id), "model image is not first");
   return { ok:true, id:CAR_ID, mileage:OWNER_MILEAGE, price:OWNER_PRICE, imageCount:27, coverImageId:Number(imageRows[0].id) };
 }
+
+export async function verifyTg756Public(fetcher, origin="https://phanthuanxtra.com") {
+  const url=origin+"/api/cars?tg756_verify="+Date.now();
+  const response=await fetcher(url,{headers:{accept:"application/json"},cache:"no-store"});
+  expect(response.status===200, "public catalog HTTP "+response.status);
+  const body=await response.json();
+  expect(body?.source==="d1", "public catalog unexpectedly uses static fallback");
+  const cars=(body?.cars||[]).filter(item=>item.id===CAR_ID);
+  expect(cars.length===1, "expected exactly one visible tg-756 listing");
+  const car=cars[0];
+  expect(car.odo==="17.368 km", "public ODO mismatch");
+  expect(car.price==="6.799.000.000 đ", "public price mismatch");
+  expect(Array.isArray(car.images)&&car.images.length===27, "public gallery count mismatch");
+  const images=car.images.map(item=>typeof item==="string"?{url:item}:item);
+  expect(images[0].url===car.cover_image, "public model cover/first image mismatch");
+  for(let i=0;i<images.length;i++){
+    expect(canonical(images[i].url), "public photo URL is invalid at "+i);
+    expect(!images[i].sort_order || Number(images[i].sort_order)===i, "public image ordering differs at "+i);
+  }
+  // Read-only media availability gate; avoid uploading, deleting or touching R2 metadata.
+  for(const mediaUrl of [images[0].url, images[images.length-1].url]){
+    const media=await fetcher(mediaUrl,{method:"GET",cache:"no-store"});
+    expect(media.status===200, "R2 image delivery failed for selected published gallery image");
+    expect((media.headers.get("content-type")||"").startsWith("image/"), "published media content type is not image/*");
+    if(media.body?.cancel) await media.body.cancel();
+  }
+  return {ok:true,publicUrl:origin+"/car.html?id="+CAR_ID,images:27,price:car.price,odo:car.odo};
+}
