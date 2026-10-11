@@ -1,5 +1,19 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## OWNER HIDE TG-652 — VERIFIED PRODUCTION — 2026-10-11 (UTC+7)
+
+- **Owner instruction:** hide existing [Audi Q7 `tg-652`](https://phanthuanxtra.com/car.html?id=tg-652) again; keep its D1 record, all original photos and R2 objects for reversible display later. This is a visibility change, not republishing or deletion.
+- **GitHub:** [PR #833](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/833) merged as exact main `989ef1a0a93dcb57fea7f4c7ab02f0b9e90fae6e` after CI, AI Pre-Deploy Audit, MASTER Integrity, SonarQube, deploy PR validation and Jev+LLM decision checks passed.
+- **Authoritative D1 evidence:** [production Cloudflare API/SDK deploy run 38125345140](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38125345140) **SUCCESS**. Preflight `status=available`, `image_count=23`. Migration `0039_tg_652_owner_hide.sql` APPLIED. Post-read verifies `status=hidden`, **23/23 images preserved**, all image IDs, URLs, gallery order and cover flags unchanged; original brand, model, price, ODO, description and cover field unchanged. Pre-hide `available` status logged in `cms_audit_log` for reversible restoration.
+- **Public acceptance:** deployed controller fetched D1-backed `/api/cars` and confirmed `tg-652` ABSENT, other public vehicles unaffected. Production homepage/Admin HTTP 200 UTF-8, cache purge, R2 Worker E2E and Publishing E2E passed. The detail page still exists as a generic HTML shell, but its client-side vehicle lookup correctly refuses to display hidden `tg-652`; this is not a blanket 404 for the HTML file.
+- No additional owner media deleted, no new car ID, no secret rotation, no paid services, no manual S21 Wrangler use. **FINAL GREEN:** owner-requested hide completed and verified.
+
+## TG-756 FINAL PRODUCTION ACCEPTANCE — VERIFIED — 2026-10-11 (UTC+7)
+
+- [PR #830](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/830) initially failed safely on exact-main deploy because D1 held **29** source images instead of screenshot-estimated 27; no D1 write occurred before the failure. Follow-up [PR #831](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/831) reconciled all 29 existing images and was merged as `ec123d9cb68be3a3682b78d1479060bbb824718e` after nine successful PR workflows.
+- [Exact-main Cloudflare deploy 38124814426](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38124814426) **SUCCESS**: migration `0038_tg_756_owner_reconcile.sql` applied. D1 confirms owner ODO **17,368 km**, sale price **6,799,000,000 VND**, 29/29 existing image IDs/URLs preserved, model image (ID **1911**) first and sole cover; pre-change snapshot in audit log. The D1-backed public catalog confirmed `17.368 km`, `6.799.000.000 đ`, 29 images and cover equal to first image; sampled cover/final R2 images served HTTP 200 image/*. [Production Smoke Gate-15 38124888608](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38124888608) SUCCESS.
+- Two extra source photos at original positions 27 and 28 were retained at the end, not discarded. Their detailed visual classification was not separately claimed. [Issue #829](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/829) closed with production evidence. The earlier pending checkpoint below remains historical, superseded by these exact-main receipts.
+
 ## LEXUS TG-756 — OWNER MODEL-FIRST CORRECTION — 2026-10-11 (UTC+7)
 
 - **Owner-authorized scope:** existing canonical Lexus LM500h 2024 `tg-756`; D1 ODO **17,368 km**, selling price **6,799,000,000 VND**, preserve all **29** approved images. The owner explicitly requires the image showing a **person/model** to be the **first gallery image and hero/cover**. In the owner's screenshot it is the fifth tile (zero-based original `sort_order=4`, second row middle), not the exterior car photo.
