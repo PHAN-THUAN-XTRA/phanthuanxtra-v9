@@ -1,3 +1,4 @@
+import { preflightTg652, verifyTg652Hidden, verifyTg652Public } from "./tg652-visibility-gate.mjs";
 import { preflightTg756, verifyTg756Production, verifyTg756Public } from "./tg756-production-gate.mjs";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
@@ -642,6 +643,8 @@ for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLIS
   if (!publishingBindings.some(binding => binding.name === name) && !process.env[name])
     throw new Error(`${name} is required on the website Worker for editorial publishing; configure it before deployment.`);
 }
+const tg652Before = await preflightTg652(queryD1);
+console.log('D1 tg-652 preflight: status='+tg652Before.car.status+'; image_count='+tg652Before.images.length);
 const tg756Preflight = await preflightTg756(queryD1);
 console.log('D1 tg-756 preflight: '+ (tg756Preflight.alreadyApplied ? 'already migrated' : 'verified 27 source images and owner identity'));
 await applyMigrations();
@@ -651,6 +654,8 @@ await verifyLx570Recovery();
 await verifyTg444ProductionGallery();
 const tg756Proof = await verifyTg756Production(queryD1);
 console.log('D1 tg-756 verified:', JSON.stringify(tg756Proof));
+const tg652Proof = await verifyTg652Hidden(queryD1, tg652Before);
+console.log('D1 tg-652 hidden proof:', JSON.stringify(tg652Proof));
 const vehicleQueues = await ensureVehicleQueueResources();
 const memoryQueues = await ensureMemoryQueueResources();
 const assetJwt = await uploadAssets();
@@ -671,4 +676,6 @@ await syncCronSchedules();
 await verifyApiLineage();
 const tg756PublicProof = await verifyTg756Public(fetch);
 console.log("Public tg-756 /api/cars and R2 verified:", JSON.stringify(tg756PublicProof));
+const tg652PublicProof = await verifyTg652Public(fetch);
+console.log("Public tg-652 hidden proof:", JSON.stringify(tg652PublicProof));
 console.log("API/SDK deployment controller completed successfully.");
