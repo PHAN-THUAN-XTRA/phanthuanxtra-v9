@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
   ORIGINAL_INDEX_ORDER, OWNER_MILEAGE, OWNER_PRICE,
-  preflightTg756, verifyTg756Production
+  preflightTg756, verifyTg756Production, verifyTg756Public
 } from "../scripts/tg756-production-gate.mjs";
 
 const sql=fs.readFileSync("migrations/0038_tg_756_owner_reconcile.sql","utf8");
@@ -82,4 +82,18 @@ test("production controller checks tg-756 before D1 mutation and after D1 migrat
   const c=controller.indexOf("await verifyTg756Production(queryD1)");
   const d=controller.indexOf("await uploadWorker(");
   assert.ok(a>=0 && a<b && b<c && c<d);
+});
+
+test("public D1/API gallery proof verifies the owner price and R2 model cover",async()=>{
+ const ordered=ORIGINAL_INDEX_ORDER.map((index,i)=>({...rows[index],sort_order:i,is_cover:i===0?1:0}));
+ const makeFetch=(price="6.799.000.000 đ")=>async(url)=>{
+   if(url.includes("/api/cars")) return {status:200,async json(){return {source:"d1",cars:[{
+     id:"tg-756",odo:"17.368 km",price,cover_image:ordered[0].url,images:ordered
+   }]}}};
+   return {status:200,headers:new Headers({"content-type":"image/webp"}),body:{async cancel(){}}};
+ };
+ const done=await verifyTg756Public(makeFetch());
+ assert.equal(done.ok,true);
+ assert.equal(done.images,27);
+ await assert.rejects(verifyTg756Public(makeFetch("Liên hệ")),/public price mismatch/);
 });
