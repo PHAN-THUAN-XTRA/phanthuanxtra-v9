@@ -8,7 +8,7 @@ import {
 
 const sql=fs.readFileSync("migrations/0038_tg_756_owner_reconcile.sql","utf8");
 const controller=fs.readFileSync("scripts/deploy-cloudflare-api.mjs","utf8");
-const rows=Array.from({length:27},(_,i)=>({
+const rows=Array.from({length:29},(_,i)=>({
   id:i+2001,
   url:`https://phanthuanxtra.com/media/vehicles/photo-${i}.webp`,
   sort_order:i,
@@ -32,10 +32,10 @@ function db({car=ownerCar(),images=rows,applied=false,audit=snapshot}={}){
   };
 }
 
-test("MASTER's model-first photo sequence covers each of 27 original images once",()=>{
+test("MASTER's model-first photo sequence covers each of 29 original images once",()=>{
   assert.equal(ORIGINAL_INDEX_ORDER[0],4);
-  assert.equal(ORIGINAL_INDEX_ORDER.length,27);
-  assert.deepEqual([...ORIGINAL_INDEX_ORDER].sort((a,b)=>a-b),Array.from({length:27},(_,i)=>i));
+  assert.equal(ORIGINAL_INDEX_ORDER.length,29);
+  assert.deepEqual([...ORIGINAL_INDEX_ORDER].sort((a,b)=>a-b),Array.from({length:29},(_,i)=>i));
   const mappings=Array.from(sql.matchAll(/WHEN (\d+) THEN (\d+)/g)).map(x=>[Number(x[1]),Number(x[2])]);
   assert.deepEqual(mappings,ORIGINAL_INDEX_ORDER.map((old,sort)=>[old,sort]));
   assert.match(sql,/is_cover = CASE WHEN sort_order=4 THEN 1 ELSE 0 END/);
@@ -49,7 +49,7 @@ test("MASTER's model-first photo sequence covers each of 27 original images once
 test("D1 read-only preflight accepts 27 canonical source images and correct vehicle",async()=>{
   const p=await preflightTg756(db());
   assert.equal(p.alreadyApplied,false);
-  assert.equal(p.imageCount,27);
+  assert.equal(p.imageCount,29);
   assert.equal(p.oldCover,rows[0].url);
   const already=await preflightTg756(db({applied:true}));
   assert.equal(already.alreadyApplied,true);
@@ -62,12 +62,12 @@ test("preflight refuses missing images, encoded media paths, duplicates and wron
   await assert.rejects(preflightTg756(db({car:{...ownerCar(),model:"LX600"}})),/vehicle model/);
 });
 
-test("post-migration gate verifies 27-image model cover, order, owner price and ODO",async()=>{
+test("post-migration gate verifies 29-image model cover, order, owner price and ODO",async()=>{
   const images=ORIGINAL_INDEX_ORDER.map((old,i)=>({...rows[old],sort_order:i,is_cover:i===0?1:0}));
   const car={...ownerCar(),mileage:OWNER_MILEAGE,price:OWNER_PRICE,cover_image:rows[4].url};
   const proof=await verifyTg756Production(db({car,images}));
   assert.equal(proof.coverImageId,rows[4].id);
-  assert.equal(proof.imageCount,27);
+  assert.equal(proof.imageCount,29);
   await assert.rejects(verifyTg756Production(db({car:{...car,price:1},images})),/wrong price/);
   await assert.rejects(verifyTg756Production(db({car:{...car,cover_image:rows[0].url},images})),/hero/);
   await assert.rejects(verifyTg756Production(db({car,images,audit:null})),/rollback snapshot/);
@@ -94,6 +94,6 @@ test("public D1/API gallery proof verifies the owner price and R2 model cover",a
  };
  const done=await verifyTg756Public(makeFetch());
  assert.equal(done.ok,true);
- assert.equal(done.images,27);
+ assert.equal(done.images,29);
  await assert.rejects(verifyTg756Public(makeFetch("Liên hệ")),/public price mismatch/);
 });
