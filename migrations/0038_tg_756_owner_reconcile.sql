@@ -1,6 +1,6 @@
 -- PHAN THUAN XTRA: 2026-10-11 owner-approved tg-756 correction.
 -- Read MASTER_PROJECT_STATUS.md: human/model image must be the FIRST hero
--- and gallery tile. In the owner's 27-photo screenshot the model is at old
+-- and gallery tile. In the owner's gallery screenshot the model is at old
 -- sort_order=4 (second row, middle column). This is the canonical cover.
 -- No DELETE, no image row replacement and no R2 writes. Single existing ID.
 -- Deployment controller runs fail-closed read-only source preflight BEFORE
