@@ -24,8 +24,8 @@ function checkCar(car) {
 }
 function checkGallery(rows) {
   expect(rows.length === 29, "expected exactly 29 existing images, got " + rows.length);
-  expect(new Set(rows.map(row => Number(row.id))).size === 27, "duplicate image IDs");
-  expect(new Set(rows.map(row => row.url)).size === 27, "duplicate gallery URLs");
+  expect(new Set(rows.map(row => Number(row.id))).size === 29, "duplicate image IDs");
+  expect(new Set(rows.map(row => row.url)).size === 29, "duplicate gallery URLs");
   for (let i = 0; i < 29; i++) {
     expect(Number(rows[i].sort_order) === i, "noncontiguous sort_order at index " + i);
     expect(Number.isInteger(Number(rows[i].id)) && Number(rows[i].id) > 0, "invalid image ID " + i);
