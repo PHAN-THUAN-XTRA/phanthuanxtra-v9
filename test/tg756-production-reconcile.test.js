@@ -46,7 +46,7 @@ test("MASTER's model-first photo sequence covers each of 29 original images once
   assert.match(sql,/snapshot_before/);
 });
 
-test("D1 read-only preflight accepts 27 canonical source images and correct vehicle",async()=>{
+test("D1 read-only preflight accepts 29 canonical source images and correct vehicle",async()=>{
   const p=await preflightTg756(db());
   assert.equal(p.alreadyApplied,false);
   assert.equal(p.imageCount,29);
@@ -56,7 +56,7 @@ test("D1 read-only preflight accepts 27 canonical source images and correct vehi
 });
 
 test("preflight refuses missing images, encoded media paths, duplicates and wrong vehicle",async()=>{
-  await assert.rejects(preflightTg756(db({images:rows.slice(0,-1)})),/exactly 27/);
+  await assert.rejects(preflightTg756(db({images:rows.slice(0,-1)})),/exactly 29/);
   await assert.rejects(preflightTg756(db({images:rows.map((x,i)=>i===3?{...x,url:x.url.replace("vehicles/","vehicles%2F")}:x)})),/noncanonical/);
   await assert.rejects(preflightTg756(db({images:rows.map((x,i)=>i===3?{...x,url:rows[0].url}:x)})),/duplicate gallery/);
   await assert.rejects(preflightTg756(db({car:{...ownerCar(),model:"LX600"}})),/vehicle model/);
