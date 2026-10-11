@@ -645,12 +645,12 @@ for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLIS
 const tg756Preflight = await preflightTg756(queryD1);
 console.log('D1 tg-756 preflight: '+ (tg756Preflight.alreadyApplied ? 'already migrated' : 'verified 27 source images and owner identity'));
 await applyMigrations();
-const tg756Proof = await verifyTg756Production(queryD1);
-console.log('D1 tg-756 verified:', JSON.stringify(tg756Proof));
 await verifyTg527ProductionValues();
 await verifyTg527ProductionGallery();
 await verifyLx570Recovery();
 await verifyTg444ProductionGallery();
+const tg756Proof = await verifyTg756Production(queryD1);
+console.log('D1 tg-756 verified:', JSON.stringify(tg756Proof));
 const vehicleQueues = await ensureVehicleQueueResources();
 const memoryQueues = await ensureMemoryQueueResources();
 const assetJwt = await uploadAssets();
