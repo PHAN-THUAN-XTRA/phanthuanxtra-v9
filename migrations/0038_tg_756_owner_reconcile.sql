@@ -1,6 +1,6 @@
 -- PHAN THUAN XTRA: 2026-10-11 owner-approved tg-756 correction.
 -- Read MASTER_PROJECT_STATUS.md: human/model image must be the FIRST hero
--- and gallery tile. In the owner's 27-photo screenshot the model is at old
+-- and gallery tile. In the owner's gallery screenshot the model is at old
 -- sort_order=4 (second row, middle column). This is the canonical cover.
 -- No DELETE, no image row replacement and no R2 writes. Single existing ID.
 -- Deployment controller runs fail-closed read-only source preflight BEFORE
@@ -17,12 +17,12 @@ SELECT 'owner-tg756-20261011','snapshot_before','car',id,
                    FROM (SELECT id,url,sort_order,is_cover FROM car_images
                          WHERE car_id='tg-756' ORDER BY sort_order,id))
        )
-FROM cars WHERE id='tg-756' AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=27
+FROM cars WHERE id='tg-756' AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=29
  AND (SELECT MIN(sort_order) FROM car_images WHERE car_id='tg-756')=0
- AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=26
+ AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=28
  AND NOT EXISTS (
    SELECT 1 FROM car_images
    WHERE car_id='tg-756'
@@ -61,15 +61,17 @@ SET sort_order = CASE sort_order
     WHEN 24 THEN 24
     WHEN 25 THEN 25
     WHEN 26 THEN 26
+    WHEN 27 THEN 27
+    WHEN 28 THEN 28
     ELSE sort_order
   END,
   is_cover = CASE WHEN sort_order=4 THEN 1 ELSE 0 END
-WHERE car_id='tg-756' AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=27
+WHERE car_id='tg-756' AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=29
  AND (SELECT MIN(sort_order) FROM car_images WHERE car_id='tg-756')=0
- AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=26
+ AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=28
  AND NOT EXISTS (
    SELECT 1 FROM car_images
    WHERE car_id='tg-756'
@@ -84,12 +86,12 @@ SET mileage=17368,
                  WHERE car_id='tg-756' AND sort_order=0 AND is_cover=1 LIMIT 1),
     updated_at=CURRENT_TIMESTAMP
 WHERE id='tg-756'
-  AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=27
+  AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=29
  AND (SELECT MIN(sort_order) FROM car_images WHERE car_id='tg-756')=0
- AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=26
+ AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=28
  AND NOT EXISTS (
    SELECT 1 FROM car_images
    WHERE car_id='tg-756'
@@ -99,14 +101,14 @@ WHERE id='tg-756'
 
 INSERT INTO cms_audit_log (actor,action,resource,resource_id,summary)
 SELECT 'owner-tg756-20261011','reconcile','car','tg-756',
-       'Owner-approved 17368 km; 6799000000 VND; 27 images; model is first image and cover'
+       'Owner-approved 17368 km; 6799000000 VND; 29 images; model is first image and cover'
 WHERE EXISTS (SELECT 1 FROM cars WHERE id='tg-756' AND mileage=17368 AND price=6799000000)
-  AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=27
- AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=27
+  AND (SELECT COUNT(*) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT id) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT url) FROM car_images WHERE car_id='tg-756')=29
+ AND (SELECT COUNT(DISTINCT sort_order) FROM car_images WHERE car_id='tg-756')=29
  AND (SELECT MIN(sort_order) FROM car_images WHERE car_id='tg-756')=0
- AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=26
+ AND (SELECT MAX(sort_order) FROM car_images WHERE car_id='tg-756')=28
  AND NOT EXISTS (
    SELECT 1 FROM car_images
    WHERE car_id='tg-756'
