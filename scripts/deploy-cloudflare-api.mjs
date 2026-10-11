@@ -1,4 +1,4 @@
-import { preflightTg756, verifyTg756Production } from "./tg756-production-gate.mjs";
+import { preflightTg756, verifyTg756Production, verifyTg756Public } from "./tg756-production-gate.mjs";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve } from "node:path";
@@ -669,4 +669,6 @@ if (blogCheck.status !== 200 || !blogType.includes("application/json")) throw ne
 console.log("Blog custom-domain API route: HTTP 200 JSON.");
 await syncCronSchedules();
 await verifyApiLineage();
+const tg756PublicProof = await verifyTg756Public(fetch);
+console.log("Public tg-756 /api/cars and R2 verified:", JSON.stringify(tg756PublicProof));
 console.log("API/SDK deployment controller completed successfully.");
