@@ -1,5 +1,21 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## OWNER HIDE TG-652 — VERIFIED PRODUCTION — 2026-10-11 (UTC+7)
+
+- **Owner instruction:** hide existing [Audi Q7 `tg-652`](https://phanthuanxtra.com/car.html?id=tg-652) again; keep its D1 record, all original photos and R2 objects for reversible display later. This is a visibility change, not republishing or deletion.
+- **GitHub:** [PR #833](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/833) merged as exact main `989ef1a0a93dcb57fea7f4c7ab02f0b9e90fae6e` after CI, AI Pre-Deploy Audit, MASTER Integrity, SonarQube, deploy PR validation and Jev+LLM decision checks passed.
+- **Authoritative D1 evidence:** [production Cloudflare API/SDK deploy run 38125345140](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38125345140) **SUCCESS**. Preflight `status=available`, `image_count=23`. Migration `0039_tg_652_owner_hide.sql` APPLIED. Post-read verifies `status=hidden`, **23/23 images preserved**, all image IDs, URLs, gallery order and cover flags unchanged; original brand, model, price, ODO, description and cover field unchanged. Pre-hide `available` status logged in `cms_audit_log` for reversible restoration.
+- **Public acceptance:** deployed controller fetched D1-backed `/api/cars` and confirmed `tg-652` ABSENT, other public vehicles unaffected. Production homepage/Admin HTTP 200 UTF-8, cache purge, R2 Worker E2E and Publishing E2E passed. The detail page still exists as a generic HTML shell, but its client-side vehicle lookup correctly refuses to display hidden `tg-652`; this is not a blanket 404 for the HTML file.
+- No additional owner media deleted, no new car ID, no secret rotation, no paid services, no manual S21 Wrangler use. **FINAL GREEN:** owner-requested hide completed and verified.
+
+## PR GATE AUDIT — 2026-10-11 (UTC+7)
+
+- Read current main `aa8b69af8853ef152c615c0fff762a7b67124255` before repair. CI, MASTER Integrity and SonarQube PASS on that documentation commit. Runtime remains deployed from `989ef1a0a93dcb57fea7f4c7ab02f0b9e90fae6e`; deploy [38125345140](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38125345140), Smoke Gate-15 [38125491703](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38125491703), reconciliation and asset delivery PASS.
+- PR #834 resolution preserves all current main content, adds the missing Audi receipt, and removes its duplicate Lexus receipt already merged through #835. PR #832 is superseded by #835. PR #826 is superseded by #827's Telegram diagnostic deployment and S21 no-Wrangler checkpoint. Its historical connectivity details remain in Git history.
+- Required ruleset is active: CI / Validate, AI Pre-Deploy Audit / Validate and MASTER Integrity Gate / Validate, strict up-to-date branch, no bypass actors. Resolve conflicts and require fresh checks on exact repaired PR head before merging. Documentation-only changes do not require another Worker deploy.
+- Still OPEN: Telegram /chat real reply or diagnostic evidence; physical S21 UI/gallery/login acceptance; D1 lead fail-closed receipt; durable email outbox/idempotency/reconciliation; same-lead Telegram delivery proof; Spam placement; Content Runner quota/safety/live approval. Brevo transactional delivery/real Gmail receipt already PASS. Issue #828 remains open for outstanding visual acceptance; issue #807 must retain device and Content Runner acceptance.
+- This audit is documentation reconciliation, not completion of those runtime gates. Do not infer a fresh production/browser/device test from these recorded deployment receipts.
+
 ## LEXUS TG-756 — PRODUCTION ACCEPTANCE VERIFIED — 2026-10-11 (UTC+7)
 
 - **FINAL GREEN for the specific owner-approved vehicle correction:** [PR #831](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/831) squash-merged at exact main `ec123d9cb68be3a3682b78d1479060bbb824718e` after all nine PR workflows passed. [Cloudflare production deploy run 38124814426](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38124814426) completed SUCCESS. The deployment log records `D1: applied 0038_tg_756_owner_reconcile.sql`, then `D1 tg-756 verified: {"ok":true,"id":"tg-756","mileage":17368,"price":6799000000,"imageCount":29,"coverImageId":1911}`.
