@@ -1,3 +1,4 @@
+import { preflightTg756, verifyTg756Production, verifyTg756Public } from "./tg756-production-gate.mjs";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import { extname, join, relative, resolve } from "node:path";
@@ -641,11 +642,15 @@ for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLIS
   if (!publishingBindings.some(binding => binding.name === name) && !process.env[name])
     throw new Error(`${name} is required on the website Worker for editorial publishing; configure it before deployment.`);
 }
+const tg756Preflight = await preflightTg756(queryD1);
+console.log('D1 tg-756 preflight: '+ (tg756Preflight.alreadyApplied ? 'already migrated' : 'verified 27 source images and owner identity'));
 await applyMigrations();
 await verifyTg527ProductionValues();
 await verifyTg527ProductionGallery();
 await verifyLx570Recovery();
 await verifyTg444ProductionGallery();
+const tg756Proof = await verifyTg756Production(queryD1);
+console.log('D1 tg-756 verified:', JSON.stringify(tg756Proof));
 const vehicleQueues = await ensureVehicleQueueResources();
 const memoryQueues = await ensureMemoryQueueResources();
 const assetJwt = await uploadAssets();
@@ -664,4 +669,6 @@ if (blogCheck.status !== 200 || !blogType.includes("application/json")) throw ne
 console.log("Blog custom-domain API route: HTTP 200 JSON.");
 await syncCronSchedules();
 await verifyApiLineage();
+const tg756PublicProof = await verifyTg756Public(fetch);
+console.log("Public tg-756 /api/cars and R2 verified:", JSON.stringify(tg756PublicProof));
 console.log("API/SDK deployment controller completed successfully.");

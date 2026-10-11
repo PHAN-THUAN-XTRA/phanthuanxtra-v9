@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## LEXUS TG-756 — OWNER MODEL-FIRST CORRECTION — 2026-10-11 (UTC+7)
+
+- **Owner-authorized scope:** existing canonical Lexus LM500h 2024 `tg-756`; D1 ODO **17,368 km**, selling price **6,799,000,000 VND**, preserve all **27** approved images. The owner explicitly requires the image showing a **person/model** to be the **first gallery image and hero/cover**. In the owner's screenshot it is the fifth tile (zero-based original `sort_order=4`, second row middle), not the exterior car photo.
+- **Implementation in PR [#830](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/830), issue [#829](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/829):** D1 migration `0038_tg_756_owner_reconcile.sql` plus read-only source preflight and after-migration verification in the existing Cloudflare API/SDK deploy controller. Model priority, then exterior/cockpit/interior/amenities; 27 original image IDs and URLs remain. A pre-change `cms_audit_log` snapshot enables data rollback. The migration does not delete/reupload R2 media and does not create a new car.
+- **Safety:** regression tests cover screenshot order, model-first cover, exact numeric owner values, migration precondition, image preservation, full 27-image proof, and fail-closed verification before Worker deployment. Do not silently reorder based on Telegram filenames. No additional paid service, credentials, or secrets.
+- **At authoring:** the PR is OPEN and CI/AI audit may still be running; **no merge, production D1 mutation or production acceptance is claimed**. Check exact PR head CI and audit before merge. After merge, require GitHub Actions deploy SUCCESS on exact main merge SHA plus D1 27/27 and owner price/ODO receipt, public API/detail hero and canonical media URL checks; if any gate fails, retain OPEN and investigate. Any confirmed completion must be appended with verifiable workflow IDs and SHA.
+
+
 ## TELEGRAM /CHAT PR #825 — MERGED AND DEPLOYED — 2026-10-09 (UTC+7)
 
 - **Code merged:** [PR #825](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/825) squash-merged as `27cccea655270d39781e9b128774dccd1a5c1691` after exact head `5edbd3b9e915aa559ae8bcdb01e6f6005c7db40f` passed nine checks; the PR production deploy job was skipped as designed. CI, AI Pre-Deploy Audit, MASTER Integrity, SonarQube and decision cascade were successful.
