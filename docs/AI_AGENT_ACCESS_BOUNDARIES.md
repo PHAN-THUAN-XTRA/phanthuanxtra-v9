@@ -1,6 +1,6 @@
 # AI Agent access boundaries — ChatGPT, GitHub, Cloudflare, and desktop Lyly
 
-**Date:** 2026-10-12 (Asia/Ho_Chi_Minh)  
+**Date:** 2026-10-12 (Asia/Ho_Chi_Minh)
 **Scope:** operational documentation only. No source/runtime/deployment changes.
 
 ## Existing, verified integration paths
@@ -35,7 +35,7 @@ Do not place that Windows audit ZIP or raw personal device logs in this public w
 
 ## Evidence and outstanding actions
 
-**Confirmed from source:** GitHub repository access; named workflow definitions; upstream read-only rights; historical Lyly source risk indicators.  
+**Confirmed from source:** GitHub repository access; named workflow definitions; upstream read-only rights; historical Lyly source risk indicators.
 **Not confirmed:** Live Windows remediation; voice/face authentication; Android APK; direct Cloudflare account connector; a completed Lyly-to-cloud command bridge.
 
 Any agent claiming these are complete must attach a fresh, independently verifiable acceptance receipt.
