@@ -65,6 +65,9 @@ jobs:
           jq -e --argjson id "$lead_id" --arg marker "$marker"             '.leads[] | select(.id == $id and .name == $marker and .phone == "0900000000" and (.message|contains("Lái thử xe")) and (.message|contains("Lexus RX350L")))'             /tmp/web-form-leads.json >/dev/null
           echo "Homepage form -> D1 lead $lead_id -> Telegram CRM: PASS"
 
+          # Read the already-created synthetic lead receipt; never send another email.
+          LEAD_ID="$lead_id" PTX_EMAIL_RECEIPT_TOKEN="$session_token" node scripts/verify-lead-email-receipt.mjs
+
           ai_conversation="ci-ai-chat-${GITHUB_RUN_ID}"
           ai_payload="$(jq -nc --arg cid "$ai_conversation" '{conversation_id:$cid,visitor_id:$cid,test_context:"production-smoke",message:"Hotline liên hệ chính thức là gì?"}')"
           ai_status="$(curl --silent --show-error --max-time 60 -o /tmp/ai-chat.json -w '%{http_code}'             -X POST "$SITE_URL/api/ai-chat"             -H 'content-type: application/json'             --data "$ai_payload")"
