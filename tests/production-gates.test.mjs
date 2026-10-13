@@ -313,7 +313,7 @@ test('production gate: Business Jets lead preserves itinerary for Telegram CRM',
 
 test('Business Jets lead stores itinerary in D1 and Telegram accepts correctly classified message', async () => {
   const rows=[];
-  const DB={prepare(sql){return {bind(...args){return {
+  const DB={async batch(statements){return Promise.all(statements.map(statement=>statement.run()));},prepare(sql){return {bind(...args){return {
     async run(){if(sql.includes('INSERT INTO leads')){rows.push({id:17,name:args[0],phone:args[1],message:args[3]});return {meta:{last_row_id:17}};}return {meta:{changes:1}};},
     async all(){return {results:rows};},
     async first(){return null;}
