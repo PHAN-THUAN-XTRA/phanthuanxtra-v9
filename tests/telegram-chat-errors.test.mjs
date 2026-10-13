@@ -1,9 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { answerAutoCustomer, AUTO_MODELS } from "../src/auto-bot-ai.js";
 import { handleTelegramRouter } from "../src/telegram-router.js";
 
+function fixtureDb(){
+ const sql=new DatabaseSync(':memory:');
+ sql.exec(fs.readFileSync(new URL('../migrations/0042_telegram_chat_jobs.sql',import.meta.url),'utf8'));
+ return {DB:{prepare(query){let args=[];const s={bind(...values){args=values;return s;},async run(){const r=sql.prepare(query).run(...args);return {meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)}};},async first(){return sql.prepare(query).get(...args)||null;},async all(){return {results:sql.prepare(query).all(...args)};}};return s;}},sql};
+}
+
 async function failedChat(t, AI) {
+  const {DB}=fixtureDb();
   const replies = [], logs = [], tasks = [];
   t.mock.method(console, "warn", (...args) => logs.push(args));
   t.mock.method(console, "error", (...args) => logs.push(args));
@@ -17,7 +26,7 @@ async function failedChat(t, AI) {
     body: JSON.stringify({ message: { message_id: 1, chat: { id: 123 }, text: "/chat PRIVATE_QUESTION" } })
   });
   const response = await handleTelegramRouter(request, {
-    TELEGRAM_AUTO_BOT_TOKEN: "fixture", TELEGRAM_WEBHOOK_SECRET: "fixture", AI,
+    TELEGRAM_AUTO_BOT_TOKEN: "fixture", TELEGRAM_WEBHOOK_SECRET: "fixture", DB, AI,
     GEMINI_API_KEY: "fixture", GEMINI_MODEL: "gemini-fixture"
   }, { waitUntil(task) { tasks.push(task); } });
   assert.equal(response.status, 200);
@@ -83,19 +92,18 @@ test("a busy primary can still succeed on the existing fallback without a capaci
   assert.equal(result.answer, "Hãy chuẩn bị danh sách cần kiểm tra.");
 });
 
-test("unrelated Telegram transport failures retain the generic safe error boundary", async t => {
-  const replies = [];
-  t.mock.method(console, "error", () => {});
-  t.mock.method(globalThis, "fetch", async (_url, init) => {
-    const message = JSON.parse(init.body);
-    if (message.text === "fixture answer") return Response.json({ ok: false, description: "PRIVATE_PROVIDER_DETAILS" });
-    replies.push(message);
-    return Response.json({ ok: true, result: {} });
-  });
-  await handleTelegramRouter(new Request("https://example.com/api/telegram/webhook", {
-    method: "POST", headers: { "X-Telegram-Bot-Api-Secret-Token": "fixture" },
-    body: JSON.stringify({ message: { message_id: 1, chat: { id: 123 }, text: "/chat xe" } })
-  }), { TELEGRAM_AUTO_BOT_TOKEN: "fixture", TELEGRAM_WEBHOOK_SECRET: "fixture", AI: { async run() { return { response: "fixture answer" }; } } }, null);
-  assert.match(replies.at(-1).text, /Chưa xử lý được yêu cầu/);
-  assert.doesNotMatch(JSON.stringify(replies), /PRIVATE_PROVIDER_DETAILS|AI_QUOTA_EXHAUSTED/);
+test("unconfirmed Telegram send is held uncertain and does not leak provider response", async t => {
+ const {DB,sql}=fixtureDb(),replies=[];
+ t.mock.method(console,"warn",()=>{});
+ t.mock.method(globalThis,"fetch",async(_url,init)=>{
+  const m=JSON.parse(init.body);
+  if(m.text==="fixture answer")return Response.json({ok:false,description:"PRIVATE_PROVIDER_DETAILS"},{status:503});
+  replies.push(m);return Response.json({ok:true,result:{message_id:1}});
+ });
+ const req=new Request("https://example.com/api/telegram/webhook",{method:"POST",headers:{"X-Telegram-Bot-Api-Secret-Token":"fixture"},body:JSON.stringify({message:{message_id:1,chat:{id:123},text:"/chat xe"}})});
+ const env={DB,TELEGRAM_AUTO_BOT_TOKEN:"fixture",TELEGRAM_WEBHOOK_SECRET:"fixture",AI:{async run(){return {response:"fixture answer"};}}};
+ assert.equal((await handleTelegramRouter(req,env,null)).status,200);
+ assert.equal(sql.prepare("SELECT state FROM xtra_telegram_chat_jobs").get().state,"uncertain");
+ assert.equal(replies.length,1);
+ assert.doesNotMatch(JSON.stringify(replies),/PRIVATE_PROVIDER_DETAILS/);
 });

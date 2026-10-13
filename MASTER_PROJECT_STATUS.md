@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## P1 TELEGRAM /CHAT DURABLE RECOVERY — 2026-10-13 (UTC+7)
+
+- Owner-provided live screenshot: Phanthuanxtra-nhapxe Auto Bot accepted a /chat request and returned only the initial acknowledgement. The screenshot does not establish why the background AI reply was absent; an interrupted waitUntil is a credible unconfirmed failure mode.
+- Scoped repair: migration 0042_telegram_chat_jobs.sql persists the owner question with a unique Telegram update identity BEFORE acknowledgement. Conditional generating and sending leases; existing five-minute cron recovers interrupted inference, capped at three attempts. AI answer or a sanitized error is saved before attempting Telegram delivery. Ambiguous Telegram outcomes are held UNCERTAIN and not resent blindly.
+- Workers AI attempts are bounded to 6.5 seconds per model and Telegram delivery to 8 seconds. Signed-admin read-only operational endpoint /api/admin/telegram-chat-jobs contains only state, attempt counts, message IDs and bounded error codes, never chat ID or question. Completed jobs expire after seven days.
+- Do not backfill old /chat messages without source data; VIP Bot, vehicle sessions, configured secrets and Content Runner remain unchanged. Unit, PR gates, exact-main deploy and physical Telegram reply proof remain independent acceptance conditions, PENDING at this checkpoint.
+
+
 ## P0 DURABLE LEAD EMAIL — 2026-10-13 (UTC+7)
 
 - PR #845 merged as `649abd7798e1abec9a4a5834a9581585be923f41`; all nine PR workflows passed. Exact-main deploy `38364887145` SUCCESS. This closes the missing-D1 false-success code defect; device-specific acceptance remains separate.
