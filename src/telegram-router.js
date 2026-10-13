@@ -1,10 +1,11 @@
 import { enqueueTelegramVehicleDraft, reconcileTelegramVehicleDrafts } from "./telegram-draft-jobs.js";
+import { enqueueAutoChat, processAutoChatJobs } from "./telegram-chat-jobs.js";
 import { handleEditorialMessage, isEditorialMessage, EDITORIAL_HELP } from "./telegram-editorial.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
 import { promoteDraft } from "./telegram-ingest.js";
 import { savePost } from "./post-persistence.js";
 import { getPost } from "./post-persistence.js";
-import { answerAutoCustomer, autoBlogSlug, autoChatFailure, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
+import { autoBlogSlug, canPublishAutoBlog, createBlogPost, generateVehicleBlog, isAutoChat, parseAutoCommand } from "./auto-bot-ai.js";
 import { boundedBytes, storePublishingImage } from "./publishing-api.js";
 import { imageInputLimit } from "./media-policy.js";
 import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
@@ -450,19 +451,6 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     await tg(token, "sendMessage", { chat_id: chatId, text: "Gửi ảnh xe kèm /blog và ghi chú để AI tạo bài, hoặc /blog với tiêu đề và nội dung trên hai dòng." });
     return;
   }
-  if (!photo && (command?.name === "chat" || isAutoChat(caption))) {
-    if (command && !command.body) { await tg(token, "sendMessage", { chat_id: chatId, text: "Nhập /chat cùng câu hỏi về xe của bạn." }); return; }
-    let result;
-    try { result = await answerAutoCustomer(env, command?.body || caption); }
-    catch (error) {
-      const failure = autoChatFailure(error);
-      if (!failure) throw error;
-      await tg(token, "sendMessage", { chat_id: chatId, text: failure.message });
-      return;
-    }
-    await tg(token, "sendMessage", { chat_id: chatId, text: result.answer });
-    return;
-  }
   if (command) {
     await tg(token, "sendMessage", { chat_id: chatId, text: "Gõ /help để xem các lệnh hỗ trợ." });
     return;
@@ -544,6 +532,24 @@ async function autoWebhook(request, env, ctx) {
   const caption = clean(message.caption || message.text);
   if (!photo && !caption) return json({ ok: true, ignored: true });
   const chatId = String(message.chat.id);
+  const command=!photo?parseAutoCommand(caption):null;
+  if(!photo&&(command?.name==="chat"||(!command&&isAutoChat(caption)))){
+    if(command&&!command.body){
+      await tg(token,"sendMessage",{chat_id:chatId,text:"Nhập /chat cùng câu hỏi về xe của bạn."});
+      return json({ok:true,ignored:true});
+    }
+    // Record in D1 before the acknowledgement. An uncommitted webhook must be retried by Telegram.
+    if(!env.DB)return json({ok:false,error:"D1 unavailable"},503);
+    let queued;
+    try{queued=await enqueueAutoChat(env,{chatId,messageId:message.message_id,question:command?.body||caption});}
+    catch{console.warn("telegram_chat_intake_deferred");return json({ok:false,error:"Chat queue unavailable"},503);}
+    if(queued.inserted){
+      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id),text:"📥 Đã nhận yêu cầu. Đang xử lý..."}).catch(()=>console.warn("telegram_chat_ack_deferred"));
+    }
+    const task=processAutoChatJobs(env,{jobId:queued.jobId}).catch(()=>console.warn("telegram_chat_background_deferred"));
+    if(ctx?.waitUntil)ctx.waitUntil(task);else await task;
+    return json({ok:true,stored:true,replayed:!queued.inserted});
+  }
   // Album items are acknowledged once by the debounced media_group processor below.
   // Non-album updates retain the immediate receipt.
   if(!message.media_group_id){

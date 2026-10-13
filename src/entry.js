@@ -1,4 +1,5 @@
 import { processLeadEmailOutbox, handleLeadEmailOutbox } from "./lead-email-outbox.js";
+import { processAutoChatJobs, handleAutoChatJobStatus } from "./telegram-chat-jobs.js";
 import { handleAiDiscovery } from "./ai-discovery.js";
 import { handlePublishingApi } from "./publishing-api.js";
 import { handleContentPrepApi } from "./content-prep-api.js";
@@ -37,6 +38,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const chatStatusResponse = await handleAutoChatJobStatus(request, env);
+      if (chatStatusResponse) return chatStatusResponse;
       const emailOutboxResponse = await handleLeadEmailOutbox(request, env);
       if (emailOutboxResponse) return emailOutboxResponse;
       const discoveryResponse = await handleAiDiscovery(request, env);
@@ -188,6 +191,8 @@ export default {
     console.log("telegram_vehicle_queue_jobs",JSON.stringify(result));
   },
   async scheduled(controller, env, ctx) {
+    try { console.log("telegram_chat_queue",JSON.stringify(await processAutoChatJobs(env))); }
+    catch { console.warn("telegram_chat_queue_deferred"); }
     try {
       console.log("lead_email_outbox", JSON.stringify(await processLeadEmailOutbox(env)));
     } catch { console.warn("lead_email_outbox_deferred"); }

@@ -58,7 +58,7 @@ function chatFailureCode(error) {
   if (Number(error?.status) === 429 || /\b429\b|rate.?limit|too many requests/i.test(detail)) return "AI_RATE_LIMITED";
   return "AI_UNAVAILABLE";
 }
-export async function answerAutoCustomer(env, question) {
+export async function answerAutoCustomer(env, question, {modelTimeoutMs=6500}={}) {
   if (typeof env.AI?.run !== "function") {
     console.warn("telegram_chat_ai_failed", { code: "AI_NOT_CONFIGURED" });
     throw new AutoChatError("AI_NOT_CONFIGURED");
@@ -71,7 +71,14 @@ export async function answerAutoCustomer(env, question) {
   for (const model of [AUTO_MODELS.chat, AUTO_MODELS.fallback, AUTO_MODELS.reasoning]) {
     let code;
     try {
-      const response = await env.AI.run(model, { messages, max_tokens: 700, temperature: 0.2 }, { rejectIfBusy: true });
+      // Bound model latency so waitUntil can checkpoint before its lifetime expires.
+      let timer;
+      const response=await (async()=>{
+        try{return await Promise.race([
+          env.AI.run(model,{messages,max_tokens:700,temperature:0.2},{rejectIfBusy:true}),
+          new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("AI_TIMEOUT"),{name:"TimeoutError"})),Math.max(1000,Math.min(25000,modelTimeoutMs)));})
+        ]);}finally{clearTimeout(timer);}
+      })();
       const answer = text(response?.choices?.[0]?.message?.content || response?.response);
       if (answer) return { answer, model };
       code = "AI_EMPTY_RESPONSE";
