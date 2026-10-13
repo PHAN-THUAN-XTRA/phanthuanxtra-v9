@@ -1,6 +1,6 @@
 # PR Gate Reconciliation — Phan Thuần Xtra
 
-**Snapshot:** 2026-10-13 (UTC+7). Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`. Audited `main`: `759ff223b0fa1f4fefb2d7ea7b6de92d20cc6a45`. One canonical [MASTER](../MASTER_PROJECT_STATUS.md) is the primary project status; this file is a scoped **acceptance checklist**, not a second MASTER.
+**Snapshot:** 2026-10-13 (UTC+7). Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`. Current `main`: `3db659253d9a58ec056ba29c64834596bb37fbd1` after PR #849; original audit baseline `759ff223b0fa1f4fefb2d7ea7b6de92d20cc6a45`. One canonical [MASTER](../MASTER_PROJECT_STATUS.md) is the primary project status; this file is a scoped **acceptance checklist**, not a second MASTER.
 
 ## Confirmed baseline
 
@@ -20,10 +20,23 @@
 | P2 | Content Runner live | Source contract bounded, current `CONTENT_RUNNER_LIVE_ENABLED=0`; offline test fixtures exist | Offline CI proof first; separately confirm quota/billing ceiling, role scopes and owner approval for any single live trial; do not enable automatically |
 | Separate P0 | Lyly WebSocket / biometric auth | PC-specific evidence incomplete; not a website PR | Private owner-side read-only probe, staged fail-closed authentication and S21 acceptance before remote-control capability; never upload biometrics/secrets into GitHub |
 
-## Automatic safe gates in this PR
+## Completed automatic gates — PR #849
 
-1. **PR CI:** run the existing `scripts/simulate-content-runner.mjs` with fixture AI only; enforce `real_ai_calls=0`, one private draft, idempotent replay and no public publishing; fail if `wrangler.json` enables live or limits/approval contract drift.
-2. **Production Gate-15, on next normal runtime deploy:** read-only fetch the D1-backed public catalog and exact vehicle API details; assert tg-756/tg-527 absent and hidden details HTTP 404. No mutation, private Admin lookup, API token or camera inference.
-3. **Documentation checkpoint:** this report and the canonical MASTER note only state **already observed** production facts. PR check results and the new production step must be recorded with actual run IDs after execution. This docs/workflow PR must not imply a new Cloudflare deploy has occurred.
+1. **PR CI — PASS:** run the existing `scripts/simulate-content-runner.mjs` with fixture AI only; enforce `real_ai_calls=0`, one private draft, idempotent replay and no public publishing; fail if `wrangler.json` enables live or limits/approval contract drift.
+2. **Production Gate-15 — PASS on merge commit `3db65925`:** read-only fetch the D1-backed public catalog and exact vehicle API details; assert tg-756/tg-527 absent and hidden details HTTP 404. No mutation, private Admin lookup, API token or camera inference.
+3. **Documentation checkpoint — PASS:** PR #849 triggered a normal GitHub Actions deploy because workflow YAML changed; Cloudflare deploy actually occurred and succeeded. All acceptance claims below link to observed run IDs, not projected checks.
 
 **Safety constraints:** Never touch the 29/24 retained car images, expose private credentials or customer records, change DNS based only on Spam placement, increase AI quotas/cost, or claim S21 acceptance from CI. Do not mark #807 or #828 closed without the missing owner evidence.
+
+## Verified PR #849 / production receipts
+
+| Gate | Exact observed evidence |
+| --- | --- |
+| PR #849 | [Merged](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/849), all 9 exact-head gate checks PASS |
+| Exact-main CI + offline Content Runner | [CI 38380399739](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399739) SUCCESS; offline simulation no paid inference and no public publish |
+| MASTER + SonarQube | [MASTER 38380399702](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399702), [Sonar 38380399555](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399555) SUCCESS |
+| Cloudflare | [Deploy 38380399609](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399609) SUCCESS on `3db65925` |
+| Hidden-car API, read-only | [Production Smoke Gate-15 38380596505](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596505) SUCCESS; exact new step verified D1-backed catalog exclusion and HTTP 404 for tg-756 and tg-527 |
+| Other production E2E | [Stage 3 38380596383](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596383), [Forms/CRM 38380596450](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596450), Blog CMS, App Assistant and Live Chat Identity SUCCESS |
+
+**Still not accepted:** S21 real-device login and hidden-state UI; actual generated AI advice while Workers AI quota is exhausted; reliable Gmail Primary folder placement; Content Runner live, which remains disabled pending separate owner/billing approval. Issues [#807](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/807) and [#828](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/828) remain OPEN. This documents evidence; it does not constitute a new live runtime change.
