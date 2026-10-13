@@ -86,6 +86,29 @@ jobs:
           node --test test/videos-page.test.js test/videos-route-migration.test.js test/telegram-durable-draft-jobs.test.js test/cloudflare-vehicle-queue.test.js
           node --test developer-gateway/test/index.test.mjs
 
+      - name: Content Runner offline safety acceptance (no live Workers AI)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/simulate-content-runner.mjs > "$RUNNER_TEMP/content-runner-offline.json"
+          node --input-type=module - "$RUNNER_TEMP/content-runner-offline.json" <<'NODE'
+          import fs from 'node:fs';
+          const json=JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const config=JSON.parse(fs.readFileSync('wrangler.json','utf8'));
+          const contract=(await import('./src/content-runner-contract.js')).contentRunnerContract();
+          const limits=contract.limits;
+          if(config.vars?.CONTENT_RUNNER_LIVE_ENABLED!=='0') throw Error('CONTENT_RUNNER_LIVE_ENABLED changed from safe default');
+          if(json.mode!=='offline-simulation'||json.real_ai_calls!==0||json.simulated_ai_calls!==1||
+             json.completion!=='completed'||json.lost_response_reconciled!==true||json.replay_same_artifact!==true||
+             json.private_drafts!==1||json.pending_publication_jobs!==0||
+             json.publicPublish!==false||json.autoPublish!==false||json.requires_owner_approval!==true)
+              throw Error('Offline Content Runner private-only/idempotency gate failed');
+          if(limits.callsPerRun!==3||limits.callsPerDay!==12||limits.maxTokens!==1200||
+             contract.publicPublish!==false||contract.autoPublish!==false||contract.requires_owner_approval!==true)
+              throw Error('Content Runner bounded model/approval contract drift');
+          console.log('Content Runner offline gate: PASS (real AI 0, private draft, replay idempotent, no publish, live disabled)');
+          NODE
+
       - name: Detect owner review UI changes
         id: owner-review-changes
         shell: bash

@@ -59,6 +59,24 @@ jobs:
           check_http_200 "$SITE_URL/api/cars" "/api/cars"
           check_http_200 "$SITE_URL/admin.html" "/admin.html"
           check_http_200 "$WORKER_URL/" "Production Worker"
+      - name: Verify hidden owner vehicles remain absent from public API (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --retry-delay 1 --max-time 30 \
+            -H 'accept: application/json' -H 'cache-control: no-cache' \
+            "$SITE_URL/api/cars?owner_hidden_gate=$GITHUB_RUN_ID" -o /tmp/owner-hidden-catalog.json
+          jq -e '.source == "d1" and (.cars | type == "array") and
+            ([.cars[].id] | index("tg-756") == null and index("tg-527") == null)' \
+            /tmp/owner-hidden-catalog.json >/dev/null
+          for id in tg-756 tg-527; do
+            status="$(curl --silent --show-error --max-time 30 -o /dev/null -w '%{http_code}' \
+              -H 'accept: application/json' "$SITE_URL/api/cars/$id?owner_hidden_gate=$GITHUB_RUN_ID")"
+            echo "Hidden owner vehicle $id: public detail HTTP $status"
+            test "$status" = "404"
+          done
+          echo "Hidden owner vehicles: public D1-backed catalog exclusion and detail 404 PASS; no mutation or private images requested."
+
       - name: Compare editorial provenance on workers.dev and custom domain
         shell: bash
         run: |

@@ -1,5 +1,18 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## CANONICAL PR GATE STATUS — 2026-10-13 (UTC+7)
+
+**Latest reconciled state (supersedes historical "PENDING" lines below):** audited `main` `759ff223b0fa1f4fefb2d7ea7b6de92d20cc6a45`. No open PRs as of this checkpoint; only owner-acceptance issues [#807](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/807) and [#828](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/828) remain OPEN.
+
+- **P0 LEAD/EMAIL DURABILITY — PASS:** PRs #845/#846 merged; D1 migration 0041, fail-closed storage receipt and durable Brevo outbox deployed. Same-lead production E2E correlates D1, Telegram message ID and Brevo receipt; actual Gmail delivery independently confirmed. This does **not** guarantee Gmail Primary placement.
+- **P1 TELEGRAM /chat FINAL RESPONSE — PASS, AI ADVICE — BLOCKED BY QUOTA:** PRs #847/#848 merged; migration 0042 applied and queue receipt gate observed. Owner then sent a new real command and received first an acknowledgement, then a safe `AI_QUOTA_EXHAUSTED` diagnosis from `Phanthuanxtra-nhapxe`. Telegram reply transport is accepted; substantive generated advice is NOT accepted until provider quota permits it. Preserve uncertain historical send outcomes without resending.
+- **P1 EMAIL DELIVERABILITY — MONITOR:** recent matching Gmail notifications show Inbox/Promotions/Updates, but one earlier matching lead alert was SPAM; SPF/DKIM/DMARC passes alone do not certify stable Primary delivery. No repeated synthetic sends or sender/DNS secret changes are justified.
+- **P1 HIDDEN OWNER CARS — VERIFIED BY DEPLOY, DEVICE STILL OPEN:** tg-756 and tg-527 remain hidden with original 29/24 gallery images retained; no unhide, deletion or public gallery approval. Public API can be checked read-only in production smoke. Actual Samsung S21 Ultra login, `/customerapp`, layout, hidden-card exclusion and saved-detail-link behavior require owner-operated evidence; static CI cannot certify the device.
+- **P2 CONTENT RUNNER — OFFLINE ONLY:** protected by `CONTENT_RUNNER_LIVE_ENABLED=0`; tests verify model call budget 3 per run / 12 per day, 1,200 token cap, owner approval, private draft/proposal and idempotent retry; a CI offline simulation is proposed. No production live inference, spending or auto-publish authorized. Fleet/Cloudflare quota and actual owner review remain open.
+- **Lyly/JARVIS separate:** Windows voice/face and WebSocket 8765 security unresolved. This public website repository is not the place to publish private PC diagnostics or alter local JARVIS services.
+
+See [docs/PR_GATE_RECONCILIATION_2026-10-13.md](docs/PR_GATE_RECONCILIATION_2026-10-13.md) for acceptance criteria, exact CI/deploy receipts and safe next steps. This is a status reconciliation: claims about new CI checks remain PENDING until their PR checks run.
+
 ## P1 TELEGRAM /CHAT REAL-DEVICE FOLLOW-UP — 2026-10-13 16:29 (UTC+7)
 
 - Owner tested the production Auto Bot again after PR #847; bot still displayed only `📥 Đã nhận yêu cầu. Đang xử lý...`. The D1 queue deployment and cron receipt do not prove Telegram accepted the final response; physical /chat gate still OPEN.
