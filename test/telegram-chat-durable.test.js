@@ -58,7 +58,7 @@ test('expired Telegram send lease remains uncertain and is never resent',async t
  await processAutoChatJobs(f.env,{now:2000});assert.equal(sends,0);
 });
 test('signed admin reads metadata without leaking question, chat ID or reply',async()=>{
- const f=fixture();f.env.ADMIN_TOKEN='test-token';
+ const f=fixture();f.env.ADMIN_TOKEN='fixture';
  await enqueueAutoChat(f.env,{chatId:'987654321',messageId:14,question:'PRIVATE_CUSTOMER_QUESTION'});
  const url='https://example.com/api/admin/telegram-chat-jobs';
  assert.equal((await handleAutoChatJobStatus(new Request(url),f.env)).status,401);

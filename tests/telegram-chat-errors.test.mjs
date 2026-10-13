@@ -30,7 +30,7 @@ async function failedChat(t, AI) {
     GEMINI_API_KEY: "fixture", GEMINI_MODEL: "gemini-fixture"
   }, { waitUntil(task) { tasks.push(task); } });
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).queued, true);
+  assert.equal((await response.json()).stored, true);
   await Promise.all(tasks);
   assert.equal(replies.length, 2);
   assert.match(replies[0].text, /Đã nhận yêu cầu/);
