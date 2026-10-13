@@ -35,7 +35,7 @@ async function sendOne(env,row,now){
   return false;
  }
  try{
-  const response=await fetch("https://api.telegram.org/bot"+botToken+"/sendMessage",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({chat_id:row.chat_id,reply_to_message_id:row.source_message_id,text:row.answer}),redirect:"error",signal:AbortSignal.timeout(8000)});
+  const response=await fetch("https://api.telegram.org/bot"+botToken+"/sendMessage",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({chat_id:row.chat_id,reply_to_message_id:row.source_message_id,text:row.answer}),redirect:"manual",signal:AbortSignal.timeout(8000)});
   const data=await response.json().catch(()=>({}));
   if(response.status===429&&data.ok===false){
    await env.DB.prepare("UPDATE xtra_telegram_chat_jobs SET state=CASE WHEN send_attempts>=3 THEN 'blocked' ELSE 'ready' END,error_code='TELEGRAM_RATE_LIMITED',next_attempt_at=?,lease_token=NULL,lease_until=NULL WHERE job_id=? AND lease_token=?").bind(now+60000,row.job_id,token).run();return false;

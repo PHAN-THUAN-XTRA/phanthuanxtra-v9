@@ -76,3 +76,28 @@ test('D1 write error does not acknowledge an uncommitted question',async t=>{
  t.mock.method(console,'warn',()=>{});t.mock.method(globalThis,'fetch',async()=>{sends++;return Response.json({ok:true});});
  assert.equal((await handleTelegramRouter(req(),f.env,{waitUntil(){}})).status,503);assert.equal(sends,0);
 });
+
+test('Cloudflare Telegram outbound send uses manual redirect and never follows untrusted origin',async t=>{
+ const f=fixture(),transport=[];
+ await enqueueAutoChat(f.env,{chatId:'123',messageId:77,question:'Cần tư vấn dòng xe'});
+ t.mock.method(globalThis,'fetch',async(url,init)=>{
+  transport.push({url,redirect:init.redirect,body:JSON.parse(init.body)});
+  assert.equal(init.redirect,'manual','Cloudflare may fail before contacting Telegram with redirect:error');
+  return Response.json({ok:true,result:{message_id:555}},{status:200});
+ });
+ const outcome=await processAutoChatJobs(f.env,{now:Date.now()});
+ assert.equal(outcome.sent,1);assert.equal(transport.length,1);assert.equal(f.rows()[0].state,'sent');
+ assert.equal(f.rows()[0].telegram_reply_id,555);
+});
+test('HTTP redirect from Telegram is never followed or accepted and never blind retried',async t=>{
+ const f=fixture(),seen=[];
+ await enqueueAutoChat(f.env,{chatId:'123',messageId:78,question:'Cần tư vấn xe'});
+ t.mock.method(globalThis,'fetch',async(url,init)=>{
+   assert.equal(init.redirect,'manual');seen.push(url);
+   return new Response(null,{status:302,headers:{location:'https://attacker.example/steal'}});
+ });
+ await processAutoChatJobs(f.env,{now:Date.now()});
+ assert.equal(seen.length,1);assert.equal(f.rows()[0].state,'uncertain');
+ await processAutoChatJobs(f.env,{now:Date.now()+100000});
+ assert.equal(seen.length,1);
+});
