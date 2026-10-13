@@ -78,3 +78,18 @@ jobs:
           cleanup_lead
           trap - EXIT
           echo "Synthetic homepage lead cleanup: PASS"
+
+      - name: Read-only Telegram Auto Chat queue receipt audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_TOKEN"
+          token="$(node --input-type=module -e 'import {issueAdminToken} from "./src/admin-auth.js"; process.stdout.write(await issueAdminToken({ADMIN_TOKEN:process.env.ADMIN_TOKEN}));')"
+          http="$(curl --silent --show-error --max-time 30 -o /tmp/telegram-chat-jobs-audit.json -w '%{http_code}' \
+            "$SITE_URL/api/admin/telegram-chat-jobs" \
+            -H "Authorization: Bearer $token")"
+          test "$http" = "200"
+          jq -e '.ok == true and (.jobs | type) == "array"' /tmp/telegram-chat-jobs-audit.json >/dev/null
+          # Aggregate only; never emit chat IDs, original message IDs, questions or answers.
+          jq -c '{recent_count:(.jobs|length),states:([.jobs[].state]|sort|group_by(.)|map({state:.[0],count:length})),error_codes:([.jobs[].error_code|select(.!=null)]|sort|group_by(.)|map({code:.[0],count:length}))}' /tmp/telegram-chat-jobs-audit.json
+          echo "Telegram Chat queue read-only receipt audit: PASS"

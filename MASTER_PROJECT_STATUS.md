@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## P1 TELEGRAM /CHAT REAL-DEVICE FOLLOW-UP — 2026-10-13 16:29 (UTC+7)
+
+- Owner tested the production Auto Bot again after PR #847; bot still displayed only `📥 Đã nhận yêu cầu. Đang xử lý...`. The D1 queue deployment and cron receipt do not prove Telegram accepted the final response; physical /chat gate still OPEN.
+- Source audit identified outbound send path for final answer used `redirect: 'error'`; existing Brevo transport notes document Cloudflare outbound fetch can raise TypeError during redirect:error preflight before provider response, while previous Telegram immediate acknowledgement uses default fetch. This is a high-confidence compatibility suspicion, NOT a proven production root cause without D1/log evidence.
+- Scoped fix switches only final Telegram send to `redirect: 'manual'`, never follows external redirects; unexpected 3xx is held as uncertain rather than blind retransmit. Added runtime regression and a signed-admin read-only post-deploy GitHub E2E diagnostic of aggregated chat queue states and error codes without customer content/IDs; no Cloudflare secret changes or unsafe reset of unknown-delivery rows.
+- Existing pre-fix `uncertain` jobs remain non-retried to avoid duplicate user messages. Require exact PR checks, exact-main Cloudflare deploy, post-deploy receipt summary, and one new real bot reply before closing #807.
+
+
 ## P1 TELEGRAM /CHAT DURABLE RECOVERY — 2026-10-13 (UTC+7)
 
 - Owner-provided live screenshot: Phanthuanxtra-nhapxe Auto Bot accepted a /chat request and returned only the initial acknowledgement. The screenshot does not establish why the background AI reply was absent; an interrupted waitUntil is a credible unconfirmed failure mode.
