@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## P0 DURABLE LEAD EMAIL — 2026-10-13 (UTC+7)
+
+- PR #845 merged as `649abd7798e1abec9a4a5834a9581585be923f41`; all nine PR workflows passed. Exact-main deploy `38364887145` SUCCESS. This closes the missing-D1 false-success code defect; device-specific acceptance remains separate.
+- Next scoped repair: migration `0041_lead_email_outbox.sql`; new intake idempotency claim, lead row, stored receipt and unique email intent are committed in one D1 batch transaction. No historical notification backfill. Failed transactions leave no new orphan claim/lead/email intent.
+- Immediate bounded dispatch plus existing scheduled reconciliation; conditional per-row leases prevent concurrent sends. Only explicit 429 rejection or missing configuration retries (maximum five); transport/5xx/expired sending leases become UNCERTAIN and are never blindly resent. Brevo event GET with exact random notification tag, recipient and optional message ID can reconcile provider acceptance/delivery/failure; at most twelve bounded event queries per receipt. Missing evidence stays OPEN for operator review.
+- Signed-admin, read-only `/api/admin/lead-email-outbox` exposes only operational receipt metadata, lead ID, Telegram message ID/delivery flag and Brevo message ID. No customer fields or credentials. Existing Cloudflare-only Brevo secret, configured mailbox and Content Runner disabled state preserved; no webhook registration or paid services.
+- Validation: SQLite-backed transaction rollback/deduplication, concurrent leases, timeout, lost receipt, abandoned send lease, bounded retry, exact provider evidence filtering and signed-admin privacy tests. All provider calls in these tests are mocks. PR gates, migration/deploy receipt and real same-lead inbox acceptance are PENDING at this checkpoint; provider delivery is not proof of Inbox placement.
+- Provider contract reference: https://developers.brevo.com/reference/get-email-event-report (`tags` serialized array, messageId filter). Physical S21, real Telegram /chat, sender deliverability and Content Runner live remain OPEN.
+
+
 ## P0 LEAD RECEIPT — 2026-10-13 (UTC+7)
 
 - Owner authorized prioritized fixes, audit and merge. `/api/leads` now fails closed with HTTP 503, `ok:false`, `stored:false` when D1 is unavailable. The public form requires HTTP success plus strict `ok===true` and `stored===true` before showing receipt or clearing input.

@@ -1,4 +1,5 @@
-import { handleBusinessIntegrations, sendBrevoLeadNotification } from "./business-integrations.js";
+import { storeLeadWithEmailIntent, processLeadEmailOutbox } from "./lead-email-outbox.js";
+import { handleBusinessIntegrations } from "./business-integrations.js";
 import { notifyTelegramCrm } from "./telegram-crm-notify.js";
 import { enqueueMemoryEvent, linkLeadCustomer, resolveCustomer } from "./customer-memory.js";
 import { checkTelegramCrm } from "./telegram-crm-check.js";
@@ -43,27 +44,22 @@ async function createLeadReplaySafe(r,e,ctx,b,p){
     if(prior.lead_id)return json(auth(r,e)?{ok:true,stored:true,replayed:true,lead_id:prior.lead_id,delivery:{ok:Boolean(prior.delivery_ok)}}:{ok:true,stored:true,replayed:true},200,SEC);
     return json({ok:false,retry:true,error:"Lead intake đang được xử lý; thử lại với cùng Idempotency-Key."},409,SEC);
   }
-  try{await e.DB.prepare("INSERT INTO xtra_lead_intake_requests (idempotency_key,source,payload_fingerprint,status) VALUES (?,?,?,'claimed')").bind(key,source,fingerprint).run()}
-  catch{
-    const raced=await e.DB.prepare("SELECT * FROM xtra_lead_intake_requests WHERE idempotency_key=? LIMIT 1").bind(key).first();
-    if(raced?.payload_fingerprint===fingerprint&&raced?.lead_id)return json(auth(r,e)?{ok:true,stored:true,replayed:true,lead_id:raced.lead_id,delivery:{ok:Boolean(raced.delivery_ok)}}:{ok:true,stored:true,replayed:true},200,SEC);
-    return json({ok:false,retry:true,error:"Lead intake đã được claim; thử lại với cùng Idempotency-Key."},409,SEC);
-  }
   try{
     const customer=await resolveCustomer(e,{visitorId:text(b.visitor_id,160),phone:p,name:text(b.name,120),channel:"website"});
-    const lead=await e.DB.prepare("INSERT INTO leads (name,phone,car_id,message) VALUES (?,?,?,?)").bind(text(b.name,120),p,text(b.car_id,100),text(b.message,2000)).run();
-    const leadId=lead.meta?.last_row_id??null;
-    if(customer?.customerId)await linkLeadCustomer(e,leadId,customer.customerId);
-    await e.DB.prepare("UPDATE xtra_lead_intake_requests SET lead_id=?,customer_id=?,status='stored',updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?").bind(leadId,customer?.customerId||null,key).run();
+    const leadId=await storeLeadWithEmailIntent(e.DB,{key,fingerprint,customerId:customer?.customerId,source,name:text(b.name,120),phone:p,carId:text(b.car_id,100),message:text(b.message,2000)});
+    if(customer?.customerId)await linkLeadCustomer(e,leadId,customer.customerId).catch(()=>{});
     const delivery=await notifyTelegramCrm(e,{source,name:b.name,phone:p,car:b.car_id,message:b.message});
     await e.DB.prepare("UPDATE xtra_lead_intake_requests SET delivery_ok=?,status='completed',completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?").bind((delivery?.ok??delivery?.sent)?1:0,key).run();
+    if(Number.isSafeInteger(delivery?.messageId))await e.DB.prepare("UPDATE xtra_lead_email_outbox SET telegram_message_id=? WHERE lead_id=?").bind(delivery.messageId,leadId).run().catch(()=>{});
     const memoryTask=enqueueMemoryEvent(e,{customerId:customer?.customerId,source,message:text(b.message,2000)||text(b.car_id,100)||"Khách gửi biểu mẫu liên hệ",outcome:"lead_created",hasPhone:true,cars:[]});
-    const brevoTask=sendBrevoLeadNotification(e,{leadId,source,name:b.name,phone:p,carId:b.car_id,message:b.message});
-    const backgroundTask=Promise.all([memoryTask,brevoTask]);
+    const brevoTask=processLeadEmailOutbox(e,{leadId}).catch(()=>{console.warn("lead_email_outbox_deferred");});
+    const backgroundTask=Promise.allSettled([memoryTask,brevoTask]);
     if(ctx?.waitUntil)ctx.waitUntil(backgroundTask);else await backgroundTask;
     return json(auth(r,e)?{ok:true,stored:true,replayed:false,lead_id:leadId,delivery}:{ok:true,stored:true,replayed:false},200,SEC);
   }catch(error){
-    await e.DB.prepare("UPDATE xtra_lead_intake_requests SET status=CASE WHEN lead_id IS NULL THEN 'failed' ELSE status END,last_error=?,attempts=attempts+1,updated_at=CURRENT_TIMESTAMP WHERE idempotency_key=?").bind(text(error?.message||error,1000),key).run().catch(()=>{});
+    // A competing atomic batch may have stored the same request. Never insert again.
+    const raced=await e.DB.prepare("SELECT * FROM xtra_lead_intake_requests WHERE idempotency_key=? LIMIT 1").bind(key).first().catch(()=>null);
+    if(raced?.payload_fingerprint===fingerprint&&raced?.lead_id)return json(auth(r,e)?{ok:true,stored:true,replayed:true,lead_id:raced.lead_id,delivery:{ok:Boolean(raced.delivery_ok)}}:{ok:true,stored:true,replayed:true},200,SEC);
     throw error;
   }
 }

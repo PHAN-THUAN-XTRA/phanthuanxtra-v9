@@ -103,7 +103,7 @@ test("production wiring keeps third-party integrations opt-in and secret-backed"
   const sonar = fs.readFileSync(".github/workflows/sonarqube-cloud.yml", "utf8");
   const runtimeVerify = fs.readFileSync("scripts/verify-business-integrations.mjs", "utf8");
 
-  assert.match(index, /sendBrevoLeadNotification/);
+  assert.match(index, /processLeadEmailOutbox/);
   assert.match(entry, /handleBusinessIntegrations/);
   assert.match(page, /id="liveChatOpen"[^>]+hidden/);
   assert.match(script, /https:\/\/embed\.tawk\.to\//);

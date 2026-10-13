@@ -149,7 +149,33 @@ export async function sendBrevoLeadNotification(env = {}, lead = {}) {
     `Xe/dịch vụ: ${clean(lead.carId, 120) || "(không chỉ định)"}`,
     `Nội dung: ${clean(lead.message, 2000) || "(không có)"}`,
   ].filter(Boolean).join("\n");
-  return sendBrevoEmail(env, { subject, textContent, kind: "lead", tags: ["website-lead"] });
+  return sendBrevoEmail(env, { subject, textContent, kind: "lead", tags: /^leadmail-[a-f0-9-]{36}$/.test(lead.notificationId || "") ? ["website-lead", lead.notificationId] : ["website-lead"] });
+}
+
+// Read provider metadata only; no webhook registration or arbitrary URLs.
+export async function reconcileBrevoLeadNotification(env, notificationId, messageId) {
+  const {key,recipient} = brevoConfig(env);
+  if (!key || !recipient || !/^leadmail-[a-f0-9-]{36}$/.test(notificationId)) return null;
+  const url = new URL("https://api.brevo.com/v3/smtp/statistics/events");
+  url.searchParams.set("tags", JSON.stringify([notificationId]));
+  url.searchParams.set("limit", "100");
+  url.searchParams.set("days", "30");
+  if (messageId) url.searchParams.set("messageId", messageId);
+  try {
+    const response = await fetch(url.toString(), {headers:{accept:"application/json","api-key":key},redirect:"manual",signal:AbortSignal.timeout(8000)});
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const events = (Array.isArray(payload.events) ? payload.events : []).filter(event => {
+      let tags = event.tags || event.tag;
+      if (typeof tags === "string") { try { tags = JSON.parse(tags); } catch { tags = [tags]; } }
+      return Array.isArray(tags) && tags.includes(notificationId) && event.email === recipient && safeMessageId(event.messageId) && (!messageId || event.messageId === messageId);
+    });
+    const failure = events.find(event => ["hard_bounce","soft_bounce","blocked","invalid","error","spam","unsubscribed"].includes(event.event));
+    const delivered = events.find(event => event.event === "delivered");
+    const accepted = events.find(event => ["requests","request","deferred","opened","clicks","uniqueOpened"].includes(event.event));
+    const found = failure || delivered || accepted;
+    return found ? {state:failure ? "failed" : delivered ? "delivered" : "accepted",message_id:safeMessageId(found.messageId)} : null;
+  } catch { return null; }
 }
 
 async function handleBrevoAdminDiagnostic(request, env) {
