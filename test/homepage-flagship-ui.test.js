@@ -10,12 +10,12 @@ const heroCarousel=fs.readFileSync("public/hero-carousel.js","utf8");
 test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/Vượt trên<br><em>xa xỉ\.<\/em>/);
   assert.match(html,/hero-carousel/);
-  for (const sector of ['auto','yacht','jet','energy']) assert.match(html,new RegExp(`id="hero-slide-${sector}"`));
+  for (const sector of ['auto','yacht','jet','energy','feng-shui']) assert.match(html,new RegExp(`id="hero-slide-${sector}"`));
   assert.ok(html.includes('data-srcset="/media/editorial/green-energy/green-energy-home-hero.avif"'));
   assert.ok(html.includes('data-srcset="/media/editorial/green-energy/green-energy-home-hero.webp"'));
   assert.ok(html.includes('data-src="/media/editorial/green-energy/green-energy-home-hero.webp"'));
   assert.match(html,/class="hero-slide-energy-link" href="\/green-energy"/);
-  assert.doesNotMatch(html,/id="hero-slide-energy"[^]*?<div class="hero-slide-content">/);
+  assert.doesNotMatch(html.match(/<article[^>]*id="hero-slide-energy"[^]*?<\/article>/)[0],/class="hero-slide-content"/);
   assert.doesNotMatch(html,/Intel_Solar_Installation_Vietnam\.jpg/);
   assert.doesNotMatch(html,/Intel Free Press/);
   assert.match(html,/href="#test-drive">Đặt lịch tư vấn xe/);
@@ -54,8 +54,8 @@ test("flagship palette preserves obsidian emerald and gold tokens",()=>{
   assert.match(css,/#hero-slide-energy img\{object-fit:contain;object-position:center;background:#dcecf7\}/);
 });
 
-test("production homepage gate checks all four current hero sectors",()=>{
-  for (const sector of ['auto','yacht','jet','energy']) {
+test("production homepage gate checks all five current hero sectors",()=>{
+  for (const sector of ['auto','yacht','jet','energy','feng-shui']) {
     assert.ok(canonicalGate.includes(`grep -Fq 'id="hero-slide-${sector}"' /tmp/home.html`));
   }
   assert.doesNotMatch(canonicalGate,/BỘ SƯU TẬP RIÊNG/);
@@ -80,4 +80,19 @@ test("automotive hero resolves the live Lexus RX500h 2024 catalog image",()=>{
   assert.match(heroCarousel,/catalogHero\.src = image/);
   assert.match(heroCarousel,/querySelectorAll\('\.hero-slide'\)/);
   assert.match(heroCarousel,/window\.setInterval\(\(\) => show\(current \+ 1\), 6500\)/);
+});
+
+
+test("fifth hero control opens the dedicated feng shui slide and links to consultation",()=>{
+  assert.match(html,/aria-label="Năm lĩnh vực PHAN THUẦN XTRA"/);
+  const slides=[...html.matchAll(/<article class="hero-slide[^]*?<\/article>/g)];
+  assert.equal(slides.length,5);
+  const fifth=slides[4][0];
+  assert.match(fifth,/id="hero-slide-feng-shui" hidden/);
+  assert.match(fifth,/05 \/ PHONG THỦY ĐỘC BẢN/);
+  assert.match(fifth,/<h2>Tư vấn phong thủy<br>độc bản<\/h2>/);
+  assert.match(fifth,/href="#ai-assistant"/);
+  const controls=[...html.matchAll(/data-slide="(\d+)"/g)].map(m=>Number(m[1]));
+  assert.deepEqual(controls,[0,1,2,3,4]);
+  assert.match(html,/data-slide="4" aria-label="Phong thủy độc bản" aria-pressed="false">05<\/button>/);
 });

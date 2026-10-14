@@ -460,3 +460,9 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 .gold-pairs-wrap{overflow-x:auto;border:1px solid #665b3f}.gold-pairs{width:100%;border-collapse:collapse;text-align:left;font-size:15px}.gold-pairs caption{text-align:left;padding:16px 20px;color:#c8c8bf;font-size:13px}.gold-pairs th,.gold-pairs td{padding:20px;border-top:1px solid #494333;line-height:1.6}.gold-pairs thead{background:#22271e;color:#f5e4b9}.gold-pairs tbody th{color:#f5e4b9;font-size:23px;white-space:nowrap}.gold-pairs td{color:#dddcd4}
 .feng-shui-cta{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-top:36px;padding:28px;border:1px solid #665b3f}.feng-shui-cta p{max-width:650px}.feng-shui-cta .btn{flex-shrink:0;white-space:normal}
 @media(max-width:800px){.plate-patterns{grid-template-columns:1fr}.plate-pattern .eyebrow{min-height:0}.feng-shui-cta{display:block;padding:22px}.gold-pairs th,.gold-pairs td{padding:12px 10px;font-size:13px}.gold-pairs tbody th{font-size:18px}.feng-shui-heading{margin-top:36px}}
+
+/* Fifth hero sector: bespoke plate consultation, with no external image dependency. */
+.hero-slide-feng-shui{background:radial-gradient(ellipse at 50% 25%,#3f482c 0%,#122820 43%,#050706 85%)}
+.hero-plate-art{position:absolute;top:8%;left:12%;right:12%;height:36%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid #c7a35a;border-radius:12px;background:linear-gradient(135deg,#171d16,#070c09);box-shadow:0 12px 45px #0008,inset 0 0 0 5px #b79b4e20;color:#ead29a;transform:rotate(-5deg)}
+.hero-plate-art>span,.hero-plate-art>small{font:700 9px "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.2em}.hero-plate-art>b{font:800 clamp(38px,5vw,66px)/1.1 "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+@media(max-width:800px){.hero-plate-art{top:6%;height:31%;left:15%;right:15%;gap:5px}.hero-plate-art>b{font-size:42px}}
