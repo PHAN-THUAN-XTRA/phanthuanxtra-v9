@@ -5,15 +5,15 @@ import fs from 'node:fs';
 const html = fs.readFileSync('public/index.html', 'utf8');
 const css = fs.readFileSync('public/style.css', 'utf8');
 
-test('homepage places flagship sector 05 directly after sector 01 and before the founder', () => {
+test('homepage places 05 after 01, then founder, ecosystem, blog, booking and contact', () => {
   const selectors = [
     'class="hero hero-xtra"',
     'id="cars-section"',
     'id="ai-assistant"',
     'id="about-phan-thuan"',
     'id="ecosystem"',
-    'id="test-drive"',
     'id="blog"',
+    'id="test-drive"',
     'id="contact"',
   ];
   let previous = -1;
@@ -63,4 +63,18 @@ test('removing redundant strip preserves anchors and chapter A/B styling', () =>
   }
   assert.doesNotMatch(css, /\.sector-journey-grid|\.sector-preview\{/);
   assert.match(css, /\.feng-shui-heading>span\{display:inline-grid/);
+});
+
+test('Blog is directly above private booking; both blocks keep their content and anchors', () => {
+  const blogStart=html.indexOf('<section class="section blog-latest" id="blog"');
+  const bookingStart=html.indexOf('<section class="section test-drive" id="test-drive">');
+  const contactStart=html.indexOf('<section class="contact" id="contact">');
+  assert.ok(blogStart>=0 && bookingStart>blogStart && contactStart>bookingStart);
+  const blogBlock=html.slice(blogStart,bookingStart);
+  const bookingBlock=html.slice(bookingStart,contactStart);
+  assert.match(blogBlock,/id="latest-posts"/);
+  assert.match(blogBlock,/href="\/blog"/);
+  assert.match(bookingBlock,/id="leadForm"/);
+  assert.match(bookingBlock,/id="leadStatus"/);
+  assert.match(bookingBlock,/LỊCH HẸN RIÊNG/);
 });
