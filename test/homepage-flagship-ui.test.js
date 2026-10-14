@@ -96,3 +96,18 @@ test("fifth hero control opens the dedicated feng shui slide and links to consul
   assert.deepEqual(controls,[0,1,2,3,4]);
   assert.match(html,/data-slide="4" aria-label="Phong thủy độc bản" aria-pressed="false">05<\/button>/);
 });
+
+
+test("rotated plate artwork stays in the upper hero area clear of the content",()=>{
+  const desktop=css.match(/\.hero-plate-art\{position:absolute;top:(\d+)%;left:(\d+)%;right:(\d+)%;height:(\d+)%;/);
+  const mobile=css.match(/@media\(max-width:800px\)\{\.hero-plate-art\{top:(\d+)%;height:(\d+)%;left:(\d+)%;right:(\d+)%;/);
+  assert.ok(desktop);assert.ok(mobile);
+  for(const [width,height,top,artHeight,left,right] of [
+    [540,500,+desktop[1],+desktop[4],+desktop[2],+desktop[3]],
+    [350,420,+mobile[1],+mobile[2],+mobile[3],+mobile[4]]
+  ]) {
+    const h=height*artHeight/100,w=width*(1-(left+right)/100),angle=5*Math.PI/180;
+    const lowerEdge=height*top/100+h/2+(h*Math.cos(angle)+w*Math.sin(angle))/2;
+    assert.ok(lowerEdge<=height*0.42,`plate reaches content zone at ${width}px: ${lowerEdge}`);
+  }
+});
