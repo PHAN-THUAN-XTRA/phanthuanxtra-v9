@@ -342,7 +342,7 @@ footer{
   --accent-bright:#e8d39a;
 }
 .hero-xtra,.dark,.ai-section,footer{background-color:var(--obsidian)}
-.section:not(.marine-section):not(.test-drive):not(.founder-section):not(.dark):not(.ai-section){background-color:#f3f1eb}
+.section:not(.marine-section):not(.test-drive):not(.founder-section):not(.dark):not(.ai-section):not(.sector-journey){background-color:#f3f1eb}
 .btn.primary{background:var(--emerald-deep);border-color:var(--emerald-deep);color:#fff}
 .btn.primary:hover{background:var(--emerald);border-color:var(--emerald)}
 .hero .btn.primary{background:linear-gradient(135deg,var(--gold-pale),var(--gold));color:#07100d;border-color:var(--gold)}
@@ -466,3 +466,25 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 .hero-plate-art{position:absolute;top:6%;left:12%;right:12%;height:30%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid #c7a35a;border-radius:12px;background:linear-gradient(135deg,#171d16,#070c09);box-shadow:0 12px 45px #0008,inset 0 0 0 5px #b79b4e20;color:#ead29a;transform:rotate(-5deg)}
 .hero-plate-art>span,.hero-plate-art>small{font:700 9px "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.2em}.hero-plate-art>b{font:800 clamp(38px,5vw,66px)/1.1 "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.08em;font-variant-numeric:tabular-nums}
 @media(max-width:800px){.hero-plate-art{top:5%;height:27%;left:15%;right:15%;gap:5px}.hero-plate-art>b{font-size:42px}}
+
+/* Homepage five-sector reading order: premium editorial previews for 02–04. */
+.sector-journey{background:radial-gradient(circle at 88% 12%,rgba(199,163,90,.10),transparent 34%),linear-gradient(145deg,#060c0a,#10251e 58%,#070b09);color:#f5f3ec}
+.sector-journey-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.sector-preview{min-width:0;overflow:hidden;border:1px solid rgba(199,163,90,.30);background:#0c1713;box-shadow:0 24px 56px rgba(0,0,0,.16);transition:transform .25s ease,border-color .25s ease}
+.sector-preview:hover{transform:translateY(-4px);border-color:var(--gold-pale,#ead29a)}
+.sector-preview>a{display:flex;flex-direction:column;height:100%;color:inherit;text-decoration:none}
+.sector-preview>a:focus-visible{outline:2px solid var(--gold-pale,#ead29a);outline-offset:-4px}
+.sector-preview img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#15241f}
+.sector-preview-energy img{object-fit:contain;background:#dcecf7}
+.sector-preview-copy{padding:26px 25px 28px;display:flex;flex:1;flex-direction:column;align-items:flex-start}
+.sector-preview-copy>span{color:var(--gold-pale,#ead29a);font-size:11px;font-weight:800;letter-spacing:.13em}
+.sector-preview-copy h2{font-size:clamp(23px,2.35vw,31px);line-height:1.19;margin:13px 0 10px;color:#f7f0df}
+.sector-preview-copy p{font-size:14px;color:#c8d0c9;line-height:1.8;margin:0 0 24px}
+.sector-preview-copy strong{margin-top:auto;color:var(--gold-pale,#ead29a);font-size:13px;letter-spacing:.02em}
+.sector-preview-copy strong span{display:inline-block;transition:transform .2s ease}
+.sector-preview:hover .sector-preview-copy strong span{transform:translateX(4px)}
+/* Use lettered subchapters within sector 05, distinct from the 01–05 domains. */
+.feng-shui-heading>span{display:inline-grid;place-items:center;min-width:40px;height:40px;border:1px solid rgba(199,163,90,.58);color:var(--gold-pale,#ead29a);font:600 19px "Noto Serif Display",serif;letter-spacing:0;background:rgba(199,163,90,.07)}
+@media(max-width:840px){.sector-journey-grid{grid-template-columns:1fr}.sector-preview>a{display:grid;grid-template-columns:minmax(0,42%) minmax(0,58%)}.sector-preview img{height:100%;aspect-ratio:auto;min-height:270px}.sector-preview-copy{padding:26px}.sector-preview-copy h2{font-size:28px}}
+@media(max-width:560px){.sector-preview>a{display:flex}.sector-preview img{height:auto;aspect-ratio:16/10;min-height:0}.sector-preview-copy{padding:22px}.sector-preview-copy h2{font-size:25px}}
+@media(prefers-reduced-motion:reduce){.sector-preview,.sector-preview-copy strong span{transition:none}.sector-preview:hover{transform:none}}
