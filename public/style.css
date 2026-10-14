@@ -463,6 +463,6 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 
 /* Fifth hero sector: bespoke plate consultation, with no external image dependency. */
 .hero-slide-feng-shui{background:radial-gradient(ellipse at 50% 25%,#3f482c 0%,#122820 43%,#050706 85%)}
-.hero-plate-art{position:absolute;top:8%;left:12%;right:12%;height:36%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid #c7a35a;border-radius:12px;background:linear-gradient(135deg,#171d16,#070c09);box-shadow:0 12px 45px #0008,inset 0 0 0 5px #b79b4e20;color:#ead29a;transform:rotate(-5deg)}
+.hero-plate-art{position:absolute;top:6%;left:12%;right:12%;height:30%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid #c7a35a;border-radius:12px;background:linear-gradient(135deg,#171d16,#070c09);box-shadow:0 12px 45px #0008,inset 0 0 0 5px #b79b4e20;color:#ead29a;transform:rotate(-5deg)}
 .hero-plate-art>span,.hero-plate-art>small{font:700 9px "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.2em}.hero-plate-art>b{font:800 clamp(38px,5vw,66px)/1.1 "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.08em;font-variant-numeric:tabular-nums}
-@media(max-width:800px){.hero-plate-art{top:6%;height:31%;left:15%;right:15%;gap:5px}.hero-plate-art>b{font-size:42px}}
+@media(max-width:800px){.hero-plate-art{top:5%;height:27%;left:15%;right:15%;gap:5px}.hero-plate-art>b{font-size:42px}}
