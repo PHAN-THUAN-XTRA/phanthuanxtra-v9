@@ -232,11 +232,11 @@ test('production gate: Telegram albums use media_group_id as one stable vehicle 
 });
 
 
-test('production gate: both website AI surfaces advertise full-site advisory scope', () => {
+test('production gate: homepage retains full-site chat alongside bespoke feng shui', () => {
   const page = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
   assert.match(page, /id="ai-assistant"/);
   assert.match(page, /id="aiWidget"/);
-  assert.match(page, /tư vấn toàn bộ nội dung chính thức đang có trên website/i);
+  assert.match(page, /Tôi tư vấn các nội dung đang có trên PHAN THUẦN XTRA/i);
   assert.match(page, /Green Energy/);
   assert.match(page, /du thuyền/);
   assert.match(page, /chuyên cơ thương gia/);

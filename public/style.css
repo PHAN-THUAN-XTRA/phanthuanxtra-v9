@@ -445,3 +445,18 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
   height:100%;
   border:0;
 }
+
+/* Bespoke feng shui: preserve the existing homepage anchor and palette. */
+.feng-shui-section{scroll-margin-top:90px}
+.feng-shui-intro{max-width:850px}.feng-shui-intro h2{font-size:clamp(32px,5vw,58px);line-height:1.15}
+.feng-shui-intro p,.feng-shui-heading p,.plate-pattern p,.plate-pattern li,.feng-shui-cta p{color:#c8c8bf;line-height:1.8}
+.feng-shui-intro .feng-shui-lead{color:var(--gold-pale,#ead29a);font-size:22px;margin-bottom:8px}
+.feng-shui-heading{margin:48px 0 24px;max-width:850px}.feng-shui-heading>span{color:var(--gold-pale,#ead29a);font-size:13px;letter-spacing:.2em}
+.feng-shui-heading h3,.feng-shui-cta h3{font-size:clamp(23px,3vw,32px);line-height:1.35;margin:10px 0}
+.plate-patterns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.plate-pattern{min-width:0;padding:28px;border:1px solid #665b3f;background:linear-gradient(145deg,#18201b,#0b0e0c)}
+.plate-pattern .eyebrow{font-size:11px;color:var(--gold-pale,#ead29a);min-height:36px}.plate-number{display:inline-block;border:1px solid #a58d56;padding:10px 17px;color:#f5e4b9;font-size:clamp(28px,3vw,42px);font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.plate-pattern h4{font-size:21px;margin:24px 0 12px}.plate-pattern ul{padding-left:20px}.plate-pattern strong{color:#f5e4b9}
+.gold-pairs-wrap{overflow-x:auto;border:1px solid #665b3f}.gold-pairs{width:100%;border-collapse:collapse;text-align:left;font-size:15px}.gold-pairs caption{text-align:left;padding:16px 20px;color:#c8c8bf;font-size:13px}.gold-pairs th,.gold-pairs td{padding:20px;border-top:1px solid #494333;line-height:1.6}.gold-pairs thead{background:#22271e;color:#f5e4b9}.gold-pairs tbody th{color:#f5e4b9;font-size:23px;white-space:nowrap}.gold-pairs td{color:#dddcd4}
+.feng-shui-cta{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-top:36px;padding:28px;border:1px solid #665b3f}.feng-shui-cta p{max-width:650px}.feng-shui-cta .btn{flex-shrink:0;white-space:normal}
+@media(max-width:800px){.plate-patterns{grid-template-columns:1fr}.plate-pattern .eyebrow{min-height:0}.feng-shui-cta{display:block;padding:22px}.gold-pairs th,.gold-pairs td{padding:12px 10px;font-size:13px}.gold-pairs tbody th{font-size:18px}.feng-shui-heading{margin-top:36px}}

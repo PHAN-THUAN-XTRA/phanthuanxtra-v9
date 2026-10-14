@@ -26,13 +26,13 @@ test("homepage keeps premium Vietnamese copy and no duplicated greeting",()=>{
   assert.match(html,/Chuyên cơ<br>thương gia/);
   assert.match(html,/Xin chào\. Tôi tư vấn/);
   assert.doesNotMatch(html,/Xin chào\. Xin chào\./);
-  assert.match(html,/Mở trợ lý AI →/);
+  assert.match(html,/Tư vấn phong thủy độc bản/);
   assert.match(html,/Anh\/chị đang quan tâm điều gì\?/);
   assert.match(html,/aria-label="Gửi tin nhắn"/);
   assert.match(html,/data-filter="sport" type="button">Thể thao<\/button>/);
   assert.match(html,/Điện mặt trời • Giải pháp năng lượng xanh/);
   assert.match(html,/Nhà sáng lập PHAN THUẦN XTRA/);
-  assert.match(html,/Trợ lý AI tư vấn toàn bộ nội dung chính thức đang có trên website và ưu tiên thông tin hiện hành/);
+  assert.match(html,/Tôi tư vấn các nội dung đang có trên PHAN THUẦN XTRA/);
   assert.doesNotMatch(html,/id="green-energy"/);
   assert.doesNotMatch(html,/id="yacht"/);
   assert.doesNotMatch(html,/id="business-jet"/);
