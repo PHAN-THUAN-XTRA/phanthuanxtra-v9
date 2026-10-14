@@ -5,11 +5,10 @@ import fs from 'node:fs';
 const html = fs.readFileSync('public/index.html', 'utf8');
 const css = fs.readFileSync('public/style.css', 'utf8');
 
-test('homepage follows hero -> 01..05 -> founder -> ecosystem -> booking -> blog -> contact', () => {
+test('homepage places flagship sector 05 directly after sector 01 and before the founder', () => {
   const selectors = [
     'class="hero hero-xtra"',
     'id="cars-section"',
-    'id="sector-journey"',
     'id="ai-assistant"',
     'id="about-phan-thuan"',
     'id="ecosystem"',
@@ -20,28 +19,18 @@ test('homepage follows hero -> 01..05 -> founder -> ecosystem -> booking -> blog
   let previous = -1;
   for (const selector of selectors) {
     const position = html.indexOf(selector);
-    assert.ok(position > previous, `section ${selector} is missing or out of order`);
+    assert.ok(position > previous, 'section missing or out of order: ' + selector);
     previous = position;
   }
+  const between = html.slice(html.indexOf('id="cars-section"'), html.indexOf('id="ai-assistant"'));
+  assert.doesNotMatch(between, /sector-journey|sector-preview|02 \/ DU THUYỀN|03 \/ CHUYÊN CƠ|04 \/ NĂNG LƯỢNG/);
+  assert.doesNotMatch(html, /id="sector-journey"/);
 });
 
-test('the 02–04 editorial sector strip uses the same numbering as the five hero slides', () => {
-  const journey = html.match(/<section class="section sector-journey"[^]*?<\/section>/)?.[0] || '';
-  assert.ok(journey);
-  const headings = [...journey.matchAll(/<span>(0[234] \/ [^<]+)<\/span>/g)].map(match => match[1]);
-  assert.deepEqual(headings, [
-    '02 / DU THUYỀN CHÂU ÂU',
-    '03 / CHUYÊN CƠ THƯƠNG GIA',
-    '04 / NĂNG LƯỢNG XANH',
-  ]);
-  for (const link of ['/yachts', '/business-jets', '/green-energy']) {
-    assert.ok(journey.includes(`href="${link}"`), `missing sector link ${link}`);
+test('all five existing hero slides remain available despite removing repeated 02–04 previews', () => {
+  for (const sector of ['auto','yacht','jet','energy','feng-shui']) {
+    assert.ok(html.includes('id="hero-slide-' + sector + '"'), 'missing hero sector: ' + sector);
   }
-  assert.match(html, /id="hero-slide-auto"/);
-  assert.match(html, /id="hero-slide-yacht"/);
-  assert.match(html, /id="hero-slide-jet"/);
-  assert.match(html, /id="hero-slide-energy"/);
-  assert.match(html, /id="hero-slide-feng-shui"/);
   assert.deepEqual([...html.matchAll(/data-slide="(\d)"/g)].map(m => +m[1]), [0,1,2,3,4]);
 });
 
@@ -68,11 +57,10 @@ test('feng shui subchapters use premium A/B lettering without colliding with sec
   assert.match(css, /\.feng-shui-heading>span\{display:inline-grid/);
 });
 
-test('three sector previews are responsive, accessible, and preserve legacy anchors', () => {
-  assert.match(css, /\.sector-journey-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css, /@media\(max-width:560px\)\{\.sector-preview>a\{display:flex\}/);
-  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.sector-preview/);
-  for (const id of ['cars-section','sector-journey','ai-assistant','about-phan-thuan','ecosystem','test-drive','blog','contact']) {
-    assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `duplicate anchor ${id}`);
+test('removing redundant strip preserves anchors and chapter A/B styling', () => {
+  for (const id of ['cars-section','ai-assistant','about-phan-thuan','ecosystem','test-drive','blog','contact']) {
+    assert.equal((html.match(new RegExp('id="' + id + '"', 'g')) || []).length, 1, 'duplicate anchor: ' + id);
   }
+  assert.doesNotMatch(css, /\.sector-journey-grid|\.sector-preview\{/);
+  assert.match(css, /\.feng-shui-heading>span\{display:inline-grid/);
 });
