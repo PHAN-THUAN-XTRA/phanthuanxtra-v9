@@ -90,7 +90,7 @@ test('Founder profile and customer AI scope stay explicit', () => {
   assert.match(index, /facebook\.com\/PhanThuanSaigon/);
   assert.doesNotMatch(index, /Theo hồ sơ chính thức do chủ website cung cấp/);
   assert.match(index, /href="\/phan-thuan"/);
-  assert.match(index, /tư vấn toàn bộ nội dung chính thức đang có trên website/);
+  assert.match(index, /Tôi tư vấn các nội dung đang có trên PHAN THUẦN XTRA/);
   assert.match(ai, /Được tư vấn toàn bộ nội dung chính thức đang được PHAN THUẦN XTRA công bố trên website/);
   assert.match(ai, /effectiveContact\.name&&effectiveContact\.phone/);
   assert.match(ai, /@cf\/qwen\/qwen3\.8-27b/);
