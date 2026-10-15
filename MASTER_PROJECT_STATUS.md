@@ -1,5 +1,12 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+
+## PUBLISHING PRIVACY TIME BUDGET — 2026-10-15 (UTC+7)
+
+- Audited main `e4c64177d1a8bf74b351de922ef3c07d587d794c`: CI/MASTER/Sonar pass; deployment run `38497066717` successfully deployed/migrated and passed public boundary plus R2 lifecycle checks, then failed publishing media E2E with a 120,000 ms timeout. This is not evidence of invalid Cloudflare credentials.
+- Confirmed code defect: each of two Gemini privacy stages could spend four 25-second attempts plus backoff, exceeding the verifier's upload window. Each stage now shares a 40-second deadline across attempts, response body consumption and backoff. Transient response-body timeouts participate in bounded retries. Both independent privacy reviews remain mandatory; no original/unverified image is stored.
+- Targeted offline validation: 43/43 tests PASS, including budget exhaustion at detection and verification with zero R2 writes, and response-body timeout recovery. This establishes bounded Gemini waiting, not total upload latency or provider availability; Images/R2 latency and actual production root cause remain unverified. PR checks and exact-main deployment/E2E remain PENDING until receipt verification.
+
 ## CANONICAL PR GATE STATUS — 2026-10-13 (UTC+7)
 
 **Latest reconciled state (supersedes historical "PENDING" lines below):** current `main` `3db659253d9a58ec056ba29c64834596bb37fbd1` after PR #849 (baseline before audit `759ff223b0fa1f4fefb2d7ea7b6de92d20cc6a45`). No open PRs at this checkpoint; only owner-acceptance issues [#807](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/807) and [#828](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/828) remain OPEN.

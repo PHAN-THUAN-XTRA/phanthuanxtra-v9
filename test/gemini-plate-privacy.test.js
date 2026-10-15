@@ -158,3 +158,44 @@ test('string diagnostics redact URLs and credential-like values and remain bound
   });
   assert.equal(writes.length,0);
 });
+
+for(const failureStage of ['gemini-detect','gemini-verify']) {
+  test(`${failureStage}: repeated timeouts share a 40s budget and never persist media`,async t=>{
+    const {env,writes}=privacyEnvironment();
+    let now=0,calls=0;
+    const timeouts=[];
+    t.mock.method(Date,'now',()=>now);
+    t.mock.method(AbortSignal,'timeout',ms=>{timeouts.push(ms);return new AbortController().signal;});
+    t.mock.method(globalThis,'setTimeout',(callback,ms)=>{now+=ms;queueMicrotask(callback);return 0;});
+    t.mock.method(globalThis,'fetch',async()=>{
+      calls++;
+      if(failureStage==='gemini-verify'&&calls===1)
+        return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify({complete:true,boxes:[]})}]}}]});
+      now+=timeouts.at(-1);
+      throw new DOMException('provider timed out','TimeoutError');
+    });
+    await assert.rejects(storePublishingImage(env,new Uint8Array([1])),error=>{
+      assert.equal(error.stage,failureStage);
+      assert.equal(error.reason,'Gemini timeout budget exhausted');
+      return true;
+    });
+    assert.deepEqual(timeouts.slice(failureStage==='gemini-verify'?1:0),[25000,14250]);
+    assert.equal(now,40000);
+    assert.equal(writes.length,0);
+  });
+}
+
+test('Gemini response body timeout retries within the same budget before independent verification',async t=>{
+  const {env,writes}=privacyEnvironment();
+  let calls=0;
+  t.mock.method(globalThis,'setTimeout',callback=>{queueMicrotask(callback);return 0;});
+  t.mock.method(globalThis,'fetch',async()=>{
+    calls++;
+    if(calls===1)return {ok:true,json:async()=>{throw new DOMException('body timeout','TimeoutError');}};
+    const value=calls===2?{complete:true,boxes:[]}:{safe:true,certain:true};
+    return Response.json({candidates:[{finishReason:'STOP',content:{parts:[{text:JSON.stringify(value)}]}}]});
+  });
+  await storePublishingImage(env,new Uint8Array([1]));
+  assert.equal(calls,3);
+  assert.equal(writes.length,1);
+});

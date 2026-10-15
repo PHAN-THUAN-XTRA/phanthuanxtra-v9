@@ -26,19 +26,26 @@ async function ask(env,bytes,prompt,schema,stageName='privacy') {
   const url=`https://generativelanguage.googleapis.com/v1beta/models/${env.GEMINI_MODEL}:generateContent`;
   const payload=JSON.stringify({contents:[{parts:[{inline_data:{mime_type:'image/webp',data:base64(bytes)}},{text:prompt}]}],
     generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:4096}});
-  let response;
+  // Detection and verification must both fit inside the caller's 120s window.
+  // Include retries, backoff and response-body consumption in each 40s budget.
+  const deadline=Date.now()+40000;
+  let data;
   for(let attempt=0;attempt<4;attempt++) {
+    const remaining=deadline-Date.now();
+    if(remaining<=0)reject(stageName,'Gemini timeout budget exhausted');
     try {
-      response=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(25000),body:payload});
-      if(response.ok)break;
+      const response=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(Math.min(25000,remaining)),body:payload});
+      if(response.ok){data=await response.json();break;}
+      await response.body?.cancel();
       if(!(response.status===429||response.status>=500)||attempt===3)reject(stageName,`Gemini HTTP ${response.status}`);
     } catch(error) {
       if((error?.name!=='TimeoutError'&&error?.name!=='AbortError')||attempt===3)throw error;
     }
-    await new Promise(resolve=>setTimeout(resolve,750*(attempt+1)));
+    const delay=750*(attempt+1);
+    if(deadline-Date.now()<=delay)reject(stageName,'Gemini timeout budget exhausted');
+    await new Promise(resolve=>setTimeout(resolve,delay));
   }
-  if(!response?.ok)reject(stageName,'Gemini request exhausted without an OK response');
-  const data=await response.json(),candidate=data.candidates?.[0];
+  const candidate=data?.candidates?.[0];
   if(candidate?.finishReason!=='STOP')reject(stageName,`Gemini finishReason ${candidate?.finishReason||'missing'}`);
   try { return JSON.parse(candidate.content.parts.filter(p=>typeof p.text==='string'&&!p.thought).map(p=>p.text).join('')); }
   catch { reject(stageName,'Gemini structured JSON parse failed'); }
