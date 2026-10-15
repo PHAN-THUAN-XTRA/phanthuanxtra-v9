@@ -114,3 +114,12 @@ test("rotated plate artwork stays in the upper hero area clear of the content",(
     assert.ok(lowerEdge<=height*0.42,`plate reaches content zone at ${width}px: ${lowerEdge}`);
   }
 });
+
+
+test("homepage SEO title and shared preview metadata use Elite Car Yacht branding",()=>{
+  const expected="PHAN THUẦN XTRA - Elite Car Yacht";
+  assert.ok(html.includes(`<title>${expected}</title>`));
+  assert.ok(html.includes(`<meta property="og:title" content="${expected}">`));
+  assert.ok(html.includes(`<meta name="twitter:title" content="${expected}">`));
+  assert.doesNotMatch(html,/Beyond Luxury/);
+});
