@@ -28,6 +28,7 @@ import { consumeMemoryJobs } from "./customer-memory.js";
 import { handleVideosPage } from "./videos-page.js";
 import { handleBusinessIntegrations } from "./business-integrations.js";
 import { handleTelegramMiniAppApi } from "./telegram-mini-app.js";
+import { handleLylyBridge } from "./lyly-bridge.js";
 
 // Keep homepage HTML on the Worker response path so UTF-8 headers are explicit.
 
@@ -38,6 +39,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const lylyResponse = await handleLylyBridge(request, env);
+      if (lylyResponse) return lylyResponse;
       const chatStatusResponse = await handleAutoChatJobStatus(request, env);
       if (chatStatusResponse) return chatStatusResponse;
       const emailOutboxResponse = await handleLeadEmailOutbox(request, env);
