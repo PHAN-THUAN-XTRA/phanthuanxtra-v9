@@ -61,3 +61,38 @@ test("AI quota exhaustion does not fall through to paid service", async () => {
   assert.equal(result.status, 429);
   assert.equal((await result.json()).code, "quota_or_rate_limit");
 });
+
+
+test("Workers AI request disables thinking and requests enough completion tokens", async () => {
+  const e = env();
+  let modelName, input;
+  e.AI.run = async (model, args) => {
+    modelName = model;
+    input = args;
+    return { choices: [{ message: { content: "Lyly xin chào." } }] };
+  };
+  const result = await handleLylyBridge(request("ai", TOKEN, { method: "POST", body: JSON.stringify({ message: "Xin chào" }) }), e);
+  assert.equal(result.status, 200);
+  assert.equal((await result.json()).answer, "Lyly xin chào.");
+  assert.equal(modelName, "@cf/zai-org/glm-4.7-flash");
+  assert.equal(input.chat_template_kwargs.enable_thinking, false);
+  assert.equal(input.reasoning_effort, "low");
+  assert.ok(input.max_completion_tokens >= 700);
+  assert.ok(input.max_completion_tokens <= 1000);
+});
+test("Workers AI extracts nonempty choices when legacy response is empty", async () => {
+  const e = env();
+  e.AI.run = async () => ({ response: "", choices: [{ message: { content: [{ type: "text", text: "Kết quả hợp lệ." }] } }] });
+  const result = await handleLylyBridge(request("ai", TOKEN, { method: "POST", body: JSON.stringify({ message: "Kiểm thử" }) }), e);
+  assert.equal(result.status, 200);
+  assert.equal((await result.json()).answer, "Kết quả hợp lệ.");
+});
+test("Workers AI never reveals private reasoning as response", async () => {
+  const e = env();
+  e.AI.run = async () => ({ choices: [{ message: { content: null, reasoning_content: "hidden internal trace" } }] });
+  const result = await handleLylyBridge(request("ai", TOKEN, { method: "POST", body: JSON.stringify({ message: "Kiểm thử" }) }), e);
+  const data = await result.json();
+  assert.equal(result.status, 502);
+  assert.equal(data.code, "empty_model_response");
+  assert.equal(JSON.stringify(data).includes("hidden internal trace"), false);
+});
