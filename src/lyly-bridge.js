@@ -41,6 +41,40 @@ function allowedAI(ip) {
   aiCalls.set(ip, current);
   return true;
 }
+// Workers AI model versions can return legacy response strings or OpenAI-style
+// choices. Ignore reasoning_content and never surface internal reasoning.
+function plainAIText(value) {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value.filter(item => item?.type === "text" && typeof item?.text === "string")
+      .map(item => item.text).join("\n").trim();
+  }
+  return "";
+}
+function extractAIAnswer(output) {
+  if (typeof output === "string") return output.trim();
+  const candidates = [
+    output?.response,
+    output?.choices?.[0]?.message?.content,
+    output?.choices?.[0]?.text,
+    output?.result?.response,
+    output?.result?.choices?.[0]?.message?.content,
+    output?.output_text
+  ];
+  for (const candidate of candidates) {
+    const text = plainAIText(candidate);
+    if (text) return text;
+  }
+  return "";
+}
+function outputFormat(output) {
+  if (typeof output === "string") return "string";
+  if (!output || typeof output !== "object") return "absent";
+  if (Array.isArray(output.choices)) return "choices";
+  if (Object.hasOwn(output, "response")) return "response";
+  if (output.result && typeof output.result === "object") return "result";
+  return "unrecognized";
+}
 async function readAI(request, env) {
   if (!env.AI || typeof env.AI.run !== "function") return respond({ ok: false, error: "Workers AI binding unavailable" }, 503);
   if (Number(request.headers.get("content-length") || 0) > 8192) return respond({ ok: false, error: "Payload too large" }, 413);
@@ -60,11 +94,18 @@ async function readAI(request, env) {
         { role: "user", content: message }
       ],
       temperature: 0.2,
-      max_tokens: 400
+      // GLM-4.7-Flash supports reasoning; prevent its token budget from
+      // being consumed by hidden reasoning without a final answer.
+      reasoning_effort: "low",
+      chat_template_kwargs: { enable_thinking: false },
+      max_completion_tokens: 900
     });
-    const answer = typeof output === "string" ? output :
-      output?.response ?? output?.choices?.[0]?.message?.content ?? output?.result?.response;
-    if (typeof answer !== "string" || !answer.trim()) return respond({ ok: false, error: "Mô hình chưa trả lời" }, 502);
+    const answer = extractAIAnswer(output);
+    if (!answer) {
+      // Diagnostics never include model-generated text or request content.
+      console.warn("lyly_workers_ai_empty_output", { model: MODEL, format: outputFormat(output) });
+      return respond({ ok: false, error: "Mô hình chưa tạo được nội dung trả lời", code: "empty_model_response" }, 502);
+    }
     return respond({ ok: true, model: MODEL, answer: answer.slice(0, 6000) });
   } catch (error) {
     if (isQuota(error)) return respond({ ok: false, error: "Cloudflare Workers AI hết hạn mức hoặc bị giới hạn. Không tự động gọi mô hình trả phí.", code: "quota_or_rate_limit" }, 429);
