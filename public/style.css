@@ -494,3 +494,12 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
  .location-map-frame{height:clamp(320px,78vw,var(--map-height));border-radius:9px}
 }
 @media(prefers-reduced-motion:reduce){.location-map-frame,.location-size-button{transition:none}}
+
+
+/* Available-inventory automobile hero: fallback stays elegant without a false stock claim. */
+#hero-slide-auto img[hidden],#hero-slide-auto [hidden]{display:none!important}
+#hero-slide-auto{background:radial-gradient(circle at 75% 25%,#284436,#10221d 50%,#07110d)}
+#hero-slide-auto .hero-stock-brand{margin:4px 0 6px;max-width:420px;color:var(--gold-soft,#ead29a);font:800 10px/1.6 "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.13em;text-transform:uppercase}
+#hero-slide-auto .hero-stock-model{margin:0 0 15px;max-width:440px;color:#fff;font:700 clamp(12px,1.35vw,15px)/1.45 "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.025em;text-shadow:0 2px 10px rgba(0,0,0,.55)}
+#hero-slide-auto.hero-catalog-image-unavailable{background:linear-gradient(135deg,#15382e,#08110d 60%,#57442a)}
+@media(max-width:800px){#hero-slide-auto .hero-stock-model{font-size:12px;max-width:340px}#hero-slide-auto .hero-stock-brand{font-size:9px}}
