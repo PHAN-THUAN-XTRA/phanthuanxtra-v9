@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { handleLylyBridge } from "../src/lyly-bridge.js";
 
-const TOKEN = "super-secret-lyly-token-2026-with-at-least-32-characters";
+const TOKEN = "t".repeat(48);
 const url = path => "https://phanthuanxtra.com/api/lyly/" + path;
 const request = (path, token = TOKEN, opts = {}) =>
   new Request(url(path), { ...opts, headers: { ...(token ? { authorization: "Bearer " + token } : {}), ...(opts.headers || {}) } });
@@ -26,8 +26,8 @@ test("missing secret fails closed", async () => {
 });
 test("all data routes require separate strong bearer token", async () => {
   assert.equal((await handleLylyBridge(request("health", null), env())).status, 401);
-  assert.equal((await handleLylyBridge(request("d1/cars", "wrong-token-with-more-than-32-characters"), env())).status, 401);
-  assert.equal((await handleLylyBridge(request("r2", "wrong-token-with-more-than-32-characters"), env())).status, 401);
+  assert.equal((await handleLylyBridge(request("d1/cars", "x".repeat(48)), env())).status, 401);
+  assert.equal((await handleLylyBridge(request("r2", "x".repeat(48)), env())).status, 401);
 });
 test("health reports bindings, without exposing secrets", async () => {
   const result = await handleLylyBridge(request("health"), env());
