@@ -67,5 +67,5 @@ if(liveChatOpen){
     .catch(()=>{});
 }
 
-const carsRoot=$("#cars");if(carsRoot)fetch('/api/cars',{cache:'no-store',credentials:'same-origin'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{if(!d||!Array.isArray(d.cars))throw Error();state.cars=d.cars.map(normalizeCar);render()}).catch(()=>{const notice=document.createElement("p");notice.className="notice";notice.textContent="Không tải được kho xe. Vui lòng gọi 0866 997 891.";carsRoot.replaceChildren(notice)});
+const carsRoot=$("#cars");if(carsRoot)fetch('/api/cars',{cache:'no-store',credentials:'same-origin'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{if(!d||!Array.isArray(d.cars))throw Error();state.cars=d.cars.filter(c=>!['hidden','unpublished'].includes(String(c?.status??c?.tag??'').trim().toLowerCase())).map(normalizeCar);render()}).catch(()=>{const notice=document.createElement("p");notice.className="notice";notice.textContent="Không tải được kho xe. Vui lòng gọi 0866 997 891.";carsRoot.replaceChildren(notice)});
 })();
