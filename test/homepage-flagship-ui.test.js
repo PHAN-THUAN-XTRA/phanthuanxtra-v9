@@ -60,24 +60,27 @@ test("production homepage gate checks all five current hero sectors",()=>{
   }
   assert.doesNotMatch(canonicalGate,/BỘ SƯU TẬP RIÊNG/);
   assert.match(canonicalGate,/PHAN THUáº¦N XTRA/);
-  assert.match(canonicalGate,/data-catalog-hero="lexus-rx500h-2024"/);
+  assert.match(canonicalGate,/data-catalog-hero="available-stock"/);
   assert.match(canonicalGate,/Kevauto/);
   assert.match(canonicalGate,/2022_Lexus_LX600_F_Sport/);
   assert.match(canonicalGate,/Retired Lexus LX600\/Kevauto automotive hero is still present in production/);
 });
 
 
-test("automotive hero resolves the live Lexus RX500h 2024 catalog image",()=>{
-  assert.match(html,/data-catalog-hero="lexus-rx500h-2024"/);
-  assert.match(html,/alt="LEXUS RX500h F SPORT PERFORMANCE 2024 đang bán tại PHAN THUẦN XTRA"/);
+test("automotive hero uses available inventory with Porsche 718 priority, not a hidden Lexus",()=>{
+  assert.match(html,/data-catalog-hero="available-stock"/);
+  assert.match(html,/data-catalog-model/);
+  assert.doesNotMatch(html,/data-catalog-hero="lexus-rx500h-2024"/);
   assert.doesNotMatch(html,/Kevauto/);
   assert.doesNotMatch(html,/creativecommons\.org\/licenses\/by-sa\/4\.0/);
   assert.doesNotMatch(html,/2022_Lexus_LX600_F_Sport/);
 
-  assert.match(heroCarousel,/fetch\('\/api\/cars', \{ cache: 'no-store', credentials: 'same-origin' \}\)/);
-  assert.match(heroCarousel,/brand === 'lexus' && name\.includes\('rx500h'\) && year === '2024'/);
-  assert.match(heroCarousel,/rx500h\?\.cover_image \?\? rx500h\?\.image/);
-  assert.match(heroCarousel,/catalogHero\.src = image/);
+  assert.match(heroCarousel,/fetch\('\/api\/cars', \{cache:'no-store',credentials:'same-origin'\}\)/);
+  assert.match(heroCarousel,/const isAvailable = car/);
+  assert.match(heroCarousel,/const isPorsche = car/);
+  assert.match(heroCarousel,/RACING YELLOW \| MÂM ĐEN CỰC CHẤT/);
+  assert.match(heroCarousel,/showAvailable\(preferred \?/);
+  assert.match(heroCarousel,/catalogHero\.onerror = \(\) =>/);
   assert.match(heroCarousel,/querySelectorAll\('\.hero-slide'\)/);
   assert.match(heroCarousel,/window\.setInterval\(\(\) => show\(current \+ 1\), 6500\)/);
 });
