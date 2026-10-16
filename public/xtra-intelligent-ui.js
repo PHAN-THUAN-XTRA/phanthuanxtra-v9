@@ -3,6 +3,19 @@ const ALLOWED_CATEGORIES = ["all", "suv", "sedan", "coupe", "convertible", "mpv"
 const CATEGORY_LABELS = {all:"Tất cả dòng xe",suv:"SUV / Crossover",sedan:"Sedan",coupe:"Coupe",convertible:"Convertible",mpv:"MPV",pickup:"Pickup",wagon:"Wagon",sport:"Thể thao",other:"Khác"};
 const MONEY = new Intl.NumberFormat("vi-VN");
 const MAX_CARS = 8;
+export const MAX_VEHICLE_BUDGET = 200_000_000_000;
+
+// Nonlinear slider: fine-grained below 30 billion, wider steps for rare hypercars.
+// Benchmark is an observed ~200-billion-VND on-road vehicle, not a current listing.
+export function budgetFromPosition(position) {
+  const p = Number(position);
+  if (!Number.isFinite(p)) return 20_000_000_000;
+  const n = Math.max(0, Math.min(100, p));
+  const billion = n <= 60 ? 0.5 + n * (29.5 / 60)
+    : n <= 85 ? 30 + (n - 60) * (70 / 25)
+    : 100 + (n - 85) * (100 / 15);
+  return Math.min(MAX_VEHICLE_BUDGET, Math.max(500_000_000, Math.round(billion * 2) * 500_000_000));
+}
 
 export function parsePrice(value) {
   if (typeof value === "number") return Number.isFinite(value) && value >= 1000000 ? Math.round(value) : null;
@@ -40,7 +53,7 @@ export function normalizeCars(payload) {
 export function filterCars(cars, filters = {}) {
   const query = String(filters.query || "").trim().toLocaleLowerCase("vi");
   const category = ALLOWED_CATEGORIES.includes(filters.category) ? filters.category : "all";
-  const budget = Number.isFinite(filters.budget) ? filters.budget : 30000000000;
+  const budget = Number.isFinite(filters.budget) ? Math.max(500_000_000, Math.min(MAX_VEHICLE_BUDGET, filters.budget)) : MAX_VEHICLE_BUDGET;
   const includeUnpriced = filters.includeUnpriced !== false;
   return cars.filter(car => {
     if (category !== "all" && car.category !== category) return false;
@@ -141,10 +154,13 @@ export function initShowroom() {
   }
   function render() {
     budgetLabel.textContent = formatBudget(state.budget);
+    budget.setAttribute("aria-valuetext", formatBudget(state.budget));
     downLabel.textContent = state.down + "%";
     const matches = filterCars(state.cars,state);
     if (!matches.some(car=>car.id===state.selected)) state.selected=matches[0]?.id || null;
-    count.textContent = matches.length + " xe phù hợp bộ lọc" + (matches.some(car=>car.price===null)?" · có xe chưa công bố giá":"");
+    const priced = matches.filter(car=>car.price!==null).length;
+    const unpriced = matches.length - priced;
+    count.textContent = priced + " xe trong ngân sách" + (unpriced ? " · " + unpriced + " xe chưa công bố giá (tham khảo)" : "");
     root.replaceChildren();
     if(!matches.length){
       root.append(el("p","Không tìm thấy xe phù hợp. Hãy điều chỉnh ngân sách hoặc dòng xe.","empty-state"));
@@ -158,7 +174,7 @@ export function initShowroom() {
   }
   byId("xtra-search").addEventListener("input",e=>{state.query=e.target.value.slice(0,80);render();});
   categories.addEventListener("change",e=>{state.category=e.target.value;render();});
-  budget.addEventListener("input",e=>{state.budget=Number(e.target.value);render();});
+  budget.addEventListener("input",e=>{state.budget=budgetFromPosition(e.target.value);render();});
   byId("xtra-unpriced").addEventListener("change",e=>{state.includeUnpriced=e.target.checked;render();});
   down.addEventListener("input",e=>{state.down=Number(e.target.value);render();});
   term.addEventListener("change",e=>{state.months=Number(e.target.value);render();});
