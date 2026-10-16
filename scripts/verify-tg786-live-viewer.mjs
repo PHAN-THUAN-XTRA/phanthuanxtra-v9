@@ -27,7 +27,20 @@ async function exercise(context,label){
   try {
     const response=await page.goto(URL,{waitUntil:"domcontentloaded",timeout:60000});
     check(label+" page HTTP 200",response?.status()===200,"Vehicle page returned HTTP "+response?.status());
-    await page.locator(".vehicle-gallery-grid a[data-ptx-image-viewer]").first().waitFor({timeout:30000});
+    await page.locator(".vehicle-gallery-grid a").first().waitFor({timeout:30000});
+    const diag=await page.evaluate(()=>({
+      vehicleTitle:document.querySelector(".detail-info h1")?.textContent,
+      galleryHeading:document.querySelector(".vehicle-gallery h2")?.textContent,
+      galleryLink:document.querySelector(".vehicle-gallery-grid a")?.outerHTML.slice(0,350),
+      viewerScript:!!document.querySelector('script[src="/image-viewer.js"]'),
+      viewerCss:!!document.querySelector('link[href="/image-viewer.css"]'),
+      viewerAttributeCount:document.querySelectorAll('a[data-ptx-image-viewer]').length,
+      documentHTMLLength:document.documentElement.outerHTML.length
+    }));
+    console.log("PROD_DOM_DIAGNOSTIC "+JSON.stringify(diag));
+    const scriptProbe=await page.request.get("https://phanthuanxtra.com/image-viewer.js?audit="+Date.now());
+    console.log("PROD_VIEWER_SCRIPT_STATUS "+scriptProbe.status()+" LEN "+(await scriptProbe.text()).length);
+    await page.locator(".vehicle-gallery-grid a[data-ptx-image-viewer]").first().waitFor({timeout:8000});
     const tiles=page.locator(".vehicle-gallery-grid a[data-ptx-image-viewer]");
     check(label+" 24 gallery images",await tiles.count()===24,"Vehicle gallery must retain exactly 24 images");
     check(label+" hero clickable",await page.locator(".vehicle-cover-zoom[data-ptx-image-viewer]").count()===1);
