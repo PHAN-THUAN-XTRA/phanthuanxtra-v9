@@ -19,7 +19,7 @@ const autoBotToken = env => env.TELEGRAM_AUTO_BOT_TOKEN || env.TELEGRAM_BOT_TOKE
 const AUTO_WEBHOOK_URL = "https://phanthuanxtra.com/api/telegram/webhook";
 async function tg(token, method, payload = {}) { if (!token) throw new Error("Telegram Auto Bot token is not configured"); const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); const data = await response.json().catch(() => ({})); if (!response.ok || !data.ok) throw new Error(clean(data.description || `Telegram ${method} failed`)); return data.result; }
 const pickPhoto = message => Array.isArray(message?.photo) && message.photo.length ? message.photo[message.photo.length - 1] : null;
-export const telegramWebhookReceipt = hasPhoto => hasPhoto ? "📥 ĐÃ NHẬN ẢNH XE\n⏳ Đang kiểm tra và xử lý..." : "📥 ĐÃ NHẬN THÔNG TIN XE\n⏳ Đang chờ ảnh xe để xử lý...";
+export const telegramWebhookReceipt = hasPhoto => hasPhoto ? "📥 ĐÃ NHẬN ẢNH XE\n⏳ Đang kiểm tra và xử lý..." : "📥 ĐÃ NHẬN THÔNG TIN XE\n✅ Đã lưu nội dung. Nếu đã gửi ảnh, không cần gửi lại.";
 
 async function processBundle(env, bundleKey, chatId) {
   const token = autoBotToken(env);
@@ -121,12 +121,16 @@ async function publishAiPhotoBlog(env, message, chatId, caption) {
   await tg(token, "sendMessage", { chat_id: chatId, text: `📰 BÀI BLOG\n${post.title}\nhttps://phanthuanxtra.com/blog/${post.slug}` });
 }
 
-function captionVehicleFallback(ai,caption){
+export function captionVehicleFallback(ai,caption){
   const next={...(ai||{})},text=clean(caption,10000);
   if(!next.brand){
-    const brand=/\b(LEXUS|TOYOTA|MERCEDES(?:-BENZ)?|BMW|AUDI|PORSCHE|VOLVO|LAND ROVER|RANGE ROVER|BENTLEY|ROLLS-ROYCE|FERRARI|LAMBORGHINI|MCLAREN|FORD|HONDA|MAZDA|KIA|HYUNDAI|VINFAST)\b/i.exec(text);
+    const brand=/\b(LEXUS|TOYOTA|MERCEDES(?:-BENZ)?|BMW|AUDI|PORSCHE|VOLVO|LAND ROVER|RANGE ROVER|BENTLEY|ROLLS-ROYCE|FERRARI|LAMBORGHINI|MCLAREN|FORD|HONDA|MAZDA|KIA|HYUNDAI|VINFAST|HUMMER)\b/i.exec(text);
     if(brand)next.brand=brand[1].toUpperCase().replace("MERCEDES-BENZ","MERCEDES");
     else if(/\bDEFENDER\b/i.test(text))next.brand="LAND ROVER";
+  }
+  if(!next.model&&String(next.brand).toUpperCase()==="HUMMER"){
+    const hummer=/\bHUMMER\s+(H\d+)(?:\s+(LUXURY|ADVENTURE))?/i.exec(text);
+    if(hummer)next.model=[hummer[1].toUpperCase(),hummer[2]?.toUpperCase()].filter(Boolean).join(" ");
   }
   if(!next.model&&next.brand){
     const first=text.split(/\n|\r/).map(x=>clean(x,300)).find(Boolean)||"";
@@ -137,9 +141,18 @@ function captionVehicleFallback(ai,caption){
     if(title)next.model=title.slice(0,120);
   }
   if(!next.year){const year=/\b(19\d{2}|20\d{2})\b/.exec(text);if(year)next.year=Number(year[1]);}
+  // Explicit owner price in Vietnamese billion notation takes precedence over optional AI guesses.
+  const ownerPrice=/(?:^|\n)\s*(?:💰\s*)?Giá\s*[:：=-]?\s*(\d+(?:[.,]\d+)?)\s*(?:tỷ|tỉ)(?=\s|$|[.!])/iu.exec(text);
+  if(ownerPrice){const billions=Number(ownerPrice[1].replace(",","."));if(Number.isFinite(billions)&&billions>0)next.price=Math.round(billions*1_000_000_000);}
   if((!next.description||!clean(next.description))&&text)next.description=text;
   if((next.brand||next.model||next.year)&&!next._metadata_source)next._metadata_source="telegram_caption";
   return next;
+}
+
+async function latestReviewCarInbox(env,chatId){
+  if(!env.DB)throw new Error("D1 chưa được kết nối.");
+  if(!canPublishAutoBlog(env,chatId))throw new Error("Chat này chưa được cấp quyền xem bản nháp.");
+  return env.DB.prepare("SELECT d.inbox_id,d.status FROM vehicle_ai_drafts d JOIN telegram_inbox i ON i.id=d.inbox_id WHERE i.chat_id=? AND d.status IN ('awaiting_review','previewed') ORDER BY d.inbox_id DESC LIMIT 1").bind(String(chatId)).first();
 }
 
 async function publishReviewedCar(env,chatId,inboxId){
@@ -421,10 +434,34 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa lưu bản duyệt: "+clean(error?.message||error)});}
     return;
   }
+  // A missing preview ID should use the most recent reviewable draft from this chat.
+  const carPreviewWithoutId=/^\/carpreview\s*$/i.test(caption);
+  if(carPreviewWithoutId){
+    try{
+      const latest=await latestReviewCarInbox(env,chatId);
+      if(!latest?.inbox_id)throw new Error("Không tìm thấy bản nháp chờ duyệt trong chat này.");
+      const inboxId=Number(latest.inbox_id),preview=await previewReviewedCar(env,chatId,inboxId);
+      for(const part of preview.chunks)await tg(token,"sendMessage",{chat_id:chatId,text:part});
+      await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã xem preview Inbox ${inboxId}. Nếu đúng thông tin và ảnh, dùng /carpublish ${inboxId}.`});
+    }catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không xem được preview: "+clean(error?.message||error)});}
+    return;
+  }
   const carPreview=/^\/carpreview\s+(\d+)\s*$/i.exec(caption);
   if(carPreview){
     try{const preview=await previewReviewedCar(env,chatId,Number(carPreview[1]));for(const text of preview.chunks)await tg(token,"sendMessage",{chat_id:chatId,text});await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã xem preview Inbox ${carPreview[1]}. Nếu nội dung và ảnh đúng, dùng /carpublish ${carPreview[1]}.`});}
     catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không xem được preview: "+clean(error?.message||error)});}
+    return;
+  }
+  // Publishing must remain explicit: never silently publish a different vehicle.
+  const carPublishWithoutId=/^\/carpublish\s*$/i.test(caption);
+  if(carPublishWithoutId){
+    try{
+      const latest=await latestReviewCarInbox(env,chatId);
+      const reply=!latest?.inbox_id?"ℹ️ Không có bản nháp chờ duyệt. Dùng /carpreview <Inbox ID> để kiểm tra.":latest.status==="previewed"
+        ?`🛡️ Để tránh đăng nhầm xe, hãy xác nhận bằng /carpublish ${latest.inbox_id}. Xe chưa được đăng bởi lệnh thiếu mã này.`
+        :`👁 Bản nháp ${latest.inbox_id} chưa được xem trước. Dùng /carpreview ${latest.inbox_id}, sau đó /carpublish ${latest.inbox_id} nếu đúng.`;
+      await tg(token,"sendMessage",{chat_id:chatId,text:reply});
+    }catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa đăng xe: "+clean(error?.message||error)});}
     return;
   }
   const carPublish=/^\/carpublish\s+(\d+)\s*$/i.exec(caption);
@@ -505,7 +542,7 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     if(hasPhoto&&!hasText){
       const intake=(await env.DB.prepare("SELECT COUNT(*) AS count FROM telegram_inbox WHERE chat_id=? AND file_id<>'' AND bundle_status='pending' AND created_at >= datetime('now','-45 seconds')").bind(chatId).first())||{};
       const received=Math.max(rows.filter(row=>row.file_id).length,Number(intake.count||0));
-      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ẢNH XE — ${received} ẢNH\\n⏳ Đang chờ nội dung xe; không cần gửi lại ảnh.`}).catch(error=>console.error("telegram_album_receipt_failed",clean(error?.message||error)));
+      await tg(token,"sendMessage",{chat_id:chatId,reply_to_message_id:Number(message.message_id||0),text:`📥 ĐÃ NHẬN ẢNH XE — ${received} ẢNH\n⏳ Đang chờ nội dung xe; không cần gửi lại ảnh.`}).catch(error=>console.error("telegram_album_receipt_failed",clean(error?.message||error)));
     }
     return;
   }
@@ -516,7 +553,7 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: "📥 ĐÃ GHÉP ẢNH + THÔNG TIN XE\n⏳ Đang tạo bản nháp..." }).catch(() => {});
     if ((await env.DB.prepare("SELECT bundle_status FROM telegram_inbox WHERE bundle_key=? LIMIT 1").bind(bundleKey).first())?.bundle_status === "pending") await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='queued',updated_at=CURRENT_TIMESTAMP WHERE bundle_key=? AND bundle_status='pending'").bind(bundleKey).run();
   } else {
-    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: photo ? "📥 Đã nhận ảnh. Chờ phần thông tin xe để ghép tự động." : "📥 Đã nhận thông tin. Chờ ảnh xe để ghép tự động." }).catch(() => {});
+    await tg(token, "sendMessage", { chat_id: chatId, reply_to_message_id: Number(message.message_id || 0), text: photo ? "📥 Đã nhận ảnh. Nếu đã gửi nội dung, không cần gửi lại." : "📥 Đã nhận nội dung xe. Nếu đã gửi ảnh, không cần gửi lại; dùng /carfinish để chốt Vehicle Session." }).catch(() => {});
   }
 }
 
