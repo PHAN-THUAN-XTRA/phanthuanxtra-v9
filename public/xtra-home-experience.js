@@ -1,5 +1,5 @@
 // Homepage-exclusive XTRA interactive selection: public inventory only, no writes or AI usage.
-import { normalizeCars, filterCars, safeImage } from "./xtra-intelligent-ui.js";
+import { normalizeCars, filterCars, safeImage, budgetFromPosition } from "./xtra-intelligent-ui.js";
 
 const labels = {
   suv: "SUV / Crossover", sedan: "Sedan", coupe: "Coupe",
@@ -59,8 +59,9 @@ export function initHomeExperience() {
   let loaded = false;
 
   const display = () => {
-    const budgetLimit = Number(budget.value);
+    const budgetLimit = budgetFromPosition(budget.value);
     budgetValue.textContent = formatBudget(budgetLimit);
+    budget.setAttribute("aria-valuetext", formatBudget(budgetLimit));
     const matches = filterCars(cars, {
       category: category.value,
       budget: budgetLimit,
