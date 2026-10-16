@@ -254,9 +254,19 @@ jobs:
             echo "Checking ${base}${path}"
             curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 \
               -D /tmp/xtra-ui.headers -o /tmp/xtra-ui.html "${base}${path}?audit=${GITHUB_SHA}"
-            grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8' /tmp/xtra-ui.headers
-            grep -Fq 'XTRA INTELLIGENT UI' /tmp/xtra-ui.html
-            grep -Fq 'id="xtra-results"' /tmp/xtra-ui.html
+            printf 'XTRA_HTML_CONTENT_TYPE: '
+            grep -i '^content-type:' /tmp/xtra-ui.headers || true
+            printf 'XTRA_HTML_BYTES: '
+            wc -c < /tmp/xtra-ui.html
+            if ! grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8' /tmp/xtra-ui.headers; then
+              echo "ERROR: ${path} did not return UTF-8 HTML."
+              exit 1
+            fi
+            if ! grep -Fq 'XTRA INTELLIGENT UI' /tmp/xtra-ui.html || ! grep -Fq 'id="xtra-results"' /tmp/xtra-ui.html; then
+              echo "ERROR: ${path} did not return the interactive advisor markup."
+              head -c 120 /tmp/xtra-ui.html || true
+              exit 1
+            fi
           done
           curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 \
             -D /tmp/xtra-ui-js.headers -o /tmp/xtra-ui.js "${base}/xtra-intelligent-ui.js?audit=${GITHUB_SHA}"
