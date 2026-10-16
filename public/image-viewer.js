@@ -152,7 +152,7 @@
     else if (event.key === "ArrowRight" && images.length > 1) { event.preventDefault(); show(current + 1); }
     else if (event.key === "Tab") {
       // Keep keyboard focus inside the modal while it is open.
-      const focusable = [closeButton, previous, next].filter(button => !button.hidden);
+      const focusable = [previous, next, closeButton].filter(button => !button.hidden);
       const first = focusable[0], last = focusable[focusable.length - 1];
       if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
         event.preventDefault(); last.focus();
