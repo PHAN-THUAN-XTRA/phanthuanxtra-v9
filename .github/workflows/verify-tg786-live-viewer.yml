@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/verify-tg786-live-viewer.yml"
       - "scripts/verify-tg786-live-viewer.mjs"
+      - "public/image-viewer.js"
+      - "public/car.html"
   workflow_dispatch:
 
 permissions:
