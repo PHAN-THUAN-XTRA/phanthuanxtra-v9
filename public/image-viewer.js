@@ -90,7 +90,7 @@
     next.addEventListener("click", () => show(current + 1));
     closeButton.addEventListener("click", hide);
     dialog.addEventListener("click", event => {
-      if (event.target === dialog) hide();
+      if (event.target === dialog || event.target === stage) hide();
     });
     stage.addEventListener("touchstart", event => {
       if (event.touches.length !== 1) { touchStart = null; return; }
