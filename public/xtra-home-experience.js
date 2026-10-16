@@ -1,5 +1,5 @@
 // Homepage-exclusive XTRA interactive selection: public inventory only, no writes or AI usage.
-import { normalizeCars, filterCars, safeImage } from "/xtra-intelligent-ui.js";
+import { normalizeCars, filterCars, safeImage } from "./xtra-intelligent-ui.js";
 
 const labels = {
   suv: "SUV / Crossover", sedan: "Sedan", coupe: "Coupe",
