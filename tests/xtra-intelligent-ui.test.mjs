@@ -72,5 +72,5 @@ test("page has usable inputs, disclosure, and no privileged runtime route", () =
   assert.match(js,/fetch\("\/api\/cars"/);
   assert.doesNotMatch(js,/fetch\("\/api\/(admin|lyly|leads)/);
   assert.doesNotMatch(js,/localStorage|sessionStorage|Authorization|Bearer/);
-  assert.match(homepage,/href="\/trai-nghiem-xe\.html"/);
+  assert.match(homepage,/href="\/trai-nghiem-xe"/);
 });
