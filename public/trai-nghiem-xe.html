@@ -32,6 +32,7 @@
     .filters label,.finance-controls label{display:block;font-size:12px;font-weight:760;letter-spacing:.02em;margin-bottom:8px}
     .filters input[type=search],.filters select,.finance-controls select{width:100%;min-height:46px;border:1px solid #cdd7ce;border-radius:3px;background:#fff;padding:10px 13px;color:#142b1e}
     .filters input[type=range],.finance-controls input[type=range]{width:100%;accent-color:#356e50;cursor:pointer}
+    .budget-milestones{display:flex;justify-content:space-between;gap:6px;font-size:10px;color:#738276;margin-top:5px;white-space:nowrap}
     .range-top{display:flex;justify-content:space-between;gap:8px;font-size:12px}
     .range-top b{color:#234f39}
     .checkbox{display:flex;align-items:center;gap:9px;min-height:46px;margin-top:8px;font-size:13px}
@@ -91,8 +92,8 @@
   <section class="filters" aria-label="Bộ lọc xe tương tác">
     <div><label for="xtra-search">Tìm theo hãng, mẫu hoặc năm</label><input id="xtra-search" type="search" autocomplete="off" placeholder="Ví dụ: Porsche, Lexus, 2024" maxlength="80"></div>
     <div><label for="xtra-category">Dòng xe</label><select id="xtra-category"></select></div>
-    <div><div class="range-top"><label for="xtra-budget">Ngân sách tối đa</label><b id="xtra-budget-label">20 tỷ đồng</b></div><input id="xtra-budget" type="range" min="500000000" max="30000000000" value="20000000000" step="500000000" aria-label="Ngân sách tối đa"></div>
-    <div><label for="xtra-unpriced">Xe chưa công bố giá</label><div class="checkbox"><input id="xtra-unpriced" type="checkbox" checked><span>Vẫn hiển thị để tham khảo</span></div></div>
+    <div><div class="range-top"><label for="xtra-budget">Ngân sách tối đa</label><b id="xtra-budget-label">20 tỷ đồng</b></div><input id="xtra-budget" type="range" min="0" max="100" value="40" step="1" aria-label="Ngân sách tối đa từ 500 triệu đến 200 tỷ đồng" aria-valuetext="20 tỷ đồng"><small class="budget-milestones">500 triệu <span>30 tỷ</span><span>100 tỷ</span><span>200 tỷ</span></small></div>
+    <div><label for="xtra-unpriced">Xe chưa công bố giá (tham khảo)</label><div class="checkbox"><input id="xtra-unpriced" type="checkbox" checked><span>Vẫn hiển thị để tham khảo</span></div></div>
   </section>
   <div class="columns">
     <section aria-labelledby="xtra-results-title">
