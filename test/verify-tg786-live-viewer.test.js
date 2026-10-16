@@ -23,3 +23,10 @@ test("diagnostic workflow is read only; no secret, direct database or publishing
   assert.doesNotMatch(script,/POST|PUT|DELETE|ADMIN_PASSWORD|Cloudflare_API|d1\/database|db\.prepare/);
   assert.doesNotMatch(workflow,/secrets\.|wrangler deploy|publish-tg786/);
 });
+
+test("production diagnosis distinguishes missing DOM viewer anchors from missing JS asset",()=>{
+  assert.match(script,/PROD_DOM_DIAGNOSTIC/);
+  assert.match(script,/PROD_VIEWER_SCRIPT_STATUS/);
+  assert.match(script,/viewerAttributeCount/);
+  assert.match(script,/galleryLink/);
+});
