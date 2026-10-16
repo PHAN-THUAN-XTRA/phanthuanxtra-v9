@@ -92,6 +92,22 @@ export default {
         headers.delete("content-length");
         return new Response(assetResponse.body, { status: 200, headers });
       }
+      if (url.pathname === "/xtra-intelligent-ui.js") {
+        const assetUrl = new URL("/xtra-intelligent-ui.js", request.url);
+        const assetResponse = await env.ASSETS.fetch(new Request(assetUrl.toString(), {
+          method: "GET",
+          headers: new Headers({ "accept": "application/javascript", "accept-encoding": "identity" }),
+          cf: { cacheTtl: 0, cacheEverything: false }
+        }));
+        if (!assetResponse.ok) return assetResponse;
+        const bytes = await assetResponse.arrayBuffer();
+        const javascript = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        const headers = new Headers();
+        headers.set("content-type", "application/javascript; charset=utf-8");
+        headers.set("cache-control", "no-store, no-cache, must-revalidate, max-age=0");
+        headers.set("x-content-type-options", "nosniff");
+        return new Response(javascript, { status: 200, headers });
+      }
       const editorialAssets = new Map([
         ["/phan-thuan", "/phan-thuan.html"], ["/phan-thuan/", "/phan-thuan.html"],
         ["/green-energy", "/green-energy.html"], ["/green-energy/", "/green-energy.html"],
