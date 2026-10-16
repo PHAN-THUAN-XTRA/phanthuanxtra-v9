@@ -1,0 +1,52 @@
+name: Owner-Approved HUMMER H2 Inbox 786 Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-tg786-hummer.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/publish-tg786-hummer.yml"
+      - "scripts/publish-tg786-production.mjs"
+      - "tests/publish-hummer-786-production.test.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-tg786-owner-approved-publish
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Validate owner-approved scoped publication
+        run: |
+          node --check scripts/publish-tg786-production.mjs
+          node --test tests/publish-hummer-786-production.test.mjs
+
+  publish:
+    needs: validate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Publish and verify exactly tg-786 without duplicating R2
+        run: node scripts/publish-tg786-production.mjs
