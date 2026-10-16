@@ -1,0 +1,16 @@
+/* Shared image viewer — all published cars and blog detail articles. */
+a[data-ptx-image-viewer]{cursor:zoom-in;display:block}
+a[data-ptx-image-viewer]:focus-visible{outline:3px solid #c8a96b;outline-offset:4px}
+.ptx-image-viewer[hidden],.ptx-image-viewer button[hidden]{display:none!important}
+.ptx-image-viewer{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:rgba(2,3,4,.96);color:#fff;padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+.ptx-image-viewer__stage{position:relative;width:100%;height:100%;display:grid;place-items:center;touch-action:pan-y}
+.ptx-image-viewer__photo{display:block;max-width:min(96vw,1800px);max-height:calc(100dvh - 115px);width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none;touch-action:pinch-zoom}
+.ptx-image-viewer button{font:700 16px "Be Vietnam Pro",Arial,sans-serif;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.64);color:#fff;cursor:pointer}
+.ptx-image-viewer button:hover,.ptx-image-viewer button:focus-visible{background:#36332b;outline:2px solid #ead29a;outline-offset:2px}
+.ptx-image-viewer__close{position:absolute;right:12px;top:12px;z-index:2;border-radius:24px;padding:10px 17px;min-height:44px}
+.ptx-image-viewer__arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:48px;height:64px;display:grid;place-items:center;border-radius:12px;font-size:40px!important;line-height:1}
+.ptx-image-viewer__arrow--prev{left:4px}.ptx-image-viewer__arrow--next{right:4px}
+.ptx-image-viewer__footer{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 24px 6px;text-shadow:0 1px 4px #000;font-size:13px}
+.ptx-image-viewer__caption{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptx-image-viewer__counter{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
+@media(max-width:600px){.ptx-image-viewer__arrow{width:40px;height:50px;font-size:32px!important}.ptx-image-viewer__photo{max-width:100%;max-height:calc(100dvh - 112px)}.ptx-image-viewer__close{right:6px;top:6px}.ptx-image-viewer__footer{padding:10px 10px 4px;font-size:12px}}
