@@ -39,3 +39,15 @@ test("viewer offers accessible modal, keyboard navigation, mobile swipe, count a
   assert.match(css,/\[hidden\]/);
   assert.doesNotMatch(viewer,/fetch\(|delete\(|POST|PUT|\bR2\b|\bD1\b/);
 });
+
+test("legacy vehicle galleries are enhanced after async rendering without touching gallery order or R2",()=>{
+  assert.match(viewer,/function enhanceVehicleGallery\(/);
+  assert.match(viewer,/MutationObserver\(enhanceVehicleGallery\)/);
+  assert.match(viewer,/detailRoot, \{ childList: true, subtree: true \}/);
+  assert.match(viewer,/\.vehicle-gallery-grid a\[href\]/);
+  assert.match(viewer,/\.vehicle-cover-zoom\[href\]/);
+  assert.match(viewer,/if \(validUrl\(anchor\) && !anchor\.hasAttribute/);
+  assert.match(viewer,/image\.replaceWith\(anchor\)/);
+  assert.match(viewer,/anchor\.append\(image\)/);
+  assert.doesNotMatch(viewer,/DELETE FROM|UPDATE car_images|\/api\/admin\/cars/);
+});

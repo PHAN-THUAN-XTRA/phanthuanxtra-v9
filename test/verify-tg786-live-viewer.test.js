@@ -30,3 +30,10 @@ test("production diagnosis distinguishes missing DOM viewer anchors from missing
   assert.match(script,/viewerAttributeCount/);
   assert.match(script,/galleryLink/);
 });
+
+test("browser regression waits for new production viewer asset before checking click handlers",()=>{
+  assert.match(script,/awaitLiveEnhancement/);
+  assert.match(script,/image-viewer\.js\?live_fix=/);
+  assert.match(script,/enhanceVehicleGallery/);
+  assert.match(workflow,/public\/image-viewer\.js/);
+});
