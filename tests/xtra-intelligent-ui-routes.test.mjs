@@ -42,3 +42,18 @@ test("extensionless alias stays inside the reviewed static-asset allowlist", () 
   assert.match(entrySource,/\["\/trai-nghiem-xe\/", "\/trai-nghiem-xe\.html"\]/);
   assert.doesNotMatch(advisorHtml,/ADMIN_TOKEN|LYLY_BRIDGE_TOKEN|sk-[A-Za-z0-9]/);
 });
+
+test("XTRA ES module returns valid JavaScript with a strict MIME type", async () => {
+  const expected = "export function normalizeCars(payload) { return payload; }";
+  const calls = [];
+  const env = { ASSETS: { async fetch(request) {
+    calls.push(new URL(request.url).pathname);
+    return new Response(expected, {status: 200, headers: {"content-type":"text/plain"}});
+  }}};
+  const response = await worker.fetch(new Request(origin + "/xtra-intelligent-ui.js"), env, {});
+  assert.equal(response.status, 200);
+  assert.deepEqual(calls, ["/xtra-intelligent-ui.js"]);
+  assert.match(response.headers.get("content-type"), /^application\\/javascript; charset=utf-8$/);
+  assert.match(response.headers.get("cache-control"), /no-store/);
+  assert.equal(await response.text(), expected);
+});
