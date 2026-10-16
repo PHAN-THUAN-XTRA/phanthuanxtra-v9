@@ -27,3 +27,11 @@ test("posts without images remain valid and show no missing-image links",async()
   assert.equal(r.status,200);
   assert.doesNotMatch(await r.text(),/data-ptx-image-viewer/);
 });
+
+test("unsafe cover schemes never become clickable links",async()=>{
+  const r=await handleBlog(new Request("https://phanthuanxtra.com/blog/hummer-h2-luxury-2009"),{DB:database({...post,cover_image:"javascript:alert(1)"})});
+  assert.equal(r.status,200);
+  const html=await r.text();
+  assert.doesNotMatch(html,/data-ptx-image-viewer/);
+  assert.match(html,/class="blog-cover"/);
+});
