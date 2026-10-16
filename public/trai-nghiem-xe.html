@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Tư vấn xe tương tác | PHAN THUẦN XTRA</title>
+  <meta name="description" content="Khám phá kho xe cao cấp PHAN THUẦN XTRA theo nhu cầu và ngân sách, mô phỏng khoản trả góp minh bạch và đặt lịch tư vấn riêng.">
+  <meta name="robots" content="noindex,follow">
+  <meta name="theme-color" content="#101412">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="canonical" href="https://phanthuanxtra.com/trai-nghiem-xe.html">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{color-scheme:light;--ink:#132019;--mute:#69776e;--forest:#122d22;--gold:#ac8752;--line:#dfe5de;--paper:#f4f6f2;--white:#fff}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;line-height:1.55}
+    a{color:inherit}
+    button,input,select{font:inherit}
+    button,a,input,select{touch-action:manipulation}
+    :focus-visible{outline:3px solid #b88c43;outline-offset:3px}
+    .top{background:#101b16;color:#fff;padding:17px max(22px,calc((100vw - 1220px)/2))}
+    .top nav{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+    .wordmark{font-size:17px;text-decoration:none;font-weight:750;letter-spacing:.1em}.wordmark span{color:#d5ae73}
+    .top nav>a:last-child{color:#d4d9d4;text-decoration:none;font-size:14px}
+    .intro{background:linear-gradient(125deg,#12281e 15%,#31493a 95%);color:#fff;padding:58px 22px 64px}
+    .wrap{max-width:1220px;margin:auto}
+    .eyebrow{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#d5b88e}
+    h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(34px,5.2vw,67px);letter-spacing:-.035em;line-height:1.08;max-width:800px;margin:18px 0}
+    .intro p:last-child{color:#d9e1d8;font-size:16px;max-width:665px}
+    main{padding:32px 22px 72px}
+    .filters{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:18px;background:#fff;border:1px solid var(--line);padding:22px;margin-bottom:26px}
+    .filters label,.finance-controls label{display:block;font-size:12px;font-weight:760;letter-spacing:.02em;margin-bottom:8px}
+    .filters input[type=search],.filters select,.finance-controls select{width:100%;min-height:46px;border:1px solid #cdd7ce;border-radius:3px;background:#fff;padding:10px 13px;color:#142b1e}
+    .filters input[type=range],.finance-controls input[type=range]{width:100%;accent-color:#356e50;cursor:pointer}
+    .range-top{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+    .range-top b{color:#234f39}
+    .checkbox{display:flex;align-items:center;gap:9px;min-height:46px;margin-top:8px;font-size:13px}
+    .checkbox input{width:18px;height:18px;accent-color:#356e50}
+    .columns{display:grid;grid-template-columns:minmax(0,1fr) 345px;gap:26px;align-items:start}
+    .results-head{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:baseline;margin-bottom:14px}
+    .results-head h2,.finance-panel h2{margin:0;font-family:Georgia,serif;font-weight:500;font-size:28px}
+    #xtra-count{font-size:12px;color:var(--mute)}
+    .results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .xtra-car{background:#fff;border:1px solid var(--line);min-width:0;overflow:hidden}
+    .xtra-car.selected{border-color:#aa8750;box-shadow:0 0 0 1px #aa8750}
+    .xtra-car-media{height:196px;background:linear-gradient(145deg,#172720,#677063);display:grid;place-items:center;overflow:hidden}
+    .xtra-car-media img{display:block;width:100%;height:100%;object-fit:cover}
+    .image-fallback{color:#e8dec6;letter-spacing:.2em;font-family:Georgia,serif;font-size:17px}
+    .xtra-car-body{padding:17px}
+    .car-meta{color:#94733e;letter-spacing:.09em;font-size:11px;text-transform:uppercase;font-weight:750;margin:0 0 6px}
+    .xtra-car h3{font-size:19px;letter-spacing:-.025em;line-height:1.28;margin:0 0 9px;overflow-wrap:anywhere}
+    .car-odo{font-size:12px;color:var(--mute);margin:0 0 13px}
+    .car-price{display:block;font-size:18px;margin-bottom:12px}
+    .car-warning{color:#80692f;font-size:11px;margin:-4px 0 11px}
+    .car-actions{display:flex;gap:8px;align-items:stretch}
+    .car-actions button,.car-actions a{flex:1;display:grid;place-items:center;min-height:43px;padding:7px 9px;border-radius:2px;text-align:center;text-decoration:none;font-size:12px;font-weight:750;cursor:pointer}
+    .btn-calc{border:0;background:#173c2a;color:#fff}
+    .btn-calc[aria-pressed=true]{background:#987243}
+    .btn-detail{border:1px solid #bccabd;background:#fff;color:#123c29}
+    .finance-panel{position:sticky;top:16px;background:#fff;border:1px solid var(--line);padding:23px}
+    .finance-panel .eyebrow{color:#957044}
+    .finance-panel h2{font-size:25px;margin:8px 0 20px}
+    .selected-price{font-size:22px;font-weight:800;margin:0 0 23px}
+    .finance-controls{display:grid;gap:14px;margin-bottom:17px}
+    .finance-controls select{height:46px}
+    .finance-controls input:disabled,.finance-controls select:disabled{opacity:.5;cursor:not-allowed}
+    .finance-monthly{display:block;margin:12px 0 3px;font-size:29px;letter-spacing:-.04em}
+    .finance-car{font-size:12px;color:var(--mute);margin:0}
+    .finance-caption{font-size:12px;color:var(--mute)}
+    .finance-bar{height:12px;margin:19px 0 13px;background:#cdd7d0;overflow:hidden;border-radius:4px}
+    .finance-bar span{display:block;height:100%;background:#987243}
+    .finance-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .finance-breakdown small{display:block;color:var(--mute);font-size:11px}
+    .finance-breakdown b{font-size:12px;white-space:normal}
+    .notice,.disclaimer{color:var(--mute);font-size:12px;line-height:1.6}
+    .disclaimer{border-top:1px solid var(--line);margin:18px 0;padding-top:14px}
+    .book{display:grid;place-items:center;min-height:48px;background:#193e2b;color:#fff;text-decoration:none;font-size:13px;font-weight:750;padding:12px}
+    #xtra-note{color:var(--mute);font-size:12px;margin:22px 0}
+    .empty-state,.results-overflow{grid-column:1/-1;background:#fff;border:1px solid var(--line);padding:24px;color:var(--mute)}
+    footer{border-top:1px solid var(--line);padding:25px 22px;color:var(--mute);font-size:12px;text-align:center}
+    @media(max-width:960px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}.finance-panel{position:static}}
+    @media(max-width:600px){.intro{padding:38px 20px 44px}main{padding:20px 14px 45px}.filters{grid-template-columns:1fr;gap:13px;padding:17px}.results{grid-template-columns:1fr}.xtra-car-media{height:220px}.columns{gap:16px}.finance-panel{padding:19px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important}}
+  </style>
+  <script type="module" src="/xtra-intelligent-ui.js"></script>
+</head>
+<body>
+<header class="top"><nav class="wrap" aria-label="Điều hướng"><a class="wordmark" href="/">PHAN THUẦN <span>XTRA</span></a><a href="/#cars-section">← Quay lại kho xe</a></nav></header>
+<section class="intro"><div class="wrap"><p class="eyebrow">XTRA INTELLIGENT UI · TRẢI NGHIỆM XE</p><h1>Chọn xe theo cách<br>riêng của bạn.</h1><p>Điều chỉnh nhu cầu và ngân sách để xem xe đang công khai trong kho. Chọn một xe để mô phỏng tài chính ngay tại đây, không cần chờ AI trả lời.</p></div></section>
+<main class="wrap">
+  <section class="filters" aria-label="Bộ lọc xe tương tác">
+    <div><label for="xtra-search">Tìm theo hãng, mẫu hoặc năm</label><input id="xtra-search" type="search" autocomplete="off" placeholder="Ví dụ: Porsche, Lexus, 2024" maxlength="80"></div>
+    <div><label for="xtra-category">Dòng xe</label><select id="xtra-category"></select></div>
+    <div><div class="range-top"><label for="xtra-budget">Ngân sách tối đa</label><b id="xtra-budget-label">20 tỷ đồng</b></div><input id="xtra-budget" type="range" min="500000000" max="30000000000" value="20000000000" step="500000000" aria-label="Ngân sách tối đa"></div>
+    <div><label for="xtra-unpriced">Xe chưa công bố giá</label><div class="checkbox"><input id="xtra-unpriced" type="checkbox" checked><span>Vẫn hiển thị để tham khảo</span></div></div>
+  </section>
+  <div class="columns">
+    <section aria-labelledby="xtra-results-title">
+      <div class="results-head"><h2 id="xtra-results-title">Bộ sưu tập phù hợp</h2><span id="xtra-count" role="status" aria-live="polite">Đang tải kho xe…</span></div>
+      <div id="xtra-results" class="results"></div>
+      <p id="xtra-note">Thông tin và tình trạng xe lấy từ kho công khai; không hiển thị xe đã ẩn.</p>
+    </section>
+    <aside class="finance-panel" aria-labelledby="xtra-finance-title">
+      <p class="eyebrow">MÔ PHỎNG TÀI CHÍNH</p><h2 id="xtra-finance-title">Dự toán sở hữu</h2>
+      <p class="selected-price" id="xtra-price">Chọn xe trong kho</p>
+      <div class="finance-controls">
+        <div><div class="range-top"><label for="xtra-down">Vốn ban đầu</label><b id="xtra-down-label">50%</b></div><input id="xtra-down" type="range" min="20" max="90" step="10" value="50"></div>
+        <div><label for="xtra-term">Thời hạn vay</label><select id="xtra-term"><option value="12">12 tháng</option><option value="24">24 tháng</option><option value="36" selected>36 tháng</option><option value="48">48 tháng</option><option value="60">60 tháng</option></select></div>
+      </div>
+      <div id="xtra-finance" aria-live="polite"><p class="notice">Chọn một xe để xem dự toán.</p></div>
+      <p class="disclaimer">Chỉ là mô phỏng theo lãi suất <strong>giả định cố định 9%/năm</strong>, trả góp đều hằng tháng. Chưa bao gồm lệ phí trước bạ, đăng ký, bảo hiểm và phí ngân hàng. Không phải báo giá hoặc cam kết tín dụng.</p>
+      <a id="xtra-book" class="book" href="/#test-drive">Đặt lịch tư vấn riêng →</a>
+    </aside>
+  </div>
+</main>
+<footer>PHAN THUẦN XTRA · Thông tin tham khảo, xác nhận giá và tình trạng thực tế khi tư vấn.</footer>
+</body>
+</html>
