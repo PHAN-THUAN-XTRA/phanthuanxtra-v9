@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/publish-tg786-hummer.yml"
+      - "scripts/publish-tg786-production.mjs"
   pull_request:
     paths:
       - ".github/workflows/publish-tg786-hummer.yml"
