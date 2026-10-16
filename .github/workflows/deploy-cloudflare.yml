@@ -286,7 +286,9 @@ jobs:
           curl --fail --silent --show-error --compressed --max-time 30 \
             -o /tmp/xtra-ui-cars.json "${base}/api/cars?audit=${GITHUB_SHA}"
           node --input-type=module -e 'import fs from "node:fs"; const data=JSON.parse(fs.readFileSync("/tmp/xtra-ui-cars.json","utf8")); if(!Array.isArray(data.cars)) process.exit(1); console.log("XTRA public catalog shape: PASS, count="+data.cars.length);'
-          echo "XTRA Intelligent UI: aliases, HTML, module JS and public catalog => PASS."
+          grep -Fq 'export function budgetFromPosition' /tmp/xtra-ui.js
+          grep -Fq '200 tỷ' /tmp/xtra-ui.html
+          echo "XTRA Intelligent UI: aliases, HTML, module JS, 200-billion budget and public catalog => PASS."
 
       - name: Verify homepage vehicle experience is below private booking
         shell: bash
@@ -301,7 +303,9 @@ jobs:
             -D /tmp/xtra-home-js.headers -o /tmp/xtra-home.js "${base}/xtra-home-experience.js?audit=${GITHUB_SHA}"
           grep -Eiq '^content-type:[[:space:]]*(application|text)/javascript' /tmp/xtra-home-js.headers
           grep -Fq 'export function homeMatches' /tmp/xtra-home.js
-          echo "XTRA homepage embedded preview + module: PASS."
+          grep -Fq 'budgetFromPosition' /tmp/xtra-home.js
+          grep -Fq '200 tỷ' /tmp/xtra-home.html
+          echo "XTRA homepage embedded preview + 200-billion budget: PASS."
 
       - name: Verify Admin UTF-8 asset delivery
         shell: bash

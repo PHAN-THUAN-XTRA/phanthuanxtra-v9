@@ -543,3 +543,9 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 @media(max-width:960px){.xtra-home-grid{grid-template-columns:1fr;gap:30px}.xtra-home-intro h2{max-width:640px}.xtra-home-desc{max-width:640px}.xtra-home-card{grid-template-columns:185px minmax(0,1fr)}}
 @media(max-width:600px){.xtra-home-controls{padding:17px}.xtra-home-card{grid-template-columns:108px minmax(0,1fr);min-height:135px}.xtra-home-card-image{min-height:135px}.xtra-home-card-body{padding:12px}.xtra-home-card-body h4{font-size:14px}.xtra-home-showcase-top{align-items:flex-start;flex-direction:column}.xtra-home-main-link{display:flex;width:100%;font-size:11px}.xtra-home-card-info{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.xtra-home-main-link{transition:none}.xtra-home-main-link:hover{transform:none}}
+
+
+/* Nonlinear luxury budget slider milestones: 0.5b → 30b → 100b → 200b. */
+.xtra-budget-limits{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#b8c6bc;font:500 10px "Be Vietnam Pro",Arial,sans-serif;margin-top:4px;white-space:nowrap}
+.xtra-budget-limits span:last-child{color:#e3c58f;font-weight:800}
+@media(max-width:390px){.xtra-budget-limits{font-size:9px;gap:5px}}
