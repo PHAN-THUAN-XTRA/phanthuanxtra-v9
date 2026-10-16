@@ -42,7 +42,7 @@ function checkVehicle(car, expected) {
 }
 // Fallback only for a verified Cloudflare 522 self-fetch failure in the Admin image pipeline.
 // Original paired AVIF/WebP objects remain on R2; no media download, re-encode, delete, or copy.
-async function persistFromVerifiedR2Keys(d1, expected) {
+export async function persistFromVerifiedR2Keys(d1, expected) {
   const existing = await d1("SELECT id,brand,model,year,price,status FROM cars WHERE id=? LIMIT 1",[CAR_ID]);
   if (existing.length) {
     const car=existing[0];
