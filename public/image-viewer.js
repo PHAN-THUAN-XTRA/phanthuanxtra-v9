@@ -1,7 +1,8 @@
 /* PHAN THUẦN XTRA: accessible image viewer for vehicle detail and blog articles. */
 (() => {
   "use strict";
-  const selector = "a[data-ptx-image-viewer]";
+  // Support persisted galleries rendered by older vehicle HTML templates, too.
+  const selector = "a[data-ptx-image-viewer], .vehicle-gallery-grid a[href], .vehicle-cover-zoom[href]";
   let dialog = null;
   let photo = null;
   let caption = null;
@@ -21,6 +22,32 @@
       if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) return null;
       return url.href;
     } catch { return null; }
+  }
+  function enhanceVehicleGallery() {
+    const root = document.getElementById("vehicleDetail");
+    if (!root) return;
+    root.querySelectorAll(".vehicle-gallery-grid a[href], .vehicle-cover-zoom[href]").forEach(anchor => {
+      if (validUrl(anchor) && !anchor.hasAttribute("data-ptx-image-viewer")) {
+        anchor.setAttribute("data-ptx-image-viewer", "");
+      }
+    });
+    // Backwards compatibility for detail templates rendering a bare hero <img>.
+    const visual = root.querySelector(".detail-grid > div:first-child");
+    const image = visual && Array.from(visual.children).find(node => node.tagName === "IMG");
+    if (image && image.src && !image.closest("a")) {
+      const anchor = document.createElement("a");
+      anchor.className = "vehicle-cover-zoom";
+      anchor.href = image.currentSrc || image.src;
+      anchor.setAttribute("data-ptx-image-viewer", "");
+      anchor.setAttribute("aria-label", "Xem ảnh bìa phóng to");
+      image.replaceWith(anchor);
+      anchor.append(image);
+    }
+  }
+  const detailRoot = document.getElementById("vehicleDetail");
+  if (detailRoot) {
+    new MutationObserver(enhanceVehicleGallery).observe(detailRoot, { childList: true, subtree: true });
+    enhanceVehicleGallery();
   }
   function gallery() {
     const seen = new Set();
