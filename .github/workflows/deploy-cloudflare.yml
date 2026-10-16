@@ -260,8 +260,19 @@ jobs:
           done
           curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 \
             -D /tmp/xtra-ui-js.headers -o /tmp/xtra-ui.js "${base}/xtra-intelligent-ui.js?audit=${GITHUB_SHA}"
-          grep -Eiq '^content-type:[[:space:]]*(application|text)/javascript' /tmp/xtra-ui-js.headers
-          grep -Fq 'export function normalizeCars' /tmp/xtra-ui.js
+          printf 'XTRA_JS_CONTENT_TYPE: '
+          grep -i '^content-type:' /tmp/xtra-ui-js.headers || true
+          printf 'XTRA_JS_BYTES: '
+          wc -c < /tmp/xtra-ui.js
+          if ! grep -Eiq '^content-type:[[:space:]]*(application|text)/javascript' /tmp/xtra-ui-js.headers; then
+            echo 'ERROR: XTRA module MIME is not JavaScript.'
+            exit 1
+          fi
+          if ! grep -Fq 'export function normalizeCars' /tmp/xtra-ui.js; then
+            echo 'ERROR: XTRA module is missing expected exports.'
+            head -c 160 /tmp/xtra-ui.js || true
+            exit 1
+          fi
           curl --fail --silent --show-error --compressed --max-time 30 \
             -o /tmp/xtra-ui-cars.json "${base}/api/cars?audit=${GITHUB_SHA}"
           node --input-type=module -e 'import fs from "node:fs"; const data=JSON.parse(fs.readFileSync("/tmp/xtra-ui-cars.json","utf8")); if(!Array.isArray(data.cars)) process.exit(1); console.log("XTRA public catalog shape: PASS, count="+data.cars.length);'
