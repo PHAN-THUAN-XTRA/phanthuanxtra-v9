@@ -14,7 +14,7 @@ test("blog render preserves image SEO alt and links existing cover into lightbox
   const r=await handleBlog(new Request("https://phanthuanxtra.com/blog/hummer-h2-luxury-2009"),{DB:database(post)});
   assert.equal(r.status,200);
   const html=await r.text();
-  assert.match(html,/text\/html/);
+  assert.match(r.headers.get('content-type'),/text\/html/);
   assert.match(html,/data-ptx-image-viewer/);
   assert.match(html,/src="\/image-viewer\.js" defer/);
   assert.match(html,/href="\/image-viewer\.css"/);
