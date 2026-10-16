@@ -16,7 +16,7 @@ test("XTRA homepage uses the exact public extensionless URL", () => {
 });
 
 test("XTRA extensionless URLs route to actual HTML asset, never an empty fallback", async () => {
-  for (const route of ["/trai-nghiem-xe", "/trai-nghiem-xe/"]) {
+  for (const route of ["/trai-nghiem-xe", "/trai-nghiem-xe/", "/trai-nghiem-xe.html"]) {
     const seen = [];
     const env = {
       ASSETS: {
