@@ -288,6 +288,21 @@ jobs:
           node --input-type=module -e 'import fs from "node:fs"; const data=JSON.parse(fs.readFileSync("/tmp/xtra-ui-cars.json","utf8")); if(!Array.isArray(data.cars)) process.exit(1); console.log("XTRA public catalog shape: PASS, count="+data.cars.length);'
           echo "XTRA Intelligent UI: aliases, HTML, module JS and public catalog => PASS."
 
+      - name: Verify homepage vehicle experience is below private booking
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://phanthuanxtra.com"
+          curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 \
+            -D /tmp/xtra-home.headers -o /tmp/xtra-home.html "${base}/?xtra_experience_audit=${GITHUB_SHA}"
+          grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8' /tmp/xtra-home.headers
+          node --input-type=module -e 'import fs from "node:fs"; const s=fs.readFileSync("/tmp/xtra-home.html","utf8"); const p=[s.indexOf("id=\"test-drive\""),s.indexOf("id=\"trai-nghiem-xe\""),s.indexOf("id=\"contact\"")]; if(p.some(x=>x<0)||!(p[0]<p[1]&&p[1]<p[2])||!s.includes("src=\"/xtra-home-experience.js\"")||!s.includes("id=\"xtra-home-cars\"")){console.error("Homepage live experience placement or controls missing",p);process.exit(1);} console.log("XTRA homepage section ordering: PASS",p.join("<"));'
+          curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 \
+            -D /tmp/xtra-home-js.headers -o /tmp/xtra-home.js "${base}/xtra-home-experience.js?audit=${GITHUB_SHA}"
+          grep -Eiq '^content-type:[[:space:]]*(application|text)/javascript' /tmp/xtra-home-js.headers
+          grep -Fq 'export function homeMatches' /tmp/xtra-home.js
+          echo "XTRA homepage embedded preview + module: PASS."
+
       - name: Verify Admin UTF-8 asset delivery
         shell: bash
         run: |
