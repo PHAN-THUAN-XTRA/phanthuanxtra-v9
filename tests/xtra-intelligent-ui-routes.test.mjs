@@ -53,7 +53,7 @@ test("XTRA ES module returns valid JavaScript with a strict MIME type", async ()
   const response = await worker.fetch(new Request(origin + "/xtra-intelligent-ui.js"), env, {});
   assert.equal(response.status, 200);
   assert.deepEqual(calls, ["/xtra-intelligent-ui.js"]);
-  assert.match(response.headers.get("content-type"), /^application\\/javascript; charset=utf-8$/);
+  assert.equal(response.headers.get("content-type"), "application/javascript; charset=utf-8");
   assert.match(response.headers.get("cache-control"), /no-store/);
   assert.equal(await response.text(), expected);
 });
