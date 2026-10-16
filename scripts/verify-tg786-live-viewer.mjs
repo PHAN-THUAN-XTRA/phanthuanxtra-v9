@@ -4,6 +4,24 @@ import { chromium } from "playwright";
 
 const BASE = "https://phanthuanxtra.com";
 const URL = BASE + "/car.html?id=tg-786&lightbox_audit=" + Date.now();
+async function awaitLiveEnhancement() {
+  for(let attempt=1;attempt<=36;attempt++){
+    try{
+      const res=await fetch(BASE+"/image-viewer.js?live_fix="+Date.now(),{
+        headers:{"cache-control":"no-cache"},signal:AbortSignal.timeout(12000)
+      });
+      const body=await res.text();
+      if(res.ok && body.includes("enhanceVehicleGallery")) {
+        console.log("PASS: corrected image-viewer.js is deployed (attempt "+attempt+")");
+        return;
+      }
+      console.log("Waiting for patched production image-viewer.js; HTTP "+res.status+", attempt "+attempt);
+    }catch(error){console.log("Live asset probe retry "+attempt+": "+String(error.message||error).slice(0,160));}
+    await new Promise(resolve=>setTimeout(resolve,5000));
+  }
+  throw Error("Corrected image-viewer.js was not deployed within the acceptance window");
+}
+await awaitLiveEnhancement();
 const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
 const hits = [];
 const result = {url:URL,checks:[],responses:hits};
