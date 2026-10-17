@@ -1,5 +1,17 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## LYLY / JARVIS PRIVATE OWNER CHECKPOINT — 2026-10-17 (UTC+7)
+
+**Evidence boundary:** This is an owner-reported Windows 11 PowerShell and Lyly runtime checkpoint, not an independently verified remote machine scan. This public repository documents only the non-sensitive outcome. Local biometric configurations, identifiers, enrollment records, credentials, private URLs, voice recordings, screenshots, device fingerprints and exact authorization settings remain off-repository.
+
+- **Local user experience — CONFIGURATION CHECK PASS / DEVICE ACCEPTANCE OPEN:** The owner removed the two experimental camera-related additions, selected a simpler hands-free local interaction experience, and verified that the Lyly local-gate status command exited 0. Voice/face enrollment files were reported retained, not deleted. Neither the configuration check nor an earlier one-turn Gemini/TTS success proves long-term reliability, speaker identity, secure command authorization, or performance with Windows music playing. Owner-operated post-restart and mixed-audio tests remain OPEN.
+- **Local assistant AI — ONE TURN OBSERVED:** Owner runtime logs showed a successful Gemini text request and playback of the existing Vietnamese Leda voice. Keep this existing local path; do not infer that all Gemini models or microphone conditions are reliable. Private local code changes and rollback artifacts remain on the owner device and are not part of this repository.
+- **Cloudflare Workers AI for Lyly — OWNER PAUSED:** A Windows-side connector was staged, but authentication/remote readiness was not established. The owner explicitly instructed to stop work on the Lyly-specific Workers AI integration. Do not provision or rotate secrets, modify Worker bindings, deploy a gateway, or resume this integration absent new explicit authorization. This is distinct from the website's existing Cloudflare AI workload.
+- **Recovery/backup — OPEN:** An earlier shortcut-based Windows startup brought up the desktop/mobile interfaces during an owner test, but subsequent process persistence was not proven. A complete encrypted Lyly backup to the Windows computer and private Telegram has been requested; there is no owner-provided delivery/restore receipt yet. Do not mark backup complete or delete source files.
+- **Security and change scope — OPEN:** Simplified local interaction is **not identity verification**. Never assert that camera presence, speech transcription, or local configuration permits privileged commands securely. Commands that delete data, run code, transfer funds, change security controls or publish remotely require a separate explicit confirmation boundary. This documentation note changes no running Windows service, Cloudflare production resource, D1/R2 data, API secret or GitHub Actions configuration.
+
+
+
 
 ## PUBLISHING PRIVACY TIME BUDGET — 2026-10-15 (UTC+7)
 
