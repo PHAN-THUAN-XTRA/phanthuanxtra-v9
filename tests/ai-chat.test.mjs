@@ -594,3 +594,44 @@ test('phone-first unknown inquiry immediately notifies Telegram and avoids repea
     globalThis.fetch = originalFetch;
   }
 });
+
+
+for (const dependency of ['search', 'asset-body', 'model']) {
+  test(`website chat reaches safe reply when ${dependency} never settles`, async t => {
+    const realSetTimeout = globalThis.setTimeout;
+    t.mock.method(globalThis, 'setTimeout', (fn, ms, ...args) => realSetTimeout(fn, Math.min(ms, 10), ...args));
+    const DB = mockDb();
+    let modelCalls = 0;
+    let resolveLate;
+    const env = {
+      DB,
+      AI_SEARCH: { search: async () => dependency === 'search' ? new Promise(() => {}) : {chunks: []} },
+      ASSETS: { fetch: async () => ({ok: true, text: async () => dependency === 'asset-body' ? new Promise(() => {}) : '<main>Điện mặt trời PV và ESS</main>'}) },
+      AI: { run: async () => {
+        modelCalls++;
+        if (dependency === 'model') return new Promise(resolve => { resolveLate = resolve; });
+        return {response: 'PHAN THUẦN XTRA giới thiệu điện mặt trời PV và ESS.'};
+      } }
+    };
+    const send = async () => (await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat', {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({conversation_id: `deadline-${dependency}`, message: `Tư vấn điện mặt trời PV ESS ${dependency}`, suppress_crm_notification: true, test_context: 'production-smoke'})
+    }), env)).json();
+    const data = await send();
+    assert.equal(data.ok, true);
+    assert.equal(data.needs_human, false);
+    assert.match(data.reply, /PV.*ESS/);
+    assert.equal(modelCalls, 1);
+    assert.ok(DB._rows.some(row => row.role === 'assistant'));
+    if (dependency === 'model') {
+      assert.equal(data.ai_model, null);
+      resolveLate({response: 'Late unverified response must not enter cache'});
+      await new Promise(resolve => setImmediate(resolve));
+      DB._rows.length = 0;
+      const next = await send();
+      assert.equal(modelCalls, 2, 'timeout stops fallback and late completion never populates cache');
+      assert.equal(next.ai_model, null);
+      assert.doesNotMatch(next.reply, /Late unverified/);
+    }
+  });
+}

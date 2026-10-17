@@ -15,6 +15,25 @@ const MAX_KNOWLEDGE_CONTEXT = 8000;
 const MAX_OUTPUT_TOKENS = 350;
 const AI_CACHE_TTL_MS = 60_000;
 const AI_CACHE_MAX = 64;
+const KNOWLEDGE_TIMEOUT_MS = 3000;
+const MODEL_TIMEOUT_MS = 6500;
+const MODEL_CHAIN_TIMEOUT_MS = 12000;
+
+// Bound optional remote work; a timed-out binding may still run remotely.
+// Callers must not cache its late result or start another model on timeout.
+async function boundedWork(work, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(work),
+      new Promise((_, reject) => { timer = setTimeout(() => {
+        const error = new Error("AI dependency deadline exceeded");
+        error.code = "AI_DEPENDENCY_TIMEOUT";
+        reject(error);
+      }, timeoutMs); })
+    ]);
+  } finally { clearTimeout(timer); }
+}
 const aiResponseCache = new Map();
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "Access-Control-Allow-Origin": "https://phanthuanxtra.com", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" } });
@@ -156,9 +175,11 @@ async function loadEditorialKnowledge(env,query,origin){
   if(!env.ASSETS)return "";
   const parts=await Promise.all(editorialPaths(query).map(async ([label,path])=>{
     try{
-      const response=await env.ASSETS.fetch(new Request(new URL(path,origin),{headers:{accept:"text/html"}}));
-      if(!response.ok)return "";
-      const content=editorialText(await response.text()).slice(0,5000);
+      const html=await boundedWork(async () => {
+        const response=await env.ASSETS.fetch(new Request(new URL(path,origin),{headers:{accept:"text/html"}}));
+        return response.ok ? await response.text() : "";
+      }, KNOWLEDGE_TIMEOUT_MS);
+      const content=editorialText(html).slice(0,5000);
       return content?`Trang chính thức ${label}: ${content}`:"";
     }catch(error){console.warn("ai_editorial_asset",label,String(error?.message||error));return "";}
   }));
@@ -223,7 +244,7 @@ async function searchKnowledge(env, query) {
   if (!env.AI_SEARCH) return { text: WEBSITE_KNOWLEDGE, evidence: identity || websiteTopic, topScore: (identity || websiteTopic) ? 1 : 0 };
   try {
     const searchQuery = identity ? `${query}\nPhan Thuần\nPHAN THUẦN XTRA\nphanthuanxtra\nPhanThuanSaigon\nÔ tô Xuyên Á Phan Thuần\n720 Trường Chinh Tân Bình\ngiới thiệu Phan Thuần\nhệ sinh thái Phan Thuần\nLuxury Automotive European Yachts Business Jets Green Energy\nthông tin chính thức về Phan Thuần` : query;
-    const result = await env.AI_SEARCH.search({ messages:[{role:"user",content:searchQuery}], ai_search_options:{instance_ids:AI_SEARCH_IDS,retrieval:{retrieval_type:"hybrid",keyword_match_mode:"or",match_threshold:identity?0.2:0.45,max_num_results:MAX_KNOWLEDGE_CHUNKS},reranking:{enabled:true,model:"@cf/baai/bge-reranker-base"}} });
+    const result = await boundedWork(() => env.AI_SEARCH.search({ messages:[{role:"user",content:searchQuery}], ai_search_options:{instance_ids:AI_SEARCH_IDS,retrieval:{retrieval_type:"hybrid",keyword_match_mode:"or",match_threshold:identity?0.2:0.45,max_num_results:MAX_KNOWLEDGE_CHUNKS},reranking:{enabled:true,model:"@cf/baai/bge-reranker-base"}} }), KNOWLEDGE_TIMEOUT_MS);
     const chunks = result?.chunks || [];
     const context = chunks.map(chunk=>chunk.content||chunk.text||"").filter(Boolean).join("\n\n---\n\n");
     const scores = chunks.map(c=>Number(c.score ?? c.relevance_score ?? 0)).filter(Number.isFinite);
@@ -273,8 +294,9 @@ async function runAI(env,messages,cars,knowledge,customerMemory=""){
   const cached=getCached(key);
   if(cached)return cached;
   const request={messages:[{role:"system",content:systemPrompt(cars,knowledge,customerMemory)},...messages],max_tokens:MAX_OUTPUT_TOKENS,temperature:0.15};
+  const deadline=Date.now()+MODEL_CHAIN_TIMEOUT_MS;
   const runModel=async model=>{
-    const response=await env.AI.run(model,request);
+    const response=await boundedWork(() => env.AI.run(model,request), Math.max(1,Math.min(MODEL_TIMEOUT_MS,deadline-Date.now())));
     const output=aiText(response);
     if(!output)throw new Error(`Workers AI ${model} returned no response`);
     return clean(output,8000);
@@ -289,7 +311,7 @@ async function runAI(env,messages,cars,knowledge,customerMemory=""){
     }catch(error){
       lastError=error;
       console.warn("workers_ai_model_failed",model,String(error?.message||error));
-      if(quotaExceeded(error))break;
+      if(quotaExceeded(error)||error?.code==="AI_DEPENDENCY_TIMEOUT"||Date.now()>=deadline)break;
     }
   }
   console.error("workers_ai_all_models_failed",String(lastError?.message||lastError||"unknown"));
