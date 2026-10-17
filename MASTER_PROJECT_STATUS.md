@@ -1,5 +1,16 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## AUTO AUDIT — WEBSITE CHAT DEADLINES — 2026-10-17 (UTC+7)
+
+- Owner authorized auto-fix, audit and gated merge. Baseline main `945f90b0602f494d7ed6fad927a76accb6073268`; no open PR at audit start. Latest main CI `39020376909`, MASTER gate `39020377032`, Sonar `39020376936` passed. Last runtime deployment `38883024938` on `4e9a686410da412ee8aba87b1067477555fd4904` passed, as did smoke `38883195649`, reconciliation `38883195910`, assets `38883195804` and HUMMER viewer `38883024933`.
+- **Confirmed production gate failure:** Live Chat AI Identity Verify `38883196212`, job `116914602060`, returned identity HTTP 200 but the Green Energy advisory request timed out twice at 60 seconds with zero response bytes. This establishes a timeout, not which upstream dependency caused it. Direct read-only probes from this workspace returned HTTP 403, so they do not independently establish current production health.
+- **Confirmed code gap / scoped repair:** website `src/ai-chat.js` awaited optional AI Search, editorial asset fetch/body and Workers AI without application deadlines. Add 3-second limits for optional retrieval, 6.5 seconds per model and a shared 12-second model-chain deadline. Timeout stops the chain to avoid overlapping inference; existing grounded fallback returns with `ai_model:null`. Late model completion never writes the response cache. Binding timeout does not guarantee remote cancellation or zero billing; D1/CRM latency is outside these budgets.
+- **Regression evidence:** three new stalled-dependency tests time out on baseline, then pass after the repair; they cover search, asset response body, model wait, no timeout fallback fan-out and late-cache exclusion. Targeted website chat suite 32/32 PASS. All provider calls are mocked. Full local suites: 395 canonical tests + 426 predeploy tests PASS. PR gates, merge, exact-merge deployment and renewed live advisory acceptance remain PENDING until separately verified.
+- **Model reconciliation:** actual website chain is GLM 4.7 Flash → Nemotron 3 120B A12B → Qwen 3.8 27B, not the unbenchmarked Qwen3 30B proposal below. Keep current models; Qwen3 30B is only a candidate for a future measured comparison. Content Runner remains disabled. Lyly-specific Workers AI remains OWNER PAUSED per the newer October 17 checkpoint. General auto-fix does not change that paused integration or authorize paid-provider expansion.
+- **Priority:** close this verified website reliability gap first; keep physical S21 acceptance (#828/#807), Telegram substantive inference after quota, email-placement consistency and private Windows acceptance OPEN. Do not mark them complete from unit tests. No vehicle visibility/media mutation, new provider, billing change or secret rotation.
+- **Single-master rule:** this repository MASTER is the canonical current implementation record. The older retained document copy was missing newer checkpoints; synchronize it from this document without replacing newer project history. All subsequent status changes belong in this one filename.
+
+
 ## LYLY / JARVIS PRIVATE OWNER CHECKPOINT — 2026-10-17 (UTC+7)
 
 **Evidence boundary:** This is an owner-reported Windows 11 PowerShell and Lyly runtime checkpoint, not an independently verified remote machine scan. This public repository documents only the non-sensitive outcome. Local biometric configurations, identifiers, enrollment records, credentials, private URLs, voice recordings, screenshots, device fingerprints and exact authorization settings remain off-repository.
@@ -3581,3 +3592,186 @@ The Worker endpoint is fail-closed. It returns HTTP 503 until `ANALYTICS_EXPORT_
 Do not put the token in the report, sheet cells, repository, browser JavaScript, or URL query string.
 
 The connector intentionally exposes counts only: vehicle states, lead funnel states, published/draft posts, customer count, and due follow-ups. It does not export names, phone numbers, messages, IP addresses, cookies, or customer-memory details.
+
+
+## AI AUTOMATION PROPOSAL — MERGED REFERENCE, NOT DEPLOYMENT EVIDENCE
+
+The current audit checkpoint above supersedes any unverified configuration assumption in this proposal. The Lyly Workers AI pause remains authoritative.
+
+
+Cập nhật: 17/10/2026 (Asia/Saigon). Phiên bản nội dung: 1.1.
+
+**Tệp chuẩn duy nhất: `MASTER_PROJECT_STATUS.md`.** Hợp nhất đề xuất AI, kết quả mô phỏng, checklist triển khai và nhật ký tiến độ trong cùng tệp này. Các cập nhật tiếp theo sửa trực tiếp tệp hiện hữu; không tạo thêm báo cáo Markdown theo ngày hoặc bản MASTER khác. Phạm vi đã hợp nhất là nội dung của luồng nghiên cứu và triển khai AI trong phiên này; đã nhập vào MASTER hiện hữu và giữ nguyên toàn bộ nội dung lịch sử bên dưới.
+
+**Trạng thái: hoàn thành đề xuất; chưa triển khai production, chưa benchmark model thật.**
+
+## 1. Quyết định đề xuất
+
+Triển khai kiến trúc LLM + dữ liệu D1 + VLM + API có kiểm tra + công việc bền vững. Ưu tiên tận dụng Cloudflare Workers, D1, R2, Telegram và Lyly theo bối cảnh dự án đã trao đổi. Chưa kiểm tra lại repository, schema, quyền truy cập hoặc cấu hình production trong lượt lập tài liệu này.
+
+- LLM hiểu yêu cầu và diễn đạt câu trả lời từ dữ liệu đã xác minh.
+- D1/API là nguồn cho giá, ODO, trạng thái và danh sách xe. SQL tham số hóa xử lý bộ lọc; model không tự sinh SQL để chạy trực tiếp.
+- VLM đề xuất phân loại ảnh và trích xuất thông tin, luôn giữ nguồn ảnh.
+- Backend quyết định quyền, kiểm tra dữ liệu và thực thi công cụ; đầu ra model chỉ là đề xuất.
+- Hàng đợi/checkpoint phục hồi công việc dài và chống thao tác trùng.
+- Tìm kiếm ngữ nghĩa chỉ bổ sung cho tài liệu tư vấn khi có nhu cầu; chưa cần xây kho vector cho bộ lọc giá/trạng thái.
+
+Chưa đầu tư tự huấn luyện LCM, MLM hoặc MoE riêng. SAM chỉ bổ sung khi cần tách đối tượng trong công việc thiết kế ảnh.
+
+## 2. Bằng chứng hiện có và giới hạn
+
+Đã chạy mã mô phỏng quy tắc trên dữ liệu giả lập ở lượt trước, đạt 12/12 phép kiểm tra:
+
+| STT | Tình huống | Kết quả mô phỏng |
+|---|---|---|
+| 1 | Xe 7 chỗ dưới 2 tỷ | Trả xe đang bán, có giá phù hợp |
+| 2 | Truy vấn xe ẩn | Không trả chi tiết công khai |
+| 3 | Thiếu giá/ODO | Giữ null, không tự điền |
+| 4 | Lọc kho xe | Không gọi AI |
+| 5 | Chủ xe đã chọn ảnh bìa | Giữ lựa chọn chủ xe |
+| 6 | Ảnh đồng hồ mờ | Chuyển kiểm tra, không điền ODO |
+| 7 | Hết quota đọc ảnh | Giữ công việc chờ, không tự xuất bản |
+| 8 | Hết quota văn bản | Dùng mẫu trả lời từ dữ liệu |
+| 9 | Lệnh chưa xác thực | Chặn thực thi |
+| 10 | Lệnh hợp lệ | Ghi một lần |
+| 11 | Gửi lại cùng lệnh | Không ghi trùng |
+| 12 | Album gián đoạn | Chỉ tiếp tục các ảnh còn thiếu |
+
+Đây là kiểm tra tính nhất quán của logic minh họa do trợ lý dựng, không phải kiểm thử mã trong repository. Các thông tin như ảnh rõ/mờ, quyền truy cập và quota được gán sẵn. Không có VLM đọc ảnh thật, không có kiểm tra đồng thời hoặc sự cố mạng thật. Kết quả không chứng minh độ chính xác model, chống trùng trong production hay hiệu quả nhận dạng giọng nói.
+
+Phiên thử trước không phát hiện Wrangler, thông tin xác thực Cloudflare/model khả dụng hoặc công cụ gọi Workers AI. Đây là giới hạn phiên làm việc, không phải kết luận rằng tài khoản hoặc dự án của chủ sở hữu chưa kết nối.
+
+## 3. Chọn model bằng benchmark
+
+Ứng viên văn bản đầu tiên: `@cf/qwen/qwen3-30b-a3b-fp8`. Tài liệu Cloudflare kiểm tra ngày 17/10/2026 ghi hỗ trợ function calling, reasoning và giá 0,0509 USD/triệu token đầu vào; 0,335 USD/triệu token đầu ra. Chưa chọn làm model production mặc định.
+
+So sánh với model hiện tại của dự án và một ứng viên nhẹ hơn có sẵn trong tài khoản. Chỉ chốt ID sau khi đọc cấu hình thật và xác nhận model còn truy cập được. VLM chọn riêng qua ảnh xe thật; không mặc định model văn bản có khả năng đọc ảnh.
+
+Quy trình đánh giá đề xuất:
+
+1. Chuẩn bị 30 câu hỏi tiếng Việt có đáp án chuẩn: 10 tra cứu kho; 8 nội dung; 6 lệnh có/không có quyền; 6 trường hợp thiếu dữ liệu hoặc yêu cầu cố tình làm sai quy tắc.
+2. Chuẩn bị 10 album đã có nhãn do người kiểm tra: ngoại thất, nội thất, đồng hồ, chi tiết, ảnh bìa và thứ tự mong muốn. Không dùng kết quả do chính model tạo làm đáp án chuẩn.
+3. Dành 10 câu và 3 album làm tập giữ lại; không sửa prompt theo tập này. Nếu sửa sau khi xem kết quả, phải tạo tập giữ lại mới.
+4. Chạy mỗi ứng viên ba lượt với cùng dữ liệu, prompt và giới hạn đầu ra. Ghi thời gian, token/neurons thực tế, lỗi, phiên bản prompt và kết quả thô đã loại dữ liệu nhạy cảm.
+5. Tách kết quả model khỏi kết quả toàn hệ thống: model có thể đề xuất sai nhưng backend vẫn phải chặn được thao tác sai.
+6. Loại ứng viên/hệ thống nếu làm lộ xe ẩn, tự tạo giá/ODO trong câu trả lời cuối hoặc thực thi sai quyền. Đo tỷ lệ gọi công cụ sai riêng để tránh che giấu chất lượng model kém.
+7. Trong các ứng viên vượt điều kiện bắt buộc, chọn theo độ đúng, chất lượng tiếng Việt, độ trễ và chi phí trên tác vụ hoàn thành. Không dùng điểm tự chấm của model làm bằng chứng duy nhất.
+
+Mục tiêu ban đầu, chưa phải kết quả đạt được: đúng ít nhất 95% câu trả lời có thể chấm khách quan; không sai các điều kiện bắt buộc trên tập kiểm tra; ít nhất 90% nhãn nhóm ảnh đúng theo đáp án người kiểm tra. Với tập nhỏ phải báo cả số đúng/tổng số và các lỗi cụ thể. Thử thêm phản hồi chậm, timeout, 429, dữ liệu cũ và nhiều yêu cầu trùng đồng thời trước khi đưa vào dùng thật.
+
+## 4. Thứ tự triển khai
+
+| Giai đoạn | Công việc | Điều kiện hoàn tất |
+|---|---|---|
+| P0 — Khảo sát | Đọc hướng dẫn repo, nhánh hiện tại, model đang dùng, API, schema, job runner và CI; xác nhận quyền qua secret có sẵn | Có sơ đồ luồng thật và danh sách thay đổi; không ghi secret vào báo cáo |
+| P1 — Kho xe | Lọc qua API; ẩn xe theo quyền; bảo toàn null; trả lời mẫu khi AI lỗi | Kiểm thử đúng giá/ODO/trạng thái và không lộ xe ẩn |
+| P2 — Model | Thêm adapter model, timeout, giới hạn đầu ra; chạy benchmark | Có bằng chứng lựa chọn model và phương án dự phòng |
+| P3 — Album | Phân tích ảnh một lần, lưu nhãn/nguồn, đề xuất thứ tự; kế thừa cơ chế checkpoint | Giữ ảnh bìa chỉ định, không mất ảnh, phục hồi được |
+| P4 — Lyly (tạm dừng tích hợp Workers AI) | Chỉ tiếp tục khi chủ sở hữu mở lại phạm vi cụ thể; lệnh tiếng Việt dùng API chung khi được phép | Kiểm tra quyền, xác nhận kết quả từ server, không báo thành công giả |
+| P5 — Phát hành | PR, regression tests, CI, môi trường thử, triển khai hạn chế rồi mở rộng | Có deploy ID, kiểm tra sau triển khai và rollback khả dụng |
+
+Phải tái sử dụng cơ chế bền vững hiện có nếu khảo sát xác nhận phù hợp. Không dựng một hàng đợi song song chỉ để thay tên kiến trúc.
+
+## 5. Quy tắc tự động hóa cụ thể
+
+### Tra cứu và nội dung
+
+- Chỉ gửi các trường cần thiết cho model, lọc quyền trước khi xây prompt.
+- Giá/ODO/trạng thái phải truy xuất lại khi cần dữ liệu hiện hành; không lấy bộ nhớ hội thoại làm nguồn chính thức.
+- Tách thông tin xe đã xác minh khỏi kiến thức tham khảo về dòng xe. Không suy luận đời xe, bản trang bị hay tình trạng pháp lý từ hình dáng.
+- Trường không rõ trả “chưa có thông tin”; bài nháp giữ nguồn để người vận hành kiểm tra.
+- Các sửa đổi theo lệnh đã được chủ sở hữu cho phép có thể tự chạy trong phạm vi đó; không yêu cầu xác nhận lặp lại vô ích.
+
+### Ảnh và xuất bản
+
+- Lưu hash ảnh, phiên bản model/prompt và kết quả phân tích. Đổi ảnh hoặc phiên bản phân tích thì vô hiệu hóa kết quả cũ.
+- Thứ tự mặc định: ảnh bìa đã chọn → ngoại thất → nội thất → trang bị → đồng hồ → chi tiết. Quy tắc đã có trong tài liệu dự án được khảo sát và ưu tiên áp dụng.
+- ODO/VIN từ ảnh luôn giữ ảnh nguồn; kết quả không rõ hoặc mâu thuẫn chuyển kiểm tra, không lấy confidence tự khai làm bảo đảm.
+- Tạo nháp, chuyển AVIF/WebP và kiểm tra URL có thể tự động. Xuất bản chỉ khi có lệnh/quyền xuất bản hợp lệ và toàn bộ điều kiện dữ liệu bắt buộc đã đạt.
+
+### Thực thi và phục hồi
+
+- Công cụ có danh sách cho phép, schema đầu vào và kiểm tra quyền phía server. Nội dung bài viết hoặc ảnh không được xem là lệnh hệ thống.
+- Dùng idempotency key và ràng buộc duy nhất bền vững. Map trong bộ nhớ ở mô phỏng không đủ cho production.
+- Trạng thái đề xuất: queued → processing → succeeded; lỗi tạm thời → retry_wait; dữ liệu thiếu → needs_review; hết số lần thử → failed. Ánh xạ với schema hiện hữu trước khi sửa.
+- Claim job phải nguyên tử, có lease và checkpoint. Khi API timeout sau thao tác ghi, đọc lại trạng thái trước khi thử lại.
+- 429/lỗi mạng dùng backoff có jitter, tôn trọng Retry-After, giới hạn số lần thử. Hết quota ngày thì hoãn phù hợp, tránh thử lại liên tục.
+- Chỉ báo hoàn tất sau khi kiểm tra trạng thái đích; tác vụ đang chờ phải báo đang chờ.
+
+### Lyly
+
+- Tiếp tục giao tiếp tiếng Việt. ASR, TTS và xác thực người nói là các thành phần riêng với LLM.
+- Quyền quản trị phải gắn với phiên/thiết bị đã xác thực; không coi câu “tôi là Phan Thuần” hoặc kết quả nhận diện giọng nói đơn lẻ là đủ quyền.
+- Chưa cam kết nhận diện người nói/khuôn mặt đã hoàn tất; cần thử riêng trên Windows và S21.
+
+## 6. Chi phí và vận hành
+
+Giữ ưu tiên hạn chế chi phí. Mặc định không tự chuyển sang nhà cung cấp trả phí khi hết quota. Có bộ đếm ngân sách dùng chung giữa các yêu cầu đồng thời, dự trù trước mỗi lời gọi và chặn trước khi vượt ngưỡng được cấu hình. Rate limit không thay thế giới hạn chi phí.
+
+Workers AI có phân bổ miễn phí 10.000 Neurons/ngày theo tài liệu kiểm tra; quyền dùng model và phần vượt hạn mức phụ thuộc gói tài khoản. Không đồng nhất miễn phí AI với miễn phí toàn bộ Workers/D1/R2.
+
+Đo riêng: thời gian phản hồi API, thời gian bắt đầu phát chữ, thời gian hoàn tất câu trả lời, thời gian xử lý album, số lần thử lại và chi phí mỗi tác vụ. Không bịa số liệu độ trễ khi chưa đo.
+
+Cache nội dung ổn định và kết quả phân tích ảnh. Giá/trạng thái dùng phiên bản dữ liệu hoặc cơ chế invalidation khi thay đổi; cache phải phân tách theo quyền truy cập. Không ghi API key, ảnh giấy tờ đầy đủ hoặc dữ liệu khách hàng không cần thiết vào log.
+
+## 7. Phát hành và rollback
+
+Các tên cờ sau chỉ là đề xuất, chưa tồn tại được xác minh: AI_TEXT_ENABLED, AI_VISION_ENABLED, AI_ACTIONS_ENABLED. Cho phép tắt riêng từng phần và quay về tra cứu/mẫu trả lời hiện hành.
+
+Trước phát hành: lưu mốc commit/deploy, kiểm tra tính tương thích schema và phương án quay lui. Sau phát hành: kiểm tra health, API kho xe, loại xe ẩn, bài công khai, ảnh đầy đủ, UTF-8 và xử lý lệnh trùng. Không dùng health 200 làm bằng chứng toàn bộ quy trình đã đạt.
+
+Nếu lộ xe ẩn, sai dữ liệu trọng yếu hoặc thực thi sai quyền: tắt nhánh tính năng liên quan, dừng job mới, đối soát job đang chạy, rollback code khi cần. Không xóa dữ liệu D1/R2 để khắc phục và không lùi schema một cách phá hủy dữ liệu.
+
+## 8. Cập nhật MASTER_PROJECT_STATUS.md sau mỗi đợt
+
+Runner/CI được đề xuất cập nhật trực tiếp MASTER_PROJECT_STATUS.md sau mỗi đợt; chưa cài đặt cơ chế tự cập nhật này. Không tạo file báo cáo Markdown riêng. Cập nhật trạng thái hiện hành tại checklist và thêm một mục ngắn vào nhật ký cuối tệp. Khi ghi đồng thời phải kiểm tra phiên bản để tránh ghi đè cập nhật khác. Trạng thái phải phân biệt completed, partial, blocked và rolled_back; công việc lỗi vẫn được ghi nhưng không gắn nhãn hoàn tất.
+
+Nội dung bắt buộc:
+
+```text
+Ngày giờ và múi giờ:
+Phạm vi:
+Trạng thái tổng thể:
+Commit / PR / workflow run / deploy ID:
+Model ID và phiên bản prompt:
+Đã thay đổi:
+Bài kiểm tra, số đạt/tổng số, liên kết bằng chứng:
+Kết quả kiểm tra production:
+Token/neurons, độ trễ và chi phí đo được:
+Phần chưa kiểm tra hoặc bị chặn:
+Rollback:
+Việc tiếp theo:
+```
+
+Không ghi token hay secret. Không đánh dấu production hoàn tất nếu chỉ chạy mô phỏng. CI chỉ cập nhật báo cáo sau khi có bằng chứng, tránh vòng lặp tự kích hoạt workflow do commit báo cáo.
+
+## 9. Checklist bàn giao hiện tại
+
+- [x] Chọn kiến trúc đề xuất và thứ tự triển khai.
+- [x] Ghi lại đúng giới hạn của mô phỏng 12 tình huống.
+- [x] Xác định ứng viên model và cách benchmark.
+- [x] Soạn quy tắc thực thi, quota, phục hồi, rollback và báo cáo Markdown.
+- [ ] Khảo sát repository/cấu hình production hiện tại.
+- [ ] Gọi model thật và hoàn thành benchmark.
+- [ ] Viết code, tạo PR, chạy regression/CI.
+- [ ] Deploy và nghiệm thu website, Telegram, Lyly.
+
+**Hoàn tất tài liệu đề xuất không đồng nghĩa hoàn tất triển khai tự động.** Bước kỹ thuật đầu tiên khi thực thi là P0; điểm chặn được ghi rõ và tiếp tục các phần độc lập có thể làm, không yêu cầu người dùng gửi khóa bí mật trong hội thoại.
+
+## 10. Nguồn tham khảo
+
+Tài liệu chính thức kiểm tra ngày 17/10/2026:
+
+- Qwen3 trên Workers AI: https://developers.cloudflare.com/workers-ai/models/qwen3-30b-a3b-fp8/
+- Giá và phân bổ Workers AI: https://developers.cloudflare.com/workers-ai/platform/pricing/
+
+Nguồn bối cảnh: trao đổi trực tiếp trong phiên về kiến trúc Phan Thuần Xtra và kết quả mã mô phỏng. Trạng thái lịch sử của dự án cần được kiểm tra lại trong P0 trước khi dùng làm cơ sở thay đổi code.
+
+
+## 11. Nhật ký cập nhật
+
+| Ngày | Nội dung | Trạng thái |
+|---|---|---|
+| 17/10/2026 | Hợp nhất đề xuất, 12 kết quả mô phỏng, benchmark dự kiến, lộ trình P0–P5, nghiệm thu và rollback; đổi tệp hiện hữu thành MASTER_PROJECT_STATUS.md theo yêu cầu chủ sở hữu | Hoàn tất tài liệu; chưa triển khai production |
+
+Quy tắc duy trì: giữ một tệp chuẩn, cập nhật nội dung hiện hành và lịch sử ngắn trong tệp. Bằng chứng CI/deploy có thể liên kết tới hệ thống nguồn; không sao chép thành nhiều báo cáo MD.
