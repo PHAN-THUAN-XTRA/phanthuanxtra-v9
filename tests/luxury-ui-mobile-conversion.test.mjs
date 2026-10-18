@@ -117,7 +117,7 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
   assert.equal(all('[data-book-car]').length,1);
   all('[data-book-car]')[0].onclick();
   assert.equal(interest.value,'Porsche 718 Boxster');
-  assert.equal(form.onsubmit instanceof Function,true);
+  assert.equal(typeof form.onsubmit,'function');
   await form.onsubmit({preventDefault(){}});
   assert.equal(observed.length,1);
   assert.equal(observed[0].car_id,'tg-786');
