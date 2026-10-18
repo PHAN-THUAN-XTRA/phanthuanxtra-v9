@@ -39,7 +39,7 @@ document.addEventListener('ptx:xtra-filters',e=>{
   const accepted=['all','suv','sedan','coupe','convertible','mpv','pickup','wagon','sport','other'];
   state.filter=accepted.includes(detail.category)?detail.category:'all';
   state.xtraEligibleIds=new Set(detail.eligibleIds.map(String));
-  $('.filter').forEach(button=>{
+  $$('.filter').forEach(button=>{
     const selected=button.dataset.filter===state.filter;
     button.classList.toggle('active',selected);
     button.setAttribute('aria-pressed',String(selected));
