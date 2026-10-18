@@ -621,3 +621,23 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
   #cars-section .catalog-shelf-title{display:block}
   #cars-section .catalog-shelf-title p{margin-top:6px}
 }
+
+/* Screenshot UX fix — descriptive comparison control and balanced vehicle actions. */
+#cars-section .car-card{display:flex;flex-direction:column;min-width:0}
+#cars-section .car-body{display:flex;flex:1;flex-direction:column;min-width:0}
+#cars-section .car-body h3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;overflow-wrap:anywhere;line-height:1.4;min-height:0}
+#cars-section .card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:8px;margin-top:auto}
+#cars-section .card-actions .car-detail-btn{grid-column:1/-1}
+#cars-section .card-actions .car-book-btn{grid-column:1;min-width:0}
+#cars-section .card-actions .compare-btn{grid-column:2;min-width:0;min-height:46px;border:1px solid #927b56;background:#fff;color:#17362e;padding:9px 7px;display:inline-flex;align-items:center;justify-content:center;font:700 12px/1.4 "Be Vietnam Pro",Arial,sans-serif;text-align:center;cursor:pointer;white-space:normal}
+#cars-section .card-actions .compare-btn:hover,#cars-section .card-actions .compare-btn:focus-visible{border-color:#0f5f50;background:#ecf5f1}
+#cars-section .card-actions .compare-btn.active{background:#0f5f50;border-color:#0f5f50;color:#fff}
+#cars-section .card-actions .compare-btn.active:hover,#cars-section .card-actions .compare-btn.active:focus-visible{background:#0b4b3e}
+#cars-section .card-actions .btn{width:100%;min-height:46px;min-width:0;padding:10px 8px;white-space:normal;font-size:12px;line-height:1.4;text-align:center}
+#cars-section .car-img>.car-favorite{position:absolute;z-index:3;top:12px;right:12px;left:auto;width:44px;height:44px;padding:0;border:1px solid #ded8cc;background:rgba(255,255,255,.96);color:#17362e;font-size:23px;line-height:1;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+#cars-section .car-img>.car-favorite.active{background:#0f5f50;border-color:#f1d7a4;color:#fff}
+#cars-section .car-img>.car-favorite:focus-visible,#cars-section .card-actions .compare-btn:focus-visible{outline:3px solid #bb8b35;outline-offset:2px}
+@media(max-width:420px){
+  #cars-section .card-actions .btn{flex:none}
+  #cars-section .card-actions .compare-btn{min-height:46px}
+}
