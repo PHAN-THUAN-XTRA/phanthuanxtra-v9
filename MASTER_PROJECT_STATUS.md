@@ -1,5 +1,15 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## AUTO AUDIT / SINGLE-MASTER ENFORCEMENT — 2026-10-18 (UTC+7)
+
+- Read current main MASTER before editing. Baseline `319e0a59ee4e4e0dbac411ec078320537f684bd5`; zero open PRs at audit start. Latest sampled main CI `39037975678`, MASTER `39037975693`, Sonar `39037975711`, and scheduled owner-health `39081228982` reported SUCCESS.
+- **PR #878 CLOSED / PRODUCTION VERIFIED:** exact runtime merge `bc6d8774301c5033b9e8d7835f558a6328957de2`; deployment `39035492810` and subsequent live advisory `39035585607`, smoke `39035585666`, assets `39035585593`, reconciliation `39035585616` succeeded. Inspected live advisory job `117404599047`: identity, Green Energy, yachts, jets and contact HTTP 200, public catalog check PASS. All five responses recorded `ai_model:null`: this proves grounded fallback/response availability, not successful model inference or a comparative model benchmark. This supersedes PR #878 PENDING language below only.
+- **P1 offline audit:** 60/60 existing targeted tests PASS on this baseline, covering durable Telegram drafting, queue recovery, exactly-once sessions, gallery concurrency, publishing, approval and partial-update preservation. No real vehicle, price, ODO, visibility or media changed; full real Telegram publish and physical S21 acceptance remain OPEN.
+- **Confirmed single-file regression:** tracked tree still contained `docs/PR_GATE_RECONCILIATION_2026-10-13.md` alongside MASTER. Its complete UTF-8 contents are preserved verbatim in the archive below before removing the extra active file. Existing MASTER links now target the archive. The outdated regression test that required this extra file is replaced with archive-preservation and file-absence assertions.
+- **Prevention:** MASTER Integrity now checks tracked Markdown paths, including mixed-case extensions, and permits only root `MASTER_PROJECT_STATUS.md`. Gate rejects a missing canonical path or any extra Markdown path. Read the current MASTER before every future status write; update it in place, never create a dated report or a second master.
+- This repair changes documentation and repository validation only. Runtime model IDs, Lyly Workers AI pause, Content Runner disabled state, billing, secrets and device acceptance are unchanged. PR/merge checks for this enforcement change remain PENDING until verified; no new runtime fix is claimed.
+
+
 ## P0 — LIVE REPOSITORY / PRODUCTION RECEIPT AUDIT — 2026-10-17 20:40 (UTC+7)
 
 **Scope and evidence hierarchy:** P0 verified the connected GitHub repository directly, inspected exact-main GitHub Actions job steps/logs, checked the current `wrangler.json`, website/Telegram AI code and open acceptance issues. GitHub Actions runners queried Cloudflare and public production endpoints; the present ChatGPT/web/container environment could not independently fetch `phanthuanxtra.com`. A green deployment workflow is strong production receipt evidence but not an independent browser, D1-data dump, Windows, S21 or paid-account verification. No production mutation occurred in this P0 audit.
@@ -56,7 +66,7 @@
 - **P2 CONTENT RUNNER — OFFLINE ONLY:** protected by `CONTENT_RUNNER_LIVE_ENABLED=0`; tests verify model call budget 3 per run / 12 per day, 1,200 token cap, owner approval, private draft/proposal and idempotent retry; CI offline simulation PASS in PR #849 and exact-main CI 38380399739: no real AI, private draft, idempotent replay and no public publish; no production live inference, spending or auto-publish authorized. Fleet/Cloudflare quota and actual owner review remain open.
 - **Lyly/JARVIS separate:** Windows voice/face and WebSocket 8765 security unresolved. This public website repository is not the place to publish private PC diagnostics or alter local JARVIS services.
 
-See [docs/PR_GATE_RECONCILIATION_2026-10-13.md](docs/PR_GATE_RECONCILIATION_2026-10-13.md) for acceptance criteria, exact CI/deploy receipts and safe next steps. PR #849 merged as main `3db659253d9a58ec056ba29c64834596bb37fbd1`; PR head 9/9 checks PASS. Exact-main [CI 38380399739](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399739), [MASTER Integrity 38380399702](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399702), [SonarQube 38380399555](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399555), [Cloudflare deploy 38380399609](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399609), [Smoke Gate-15 38380596505](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596505), [Stage 3 38380596383](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596383) and [Forms+CRM E2E 38380596450](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596450) all SUCCESS. The new read-only hidden-car gate step PASS on actual production; S21 physical acceptance, Inbox reliability and AI-generated advice remain OPEN.
+See [docs/PR_GATE_RECONCILIATION_2026-10-13.md](#archived-pr-gate-reconciliation-2026-10-13) for acceptance criteria, exact CI/deploy receipts and safe next steps. PR #849 merged as main `3db659253d9a58ec056ba29c64834596bb37fbd1`; PR head 9/9 checks PASS. Exact-main [CI 38380399739](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399739), [MASTER Integrity 38380399702](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399702), [SonarQube 38380399555](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399555), [Cloudflare deploy 38380399609](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399609), [Smoke Gate-15 38380596505](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596505), [Stage 3 38380596383](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596383) and [Forms+CRM E2E 38380596450](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596450) all SUCCESS. The new read-only hidden-car gate step PASS on actual production; S21 physical acceptance, Inbox reliability and AI-generated advice remain OPEN.
 
 ## P1 TELEGRAM /CHAT REAL-DEVICE FOLLOW-UP — 2026-10-13 16:29 (UTC+7)
 
@@ -3791,3 +3801,53 @@ Nguồn bối cảnh: trao đổi trực tiếp trong phiên về kiến trúc P
 | 17/10/2026 20:40 ICT | P0 kiểm toán live GitHub/main, exact-main Actions Cloudflare, declared bindings/AI, quyền truy cập và hai owner acceptance issues; ghi rõ giới hạn; không thay đổi runtime | P0 verified with scope; P1/P2 pending |
 
 Quy tắc duy trì: giữ một tệp chuẩn, cập nhật nội dung hiện hành và lịch sử ngắn trong tệp. Bằng chứng CI/deploy có thể liên kết tới hệ thống nguồn; không sao chép thành nhiều báo cáo MD.
+
+
+## Archived PR Gate Reconciliation 2026-10-13
+
+Original path: `docs/PR_GATE_RECONCILIATION_2026-10-13.md`. Historical snapshot preserved verbatim; relative links and old statuses inside this archive are historical, not current instructions.
+
+<!-- BEGIN ARCHIVED PR GATE 2026-10-13 -->
+# PR Gate Reconciliation — Phan Thuần Xtra
+
+**Snapshot:** 2026-10-13 (UTC+7). Repository: `PHAN-THUAN-XTRA/phanthuanxtra-v9`. Current `main`: `3db659253d9a58ec056ba29c64834596bb37fbd1` after PR #849; original audit baseline `759ff223b0fa1f4fefb2d7ea7b6de92d20cc6a45`. One canonical [MASTER](../MASTER_PROJECT_STATUS.md) is the primary project status; this file is a scoped **acceptance checklist**, not a second MASTER.
+
+## Confirmed baseline
+
+- No PR open at audit time. Two acceptance issues remain: [#807](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/807) (AI quota, S21, email placement, Content Runner) and [#828](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/828) (hidden-car S21).
+- Production code merges [#845](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/845), [#846](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/846), [#847](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/847), [#848](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/848) completed. Latest [Cloudflare deploy 38377605823](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38377605823), [Smoke Gate-15 38377770633](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38377770633), [Stage 3 Reconciliation 38377770630](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38377770630), [Forms + CRM E2E 38377770587](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38377770587) succeeded on the exact merge SHA.
+- **P0 durable leads:** public form is fail-closed on D1 errors. Lead/email E2E correlated one D1 record → Telegram → Brevo provider message ID → actual Gmail. Email receipt is not proof of the Gmail Primary tab.
+- **P1 /chat transport:** the owner received an actual final `AI_QUOTA_EXHAUSTED` message from the Auto Bot after PR #848. This proves the response/diagnostic path, not that generation is currently available. A previous job in `TELEGRAM_SEND_UNCERTAIN` must not be blindly re-sent.
+
+## Remaining acceptance checklist
+
+| Priority | Gate | Current evidence | Exit criterion / owner action |
+| --- | --- | --- | --- |
+| P1 | Workers AI substantive consultation | Live Telegram diagnostic `AI_QUOTA_EXHAUSTED`; final send works | When quota is independently available, send **one** new `/chat` question and retain actual non-fabricated answer; do not pay to force this |
+| P1 | Samsung S21 Ultra | API/UI CI PASS, but no physical screenshots | On the real S21: login, `/customerapp`, mobile layout, image loading, Telegram. Record screenshots without customer data; no Wrangler |
+| P1 | Hidden car state (#828) | tg-756 hidden with 29 preserved images; tg-527 hidden with 24 | Real S21 public catalog excludes both; saved `/car.html?id=tg-756` and `...tg-527` must not expose vehicle content. Don't unhide or reupload |
+| P1 | Email placement | Gmail examples arrived Inbox/Updates/Promotions, one earlier matching alert in Spam; earlier SPF/DKIM/DMARC PASS | Monitor a representative set of real notifications and sender reputation; validate authentication, alignment and actual folder, without guaranteed Primary or fresh test spam |
+| P2 | Content Runner live | Source contract bounded, current `CONTENT_RUNNER_LIVE_ENABLED=0`; offline test fixtures exist | Offline CI proof first; separately confirm quota/billing ceiling, role scopes and owner approval for any single live trial; do not enable automatically |
+| Separate P0 | Lyly WebSocket / biometric auth | PC-specific evidence incomplete; not a website PR | Private owner-side read-only probe, staged fail-closed authentication and S21 acceptance before remote-control capability; never upload biometrics/secrets into GitHub |
+
+## Completed automatic gates — PR #849
+
+1. **PR CI — PASS:** run the existing `scripts/simulate-content-runner.mjs` with fixture AI only; enforce `real_ai_calls=0`, one private draft, idempotent replay and no public publishing; fail if `wrangler.json` enables live or limits/approval contract drift.
+2. **Production Gate-15 — PASS on merge commit `3db65925`:** read-only fetch the D1-backed public catalog and exact vehicle API details; assert tg-756/tg-527 absent and hidden details HTTP 404. No mutation, private Admin lookup, API token or camera inference.
+3. **Documentation checkpoint — PASS:** PR #849 triggered a normal GitHub Actions deploy because workflow YAML changed; Cloudflare deploy actually occurred and succeeded. All acceptance claims below link to observed run IDs, not projected checks.
+
+**Safety constraints:** Never touch the 29/24 retained car images, expose private credentials or customer records, change DNS based only on Spam placement, increase AI quotas/cost, or claim S21 acceptance from CI. Do not mark #807 or #828 closed without the missing owner evidence.
+
+## Verified PR #849 / production receipts
+
+| Gate | Exact observed evidence |
+| --- | --- |
+| PR #849 | [Merged](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/849), all 9 exact-head gate checks PASS |
+| Exact-main CI + offline Content Runner | [CI 38380399739](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399739) SUCCESS; offline simulation no paid inference and no public publish |
+| MASTER + SonarQube | [MASTER 38380399702](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399702), [Sonar 38380399555](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399555) SUCCESS |
+| Cloudflare | [Deploy 38380399609](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380399609) SUCCESS on `3db65925` |
+| Hidden-car API, read-only | [Production Smoke Gate-15 38380596505](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596505) SUCCESS; exact new step verified D1-backed catalog exclusion and HTTP 404 for tg-756 and tg-527 |
+| Other production E2E | [Stage 3 38380596383](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596383), [Forms/CRM 38380596450](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/38380596450), Blog CMS, App Assistant and Live Chat Identity SUCCESS |
+
+**Still not accepted:** S21 real-device login and hidden-state UI; actual generated AI advice while Workers AI quota is exhausted; reliable Gmail Primary folder placement; Content Runner live, which remains disabled pending separate owner/billing approval. Issues [#807](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/807) and [#828](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/828) remain OPEN. This documents evidence; it does not constitute a new live runtime change.
+<!-- END ARCHIVED PR GATE 2026-10-13 -->

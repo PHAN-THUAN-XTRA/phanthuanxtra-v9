@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const read=path=>fs.readFileSync(new URL(path,import.meta.url),'utf8');
 
@@ -29,11 +30,12 @@ test('production smoke monitors hidden owner cars via public GET only',()=>{
  assert.match(gate,/\.source == "d1"/);assert.match(gate,/test "\$status" = "404"/);
  assert.doesNotMatch(gate,/\bPOST\b|\bPUT\b|\bDELETE\b|\/api\/admin\//);
 });
-test('MASTER names a single scoped acceptance document, not duplicate canonical title',()=>{
+test('MASTER preserves the complete acceptance archive without an extra Markdown file',()=>{
  const m=read('../MASTER_PROJECT_STATUS.md');
- const docs=read('../docs/PR_GATE_RECONCILIATION_2026-10-13.md');
  assert.equal(m.split('# PHAN THUẦN XTRA — MASTER PROJECT STATUS').length-1,1);
- assert.match(m,/PR_GATE_RECONCILIATION_2026-10-13\.md/);
- assert.match(docs,/Content Runner live/);
- assert.doesNotMatch(docs,/^# PHAN THUẦN XTRA — MASTER PROJECT STATUS/m);
+ assert.equal(fs.existsSync(new URL('../docs/PR_GATE_RECONCILIATION_2026-10-13.md',import.meta.url)),false);
+ const archived=m.split('<!-- BEGIN ARCHIVED PR GATE 2026-10-13 -->\n')[1]?.split('<!-- END ARCHIVED PR GATE 2026-10-13 -->')[0];
+ assert.ok(archived);
+ assert.equal(createHash('sha256').update(archived).digest('hex'),'cd1c546de40530aead27023f840cb9b7f88905cb2013ca164586eccb72240ae4');
+ assert.match(m,/#archived-pr-gate-reconciliation-2026-10-13/);
 });
