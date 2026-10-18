@@ -80,6 +80,10 @@ test('website AI chat uses visible D1 catalog and GLM -> Nemotron -> Qwen fallba
   assert.match(data.reply, /Lexus/);
   assert.equal(data.needs_human, false);
   assert.equal(data.ai_model, '@cf/qwen/qwen3.8-27b');
+  assert.equal(data.ai_source, 'model');
+  assert.equal(data.ai_error_code, null);
+  assert.equal(data.ai_attempts, 3);
+  assert.ok(Number.isInteger(data.response_duration_ms) && data.response_duration_ms >= 0);
   assert.equal(searchCalls, 0);
   assert.deepEqual(modelCalls, ['@cf/zai-org/glm-4.7-flash','@cf/nvidia/nemotron-3-120b-a12b','@cf/qwen/qwen3.8-27b']);
   assert.ok(DB._rows.some(x=>x.type==='message' && x.role==='user'));
@@ -102,6 +106,10 @@ test('vehicle quota fallback filters Lexus SUV intent and excludes unrelated bra
   assert.equal(response.status,200);
   assert.equal(data.needs_human,false);
   assert.match(data.reply,/\n• LEXUS RX350L 2019\n• LEXUS GX 460 Luxury 2021/);
+  assert.equal(data.ai_source, 'grounded_fallback');
+  assert.equal(data.ai_model, null);
+  assert.equal(data.ai_error_code, 'AI_QUOTA_EXHAUSTED');
+  assert.equal(data.ai_attempts, 1);
   assert.doesNotMatch(data.reply,/; LEXUS/);
   assert.doesNotMatch(data.reply,/TOYOTA/);
   assert.doesNotMatch(data.reply,/LAND ROVER/);
@@ -562,6 +570,9 @@ test('official hotline questions use authoritative copy without incomplete model
     const data = await response.json();
     assert.equal(response.status, 200); assert.equal(data.needs_human, false);
     assert.match(data.reply, /0866 997 891/); assert.equal(data.ai_model, null); assert.equal(calls, 0);
+    assert.equal(data.ai_source, 'deterministic');
+    assert.equal(data.ai_attempts, 0);
+    assert.equal(data.ai_error_code, null);
   }
 });
 
@@ -635,3 +646,38 @@ for (const dependency of ['search', 'asset-body', 'model']) {
     }
   });
 }
+
+test('live inference, cached model text and deterministic response are different gate evidence', async () => {
+  const cars=[{id:'evidence-car',brand:'Lexus',model:'RX 350',year:2024,status:'available',category:'suv'}];
+  let calls=0;
+  const env=()=>({DB:mockDb(cars),AI:{async run(){calls++; return {response:'Lexus RX 350 trên website.'};}}});
+  const ask=async environment=>(await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:crypto.randomUUID(),message:'Tôi muốn tìm Lexus RX 350'})
+  }),environment)).json();
+  const first=await ask(env());
+  const second=await ask(env());
+  assert.equal(first.ai_source,'model');
+  assert.equal(first.ai_attempts,1);
+  assert.equal(second.ai_source,'cache');
+  assert.equal(second.ai_attempts,0);
+  assert.equal(second.ai_model,first.ai_model,'cached model ID is not fresh inference evidence');
+  assert.equal(calls,1);
+});
+
+test('outage fallback has sanitized telemetry without false quota diagnosis', async () => {
+  const env={DB:mockDb([{id:'evidence-car',brand:'Lexus',model:'RX 350',status:'available',category:'suv'}]),
+    AI:{async run(){throw new Error('provider exploded with private upstream details');}}};
+  const response=await handleAiChat(new Request('https://phanthuanxtra.com/api/ai-chat',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({conversation_id:'outage-evidence',message:'Tôi muốn tìm Lexus SUV'})
+  }),env);
+  const data=await response.json();
+  assert.equal(response.status,200);
+  assert.equal(data.ai_source,'grounded_fallback');
+  assert.equal(data.ai_model,null);
+  assert.equal(data.ai_error_code,'AI_UNAVAILABLE');
+  assert.equal(data.ai_attempts,3);
+  assert.match(data.reply,/tạm thời chưa phản hồi/);
+  assert.doesNotMatch(JSON.stringify(data),/provider exploded|private upstream details/);
+});
