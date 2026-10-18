@@ -7,15 +7,18 @@ const homepage = fs.readFileSync(new URL("../public/index.html", import.meta.url
 const styles = fs.readFileSync(new URL("../public/style.css", import.meta.url), "utf8");
 const script = fs.readFileSync(new URL("../public/xtra-home-experience.js", import.meta.url), "utf8");
 
-test("homepage has one car experience immediately after private appointment and before contact", () => {
-  const booking = homepage.indexOf('<section class="section test-drive" id="test-drive">');
-  const experience = homepage.indexOf('<section class="section xtra-home-experience" id="trai-nghiem-xe"');
-  const contact = homepage.indexOf('<section class="contact" id="contact">');
-  assert.ok(booking > 0 && experience > booking && contact > experience);
-  assert.equal(homepage.slice(booking, experience).split("</section>").length - 1, 1);
+test("homepage embeds one XTRA advisor inside 01 / Ô TÔ before the main car grid", () => {
+  const catalog = homepage.indexOf('id="cars-section"');
+  const experience = homepage.indexOf('id="trai-nghiem-xe"');
+  const stock = homepage.indexOf('id="cars"');
+  const feng = homepage.indexOf('id="ai-assistant"');
+  const booking = homepage.indexOf('id="test-drive"');
+  assert.ok(catalog >= 0 && catalog < experience && experience < stock && stock < feng && feng < booking);
   assert.equal((homepage.match(/id="trai-nghiem-xe"/g) || []).length, 1);
   assert.match(homepage, /href="\/trai-nghiem-xe"/);
-  assert.doesNotMatch(homepage.slice(0, booking), /Tư vấn xe tương tác ↗/);
+  assert.match(homepage.slice(catalog, feng), /TRẢI NGHIỆM XE • XTRA INTELLIGENT UI/);
+  assert.match(homepage.slice(catalog, feng), /Kho xe tuyển chọn/);
+  assert.match(homepage.slice(catalog, feng), /Xe đang giới thiệu/);
 });
 
 test("homepage experience has accessible working controls and live public catalog placeholders", () => {
@@ -26,6 +29,8 @@ test("homepage experience has accessible working controls and live public catalo
   assert.match(homepage, /aria-live="polite"/);
   assert.match(styles, /\.xtra-home-grid\{display:grid/);
   assert.match(styles, /@media\(max-width:600px\).*?\.xtra-home-card/s);
+  assert.match(styles, /#cars-section \.xtra-home-experience/);
+  assert.match(homepage, /src="\/xtra-home-experience\.js\?v=20261018-unified-showroom"/);
 });
 
 test("home experience filters only public stock, respects budget, and segregates unknown prices", () => {
@@ -43,7 +48,9 @@ test("home experience filters only public stock, respects budget, and segregates
 });
 
 test("homepage only reads public catalog without changing backend or exposing credentials", () => {
-  assert.match(script, /fetch\("\/api\/cars", \{ cache: "no-store", credentials: "same-origin" \}\)/);
+  assert.match(script, /globalThis\.__ptxPublicCarsPromise/);
+  assert.doesNotMatch(script, /fetch\("\/api\/cars"/);
+  assert.match(script, /ptx:xtra-filters/);
   assert.match(script, /safeImage\(car\.image\)/);
   assert.match(script, /encodeURIComponent\(car\.id\)/);
   assert.doesNotMatch(script, /method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/i);
