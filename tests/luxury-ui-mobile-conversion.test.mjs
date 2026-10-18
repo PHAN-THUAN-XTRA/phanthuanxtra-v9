@@ -75,7 +75,7 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
   const nodes={};
   for(const id of ['cars','favCount','compareCount','carsResultCount','leadForm','leadStatus'])nodes['#'+id]=new Element(id);
   const interest=new Element('input');interest.value='';
-  const form=nodes['#leadForm'];form.fields={name:'Khách thử',phone:'0900000000',need:'Lái thử xe',interest:'',message:''};
+  const form=nodes['#leadForm'];form.reset=()=>{};form.fields={name:'Khách thử',phone:'0900000000',need:'Lái thử xe',interest:'',message:''};
   const store={};
   const localStorage={getItem:k=>store[k]||null,setItem:(k,v)=>{store[k]=v}};
   const session={};
