@@ -1,5 +1,14 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## P1 / INFERENCE EVIDENCE — SCOPED AUTO-FIX CHECKPOINT — 2026-10-18 (UTC+7)
+
+- **P1 prerequisite:** baseline `main` `0077375062e8a754ff41c2739344480f71224c4c` after #880; no open PRs at audit start; #807/#828 remain OPEN for owner-operated physical S21, fully authorized real vehicle publishing and quota-dependent Telegram consultation. Previous documented P1 offline regression: 60/60 PASS; this is *not* device/live acceptance. Hidden tg-756 and tg-527 remain unchanged.
+- **Confirmed false inference signal:** production advisory after #878 was HTTP 200 while all five `ai_model` values were null. Grounded HTTP availability and successful Cloudflare deployment cannot establish direct Workers AI generation, quality or remaining daily quota.
+- **Scoped runtime fix proposed for PR gates:** `src/ai-chat.js` now returns `ai_source` (`model`, `cache`, `grounded_fallback`, `deterministic`, `human_handoff`), `ai_error_code` (bounded enum `AI_QUOTA_EXHAUSTED`, `AI_TIMEOUT`, `AI_UNAVAILABLE` or null), `ai_attempts` and `response_duration_ms`. Only `ai_source=model` from an actual model call can prove direct inference; cached output with a model ID is *not* new inference. No upstream provider message, chat content, secret or exact private quota amount is exposed in these fields.
+- **Gate correction:** `Live Chat AI Identity Verify` still checks safe real website advisory availability; its separate evidence summary explicitly marks each advisory `VERIFIED_MODEL_RESPONSE` or `NOT_VERIFIED`. If all are fallback/cache/deterministic, model inference stays `NOT VERIFIED` even if the HTTP/CRM path passes. This does not add new real probe calls or authorize repeated quota consumption.
+- **Regression and delivery status at checkpoint:** mock tests added for direct model success, cache-only reuse, quota, timeout-compatible safe fallback, deterministic response and other provider errors. Exact-head CI, PR review, merge, exact-merge deploy, real inference and benchmark remain PENDING until proven separately. Preserve disabled Content Runner, owner-paused Lyly Workers AI, existing model IDs, vehicle visibility/original media, credentials and billing.
+- **Next in strict order:** P1 owner/device acceptance remains OPEN; gate and quota instrumentation → canonical MASTER receipt reconciliation → same-prompt model quality/cost/latency benchmark *only when real quota/permission exists* → optional model upgrade decision. Do not interpret offline simulation as a model-vs-model benchmark.
+
 ## AUTO AUDIT / SINGLE-MASTER ENFORCEMENT — 2026-10-18 (UTC+7)
 
 - Read current main MASTER before editing. Baseline `319e0a59ee4e4e0dbac411ec078320537f684bd5`; zero open PRs at audit start. Latest sampled main CI `39037975678`, MASTER `39037975693`, Sonar `39037975711`, and scheduled owner-health `39081228982` reported SUCCESS.
