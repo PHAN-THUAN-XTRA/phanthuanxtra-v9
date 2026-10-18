@@ -30,6 +30,15 @@ export function auditMaster(content, previous = null) {
   return errors;
 }
 
+export function auditMarkdownPaths(paths) {
+  const markdown = paths.filter(path => /\.md$/i.test(path));
+  const errors = [];
+  if (!markdown.includes('MASTER_PROJECT_STATUS.md')) errors.push('Canonical Markdown path missing');
+  const extra = markdown.filter(path => path !== 'MASTER_PROJECT_STATUS.md');
+  if (extra.length) errors.push(`Extra Markdown paths forbidden: ${extra.join(', ')}`);
+  return errors;
+}
+
 function main() {
   const path = 'MASTER_PROJECT_STATUS.md';
   const current = fs.readFileSync(path, 'utf8');
@@ -42,7 +51,8 @@ function main() {
       process.exit(2);
     }
   }
-  const errors = auditMaster(current, previous);
+  const paths = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
+  const errors = [...auditMaster(current, previous), ...auditMarkdownPaths(paths)];
   errors.forEach(error => console.error('[FAIL]', error));
   if (errors.length) process.exit(1);
   console.log('[PASS] MASTER Integrity Gate: canonical title, duplication and history checks');
