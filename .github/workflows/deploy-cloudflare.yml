@@ -290,7 +290,7 @@ jobs:
           grep -Fq '200 tỷ' /tmp/xtra-ui.html
           echo "XTRA Intelligent UI: aliases, HTML, module JS, 200-billion budget and public catalog => PASS."
 
-      - name: Verify homepage vehicle experience is below private booking
+      - name: Verify integrated XTRA advisor inside vehicle catalogue
         shell: bash
         run: |
           set -euo pipefail
@@ -298,14 +298,18 @@ jobs:
           curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 \
             -D /tmp/xtra-home.headers -o /tmp/xtra-home.html "${base}/?xtra_experience_audit=${GITHUB_SHA}"
           grep -Eiq '^content-type:[[:space:]]*text/html;[[:space:]]*charset[[:space:]]*=[[:space:]]*utf-8' /tmp/xtra-home.headers
-          node --input-type=module -e 'import fs from "node:fs"; const s=fs.readFileSync("/tmp/xtra-home.html","utf8"); const p=[s.indexOf("id=\"test-drive\""),s.indexOf("id=\"trai-nghiem-xe\""),s.indexOf("id=\"contact\"")]; if(p.some(x=>x<0)||!(p[0]<p[1]&&p[1]<p[2])||!s.includes("src=\"/xtra-home-experience.js\"")||!s.includes("id=\"xtra-home-cars\"")){console.error("Homepage live experience placement or controls missing",p);process.exit(1);} console.log("XTRA homepage section ordering: PASS",p.join("<"));'
+          node --input-type=module -e 'import fs from "node:fs"; const s=fs.readFileSync("/tmp/xtra-home.html","utf8"); const p=[s.indexOf("id=\"cars-section\""),s.indexOf("id=\"trai-nghiem-xe\""),s.indexOf("id=\"cars\""),s.indexOf("id=\"ai-assistant\""),s.indexOf("id=\"test-drive\""),s.indexOf("id=\"contact\"")]; if(p.some(x=>x<0)||!p.every((x,i)=>i===0||p[i-1]<x)||s.split("id=\"trai-nghiem-xe\"").length!==2||!s.includes("src=\"/xtra-home-experience.js?v=20261018-unified-showroom\"")||!s.includes("id=\"xtra-home-cars\"")){console.error("Integrated catalogue section/controls missing or duplicated",p);process.exit(1);} console.log("XTRA integrated homepage order: PASS",p.join("<"));'
           curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 \
             -D /tmp/xtra-home-js.headers -o /tmp/xtra-home.js "${base}/xtra-home-experience.js?audit=${GITHUB_SHA}"
           grep -Eiq '^content-type:[[:space:]]*(application|text)/javascript' /tmp/xtra-home-js.headers
           grep -Fq 'export function homeMatches' /tmp/xtra-home.js
           grep -Fq 'budgetFromPosition' /tmp/xtra-home.js
           grep -Fq '200 tỷ' /tmp/xtra-home.html
-          echo "XTRA homepage embedded preview + 200-billion budget: PASS."
+          curl --fail --silent --show-error --compressed --retry 3 --retry-delay 2 --max-time 30 -o /tmp/xtra-home-catalog.js "${base}/script.js?audit=${GITHUB_SHA}"
+          grep -Fq '__ptxPublicCarsPromise' /tmp/xtra-home-catalog.js
+          grep -Fq 'ptx:xtra-filters' /tmp/xtra-home-catalog.js
+          grep -Fq 'ptx:xtra-filters' /tmp/xtra-home.js
+          echo "XTRA integrated catalogue, shared public API promise, category/budget bridge and 200-billion cap: PASS."
 
       - name: Verify Admin UTF-8 asset delivery
         shell: bash
