@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { homeMatches } from "../public/xtra-home-experience.js";
+import { homeMatches, initHomeExperience } from "../public/xtra-home-experience.js";
 
 const homepage = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
 const styles = fs.readFileSync(new URL("../public/style.css", import.meta.url), "utf8");
@@ -56,4 +56,57 @@ test("homepage only reads public catalog without changing backend or exposing cr
   assert.doesNotMatch(script, /method:\s*["'](?:POST|PUT|PATCH|DELETE)["']/i);
   assert.doesNotMatch(script, /\/api\/(?:admin|lyly|leads)/);
   assert.doesNotMatch(script, /Bearer|ADMIN_TOKEN|LYLY_BRIDGE_TOKEN|API_KEY/);
+});
+
+
+test("advisor uses one pre-existing catalog promise and synchronizes budget/category with main inventory", async () => {
+  const before={document:globalThis.document,CustomEvent:globalThis.CustomEvent,promise:globalThis.__ptxPublicCarsPromise};
+  const ids={};const emitted=[];
+  class E {
+    constructor(tag="div"){this.tagName=tag;this.value="";this.children=[];this.attributes={};this.handlers={};this.textContent=""}
+    addEventListener(name,handler){this.handlers[name]=handler}
+    append(...items){this.children.push(...items)}
+    replaceChildren(...items){this.children=items}
+    setAttribute(name,value){this.attributes[name]=value}
+    remove(){}
+  }
+  for(const id of ["xtra-home-cars","xtra-home-category","xtra-home-budget","xtra-home-budget-value","xtra-home-count"])ids[id]=new E();
+  ids["xtra-home-category"].value="all";
+  ids["xtra-home-budget"].value="40";
+  globalThis.document={
+    getElementById:id=>ids[id]||null,
+    createElement:tag=>new E(tag),
+    dispatchEvent:event=>{emitted.push(event);return true}
+  };
+  globalThis.CustomEvent=class{constructor(type,options){this.type=type;this.detail=options.detail}};
+  globalThis.__ptxPublicCarsPromise=Promise.resolve([
+    {id:"tg-suv",status:"available",brand:"Lexus",name:"RX",category:"suv",price:"1.500.000.000 đ"},
+    {id:"tg-sedan",status:"available",brand:"Mercedes",name:"S",category:"sedan",price:"2.500.000.000 đ"},
+    {id:"tg-unpriced",status:"available",brand:"Porsche",name:"718",category:"coupe",price:"Liên hệ"},
+    {id:"tg-hidden",status:"hidden",brand:"Hidden",category:"suv",price:"500.000.000 đ"}
+  ]);
+  try{
+    initHomeExperience();
+    await new Promise(resolve=>setImmediate(resolve));
+    const last=()=>emitted.at(-1);
+    assert.equal(last().type,"ptx:xtra-filters");
+    assert.deepEqual([...last().detail.eligibleIds].sort(),["tg-sedan","tg-suv","tg-unpriced"]);
+    assert.ok(!last().detail.eligibleIds.includes("tg-hidden"));
+    assert.equal(ids["xtra-home-cars"].children.length,3);
+    assert.equal(ids["xtra-home-category"].children.length,9);
+    ids["xtra-home-category"].value="suv";
+    ids["xtra-home-category"].handlers.change();
+    assert.deepEqual(last().detail.eligibleIds,["tg-suv"]);
+    ids["xtra-home-budget"].value="0";
+    ids["xtra-home-budget"].handlers.input();
+    assert.deepEqual(last().detail.eligibleIds,[]);
+    ids["xtra-home-category"].value="all";
+    ids["xtra-home-category"].handlers.change();
+    assert.deepEqual(last().detail.eligibleIds,["tg-unpriced"]);
+    assert.match(ids["xtra-home-count"].textContent,/0 xe trong ngân sách.*1 chưa có giá/);
+  }finally{
+    if(before.document===undefined)delete globalThis.document;else globalThis.document=before.document;
+    if(before.CustomEvent===undefined)delete globalThis.CustomEvent;else globalThis.CustomEvent=before.CustomEvent;
+    if(before.promise===undefined)delete globalThis.__ptxPublicCarsPromise;else globalThis.__ptxPublicCarsPromise=before.promise;
+  }
 });
