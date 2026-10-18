@@ -25,7 +25,7 @@ test("homepage experience has accessible working controls and live public catalo
   for (const id of ["xtra-home-title", "xtra-home-category", "xtra-home-budget", "xtra-home-budget-value", "xtra-home-cars", "xtra-home-count"]) {
     assert.match(homepage, new RegExp('id="' + id + '"'));
   }
-  assert.match(homepage, /<script type="module" src="\/xtra-home-experience\.js"/);
+  assert.match(homepage, /<script type="module" src="\/xtra-home-experience\.js\?v=20261018-unified-showroom"/);
   assert.match(homepage, /aria-live="polite"/);
   assert.match(styles, /\.xtra-home-grid\{display:grid/);
   assert.match(styles, /@media\(max-width:600px\).*?\.xtra-home-card/s);
