@@ -1,5 +1,5 @@
 (() => {"use strict";
-const state={cars:[],filter:"all",query:"",sort:"featured",favorites:new Set(JSON.parse(localStorage.getItem("ptx:favorites")||"[]")),compare:new Set(JSON.parse(localStorage.getItem("ptx:compare")||"[]")),favoritesOnly:false};
+const state={cars:[],filter:"all",query:"",sort:"featured",favorites:new Set(JSON.parse(localStorage.getItem("ptx:favorites")||"[]")),compare:new Set(JSON.parse(localStorage.getItem("ptx:compare")||"[]")),favoritesOnly:false,xtraEligibleIds:null};
 function getVisitorId(){let value=localStorage.getItem("ptx:visitor_id")||"";if(!/^[A-Za-z0-9:_-]{12,160}$/.test(value)){value=globalThis.crypto?.randomUUID?.()||`web_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;localStorage.setItem("ptx:visitor_id",value)}return value}
 const visitorId=getVisitorId();
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -9,7 +9,7 @@ function save(){localStorage.setItem("ptx:favorites",JSON.stringify([...state.fa
 const CATEGORY_LABELS={suv:"SUV / Crossover",sedan:"Sedan",coupe:"Coupe",convertible:"Convertible",mpv:"MPV / Minivan",pickup:"Pickup",wagon:"Wagon",sport:"Thể thao",other:"Khác"};
 function normalizeCar(c){const category=String(c.category??"other").toLowerCase();return{id:c.id,brand:c.brand??"",name:c.name??c.model??"",year:c.year??"",odo:c.odo??c.mileage??"",seats:c.seats??"",engine:c.engine??c.fuel??"",drive:c.drive??"",category,categoryLabel:CATEGORY_LABELS[category]??CATEGORY_LABELS.other,price:c.price??"",imageClass:c.imageClass??"",tag:c.tag??"",page:c.page??"#",image:c.cover_image??c.image??"",featured:Boolean(c.featured)}}
 function updateFeatured(){}
-function filtered(){const q=state.query.toLowerCase().trim();const list=state.cars.filter(c=>{const hay=[c.brand,c.name,c.year,c.odo,c.engine,c.category,c.drive,c.price].join(" ").toLowerCase();return(state.filter==="all"||c.category===state.filter)&&(!q||hay.includes(q))&&(!state.favoritesOnly||state.favorites.has(c.id))});if(state.sort==="year-desc")list.sort((a,b)=>Number(b.year)-Number(a.year));if(state.sort==="year-asc")list.sort((a,b)=>Number(a.year)-Number(b.year));if(state.sort==="name")list.sort((a,b)=>a.name.localeCompare(b.name));return list}
+function filtered(){const q=state.query.toLowerCase().trim();const list=state.cars.filter(c=>{const hay=[c.brand,c.name,c.year,c.odo,c.engine,c.category,c.drive,c.price].join(" ").toLowerCase();return(state.filter==="all"||c.category===state.filter)&&(!q||hay.includes(q))&&(!state.favoritesOnly||state.favorites.has(c.id))&&(!state.xtraEligibleIds||state.xtraEligibleIds.has(String(c.id)))});if(state.sort==="year-desc")list.sort((a,b)=>Number(b.year)-Number(a.year));if(state.sort==="year-asc")list.sort((a,b)=>Number(a.year)-Number(b.year));if(state.sort==="name")list.sort((a,b)=>a.name.localeCompare(b.name));return list}
 function carCard(c){
   const article=document.createElement("article");article.className="car-card";
   const image=document.createElement("div");image.className=["car-img",String(c.imageClass||"").replace(/[^A-Za-z0-9_-]/g,"")].filter(Boolean).join(" ");
@@ -31,7 +31,21 @@ function carCard(c){
 function render(){const list=filtered(),cars=$("#cars");cars.replaceChildren();$("#carsResultCount")?.replaceChildren(document.createTextNode(list.length+' xe phù hợp'));if(!list.length){const notice=document.createElement("p");notice.className="notice";notice.textContent="Không tìm thấy xe phù hợp. Gọi 0866 997 891 để được hỗ trợ.";cars.appendChild(notice)}else cars.append(...list.map(carCard));$$("[data-fav]").forEach(b=>b.onclick=()=>{const id=b.dataset.fav;state.favorites.has(id)?state.favorites.delete(id):state.favorites.add(id);save();render()});$$("[data-compare]").forEach(b=>b.onclick=()=>{const id=b.dataset.compare;if(state.compare.has(id))state.compare.delete(id);else if(state.compare.size<3)state.compare.add(id);else alert("Bạn chỉ có thể so sánh tối đa 3 xe.");save();render()});$$('[data-book-car]').forEach(b=>b.onclick=()=>{const car=state.cars.find(x=>String(x.id)===b.dataset.bookCar);if(!car)return;const interest=document.querySelector('#leadForm [name="interest"]');if(interest)interest.value=(car.brand+' '+car.name).trim();selectedInquiryCarId=String(car.id)});updateCounters()}
 function showCompare(){const selected=state.cars.filter(c=>state.compare.has(c.id));const body=$("#compareBody");if(!selected.length)body.innerHTML='<p class="fav-empty">Chưa có xe nào. Hãy bấm ⇄ trên thẻ xe để thêm.</p>';else{const rows=[["Hãng","brand"],["Mẫu xe","name"],["Năm","year"],["ODO","odo"],["Động cơ","engine"],["Dẫn động","drive"],["Số chỗ","seats"],["Giá tham khảo","price"]];body.innerHTML='<table class="compare-table"><thead><tr><th>Thông tin</th>'+selected.map(c=>`<th>${esc(c.name)}</th>`).join("")+'</tr></thead><tbody>'+rows.map(r=>`<tr><th>${r[0]}</th>${selected.map(c=>`<td>${esc(c[r[1]])}</td>`).join("")}</tr>`).join("")+'</tbody></table><div class="actions"><a class="btn primary" href="tel:+84866997891">Gọi tư vấn</a><a class="btn zalo" href="https://zalo.me/0866997891" target="_blank" rel="noopener noreferrer">Nhắn Zalo</a></div>'}$("#compareModal").hidden=false}
 const menu=$(".menu-toggle"),nav=$("#site-nav");if(menu&&nav){const close=()=>{nav.classList.remove('open');menu.setAttribute('aria-expanded','false')};menu.onclick=()=>{const open=nav.classList.toggle("open");menu.setAttribute("aria-expanded",String(open))};$$('#site-nav a').forEach(a=>a.onclick=close);document.addEventListener('keydown',e=>{if(e.key==='Escape')close()})}
-$$('.filter').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.filter==='all'));b.onclick=()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.filter').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));state.filter=b.dataset.filter;render()}});
+$$('.filter').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.filter==='all'));b.onclick=()=>{$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.filter').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));state.filter=b.dataset.filter;const xtraCategory=$('#xtra-home-category');if(xtraCategory&&xtraCategory.value!==state.filter){xtraCategory.value=state.filter;xtraCategory.dispatchEvent(new Event('change',{bubbles:true}))}else render()}});
+// XTRA advisor and catalogue share one user-selected category and budget predicate.
+document.addEventListener('ptx:xtra-filters',e=>{
+  const detail=e?.detail;
+  if(!detail||!Array.isArray(detail.eligibleIds))return;
+  const accepted=['all','suv','sedan','coupe','convertible','mpv','pickup','wagon','sport','other'];
+  state.filter=accepted.includes(detail.category)?detail.category:'all';
+  state.xtraEligibleIds=new Set(detail.eligibleIds.map(String));
+  $$('.filter').forEach(button=>{
+    const selected=button.dataset.filter===state.filter;
+    button.classList.toggle('active',selected);
+    button.setAttribute('aria-pressed',String(selected));
+  });
+  if(state.cars.length)render();
+});
 const search=$("#search"),sort=$("#sort"),favoritesOnly=$("#favoritesOnly"),compareOpen=$("#compareOpen");
 if(search)search.oninput=e=>{state.query=e.target.value.slice(0,80);render()};
 if(sort)sort.onchange=e=>{state.sort=e.target.value;render()};
@@ -71,5 +85,22 @@ if(liveChatOpen){
     .catch(()=>{});
 }
 
-const carsRoot=$("#cars");if(carsRoot)fetch('/api/cars',{cache:'no-store',credentials:'same-origin'}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(d=>{if(!d||!Array.isArray(d.cars))throw Error();state.cars=d.cars.filter(c=>!['hidden','unpublished'].includes(String(c?.status??c?.tag??'').trim().toLowerCase())).map(normalizeCar);render()}).catch(error=>{console.warn('Public catalog UI fallback',error?.name||'Error');const notice=document.createElement("p");notice.className="notice";notice.textContent="Không tải được kho xe. Vui lòng gọi 0866 997 891.";carsRoot.replaceChildren(notice)});
+const carsRoot=$("#cars");
+if(carsRoot){
+  // One read-only API request for both showroom cards and the XTRA advisor.
+  // Keep the promise even after resolution so either deferred script can subscribe.
+  const publicCatalogPromise=fetch('/api/cars',{cache:'no-store',credentials:'same-origin'})
+    .then(r=>{if(!r.ok)throw Error('Public catalog unavailable');return r.json()})
+    .then(d=>{if(!d||!Array.isArray(d.cars))throw Error('Invalid public catalog');return d.cars});
+  globalThis.__ptxPublicCarsPromise=publicCatalogPromise;
+  publicCatalogPromise.then(raw=>{
+    state.cars=raw.filter(c=>!['hidden','unpublished'].includes(String(c?.status??c?.tag??'').trim().toLowerCase())).map(normalizeCar);
+    render();
+  }).catch(error=>{
+    console.warn('Public catalog UI fallback',error?.name||'Error');
+    const notice=document.createElement("p");notice.className="notice";
+    notice.textContent="Không tải được kho xe. Vui lòng gọi 0866 997 891.";
+    carsRoot.replaceChildren(notice);
+  });
+}
 })();

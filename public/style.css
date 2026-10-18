@@ -586,3 +586,38 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
   .ai-widget{right:10px;bottom:max(10px,env(safe-area-inset-bottom))}
   .ai-fab{width:52px;height:52px;font-size:12px}
 }
+
+/* Unified automotive showroom: XTRA concierge lives INSIDE 01 / Kho xe. */
+#cars-section .xtra-home-experience{
+  margin:26px 0 28px;
+  padding:clamp(22px,3.5vw,38px);
+  border:1px solid rgba(199,163,90,.42);
+  border-radius:3px;
+  background:radial-gradient(ellipse at 10% 12%,rgba(21,112,83,.28),transparent 45%),linear-gradient(125deg,#071510,#132820 57%,#06100c);
+  color:#f5f0e5;
+  scroll-margin-top:90px
+}
+#cars-section .xtra-home-grid{width:100%;margin:0;gap:clamp(20px,3vw,38px);grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+#cars-section .xtra-home-intro h2{font-size:clamp(32px,3.5vw,44px);margin:10px 0 12px}
+#cars-section .xtra-home-desc{margin-bottom:17px;line-height:1.65}
+#cars-section .xtra-home-controls{gap:12px;padding:17px}
+#cars-section .xtra-home-showcase-top{align-items:center}
+#cars-section .xtra-home-list{gap:8px}
+#cars-section .xtra-home-card{min-height:118px;grid-template-columns:130px minmax(0,1fr)}
+#cars-section .xtra-home-card-image{min-height:118px}
+#cars-section .xtra-home-card-body{padding:10px 13px}
+#cars-section .catalog-shelf-title{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+#cars-section .catalog-shelf-title h3{font:600 clamp(23px,3vw,30px)/1.2 "Noto Serif Display",Georgia,serif;margin:0}
+#cars-section .catalog-shelf-title p{font-size:12px;color:#555;margin:0}
+@media(max-width:960px){
+  #cars-section .xtra-home-grid{grid-template-columns:minmax(0,1fr);gap:20px}
+}
+@media(max-width:600px){
+  #cars-section .xtra-home-experience{margin:18px 0 24px;padding:18px;scroll-margin-top:76px}
+  #cars-section .xtra-home-intro h2{font-size:clamp(29px,8vw,38px)}
+  #cars-section .xtra-home-card{grid-template-columns:100px minmax(0,1fr);min-height:112px}
+  #cars-section .xtra-home-card-image{min-height:112px}
+  #cars-section .xtra-home-card-body h4{font-size:13px}
+  #cars-section .catalog-shelf-title{display:block}
+  #cars-section .catalog-shelf-title p{margin-top:6px}
+}

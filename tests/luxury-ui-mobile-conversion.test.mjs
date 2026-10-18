@@ -100,10 +100,11 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
     };
     walk(nodes['#cars']);return results;
   };
+  const documentListeners={};
   const document={
     createElement:tag=>new Element(tag),createTextNode:text=>({textContent:text}),
     querySelector:selector=>selector==='#leadForm [name="interest"]'?interest:(nodes[selector]||null),
-    querySelectorAll:all,addEventListener(){}
+    querySelectorAll:all,addEventListener(name,handler){documentListeners[name]=handler}
   };
   const observed=[];const stock=[
     {id:'tg-786',status:'available',brand:'Porsche',name:'718 Boxster',category:'convertible',year:2024,price:'Liên hệ',image:'/media/porsche.webp',page:'/car.html?id=tg-786'},
@@ -128,6 +129,11 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
   const image=car.children[0].children[0];
   assert.equal(image.tagName,'img');assert.equal(image.src,'/media/porsche.webp');
   assert.equal(image.loading,'lazy');assert.match(image.alt,/Porsche 718 Boxster/);
+  assert.equal(typeof documentListeners['ptx:xtra-filters'],'function');
+  documentListeners['ptx:xtra-filters']({detail:{category:'suv',eligibleIds:[]}});
+  assert.equal(nodes['#cars'].children[0].tagName,'p','XTRA advisor budget/category must filter main catalog');
+  documentListeners['ptx:xtra-filters']({detail:{category:'convertible',eligibleIds:['tg-786']}});
+  assert.equal(nodes['#cars'].children[0].tagName,'article','advisor restores selected public model');
   categoryButtons[1].onclick();
   assert.equal(nodes['#cars'].children[0].tagName,'p','SUV filter must show no public match');
   assert.equal(categoryButtons[1].attributes['aria-pressed'],'true');

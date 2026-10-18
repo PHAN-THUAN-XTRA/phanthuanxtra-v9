@@ -93,5 +93,8 @@ test("when no cars are available, show no invented stock claims",async()=>{
   assert.equal(x.states.has("hero-catalog-image-unavailable"),true);
 });
 test("catalog cards also refuse hidden or unpublished records",()=>{
-  assert.match(listing,/state\.cars=d\.cars\.filter\(c=>!\['hidden','unpublished'\]/);
+  assert.match(listing,/state\.cars=raw\.filter\(c=>!\['hidden','unpublished'\]/);
+  assert.match(listing,/__ptxPublicCarsPromise=publicCatalogPromise/);
+  assert.match(listing,/\$\$\('\.filter'\)\.forEach\(button=>/);
+  assert.doesNotMatch(listing,/(?<!\$)\$\('\.filter'\)\.forEach/);
 });

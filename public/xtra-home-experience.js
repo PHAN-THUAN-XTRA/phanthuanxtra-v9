@@ -71,6 +71,12 @@ export function initHomeExperience() {
     const unknownPrice = matches.length - inBudget;
     count.textContent = !loaded ? "Đang tải kho xe…" :
       inBudget + " xe trong ngân sách" + (unknownPrice ? " · " + unknownPrice + " chưa có giá" : "");
+    if(loaded){
+      // The XTRA budget, dropdown and catalogue chips filter exactly the same public cards.
+      document.dispatchEvent(new CustomEvent("ptx:xtra-filters", {
+        detail: { category: category.value, eligibleIds: matches.map(car => car.id) }
+      }));
+    }
     root.replaceChildren();
     if (!loaded) {
       root.append(element("p", "Đang kết nối kho xe công khai…", "xtra-home-empty"));
@@ -82,24 +88,28 @@ export function initHomeExperience() {
     }
     matches.slice(0, 3).forEach(car => root.append(vehicleCard(car)));
   };
+  // Keep all categories present so an inventory chip can always synchronize.
+  Object.entries(labels).forEach(([key, title]) => {
+    const option = element("option", title);
+    option.value = key;
+    category.append(option);
+  });
   category.addEventListener("change", display);
   budget.addEventListener("input", display);
   display();
 
-  fetch("/api/cars", { cache: "no-store", credentials: "same-origin" })
-    .then(response => {
-      if (!response.ok) throw new Error("Could not read public cars");
-      return response.json();
-    })
-    .then(payload => {
-      if (!Array.isArray(payload?.cars)) throw new Error("Invalid public cars");
-      cars = normalizeCars(payload.cars);
-      const categories = [...new Set(cars.map(car => car.category))].sort();
-      categories.forEach(key => {
-        const option = element("option", labels[key] || "Dòng xe khác");
-        option.value = key;
-        category.append(option);
-      });
+  // Subscribes to the very same API promise as the main catalogue. No second fetch.
+  const publicCatalogPromise = globalThis.__ptxPublicCarsPromise;
+  if(!publicCatalogPromise || typeof publicCatalogPromise.then!=="function"){
+    loaded=true;
+    count.textContent="Kho xe tạm thời chưa khả dụng";
+    root.replaceChildren(element("p","Chưa kết nối được kho xe công khai. Vui lòng thử tải lại trang.","xtra-home-empty"));
+    return;
+  }
+  publicCatalogPromise
+    .then(raw => {
+      if (!Array.isArray(raw)) throw new Error("Invalid public cars");
+      cars = normalizeCars(raw);
       loaded = true;
       display();
     })
