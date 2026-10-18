@@ -289,10 +289,10 @@ function quotaExceeded(error){
   return /3036|4006|daily.*(?:allocation|quota)|10,?000.*neurons/i.test(String(error?.message||error));
 }
 async function runAI(env,messages,cars,knowledge,customerMemory=""){
-  if(!env.AI)throw new Error("Workers AI binding AI is not configured");
+  if(!env.AI){ const error=new Error("Workers AI binding AI is not configured"); error.code="AI_UNAVAILABLE"; error.attempts=0; throw error; }
   const key=cacheKey(messages,cars,knowledge,customerMemory);
   const cached=getCached(key);
-  if(cached)return cached;
+  if(cached)return {...cached,source:"cache",attempts:0};
   const request={messages:[{role:"system",content:systemPrompt(cars,knowledge,customerMemory)},...messages],max_tokens:MAX_OUTPUT_TOKENS,temperature:0.15};
   const deadline=Date.now()+MODEL_CHAIN_TIMEOUT_MS;
   const runModel=async model=>{
@@ -302,12 +302,14 @@ async function runAI(env,messages,cars,knowledge,customerMemory=""){
     return clean(output,8000);
   };
   let lastError=null;
+  let attempts=0;
   for(const model of [MODEL_PRIMARY,...MODEL_FALLBACKS]){
     try{
+      attempts++;
       const output=await runModel(model);
       console.log("workers_ai_model",model);
       setCached(key,output,model);
-      return {text:output,model};
+      return {text:output,model,source:"model",attempts};
     }catch(error){
       lastError=error;
       console.warn("workers_ai_model_failed",model,String(error?.message||error));
@@ -315,7 +317,10 @@ async function runAI(env,messages,cars,knowledge,customerMemory=""){
     }
   }
   console.error("workers_ai_all_models_failed",String(lastError?.message||lastError||"unknown"));
-  throw new Error("Workers AI model chain failed");
+  const error=new Error("Workers AI model chain failed");
+  error.code=quotaExceeded(lastError) ? "AI_QUOTA_EXHAUSTED" : lastError?.code==="AI_DEPENDENCY_TIMEOUT" ? "AI_TIMEOUT" : "AI_UNAVAILABLE";
+  error.attempts=attempts;
+  throw error;
 }
 function deterministicIdentityReply(message){
   if(!isIdentityQuery(message))return "";
@@ -377,6 +382,7 @@ async function pendingUnknown(env,cid){try{return await env.DB.prepare("SELECT i
 async function recordUnknown(env,cid,question,name,phone){const existing=await pendingUnknown(env,cid);if(existing){if(name||phone)await env.DB.prepare("UPDATE ai_unknown_questions SET name=COALESCE(?,name),phone=COALESCE(?,phone),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name||null,phone||null,existing.id).run();return {id:existing.id,created:false};}const r=await env.DB.prepare("INSERT INTO ai_unknown_questions (conversation_id,question,name,phone,notified_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)").bind(cid,clean(question,4000),clean(name,120)||null,clean(phone,30)||null).run();return {id:r?.meta?.last_row_id??null,created:true};}
 
 export async function handleAiChat(request,env,ctx){
+  const startedAt=Date.now();
   const url=new URL(request.url); if(url.pathname!=="/api/ai-chat")return null;
   if(request.method==="OPTIONS")return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"https://phanthuanxtra.com","Access-Control-Allow-Headers":"content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}});
   if(request.method!=="POST")return json({ok:false,error:"Method Not Allowed"},405); if(!env.DB)return json({ok:false,error:"D1 chưa được kết nối"},503);
@@ -415,8 +421,12 @@ export async function handleAiChat(request,env,ctx){
   const needsHuman = (!allowed&&pendingIncomplete) || !allowed || (websiteTopicQuery && !knowledge.evidence);
   let reply;
   let aiModel=null;
+  let aiSource="deterministic";
+  let aiErrorCode=null;
+  let aiAttempts=0;
   let crmDelivery=null;
   if(needsHuman){
+    aiSource="human_handoff";
     const unknown=pending ? {id:pending.id,created:false} : await recordUnknown(env,conversationId,message,effectiveContact.name,effectiveContact.phone);
     // A phone number is actionable even before the visitor supplies a name.
     // Notify once on the first phone capture; send an updated handoff when the
@@ -449,7 +459,12 @@ export async function handleAiChat(request,env,ctx){
       const result=await runAI(env,[...history,{role:"user",content:message}],cars,((vehicleQuery&&!websiteTopicQuery&&!editorial)?BRAND_KNOWLEDGE:websiteContext)+blogContext,customerMemoryText);
       reply=result.text;
       aiModel=result.model;
+      aiSource=result.source;
+      aiAttempts=result.attempts;
     }catch(error){
+      aiSource="grounded_fallback";
+      aiErrorCode=["AI_QUOTA_EXHAUSTED","AI_TIMEOUT"].includes(error?.code) ? error.code : "AI_UNAVAILABLE";
+      aiAttempts=Math.min(3,Math.max(0,Number(error?.attempts)||0));
       console.error("ai_chat",String(error?.message||error));
       if(identityFallback){reply=identityFallback;}
       else if(vehicleQuery){
@@ -457,13 +472,13 @@ export async function handleAiChat(request,env,ctx){
           const matchedCars=vehicleFallbackCars(message,cars);
           const visibleCars=matchedCars.slice(0,5).map(car=>`• ${vehicleFallbackLabel(car)}`).join("\n");
           if(visibleCars){
-            const intro="Workers AI đang tạm đạt giới hạn xử lý, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị:";
+            const intro=`${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị:`;
             const next=procedures.knownPhone
               ? "Anh/chị đang quan tâm mẫu nào? Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại."
               : "Anh/chị đang quan tâm mẫu nào? Nếu muốn anh Phan Thuần trực tiếp tư vấn, vui lòng để lại họ tên + số điện thoại.";
             reply=`${intro}\n${visibleCars}\n\n${next}`;
           }else{
-            reply=procedures.knownPhone ? "Workers AI đang tạm đạt giới hạn xử lý. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại." : "Workers AI đang tạm đạt giới hạn xử lý. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Nếu muốn anh Phan Thuần trực tiếp tìm xe phù hợp, vui lòng để lại họ tên + số điện thoại.";
+            reply=procedures.knownPhone ? `${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại.` : `${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Nếu muốn anh Phan Thuần trực tiếp tìm xe phù hợp, vui lòng để lại họ tên + số điện thoại.`;
           }
         }else{
           reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
@@ -480,5 +495,5 @@ export async function handleAiChat(request,env,ctx){
   if(!needsHuman && !suppressCrmNotification)crmDelivery=await notifyTelegramCrm(env,{source:"ai-chat",conversationId,visitorId:body?.visitor_id,name,phone,message,reply});
   const memoryTask=enqueueMemoryEvent(env,{customerId:customer?.customerId,conversationId,source:"ai-chat",message,outcome:needsHuman?"human_handoff":"assistant_replied",hasPhone:Boolean(phone),cars});
   if(ctx?.waitUntil)ctx.waitUntil(memoryTask);else await memoryTask;
-  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:aiModel,memory:{returning_customer:procedures.returningCustomer,known_contact:Boolean(procedures.knownPhone)},...(syntheticCrmProbe?{crm_delivery:{sent:Boolean(crmDelivery?.sent),cleanup_deleted:Boolean(crmDelivery?.cleanupDeleted)}}:{})});
+  return json({ok:true,conversation_id:conversationId,reply,needs_human:needsHuman,ai_model:needsHuman?null:aiModel,ai_source:aiSource,ai_error_code:aiErrorCode,ai_attempts:aiAttempts,response_duration_ms:Math.max(0,Date.now()-startedAt),memory:{returning_customer:procedures.returningCustomer,known_contact:Boolean(procedures.knownPhone)},...(syntheticCrmProbe?{crm_delivery:{sent:Boolean(crmDelivery?.sent),cleanup_deleted:Boolean(crmDelivery?.cleanupDeleted)}}:{})});
 }
