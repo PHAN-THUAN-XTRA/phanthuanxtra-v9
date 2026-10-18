@@ -472,13 +472,13 @@ export async function handleAiChat(request,env,ctx){
           const matchedCars=vehicleFallbackCars(message,cars);
           const visibleCars=matchedCars.slice(0,5).map(car=>`• ${vehicleFallbackLabel(car)}`).join("\n");
           if(visibleCars){
-            const intro="${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị:";
+            const intro=`${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}, nhưng tôi vẫn đọc được catalog website hiện tại. Xe phù hợp với nhu cầu anh/chị:`;
             const next=procedures.knownPhone
               ? "Anh/chị đang quan tâm mẫu nào? Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại."
               : "Anh/chị đang quan tâm mẫu nào? Nếu muốn anh Phan Thuần trực tiếp tư vấn, vui lòng để lại họ tên + số điện thoại.";
             reply=`${intro}\n${visibleCars}\n\n${next}`;
           }else{
-            reply=procedures.knownPhone ? "${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại." : "${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Nếu muốn anh Phan Thuần trực tiếp tìm xe phù hợp, vui lòng để lại họ tên + số điện thoại.";
+            reply=procedures.knownPhone ? `${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Tôi đã có thông tin liên hệ của anh/chị nên không cần cung cấp lại số điện thoại.` : `${aiErrorCode==="AI_QUOTA_EXHAUSTED" ? "Workers AI đang tạm đạt giới hạn xử lý" : "Trợ lý AI tạm thời chưa phản hồi"}. Tôi đã kiểm tra catalog hiện tại nhưng chưa thấy xe khớp chính xác nhu cầu anh/chị vừa nêu. Nếu muốn anh Phan Thuần trực tiếp tìm xe phù hợp, vui lòng để lại họ tên + số điện thoại.`;
           }
         }else{
           reply="Hiện website chưa có xe trong catalog để tôi tư vấn chính xác. Anh/chị vui lòng để lại họ tên + số điện thoại hoặc gọi 0866 997 891 để được hỗ trợ.";
