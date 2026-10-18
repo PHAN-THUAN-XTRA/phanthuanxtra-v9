@@ -74,6 +74,15 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
   }
   const nodes={};
   for(const id of ['cars','favCount','compareCount','carsResultCount','leadForm','leadStatus'])nodes['#'+id]=new Element(id);
+  // Simulate the real homepage having a hamburger, NAV LINKS, and filter buttons.
+  // querySelector returns ONE element; querySelectorAll returns an ARRAY.
+  const navLink=new Element('a');
+  nodes['.menu-toggle']=new Element('button');
+  nodes['#site-nav']=new Element('nav');
+  nodes['#site-nav a']=navLink;
+  const categoryButtons=['all','suv','convertible'].map(category=>{
+    const button=new Element('button');button.dataset.filter=category;return button;
+  });
   const interest=new Element('input');interest.value='';
   const form=nodes['#leadForm'];form.reset=()=>{};form.fields={name:'Khách thử',phone:'0900000000',need:'Lái thử xe',interest:'',message:''};
   const store={};
@@ -81,6 +90,8 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
   const session={};
   const sessionStorage={getItem:k=>session[k]||null,setItem:(k,v)=>{session[k]=v},removeItem:k=>{delete session[k]}};
   const all = selector => {
+    if(selector==='#site-nav a')return [navLink];
+    if(selector==='.filter')return categoryButtons;
     const results=[];const walk=node=>{
       if(selector==='[data-fav]'&&node.dataset?.fav)results.push(node);
       if(selector==='[data-compare]'&&node.dataset?.compare)results.push(node);
@@ -106,7 +117,10 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
       throw Error('Unexpected endpoint: '+url)},
     setTimeout:()=>{},globalThis:{crypto:{randomUUID:()=> 'test-visitor-1234567890'}}
   };
-  vm.runInNewContext(script,context,{filename:'public/script.js'});
+  assert.doesNotThrow(()=>vm.runInNewContext(script,context,{filename:'public/script.js'}),
+    'homepage boot with real nav and filter controls must not throw before fetching cars');
+  assert.equal(typeof navLink.onclick,'function','navigation close handler must register on a real anchor');
+  assert.equal(typeof categoryButtons[1].onclick,'function','filter click handler must register on a real chip');
   await new Promise(resolve=>setImmediate(resolve));
   const cards=nodes['#cars'].children;
   assert.equal(cards.length,1,'hidden vehicle should not be listed');
@@ -114,6 +128,12 @@ test('headless DOM simulation: public-only car render, real image, booking prefi
   const image=car.children[0].children[0];
   assert.equal(image.tagName,'img');assert.equal(image.src,'/media/porsche.webp');
   assert.equal(image.loading,'lazy');assert.match(image.alt,/Porsche 718 Boxster/);
+  categoryButtons[1].onclick();
+  assert.equal(nodes['#cars'].children[0].tagName,'p','SUV filter must show no public match');
+  assert.equal(categoryButtons[1].attributes['aria-pressed'],'true');
+  categoryButtons[2].onclick();
+  assert.equal(nodes['#cars'].children[0].tagName,'article','convertible filter restores public stock');
+  assert.equal(categoryButtons[2].attributes['aria-pressed'],'true');
   assert.equal(all('[data-book-car]').length,1);
   all('[data-book-car]')[0].onclick();
   assert.equal(interest.value,'Porsche 718 Boxster');
