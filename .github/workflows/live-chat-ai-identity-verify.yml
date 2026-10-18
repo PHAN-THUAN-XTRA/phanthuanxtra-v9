@@ -67,14 +67,15 @@ jobs:
         run: |
           set -euo pipefail
           echo '### Website AI: advisory availability vs. actual inference' >> "$GITHUB_STEP_SUMMARY"
-          echo '| Topic | Source | AI model | Calls | Error code | Inference evidence |' >> "$GITHUB_STEP_SUMMARY"
-          echo '|---|---|---|---:|---|---|' >> "$GITHUB_STEP_SUMMARY"
+          echo '| Topic | Source | AI model | Calls | Duration ms | Error code | Inference evidence |' >> "$GITHUB_STEP_SUMMARY"
+          echo '|---|---|---|---:|---:|---|---|' >> "$GITHUB_STEP_SUMMARY"
           observed=0
           for label in green-energy yachts business-jets contact; do
             file="/tmp/${label}.json"
             source="$(jq -r '.ai_source // "legacy_unverified"' "$file")"
             model="$(jq -r '.ai_model // "none"' "$file")"
             attempts="$(jq -r 'if (.ai_attempts|type)=="number" then .ai_attempts else 0 end' "$file")"
+            duration_ms="$(jq -r 'if (.response_duration_ms|type)=="number" then .response_duration_ms else 0 end' "$file")"
             error_code="$(jq -r '.ai_error_code // "none"' "$file")"
             evidence="NOT_VERIFIED"
             # Cache, deterministic answers and safe fallbacks are never fresh inference proof.
@@ -83,7 +84,7 @@ jobs:
               observed=$((observed+1))
             fi
             # These are enum/model IDs supplied by the application, not raw chat text.
-            printf '| %s | %s | %s | %s | %s | %s |\\n' "$label" "$source" "$model" "$attempts" "$error_code" "$evidence" >> "$GITHUB_STEP_SUMMARY"
+            printf '| %s | %s | %s | %s | %s | %s | %s |\n' "$label" "$source" "$model" "$attempts" "$duration_ms" "$error_code" "$evidence" >> "$GITHUB_STEP_SUMMARY"
             echo "$label: source=$source model=$model attempts=$attempts code=$error_code inference=$evidence"
           done
           if (( observed == 0 )); then
