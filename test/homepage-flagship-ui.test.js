@@ -116,8 +116,8 @@ test("rotated plate artwork stays in the upper hero area clear of the content",(
 });
 
 
-test("homepage SEO title and shared preview metadata use Elite Car Yacht branding",()=>{
-  const expected="PHAN THUẦN XTRA - Elite Car Yacht";
+test("homepage SEO title and shared preview metadata use descriptive XTRA branding",()=>{
+  const expected="PHAN THUẦN XTRA | Ô tô cao cấp, Du thuyền & Chuyên cơ";
   assert.ok(html.includes(`<title>${expected}</title>`));
   assert.ok(html.includes(`<meta property="og:title" content="${expected}">`));
   assert.ok(html.includes(`<meta name="twitter:title" content="${expected}">`));
