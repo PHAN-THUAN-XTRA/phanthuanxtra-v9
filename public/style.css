@@ -641,3 +641,27 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
   #cars-section .card-actions .btn{flex:none}
   #cars-section .card-actions .compare-btn{min-height:46px}
 }
+
+
+/* Consent-based, anonymous client testimonials — accessible horizontal carousel. */
+.xtra-testimonials{overflow:hidden;background:radial-gradient(circle at 8% 0%,rgba(15,95,80,.18),transparent 42%),linear-gradient(140deg,#0a1510,#050706 75%);border-top:1px solid rgba(199,163,90,.36);border-bottom:1px solid rgba(199,163,90,.22);color:#f5f2e9;scroll-margin-top:85px}
+.xtra-testimonials-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin-bottom:20px}
+.xtra-testimonials-intro{max-width:740px}
+.xtra-testimonials .eyebrow{color:#e1c486}
+.xtra-testimonials h2{margin:0 0 12px;font:600 clamp(30px,4.5vw,52px)/1.18 "Noto Serif Display",Georgia,serif;letter-spacing:-.02em}
+.xtra-testimonials-intro>p:last-child{color:#c7d4cb;font-size:14px;line-height:1.75}
+.xtra-testimonials-controls{display:flex;gap:9px;flex-shrink:0}
+.xtra-testimonials-controls button{width:46px;height:46px;display:grid;place-items:center;border:1px solid #a68c56;background:rgba(199,163,90,.08);color:#f4d99d;font:400 34px/1 Georgia,serif;cursor:pointer;transition:background .18s,border-color .18s}
+.xtra-testimonials-controls button:hover{background:rgba(199,163,90,.22);border-color:#f0d39b}
+.xtra-testimonials-controls button:focus-visible,.xtra-testimonials-track:focus-visible{outline:3px solid #e8c47d;outline-offset:3px}
+.xtra-testimonials-track{display:flex;gap:18px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-inline:contain;scrollbar-width:thin;scrollbar-color:#907a49 transparent;padding:8px 2px 24px;-webkit-overflow-scrolling:touch}
+.xtra-testimonials-track::-webkit-scrollbar{height:5px}
+.xtra-testimonials-track::-webkit-scrollbar-thumb{background:#907a49;border-radius:9px}
+.xtra-testimonial-card{box-sizing:border-box;flex:0 0 calc((100% - 36px)/3);min-width:0;min-height:280px;display:flex;flex-direction:column;padding:clamp(23px,2.5vw,32px);border:1px solid rgba(199,163,90,.42);background:linear-gradient(152deg,rgba(31,46,37,.94),rgba(12,19,15,.98));scroll-snap-align:start}
+.xtra-testimonial-category{margin:0;color:#e4c98e;font-size:10px;font-weight:800;letter-spacing:.12em;line-height:1.5}
+.xtra-testimonial-card blockquote{margin:21px 0 24px;color:#f4f1e7;font:400 clamp(17px,1.65vw,21px)/1.65 "Noto Serif Display",Georgia,serif;overflow-wrap:anywhere}
+.xtra-testimonial-byline{margin:auto 0 0;padding-top:14px;border-top:1px solid rgba(199,163,90,.2);color:#b9c7bb;font-size:11px;line-height:1.55}
+.xtra-testimonials-privacy{max-width:890px;margin:14px 0 0;color:#bac7bd;font-size:12px;line-height:1.75}
+@media(max-width:1050px){.xtra-testimonial-card{flex-basis:calc((100% - 18px)/2)}}
+@media(max-width:650px){.xtra-testimonials-heading{align-items:flex-start;flex-direction:column;gap:16px}.xtra-testimonials-controls{align-self:flex-end}.xtra-testimonial-card{flex-basis:100%;min-height:255px}.xtra-testimonials-track{gap:12px}.xtra-testimonials h2{font-size:clamp(29px,8vw,38px)}}
+@media(prefers-reduced-motion:reduce){.xtra-testimonials-track{scroll-behavior:auto}.xtra-testimonials-controls button{transition:none}}
