@@ -42,5 +42,5 @@ test('legacy URL is absent from public assets and sitemap; route runs before fal
   const deployment = readFileSync('.github/workflows/deploy-cloudflare.yml', 'utf8');
   assert.match(deployment, /Verify retired LX600 URL is gone from production and sitemap/);
   assert.match(deployment, /test \"\$status\" = \"410\"/);
-  assert.match(deployment, /car-lx600\\.html/);
+  assert.ok(deployment.includes('https://phanthuanxtra.com/car-lx600.html'));
 });
