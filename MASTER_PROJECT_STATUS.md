@@ -1,12 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
-## PRIVATE FEEDBACK CAROUSEL — EDITORIAL DRAFT — 2026-10-19
+## PRIVATE FEEDBACK CAROUSEL — OWNER AUTHORIZED RELEASE — 2026-10-19
 
-- Owner requested ten anonymous horizontally scrolling feedback cards immediately after section 05 / PHONG THỦY ĐỘC BẢN, with the exact selected privacy caption. Implemented scoped HTML, CSS and progressive-enhancement JavaScript on a draft branch only.
-- The ten texts are assistant-authored examples, not source-verified customer statements. Visible draft notice and conditional caption introduction remain. No customer names, phone numbers, avatars, ratings or verified badges. Do not publish these as actual testimonials or imply consent has been obtained; replace with confirmed customer feedback and consent before release.
-- Motion: native horizontal scrolling, 22px/s autoplay, explicit pause/resume button, pointer/touch/wheel reading pause, focus and hidden-tab pause, viewport observation, reduced-motion default pause, duplicate list inert and hidden from assistive technology. Without JS, the original ten cards remain readable.
-- Validation: JavaScript syntax and Node VM behavioral checks PASS for section order/count, autoplay, pause/resume, pointer/focus/visibility pause, reduced-motion and inert duplicates. Browser visual/mobile verification NOT RUN: Playwright browser binary unavailable. PR gates/production deployment NOT VERIFIED; draft PR must not be treated as shipped.
-- Only public/index.html, public/private-feedback.css, public/private-feedback.js and this canonical MASTER changed. No backend, catalogue, price, ODO, original media, customer data or AI changes.
+- Owner explicitly stated customers consented to publication, and then instructed checking and publishing the ten proposed texts after the accuracy question. Release uses the owner's authorization and editorial responsibility; no independent customer verification is claimed. Removed the draft labels and retained the exact selected privacy sentence. No names, contact details, avatars, ratings or verification badges.
+- Ten cards appear after the complete section 05 / PHONG THỦY ĐỘC BẢN and before the founder section. Scoped dark/gold styles and progressive enhancement preserve swipe/keyboard reading without JavaScript.
+- Motion: 22px/s autoplay, pause/resume control, pointer/touch/wheel reading pause, focus/visibility/offscreen pause, reduced-motion default pause, inert and accessibility-hidden duplicate cards.
+- Initial PR gate correctly blocked missing committed regression coverage. Added targeted behavioral regression tests without weakening audit rules. Syntax and local regression PASS; remote exact-head checks and deployment remain pending until their receipts are recorded.
+- Local browser screenshot verification unavailable because browser download was truncated. Do not equate simulated DOM tests with actual Samsung S21 acceptance.
+- Scope: homepage, dedicated CSS/JS, regression tests and this canonical MASTER only. No catalogue data, prices, ODO, backend, AI, secrets or customer identifiers changed.
 
 ## CAR CARD COMPARE CTA — SCREENSHOT UX REPAIR / EXACT-MAIN PRODUCTION — 2026-10-18
 
