@@ -665,3 +665,11 @@ button,input,select,textarea,.logo,nav,.hotline,.eyebrow,.stats b,.hero-visual-c
 @media(max-width:1050px){.xtra-testimonial-card{flex-basis:calc((100% - 18px)/2)}}
 @media(max-width:650px){.xtra-testimonials-heading{align-items:flex-start;flex-direction:column;gap:16px}.xtra-testimonials-controls{align-self:flex-end}.xtra-testimonial-card{flex-basis:100%;min-height:255px}.xtra-testimonials-track{gap:12px}.xtra-testimonials h2{font-size:clamp(29px,8vw,38px)}}
 @media(prefers-reduced-motion:reduce){.xtra-testimonials-track{scroll-behavior:auto}.xtra-testimonials-controls button{transition:none}}
+
+/* Bring real-client feedback into the opening brand narrative, without obstructing hero slides. */
+.hero-testimonials-link{display:inline-flex;align-items:center;gap:10px;max-width:100%;margin:0 0 23px;padding:6px 0 7px;border-bottom:1px solid rgba(199,163,90,.62);color:#e8d4a5;font:800 11px/1.6 "Be Vietnam Pro",Arial,sans-serif;letter-spacing:.11em;text-decoration:none;overflow-wrap:anywhere;transition:color .2s,border-color .2s}
+.hero-testimonials-link span{font-size:17px;line-height:1;color:#f6deb0}
+.hero-testimonials-link:hover{color:#fff1c9;border-color:#fff1c9}
+.hero-testimonials-link:focus-visible{outline:3px solid #e8c47d;outline-offset:5px}
+@media(max-width:650px){.hero-testimonials-link{font-size:10px;letter-spacing:.08em;gap:7px;margin-bottom:24px}}
+@media(prefers-reduced-motion:reduce){.hero-testimonials-link{transition:none}}
