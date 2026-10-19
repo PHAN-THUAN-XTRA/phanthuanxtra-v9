@@ -6,12 +6,12 @@ const html = fs.readFileSync('public/index.html', 'utf8');
 const css = fs.readFileSync('public/style.css', 'utf8');
 const js = fs.readFileSync('public/testimonials.js', 'utf8');
 
-test('the feedback entry appears immediately below the PHAN THUẦN XTRA • VIỆT NAM eyebrow', () => {
+test('hero keeps original brand message without a duplicate testimonial link', () => {
   const brand = '<p class="eyebrow">PHAN THUẦN XTRA • VIỆT NAM</p>';
-  const teaser = '<a class="hero-testimonials-link" href="#khach-hang-chia-se"';
-  assert.ok(html.includes(brand + teaser));
-  assert.match(html, /LỜI CHIA SẺ • TRẢI NGHIỆM RIÊNG <span aria-hidden="true">↘<\/span><\/a><h1>Vượt trên/);
-  assert.match(css, /\.hero-testimonials-link:focus-visible/);
+  assert.ok(html.includes(brand + '<h1>Vượt trên<br><em>xa xỉ.</em></h1>'));
+  const hero = html.slice(html.indexOf('<section class="hero hero-xtra">'), html.indexOf('<section class="section xtra-testimonials"'));
+  assert.doesNotMatch(hero, /hero-testimonials-link|LỜI CHIA SẺ • TRẢI NGHIỆM RIÊNG/);
+  assert.doesNotMatch(css, /\.hero-testimonials-link/);
 });
 
 test('the full testimonial carousel sits directly below the opening hero, above sector 01', () => {
