@@ -1,5 +1,14 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## PRIVATE FEEDBACK CAROUSEL — OWNER AUTHORIZED RELEASE — 2026-10-19
+
+- Owner explicitly stated customers consented to publication, and then instructed checking and publishing the ten proposed texts after the accuracy question. Release uses the owner's authorization and editorial responsibility; no independent customer verification is claimed. Removed the draft labels and retained the exact selected privacy sentence. No names, contact details, avatars, ratings or verification badges.
+- Ten cards appear after the complete section 05 / PHONG THỦY ĐỘC BẢN and before the founder section. Scoped dark/gold styles and progressive enhancement preserve swipe/keyboard reading without JavaScript.
+- Motion: 22px/s autoplay, pause/resume control, pointer/touch/wheel reading pause, focus/visibility/offscreen pause, reduced-motion default pause, inert and accessibility-hidden duplicate cards.
+- Initial PR gate correctly blocked missing committed regression coverage. Added targeted behavioral regression tests without weakening audit rules. Syntax and local regression PASS; remote exact-head checks and deployment remain pending until their receipts are recorded.
+- Local browser screenshot verification unavailable because browser download was truncated. Do not equate simulated DOM tests with actual Samsung S21 acceptance.
+- Scope: homepage, dedicated CSS/JS, regression tests and this canonical MASTER only. No catalogue data, prices, ODO, backend, AI, secrets or customer identifiers changed.
+
 ## CAR CARD COMPARE CTA — SCREENSHOT UX REPAIR / EXACT-MAIN PRODUCTION — 2026-10-18
 
 - **User-reported issue:** real inventory screenshot showed a small stand-alone `⇄` icon in every vehicle card with no explanation, compressed vertical `Hẹn xem xe` controls, heart/favorite sharing the same narrow CTA grid and inconsistent car heights. `⇄` meant **add/remove that vehicle from the comparison list**, **not** vehicle transfer, swapping cars, moving images or sorting. Screenshot alone cannot establish whether any vehicle data or API is wrong.
