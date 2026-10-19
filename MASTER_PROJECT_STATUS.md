@@ -3918,4 +3918,5 @@ Original path: `docs/PR_GATE_RECONCILIATION_2026-10-13.md`. Historical snapshot 
 
 - Owner directive: remove legacy static Lexus LX600 URL, while retaining any legitimate D1-backed Lexus inventory. Static `public/car-lx600.html` absent and URL removed from `public/sitemap.xml` by prior merged PR #896.
 - Add edge HTTP 410 Gone + X-Robots-Tag noindex/nofollow and no-store for `/car-lx600.html` and matching extensionless/trailing-slash forms; GET/HEAD only. Route executes before legacy asset fallback, does not touch `/car.html?id=...`, `/cars`, D1 or R2.
+- Cloudflare production workflow purges old `/car-lx600.html` from cache and verifies live GET/HEAD HTTP 410, `X-Robots-Tag: noindex`, and sitemap exclusion. No production acceptance if these gates fail.
 - Regression contract: `tests/retired-static-lx600.test.mjs`. No vehicle data, photos, price, ODO, customer/private records, or inventory state changed. Release must pass PR gates and main-branch deployment checks before production acceptance; external Google deindexing is not immediate/guaranteed.
