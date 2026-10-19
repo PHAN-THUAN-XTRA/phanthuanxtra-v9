@@ -1,5 +1,13 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
+## PRIVATE FEEDBACK CAROUSEL — EDITORIAL DRAFT — 2026-10-19
+
+- Owner requested ten anonymous horizontally scrolling feedback cards immediately after section 05 / PHONG THỦY ĐỘC BẢN, with the exact selected privacy caption. Implemented scoped HTML, CSS and progressive-enhancement JavaScript on a draft branch only.
+- The ten texts are assistant-authored examples, not source-verified customer statements. Visible draft notice and conditional caption introduction remain. No customer names, phone numbers, avatars, ratings or verified badges. Do not publish these as actual testimonials or imply consent has been obtained; replace with confirmed customer feedback and consent before release.
+- Motion: native horizontal scrolling, 22px/s autoplay, explicit pause/resume button, pointer/touch/wheel reading pause, focus and hidden-tab pause, viewport observation, reduced-motion default pause, duplicate list inert and hidden from assistive technology. Without JS, the original ten cards remain readable.
+- Validation: JavaScript syntax and Node VM behavioral checks PASS for section order/count, autoplay, pause/resume, pointer/focus/visibility pause, reduced-motion and inert duplicates. Browser visual/mobile verification NOT RUN: Playwright browser binary unavailable. PR gates/production deployment NOT VERIFIED; draft PR must not be treated as shipped.
+- Only public/index.html, public/private-feedback.css, public/private-feedback.js and this canonical MASTER changed. No backend, catalogue, price, ODO, original media, customer data or AI changes.
+
 ## CAR CARD COMPARE CTA — SCREENSHOT UX REPAIR / EXACT-MAIN PRODUCTION — 2026-10-18
 
 - **User-reported issue:** real inventory screenshot showed a small stand-alone `⇄` icon in every vehicle card with no explanation, compressed vertical `Hẹn xem xe` controls, heart/favorite sharing the same narrow CTA grid and inconsistent car heights. `⇄` meant **add/remove that vehicle from the comparison list**, **not** vehicle transfer, swapping cars, moving images or sorting. Screenshot alone cannot establish whether any vehicle data or API is wrong.
