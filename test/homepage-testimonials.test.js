@@ -6,12 +6,17 @@ const html = fs.readFileSync('public/index.html', 'utf8');
 const css = fs.readFileSync('public/style.css', 'utf8');
 const js = fs.readFileSync('public/testimonials.js', 'utf8');
 
-test('10 approved anonymous testimonials appear immediately after section 05', () => {
-  const feng = html.indexOf('id="ai-assistant"');
+test('10 approved anonymous testimonials appear immediately below section 01, before section 05', () => {
+  const cars = html.indexOf('id="cars-section"');
   const testimonial = html.indexOf('id="khach-hang-chia-se"');
+  const feng = html.indexOf('id="ai-assistant"');
   const founder = html.indexOf('id="about-phan-thuan"');
-  assert.ok(feng >= 0 && testimonial > feng && founder > testimonial);
-  const section = html.slice(testimonial, founder);
+  assert.ok(cars >= 0 && testimonial > cars && feng > testimonial && founder > feng);
+  const between = html.slice(cars, testimonial);
+  assert.match(between, /id="carsResultCount"/);
+  assert.match(between, /id="cars"/);
+  assert.match(html.slice(testimonial, feng), /<\/section>\s*<section class="section ai-section feng-shui-section"\s*$/);
+  const section = html.slice(testimonial, feng);
   assert.equal((section.match(/class="xtra-testimonial-card"/g) || []).length, 10);
   assert.equal((section.match(/<blockquote>/g) || []).length, 10);
   assert.match(section, /Chuyến Legacy từ TP.HCM ra Đà Nẵng/);
