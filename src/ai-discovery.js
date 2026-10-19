@@ -43,7 +43,21 @@ export function vehicleBody(row, c) {
 
 export function renderVehicle(template, row, c) {
   const name = `${c.brand} ${c.name}`.trim();
-  const head = `<meta name="description" content="${esc(`${name} ${c.year} — ${c.price}. ${statusText(row.status)}. ${c.description}`.slice(0,300))}"><link rel="canonical" href="${esc(carUrl(row.id))}"><meta property="og:title" content="${esc(name)}"><meta property="og:url" content="${esc(carUrl(row.id))}"><script type="application/ld+json">${jsonScript(vehicleSchema(row,c))}</script>`;
+  const summary = [name, c.year, c.price, statusText(row.status), c.description].filter(Boolean).join(' — ').replace(/\s+/g,' ').slice(0,260);
+  const cover = safeImage(c.cover_image) || c.images.map(x => typeof x === 'string' ? x : x.url).map(safeImage).find(Boolean);
+  const head = '<meta name="description" content="'+esc(summary)+'">'
+    +'<link rel="canonical" href="'+esc(carUrl(row.id))+'">'
+    +'<meta property="og:type" content="product">'
+    +'<meta property="og:site_name" content="PHAN THUẦN XTRA">'
+    +'<meta property="og:title" content="'+esc(name)+'">'
+    +'<meta property="og:description" content="'+esc(summary)+'">'
+    +'<meta property="og:url" content="'+esc(carUrl(row.id))+'">'
+    +(cover ? '<meta property="og:image" content="'+esc(cover)+'">' : '')
+    +'<meta name="twitter:card" content="'+(cover ? 'summary_large_image' : 'summary')+'">'
+    +'<meta name="twitter:title" content="'+esc(name)+'">'
+    +'<meta name="twitter:description" content="'+esc(summary)+'">'
+    +(cover ? '<meta name="twitter:image" content="'+esc(cover)+'">' : '')
+    +'<script type="application/ld+json">'+jsonScript(vehicleSchema(row,c))+'</script>';
   // Render identical content for users and crawlers; no user-agent sniffing or hydration race.
   return template.replace(/<title>[^<]*<\/title>/,`<title>${esc(name)} | PHAN THUẦN XTRA</title>`)
     .replace('</head>',head+'</head>')
@@ -73,7 +87,24 @@ export async function handleAiDiscovery(request, env) {
     const cars = (await db.prepare("SELECT id,brand,model,year,price,status FROM cars WHERE status IN ('available','reserved','sold') ORDER BY featured DESC,created_at DESC LIMIT 49001").all()).results || [];
     if (cars.length > 49000) throw Error('Sitemap requires pagination');
     if (catalog) {
-      const body = `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kho xe — PHAN THUẦN XTRA</title><link rel="canonical" href="${ORIGIN}/cars"><link rel="stylesheet" href="/style.css"></head><body><main class="container"><a href="/">PHAN THUẦN XTRA</a><h1>Kho xe</h1><p>Thông tin từ kho xe hiện tại. Giá và tình trạng có thể thay đổi; liên hệ 0866 997 891 để xác nhận.</p><ul>${cars.map(c=>`<li><a href="${esc(carUrl(c.id))}">${esc(`${c.brand} ${c.model} ${c.year ?? ''}`)}</a> — ${esc(statusText(c.status))} — ${esc(norm(c).price)}</li>`).join('')}</ul></main></body></html>`;
+      const list = {'@context':'https://schema.org','@type':'CollectionPage','@id':ORIGIN+'/cars#webpage',
+        url:ORIGIN+'/cars',name:'Kho xe cao cấp | PHAN THUẦN XTRA',inLanguage:'vi-VN',
+        mainEntity:{'@type':'ItemList',itemListElement:cars.slice(0,100).map((c,i)=>({
+          '@type':'ListItem',position:i+1,url:carUrl(c.id),name:[c.brand,c.model,c.year].filter(Boolean).join(' ')
+        }))}};
+      const body = '<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        +'<title>Kho xe cao cấp | PHAN THUẦN XTRA</title>'
+        +'<meta name="description" content="Khám phá kho ô tô cao cấp đang được PHAN THUẦN XTRA công khai. Xem thông tin xe, năm sản xuất, giá và trạng thái nếu có; liên hệ để xác nhận.">'
+        +'<meta name="robots" content="index,follow,max-image-preview:large">'
+        +'<link rel="canonical" href="'+ORIGIN+'/cars">'
+        +'<meta property="og:type" content="website">'
+        +'<meta property="og:title" content="Kho xe cao cấp | PHAN THUẦN XTRA">'
+        +'<meta property="og:url" content="'+ORIGIN+'/cars">'
+        +'<script type="application/ld+json">'+jsonScript(list)+'</script>'
+        +'<link rel="stylesheet" href="/style.css"></head><body><main class="container"><a href="/">PHAN THUẦN XTRA</a>'
+        +'<h1>Kho xe</h1><p>Thông tin từ kho xe hiện tại. Giá và tình trạng có thể thay đổi; liên hệ 0866 997 891 để xác nhận.</p><ul>'
+        +cars.map(c=>'<li><a href="'+esc(carUrl(c.id))+'">'+esc([c.brand,c.model,c.year].filter(Boolean).join(' '))+'</a> — '+esc(statusText(c.status))+' — '+esc(norm(c).price)+'</li>').join('')
+        +'</ul></main></body></html>';
       return response(body,'text/html',200,request.method);
     }
     const posts = (await db.prepare("SELECT slug FROM posts WHERE status='published' ORDER BY id DESC LIMIT 990").all()).results || [];
