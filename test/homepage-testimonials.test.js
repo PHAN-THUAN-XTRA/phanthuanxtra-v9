@@ -15,7 +15,7 @@ test('10 approved anonymous testimonials appear immediately below section 01, be
   const between = html.slice(cars, testimonial);
   assert.match(between, /id="carsResultCount"/);
   assert.match(between, /id="cars"/);
-  assert.match(html.slice(testimonial, feng), /<\/section>\s*$/);
+  assert.match(html.slice(testimonial, feng), /<\/section>\s*<section class="section ai-section feng-shui-section"\s*$/);
   const section = html.slice(testimonial, feng);
   assert.equal((section.match(/class="xtra-testimonial-card"/g) || []).length, 10);
   assert.equal((section.match(/<blockquote>/g) || []).length, 10);
