@@ -183,7 +183,7 @@ jobs:
           CF_ZONE_ID: ${{ env.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
-          payload='{"files":["https://phanthuanxtra.com/","https://phanthuanxtra.com/admin.html","https://phanthuanxtra.com/cars","https://phanthuanxtra.com/sitemap.xml","https://phanthuanxtra.com/phan-thuan","https://phanthuanxtra.com/green-energy","https://phanthuanxtra.com/yachts","https://phanthuanxtra.com/business-jets"]}'
+          payload='{"files":["https://phanthuanxtra.com/","https://phanthuanxtra.com/admin.html","https://phanthuanxtra.com/cars","https://phanthuanxtra.com/sitemap.xml","https://phanthuanxtra.com/car-lx600.html","https://phanthuanxtra.com/phan-thuan","https://phanthuanxtra.com/green-energy","https://phanthuanxtra.com/yachts","https://phanthuanxtra.com/business-jets"]}'
           purged=0
           for candidate in "${CF_PURGE_TOKEN:-}" "${CF_PURGE_BACKUP_TOKEN:-}"; do
             if [ -z "$candidate" ]; then continue; fi
@@ -235,6 +235,20 @@ jobs:
           grep -Fq '.container' /tmp/style.css
           test "$(wc -c < /tmp/style.css)" -gt 10000
           echo "Homepage stylesheet delivery: HTTP 200; text/css; expected luxury layout selectors present."
+      - name: Verify retired LX600 URL is gone from production and sitemap
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://phanthuanxtra.com"
+          old_url="${base}/car-lx600.html"
+          status="$(curl --silent --show-error --max-time 30 -D /tmp/lx600-gone.headers -o /tmp/lx600-gone.txt -w '%{http_code}' "${old_url}?audit=${GITHUB_SHA}")"
+          test "$status" = "410"
+          grep -Eiq '^x-robots-tag:.*noindex' /tmp/lx600-gone.headers
+          head_status="$(curl --silent --show-error --max-time 30 -I -o /dev/null -w '%{http_code}' "${old_url}?head_audit=${GITHUB_SHA}")"
+          test "$head_status" = "410"
+          curl --fail --silent --show-error --max-time 30 --compressed -o /tmp/lx600-sitemap.xml "${base}/sitemap.xml?audit=${GITHUB_SHA}"
+          ! grep -Fqi '/car-lx600.html' /tmp/lx600-sitemap.xml
+          echo "Legacy LX600 HTTP 410 GET/HEAD, crawler noindex and dynamic sitemap exclusion: PASS."
       - name: Verify free business integrations production boundary
         env:
           BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}

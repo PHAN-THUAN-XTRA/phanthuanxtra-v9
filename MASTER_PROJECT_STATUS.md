@@ -3913,3 +3913,10 @@ Original path: `docs/PR_GATE_RECONCILIATION_2026-10-13.md`. Historical snapshot 
 - Catalog/vehicles: src/ai-discovery.js serves canonical CollectionPage/ItemList for live public /cars and enhanced per-vehicle social metadata; inventory remains filtered to public D1 statuses. No change to business data, stored mileage, pricing, images, forms, Telegram webhooks, billing or AI provider configuration.
 - Automated regressions: tests/seo-geo-discovery.test.mjs validates real metadata assets, sitemap safety, vehicle SSR and live public-only structured catalog; prior tests/ai-discovery.test.mjs remain in CI.
 - Operational boundary: changes are proposed through PR #896 and require CI/AI audit/MASTER integrity and Cloudflare production evidence before marking LIVE. Web browsing returned 403 for public homepage in this session; therefore public crawler access and Search Console indexing remain UNVERIFIED. No claim of ranking improvement, AI citations, or production completion.
+
+## 2026-10-19 — Retire static LX600 legacy link (production verification pending)
+
+- Owner directive: remove legacy static Lexus LX600 URL, while retaining any legitimate D1-backed Lexus inventory. Static `public/car-lx600.html` absent and URL removed from `public/sitemap.xml` by prior merged PR #896.
+- Add edge HTTP 410 Gone + X-Robots-Tag noindex/nofollow and no-store for `/car-lx600.html` and matching extensionless/trailing-slash forms; GET/HEAD only. Route executes before legacy asset fallback, does not touch `/car.html?id=...`, `/cars`, D1 or R2.
+- Cloudflare production workflow purges old `/car-lx600.html` from cache and verifies live GET/HEAD HTTP 410, `X-Robots-Tag: noindex`, and sitemap exclusion. No production acceptance if these gates fail.
+- Regression contract: `tests/retired-static-lx600.test.mjs`. No vehicle data, photos, price, ODO, customer/private records, or inventory state changed. Release must pass PR gates and main-branch deployment checks before production acceptance; external Google deindexing is not immediate/guaranteed.

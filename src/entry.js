@@ -1,6 +1,7 @@
 import { processLeadEmailOutbox, handleLeadEmailOutbox } from "./lead-email-outbox.js";
 import { processAutoChatJobs, handleAutoChatJobStatus } from "./telegram-chat-jobs.js";
 import { handleAiDiscovery } from "./ai-discovery.js";
+import { handleRetiredStaticLx600 } from "./retired-static-lx600.js";
 import { handlePublishingApi } from "./publishing-api.js";
 import { handleContentPrepApi } from "./content-prep-api.js";
 import { handleContentRunnerApi } from "./content-runner-api.js";
@@ -39,6 +40,8 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      const retiredVehicleResponse = handleRetiredStaticLx600(request);
+      if (retiredVehicleResponse) return retiredVehicleResponse;
       const lylyResponse = await handleLylyBridge(request, env);
       if (lylyResponse) return lylyResponse;
       const chatStatusResponse = await handleAutoChatJobStatus(request, env);
