@@ -3906,3 +3906,10 @@ Original path: `docs/PR_GATE_RECONCILIATION_2026-10-13.md`. Historical snapshot 
 
 **Still not accepted:** S21 real-device login and hidden-state UI; actual generated AI advice while Workers AI quota is exhausted; reliable Gmail Primary folder placement; Content Runner live, which remains disabled pending separate owner/billing approval. Issues [#807](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/807) and [#828](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/issues/828) remain OPEN. This documents evidence; it does not constitute a new live runtime change.
 <!-- END ARCHIVED PR GATE 2026-10-13 -->
+
+## 2026-10-19 — SEO/GEO discovery optimization (PR #896; gate pending)
+
+- Scope: public/llms.txt with official source links and no VIP identifiers; static sitemap removes missing car-lx600.html; homepage corrects title, OG preview asset and Organization/WebSite/WebPage graph.
+- Catalog/vehicles: src/ai-discovery.js serves canonical CollectionPage/ItemList for live public /cars and enhanced per-vehicle social metadata; inventory remains filtered to public D1 statuses. No change to business data, stored mileage, pricing, images, forms, Telegram webhooks, billing or AI provider configuration.
+- Automated regressions: tests/seo-geo-discovery.test.mjs validates real metadata assets, sitemap safety, vehicle SSR and live public-only structured catalog; prior tests/ai-discovery.test.mjs remain in CI.
+- Operational boundary: changes are proposed through PR #896 and require CI/AI audit/MASTER integrity and Cloudflare production evidence before marking LIVE. Web browsing returned 403 for public homepage in this session; therefore public crawler access and Search Console indexing remain UNVERIFIED. No claim of ranking improvement, AI citations, or production completion.
