@@ -39,4 +39,8 @@ test('legacy URL is absent from public assets and sitemap; route runs before fal
   const entry = readFileSync('src/entry.js', 'utf8');
   assert.match(entry, /import \{ handleRetiredStaticLx600 \} from "\.\/retired-static-lx600\.js";/);
   assert.ok(entry.indexOf('const retiredVehicleResponse = handleRetiredStaticLx600(request);') < entry.indexOf('const discoveryResponse = await handleAiDiscovery(request, env);'));
+  const deployment = readFileSync('.github/workflows/deploy-cloudflare.yml', 'utf8');
+  assert.match(deployment, /Verify retired LX600 URL is gone from production and sitemap/);
+  assert.match(deployment, /test \"\$status\" = \"410\"/);
+  assert.match(deployment, /car-lx600\\.html/);
 });
