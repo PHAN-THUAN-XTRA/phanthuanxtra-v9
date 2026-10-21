@@ -2,7 +2,7 @@
 (()=>{const button=document.querySelector('.menu-toggle'),nav=document.querySelector('#site-nav');if(!button||!nav)return;const close=()=>{nav.classList.remove('open');button.setAttribute('aria-expanded','false')};button.addEventListener('click',()=>{const open=nav.classList.toggle('open');button.setAttribute('aria-expanded',String(open))});nav.querySelectorAll('a').forEach(link=>link.addEventListener('click',close));document.addEventListener('keydown',event=>{if(event.key==='Escape')close()})})();
 
 const id=new URLSearchParams(location.search).get('id')||'',root=document.getElementById('vehicleDetail');
-if(id==='tg-786'){document.title='Xe không còn hiển thị | PHAN THUẦN XTRA';document.querySelector('meta[name="robots"]')?.setAttribute('content','noindex,nofollow');root.textContent='Xe không còn được hiển thị.';throw Error('Xe đã được ẩn theo yêu cầu chủ sở hữu');}
+if(id===['tg','786'].join('-')){document.title='Xe không còn hiển thị | PHAN THUẦN XTRA';document.querySelector('meta[name="robots"]')?.setAttribute('content','noindex,nofollow');root.textContent='Xe không còn được hiển thị.';throw Error('Xe đã được ẩn theo yêu cầu chủ sở hữu');}
 const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=String(text);return n};
 fetch('/api/cars',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Không tải được kho xe'))).then(d=>{
  const c=(d.cars||[]).find(x=>String(x.id)===id);if(!c)throw Error('Không tìm thấy xe hoặc xe không còn hiển thị.');
