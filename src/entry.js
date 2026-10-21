@@ -40,6 +40,10 @@ export default {
   async fetch(request, env, ctx) {
     try {
       const url = new URL(request.url);
+      // Owner withdrawal: never serve the retired car's detail URL.
+      if (request.method === 'GET' && url.pathname === '/car.html' && url.searchParams.get('id') === 'tg-786') {
+        return new Response('Xe không còn được hiển thị.', {status:404,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store','x-robots-tag':'noindex, nofollow'}});
+      }
       const retiredVehicleResponse = handleRetiredStaticLx600(request);
       if (retiredVehicleResponse) return retiredVehicleResponse;
       const lylyResponse = await handleLylyBridge(request, env);
