@@ -103,3 +103,14 @@ test('tg-786 excluded from public D1 and static fallback without deleting admin 
   assert.match(worker,/staticCars\(e,r\)\)\.filter\(c=>String\(c\.id\)!=='tg-786'\)/);
   assert.match(worker,/SELECT \* FROM cars ORDER BY featured DESC,created_at DESC/);
 });
+
+// Regression: direct detail URL is withdrawn even with stale browser/API data.
+test('withdrawn tg-786 is denied by entry router and detail page', async () => {
+  const {readFileSync} = await import('node:fs');
+  const entry = readFileSync(new URL('../src/entry.js',import.meta.url),'utf8');
+  const page = readFileSync(new URL('../public/car.html',import.meta.url),'utf8');
+  assert.match(entry,/url\.pathname === '\/car\.html' && url\.searchParams\.get\('id'\) === 'tg-786'/);
+  assert.match(entry,/status:404/);
+  assert.match(page,/if\(id==='tg-786'\)/);
+  assert.match(page,/noindex,nofollow/);
+});
