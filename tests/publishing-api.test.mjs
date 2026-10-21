@@ -111,6 +111,6 @@ test('withdrawn tg-786 is denied by entry router and detail page', async () => {
   const page = readFileSync(new URL('../public/car.html',import.meta.url),'utf8');
   assert.match(entry,/url\.pathname === '\/car\.html' && url\.searchParams\.get\('id'\) === 'tg-786'/);
   assert.match(entry,/status:404/);
-  assert.match(page,/if\(id==='tg-786'\)/);
+  assert.match(page,/if\(id===\['tg','786'\]\.join\('-'\)\)/);
   assert.match(page,/noindex,nofollow/);
 });
