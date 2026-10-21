@@ -94,3 +94,12 @@ test('publishing media policy keeps WebP canonical with flexible AVIF delivery',
   assert.equal(MEDIA_POLICY.video.maxSimpleUploadBytes,100*1024*1024);
   assert.equal(MEDIA_POLICY.video.multipartAboveBytes,100*1024*1024);
 });
+
+// Regression guard: withdrawn car must not leak through either public source.
+test('tg-786 excluded from public D1 and static fallback without deleting admin data', async()=>{
+  const {readFileSync}=await import('node:fs');
+  const worker=readFileSync(new URL('../src/index.js',import.meta.url),'utf8');
+  assert.match(worker,/SELECT \* FROM cars WHERE status <> 'hidden' AND id <> 'tg-786'/);
+  assert.match(worker,/staticCars\(e,r\)\)\.filter\(c=>String\(c\.id\)!=='tg-786'\)/);
+  assert.match(worker,/SELECT \* FROM cars ORDER BY featured DESC,created_at DESC/);
+});
