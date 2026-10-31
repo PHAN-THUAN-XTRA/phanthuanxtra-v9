@@ -77,7 +77,7 @@ test("page has usable inputs, disclosure, and no privileged runtime route", () =
 
 
 test("tg-811 is rendered as the evidence-backed Phantom VII Sedan",()=>{
-  const source=readFileSync(new URL("../public/xtra-intelligent-ui.js",import.meta.url),"utf8");
+  const source=fs.readFileSync(new URL("../public/xtra-intelligent-ui.js",import.meta.url),"utf8");
   assert.match(source,/id === "tg-811"/);
   assert.match(source,/STANDARD WHEELBASE/);
   assert.match(source,/category: id === "tg-811"/);
