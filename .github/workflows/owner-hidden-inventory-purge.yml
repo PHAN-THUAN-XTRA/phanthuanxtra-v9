@@ -65,4 +65,4 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-# Trigger marker: owner-purge-hidden-189; this comment-only commit is the authorized one-shot re-arm.
+# Trigger marker: owner-purge-hidden-189; re-arm after current-inventory guard merge.
