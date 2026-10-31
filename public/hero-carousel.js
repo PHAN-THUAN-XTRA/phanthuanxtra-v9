@@ -1,5 +1,5 @@
 // Keep the automotive slide synchronized with the PUBLIC, available inventory.
-// Porsche 718 Boxster 2024 is preferred, but hidden/sold cars are never promoted.
+// Owner-selected tg-811 is preferred over the legacy Porsche fallback; hidden/sold cars are never promoted.
 const catalogHero = document.querySelector('[data-catalog-hero="available-stock"]');
 if (catalogHero) {
   const slide = catalogHero.closest('.hero-slide');
@@ -17,6 +17,7 @@ if (catalogHero) {
       && /718[\s-]*boxster/i.test(name)
       && (String(car?.year ?? '') === '2024' || name.includes('2024'));
   };
+  const isOwnerFeatured = car => String(car?.id || '').trim() === 'tg-811';
   function reset() {
     catalogHero.hidden = true;
     catalogHero.removeAttribute('src');
@@ -32,13 +33,15 @@ if (catalogHero) {
     }
     const car = cars[index];
     catalogHero.onload = () => {
-      const preferred = isPorsche(car);
+      const preferred = isOwnerFeatured(car);
       const brand = String(car.brand || '').trim().toUpperCase();
       const category = String(car.category || '').toLowerCase();
       const type = ({convertible:'Convertible',suv:'SUV',sedan:'Sedan',coupe:'Coupe',mpv:'MPV',sport:'Thể thao'})[category] || 'Xe cao cấp';
-      const title = preferred
-        ? '718 BOXSTER 2024 | RACING YELLOW | MÂM ĐEN CỰC CHẤT'
-        : String(car.name ?? car.model ?? '').trim();
+      const title = isOwnerFeatured(car)
+        ? 'ROLLS-ROYCE PHANTOM 2009'
+        : isPorsche(car)
+          ? '718 BOXSTER 2024 | RACING YELLOW | MÂM ĐEN CỰC CHẤT'
+          : String(car.name ?? car.model ?? '').trim();
       catalogHero.alt = brand + ' ' + title + ' đang bán tại PHAN THUẦN XTRA';
       catalogHero.hidden = false;
       if (badge) {badge.textContent = brand + ' • ' + (preferred ? 'Convertible' : type); badge.hidden = false;}
@@ -61,7 +64,7 @@ if (catalogHero) {
     })
     .then(data => {
       const cars = (Array.isArray(data?.cars) ? data.cars : []).filter(isAvailable);
-      const preferred = cars.find(isPorsche);
+      const preferred = cars.find(isOwnerFeatured) || cars.find(isPorsche);
       showAvailable(preferred ? [preferred, ...cars.filter(car => car !== preferred)] : cars);
     })
     .catch(() => {
