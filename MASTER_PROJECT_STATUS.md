@@ -1,5 +1,6 @@
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
-\n## ADMIN–TELEGRAM D1 INVENTORY — PR #905 — SOURCE/CI PASS, PRODUCTION DATA QA HOLD — 2026-10-31 (UTC+7)
+
+## ADMIN–TELEGRAM D1 INVENTORY — PR #905 — SOURCE/CI PASS, PRODUCTION DATA QA HOLD — 2026-10-31 (UTC+7)
 
 - **Ngày giờ và múi giờ:** 31/10/2026 (UTC+7); trạng thái ghi từ phiên ChatGPT và GitHub Actions.
 - **Phạm vi:** đối chiếu kho xe Admin Control (`/admin-control`, `/admin-control.html`) với Telegram Mini App (`/api/telegram/mini/v1/cars`) trên Worker `phanthuanxtra-v2`; không sửa dữ liệu bài đăng `tg-811`.
