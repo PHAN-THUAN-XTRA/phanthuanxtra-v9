@@ -12,12 +12,12 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 // Read-only D1 mock: fail immediately on any SQL that is not SELECT.
 function mockD1(amount = 194, galleryRows = []) {
   const rows = Array.from({ length: amount }, (_, i) => ({
-    id: i === amount - 1 ? "tg-811" : "tg-" + String(i + 1).padStart(3, "0"),
+    id: amount === 1 ? "ci-e2e-41173269017" : i === amount - 1 ? "tg-811" : "tg-" + String(i + 1).padStart(3, "0"),
     brand: "ROLLS-ROYCE",
     model: "PHANTOM",
     year: 2009,
-    price: 7680000000,
-    status: i < 7 || i === amount - 1 ? "available" : "hidden",
+    price: amount === 1 ? 1 : 7680000000,
+    status: amount === 1 ? "hidden" : i < 7 || i === amount - 1 ? "available" : "hidden",
     featured: 0,
     created_at: "2026-10-31"
   }));
@@ -163,6 +163,9 @@ test("Admin never claims 194 vehicles when D1 contains only one fixture row", as
   const payload = await response.json();
   assert.equal(payload.total, 1);
   assert.equal(payload.cars.length, 1);
+  assert.equal(payload.cars[0].id, "ci-e2e-41173269017");
+  assert.equal(payload.cars[0].price, 1);
+  assert.equal(payload.cars[0].status, "hidden");
 });
 
 
