@@ -221,3 +221,11 @@ test("Postdeploy inventory verifier is main-only and read-only", () => {
   assert.doesNotMatch(source, /\bwrangler\s+(?:deploy|d1|secret|publish)\b/i);
   assert.doesNotMatch(source, /(?:DROP|DELETE|UPDATE|INSERT|ALTER)\s+(?:TABLE|FROM|INTO|cars|car_images)\b/i);
 });
+
+
+test("Production deploy purges both Admin Control routes so repaired gallery is not stale", () => {
+  const source = readFileSync(new URL("../.github/workflows/deploy-cloudflare.yml", import.meta.url), "utf8");
+  assert.match(source, /Purge changed Admin HTML cache/);
+  assert.match(source, /https:\/\/phanthuanxtra\.com\/admin-control"/);
+  assert.match(source, /https:\/\/phanthuanxtra\.com\/admin-control\.html"/);
+});
