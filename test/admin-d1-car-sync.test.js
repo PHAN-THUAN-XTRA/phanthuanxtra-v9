@@ -295,3 +295,11 @@ test("Telegram canonical gallery survives Admin list pagination with original ph
   assert.equal(phantom.images[0].is_cover,1);
   assert.equal(db.reads,3,"Count, cars, and bulk gallery; no N+1");
 });
+
+
+test("Admin entrypoints cannot call forEach on a single querySelector result", () => {
+  for (const file of ["public/admin-control","public/admin-control.html"]) {
+    const html = readFileSync(new URL("../"+file,import.meta.url),"utf8");
+    assert.doesNotMatch(html, /(?<!\$)\$\(['"][^'"]+['"]\)\.forEach\s*\(/);
+  }
+});
