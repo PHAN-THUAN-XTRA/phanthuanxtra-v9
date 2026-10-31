@@ -27,7 +27,7 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import { appendFileSync } from 'node:fs';
-          const account = process.env.CF_ACCOUNT_ID || '';
+          const account = process.env.CF_ACCOUNT_ID || '5f35d608938abe622b694bab3af1319c'; // account identifier from owner's connected Cloudflare Dashboard URL, not a secret
           const dbId = '8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d';
           const tokens = [...new Set([process.env.CF_D1_READ_TOKEN, process.env.CF_PRIMARY_TOKEN, process.env.CF_BACKUP_TOKEN].filter(Boolean))];
           const prefix = 'https://api.cloudflare.com/client/v4/accounts/';
