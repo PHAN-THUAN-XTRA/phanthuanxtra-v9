@@ -1,0 +1,66 @@
+name: Owner 189 Hidden Cars — Backup Then Physical Removal
+
+# Exactly one owner-authorized main merge. No ordinary schedule / API / Admin DELETE.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/owner-hidden-inventory-purge.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: owner-189-hidden-cars-physical-purge
+  cancel-in-progress: false
+
+jobs:
+  prepare-and-delete:
+    name: Verify encrypted backup before deleting exactly 189 hidden cars
+    if: ${{ contains(github.event.head_commit.message, 'owner-purge-hidden-189') }}
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
+      TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
+    steps:
+      - name: Checkout approved main revision
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Use Node.js 24 for existing encrypted-backup helper
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Read-only inventory preflight and verified encrypted snapshot
+        run: node scripts/owner-hidden-inventory-delete.mjs prepare
+      - name: Persist encrypted restore archive before any D1 deletion
+        id: backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-189-hidden-restore-${{ github.run_id }}
+          path: |
+            owner-hidden-purge-backup/hidden-vehicles.enc
+            owner-hidden-purge-backup/receipt.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Independently download the uploaded backup artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: owner-189-hidden-restore-${{ github.run_id }}
+          path: verified-upload
+      - name: Reverify backup and execute one guarded D1 cars DELETE
+        if: ${{ steps.backup.outputs.artifact-id != '' }}
+        run: node scripts/owner-hidden-inventory-delete.mjs execute
+      - name: Publish non-sensitive deletion count receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-hidden-inventory-execution-${{ github.run_id }}
+          path: owner-hidden-purge-backup/execution-receipt.json
+          retention-days: 90
+          if-no-files-found: error
