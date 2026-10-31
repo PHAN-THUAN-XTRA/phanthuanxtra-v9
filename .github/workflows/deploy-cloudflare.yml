@@ -147,6 +147,7 @@ jobs:
           echo "Cloudflare API credential source authenticated without exposing token values."
       - name: Deploy and migrate through Cloudflare API/SDK
         env:
+          DISPLAY_ONLY_DEPLOY: ${{ contains(github.event.head_commit.message, 'display-only-tg811-sedan') && '1' || '0' }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           ADMIN_RECOVERY_ROTATE_TOKEN: ${{ secrets.ADMIN_RECOVERY_ROTATE_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || secrets.TELEGRAM_AUTO_BOT_TOKEN }}
