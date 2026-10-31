@@ -91,6 +91,7 @@ test("Both Admin URLs verify every car page rather than presenting a partial inv
     assert.match(source, /all\.length!==expected/);
     assert.match(source, /ids\.has\(car\.id\)/);
     assert.match(source, /id="carSync"/);
+    assert.match(source, /<option value="hidden">hidden<\/option>/);
   }
 });
 
