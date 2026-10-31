@@ -268,11 +268,13 @@ test("Native Admin HTML renders all 194 Telegram-truth cars without querySelecto
   const actions=table.children[1].children[193].children[4].children;
   assert.equal(actions.filter(x=>x.tagName==="button").length,4);
   assert.equal(actions.find(x=>x.dataset?.visibility==="tg-811")?.textContent,"Ẩn xe");
+  assert.equal(actions.find(x=>x.textContent==="Đăng Telegram")?.disabled,false);
   statusFilter.value="hidden";
   context.testRenderCars();
   table=root.children[0];
   assert.equal(table.children[1].children.length,186);
   assert.equal(table.children[1].children[0].children[4].children.find(x=>x.dataset?.visibility)?.textContent,"Hiện lại");
+  assert.equal(table.children[1].children[0].children[4].children.find(x=>x.textContent==="Đăng Telegram")?.disabled,true);
 });
 
 
@@ -302,4 +304,12 @@ test("Admin entrypoints cannot call forEach on a single querySelector result", (
     const html = readFileSync(new URL("../"+file,import.meta.url),"utf8");
     assert.doesNotMatch(html, /(?<!\$)\$\(['"][^'"]+['"]\)\.forEach\s*\(/);
   }
+});
+
+
+test("Hidden vehicle publish handler refuses Telegram publishing before any request", () => {
+  const html=readFileSync(new URL("../public/admin-control.html",import.meta.url),"utf8");
+  assert.match(html,/publish\.disabled=car\.status==='hidden'/);
+  assert.match(html,/selected\.status==='hidden'/);
+  assert.match(html,/Xe đang ẩn — không được đăng Telegram/);
 });
