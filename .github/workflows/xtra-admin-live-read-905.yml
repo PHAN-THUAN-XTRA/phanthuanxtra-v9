@@ -22,6 +22,8 @@ jobs:
         env:
           QA_ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           QA_ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          QA_TELEGRAM_BOT: ${{ secrets.TELEGRAM_AUTO_BOT_TOKEN }}
+          QA_TELEGRAM_OWNER_IDS: ${{ secrets.TELEGRAM_AUTO_PUBLISH_CHAT_IDS }}
         run: |
           node --input-type=module <<'NODE'
           import { createHmac, randomBytes } from 'node:crypto';
@@ -98,4 +100,44 @@ jobs:
           if(total!==expectedCount)fail('Dashboard/D1 count mismatch: '+total+' vs '+expectedCount);
           if(first.data.cars.length<1||first.data.cars.length>50)fail('Unexpected Admin list length');
           if(matchedCar.category!=='Sedan'||Number(matchedCar.price)!==7680000000)fail('tg-811 canonical metadata differs from D1 receipt');
+          // Synthetic signed Telegram initData proves real endpoint authorization/DB view.
+          // Never log the token, signed initData or hidden car records.
+          const botToken=process.env.QA_TELEGRAM_BOT||'';
+          const ownerIds=String(process.env.QA_TELEGRAM_OWNER_IDS||'').split(/[\\s,]+/).filter(Boolean);
+          if(!botToken||!ownerIds.length)fail('Telegram bot/allowlist secrets unavailable in this PR job');
+          const ownerId=ownerIds.find(x=>/^\\d+$/.test(x));
+          if(!ownerId)fail('Owner identity is not a numeric Telegram user ID');
+          const tgParams=new URLSearchParams({
+            auth_date:String(Math.floor(Date.now()/1000)),
+            query_id:'AA-pr905-readonly',
+            user:JSON.stringify({id:Number(ownerId),first_name:'QA'})
+          });
+          const toSign=[...tgParams.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\\n');
+          const signingKey=createHmac('sha256','WebAppData').update(botToken).digest();
+          tgParams.set('hash',createHmac('sha256',signingKey).update(toSign).digest('hex'));
+          const tgResponse=await fetch(origin+'/api/telegram/mini/v1/cars',{
+            headers:{'X-Telegram-Init-Data':tgParams.toString(),Accept:'application/json'},
+            redirect:'manual',
+            cache:'no-store',
+            signal:AbortSignal.timeout(15000)
+          });
+          if(tgResponse.status!==200)fail('Signed Telegram inventory HTTP '+tgResponse.status);
+          const tgPayload=await tgResponse.json().catch(()=>null);
+          if(!tgPayload?.ok||!Array.isArray(tgPayload.cars))fail('Telegram response is not a vehicle list');
+          const tgIds=tgPayload.cars.map(c=>c.id);
+          if(tgIds.length!==expectedCount||new Set(tgIds).size!==expectedCount)fail('Telegram list differs from D1 count');
+          const tg811=tgPayload.cars.find(c=>c.id==='tg-811');
+          if(!tg811||tg811.category!=='Sedan'||Number(tg811.price)!==7680000000)fail('Telegram tg-811 differs from D1/Admin detail');
+          console.log('TELEGRAM_READ_RECEIPT '+JSON.stringify({
+            source:'live-signed-Telegram-Mini-App',
+            authenticated:true,
+            total:tgIds.length,
+            unique:new Set(tgIds).size,
+            tg811:true,
+            tg811Category:tg811.category,
+            tg811Price:Number(tg811.price),
+            method:'READ_ONLY'
+          }));
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,'\\nTelegram signed Mini App: '+tgIds.length+' distinct vehicles; tg-811 canonical metadata matches. Synthetic signed request only; no physical Telegram UI acceptance.\\n');
+
           NODE
