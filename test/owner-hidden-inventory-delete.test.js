@@ -108,3 +108,20 @@ test('execute actual atomic JSON_each D1-compatible SQL on disposable SQLite clo
     assert.equal(mismatchDb.prepare('SELECT COUNT(*) AS n FROM cars').get().n,197);
   } finally { mismatchDb.close(); }
 });
+
+
+test('accepts current production-sized hidden inventory while preserving eight available',()=>{
+  const rows=Array.from({length:195},(_,i)=>({
+    id:'current-hidden-'+String(i+1).padStart(3,'0'),status:'hidden',price:1
+  }));
+  const available=Array.from({length:8},(_,i)=>({
+    id:i===7?'tg-811':'current-available-'+String(i+1).padStart(3,'0'),
+    status:'available',price:i===7?7680000000:123,category:i===7?'Sedan':'SUV'
+  }));
+  const result=validateFleet([...rows,...available]);
+  assert.equal(result.hidden.length,195);
+  assert.equal(result.available.length,8);
+  const guarded=buildGuardedDelete(result.hidden.map(car=>car.id));
+  assert.match(guarded.sql,/COUNT\\(\\*\\) FROM cars\\)=203/);
+  assert.match(guarded.sql,/status='hidden'\\)=195/);
+});
