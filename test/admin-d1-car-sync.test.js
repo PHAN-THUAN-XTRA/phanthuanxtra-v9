@@ -52,7 +52,7 @@ const base = "https://phanthuanxtra.com";
 
 test("Admin vehicle endpoint refuses unauthenticated reads without touching D1", async () => {
   const db = mockD1();
-  const env = { DB: db, ADMIN_TOKEN: "test-only-secret-not-for-production" };
+  const env = { DB: db, ADMIN_TOKEN: webcrypto.randomUUID() };
   const result = await handleAppAdmin(new Request(base + "/api/admin/cars?limit=50"), env);
   assert.equal(result.status, 401);
   assert.equal(db.reads, 0);
@@ -60,7 +60,7 @@ test("Admin vehicle endpoint refuses unauthenticated reads without touching D1",
 
 test("Admin reads all 194 D1 cars with stable authenticated pagination", async () => {
   const db = mockD1(194);
-  const env = { DB: db, ADMIN_TOKEN: "test-only-secret-not-for-production" };
+  const env = { DB: db, ADMIN_TOKEN: webcrypto.randomUUID() };
   const token = await issueAdminToken(env);
   const ids = new Set();
   for (const offset of [0, 50, 100, 150]) {
