@@ -360,7 +360,7 @@ function extractContact(text,{acceptStandaloneName=false}={}){
   else if(acceptStandaloneName)name=plausibleStandaloneName(text);
   return {name,phone};
 }
-function handoffReply(contact, sent=false){
+// Internal delivery still uses the Telegram/CRM route; only the customer-facing wording is simplified.\nfunction handoffReply(contact, sent=false){
   if(contact.name&&contact.phone)return sent ? "Cảm ơn anh/chị. Tôi đã tiếp nhận, anh Phan Thuần trực tiếp tư vấn." : "Cảm ơn anh/chị. Tôi đã ghi nhận họ tên, số điện thoại và câu hỏi, nhưng chưa xác nhận được Telegram đã nhận. Anh/chị có thể gọi trực tiếp 0866 997 891 để được hỗ trợ.";
   if(contact.name)return `Cảm ơn anh/chị ${contact.name}. Tôi chưa có thông tin xác thực để trả lời chắc chắn; vui lòng cho tôi xin thêm số điện thoại để chuyển anh Phan Thuần trực tiếp tư vấn.`;
   if(contact.phone)return "Cảm ơn anh/chị, tôi đã nhận số điện thoại. Vui lòng cho tôi xin thêm họ tên để hoàn tất thông tin chuyển anh Phan Thuần trực tiếp tư vấn.";
