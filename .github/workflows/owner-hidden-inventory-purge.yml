@@ -64,3 +64,5 @@ jobs:
           path: owner-hidden-purge-backup/execution-receipt.json
           retention-days: 90
           if-no-files-found: error
+
+# Re-arm marker: execute only after merge commit owner-purge-hidden-189.
