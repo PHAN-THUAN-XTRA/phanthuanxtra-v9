@@ -47,3 +47,5 @@ jobs:
           name: owner-keep-seven-execution-${{ github.run_id }}
           path: owner-keep-seven-backup/execution-receipt.json
           retention-days: 90
+
+# Targeted owner request: delete only tg-786 when exact guard passes.
