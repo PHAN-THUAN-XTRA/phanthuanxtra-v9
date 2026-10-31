@@ -40,9 +40,10 @@ export function normalizeCars(payload) {
     const category = String(car.category || "other").toLowerCase();
     return {
       id:String(car.id), brand:String(car.brand || "").slice(0,100),
-      name:String(car.name || car.model || "").slice(0,160),
+      name: String(car.id) === "tg-811" ? "PHANTOM VII 2009 | STANDARD WHEELBASE | V12 6.75L | SEDAN SIÊU SANG" : String(car.name || car.model || "").slice(0,160),
       year:String(car.year || "").slice(0,4),
-      category:ALLOWED_CATEGORIES.includes(category) ? category : "other",
+      // Owner-provided registration/inspection evidence identifies tg-811 as Phantom VII Sedan SWB.
+      category: String(car.id) === "tg-811" && /^rolls[- ]?royce$/i.test(String(car.brand || "")) ? "sedan" : (ALLOWED_CATEGORIES.includes(category) ? category : "other"),
       price:parsePrice(car.price), priceLabel:String(car.price || "Liên hệ").slice(0,60),
       image:String(car.cover_image || car.image || "").slice(0,1200),
       odo:String(car.odo || car.mileage || "Liên hệ").slice(0,60)

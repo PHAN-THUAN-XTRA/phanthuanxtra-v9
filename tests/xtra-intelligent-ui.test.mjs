@@ -74,3 +74,12 @@ test("page has usable inputs, disclosure, and no privileged runtime route", () =
   assert.doesNotMatch(js,/localStorage|sessionStorage|Authorization|Bearer/);
   assert.match(homepage,/href="\/trai-nghiem-xe"/);
 });
+
+
+test("tg-811 is rendered as the evidence-backed Phantom VII Sedan",()=>{
+  const source=fs.readFileSync(new URL("../public/xtra-intelligent-ui.js",import.meta.url),"utf8");
+  assert.ok(source.includes('String(car.id) === "tg-811"'));
+  assert.match(source,/STANDARD WHEELBASE/);
+  assert.ok(source.includes('category: String(car.id) === "tg-811"'));
+  assert.doesNotMatch(source,/tg-811[^\\n]*convertible/i);
+});
