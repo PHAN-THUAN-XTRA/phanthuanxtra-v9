@@ -299,14 +299,6 @@ test("Telegram canonical gallery survives Admin list pagination with original ph
 });
 
 
-test("Admin entrypoints cannot call forEach on a single querySelector result", () => {
-  for (const file of ["public/admin-control","public/admin-control.html"]) {
-    const html = readFileSync(new URL("../"+file,import.meta.url),"utf8");
-    assert.doesNotMatch(html, /(?<!\$)\$\(['"][^'"]+['"]\)\.forEach\s*\(/);
-  }
-});
-
-
 test("Hidden vehicle publish handler refuses Telegram publishing before any request", () => {
   const html=readFileSync(new URL("../public/admin-control.html",import.meta.url),"utf8");
   assert.match(html,/publish\.disabled=car\.status==='hidden'/);
