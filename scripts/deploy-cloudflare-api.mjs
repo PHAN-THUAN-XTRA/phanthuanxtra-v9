@@ -632,6 +632,7 @@ async function verifyApiLineage() {
   console.log(`Cloudflare lineage: deployment=${latest.id}, version=${versionId}, source=${source || "api"}.`);
 }
 
+const displayOnlyDeploy = process.env.DISPLAY_ONLY_DEPLOY === "1";
 console.log("=== PHAN THUẦN XTRA — Cloudflare API/SDK production controller ===");
 console.log("Wrangler is intentionally not invoked by this controller.");
 // Check new publishing dependencies before changing migrations, assets or runtime.
@@ -644,23 +645,27 @@ for (const name of ["IMAGES", "MEDIA", "GEMINI_API_KEY", "GEMINI_MODEL", "PUBLIS
   if (!publishingBindings.some(binding => binding.name === name) && !process.env[name])
     throw new Error(`${name} is required on the website Worker for editorial publishing; configure it before deployment.`);
 }
-const tg652Before = await preflightTg652(queryD1);
-console.log('D1 tg-652 preflight: status='+tg652Before.car.status+'; image_count='+tg652Before.images.length);
-const tg756Preflight = await preflightTg756(queryD1);
-console.log('D1 tg-756 preflight: '+ (tg756Preflight.alreadyApplied ? 'already migrated' : 'verified 27 source images and owner identity'));
-const ownerHidesBefore = await preflightOwnerHides(queryD1);
-console.log('D1 owner hide preflight: tg-756 and tg-527 identities and galleries confirmed');
-await applyMigrations();
-await verifyTg527ProductionValues();
-await verifyTg527ProductionGallery();
-await verifyLx570Recovery();
-await verifyTg444ProductionGallery();
-const tg756Proof = await verifyTg756Production(queryD1);
-console.log('D1 tg-756 verified:', JSON.stringify(tg756Proof));
-const tg652Proof = await verifyTg652Hidden(queryD1, tg652Before);
-console.log('D1 tg-652 hidden proof:', JSON.stringify(tg652Proof));
-const ownerHiddenProof = await verifyOwnerHides(queryD1,ownerHidesBefore);
-console.log('D1 tg-756 and tg-527 hidden proof:', JSON.stringify(ownerHiddenProof));
+if (displayOnlyDeploy) {
+  console.log("Display-only deploy: skip unrelated D1 migration/preflight gates; no D1 writes are performed by this branch.");
+} else {
+  const tg652Before = await preflightTg652(queryD1);
+  console.log('D1 tg-652 preflight: status='+tg652Before.car.status+'; image_count='+tg652Before.images.length);
+  const tg756Preflight = await preflightTg756(queryD1);
+  console.log('D1 tg-756 preflight: '+ (tg756Preflight.alreadyApplied ? 'already migrated' : 'verified 27 source images and owner identity'));
+  const ownerHidesBefore = await preflightOwnerHides(queryD1);
+  console.log('D1 owner hide preflight: tg-756 and tg-527 identities and galleries confirmed');
+  await applyMigrations();
+  await verifyTg527ProductionValues();
+  await verifyTg527ProductionGallery();
+  await verifyLx570Recovery();
+  await verifyTg444ProductionGallery();
+  const tg756Proof = await verifyTg756Production(queryD1);
+  console.log('D1 tg-756 verified:', JSON.stringify(tg756Proof));
+  const tg652Proof = await verifyTg652Hidden(queryD1, tg652Before);
+  console.log('D1 tg-652 hidden proof:', JSON.stringify(tg652Proof));
+  const ownerHiddenProof = await verifyOwnerHides(queryD1,ownerHidesBefore);
+  console.log('D1 tg-756 and tg-527 hidden proof:', JSON.stringify(ownerHiddenProof));
+}
 const vehicleQueues = await ensureVehicleQueueResources();
 const memoryQueues = await ensureMemoryQueueResources();
 const assetJwt = await uploadAssets();
@@ -679,8 +684,10 @@ if (blogCheck.status !== 200 || !blogType.includes("application/json")) throw ne
 console.log("Blog custom-domain API route: HTTP 200 JSON.");
 await syncCronSchedules();
 await verifyApiLineage();
-const ownerHiddenPublicProof = await verifyOwnerHidesPublic(fetch);
-console.log("Public tg-756 and tg-527 hidden proof:", JSON.stringify(ownerHiddenPublicProof));
-const tg652PublicProof = await verifyTg652Public(fetch);
-console.log("Public tg-652 hidden proof:", JSON.stringify(tg652PublicProof));
+if (!displayOnlyDeploy) {
+  const ownerHiddenPublicProof = await verifyOwnerHidesPublic(fetch);
+  console.log("Public tg-756 and tg-527 hidden proof:", JSON.stringify(ownerHiddenPublicProof));
+  const tg652PublicProof = await verifyTg652Public(fetch);
+  console.log("Public tg-652 hidden proof:", JSON.stringify(tg652PublicProof));
+}
 console.log("API/SDK deployment controller completed successfully.");
