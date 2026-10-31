@@ -208,3 +208,16 @@ test("Actual Admin loadCars function hydrates 194 rows without losing hidden veh
     assert.ok(calls.every(x => x.limit === 50));
   }
 });
+
+
+test("Postdeploy inventory verifier is main-only and read-only", () => {
+  const source = readFileSync(new URL("../.github/workflows/admin-inventory-postdeploy.yml", import.meta.url), "utf8");
+  assert.match(source, /workflow_run:/);
+  assert.match(source, /github\.event\.workflow_run\.event == 'push'/);
+  assert.match(source, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.match(source, /contents: read/);
+  assert.match(source, /\/api\/admin\/cars\?limit=50&offset=/);
+  assert.match(source, /ADMIN_INVENTORY_POSTDEPLOY/);
+  assert.doesNotMatch(source, /\bwrangler\s+(?:deploy|d1|secret|publish)\b/i);
+  assert.doesNotMatch(source, /(?:DROP|DELETE|UPDATE|INSERT|ALTER)\s+(?:TABLE|FROM|INTO|cars|car_images)\b/i);
+});
