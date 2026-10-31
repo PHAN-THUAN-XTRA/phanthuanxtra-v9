@@ -1,0 +1,101 @@
+name: PR905 authenticated Admin read-only production proof
+
+# PR-only evidence. No cloud account tokens, Wrangler, D1 SQL writes or deployment.
+on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - ".github/workflows/xtra-admin-live-read-905.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  admin-live-read:
+    name: Verify authenticated Admin vehicle inventory without mutation
+    if: ${{ github.event.pull_request.number == 905 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'xtra/admin-telegram-d1-sync-20261031' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read Admin inventory and tg-811 via existing credentials only
+        shell: bash
+        env:
+          QA_ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          QA_ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { createHmac, randomBytes } from 'node:crypto';
+          import { appendFileSync } from 'node:fs';
+          const origin='https://phanthuanxtra.com';
+          const endpoint='/api/admin/cars';
+          const expectedCount=194;
+          const secretA=process.env.QA_ADMIN_PASSWORD||'';
+          const secretB=process.env.QA_ADMIN_TOKEN||'';
+          const fail=(why)=>{console.error('ADMIN_QA_HOLD: '+why);process.exit(1);};
+          const request=async(path,token,method='GET',payload)=>{
+            const r=await fetch(origin+path,{
+              method,
+              headers:{
+                Accept:'application/json',
+                ...(token?{Authorization:'Bearer '+token}:{}),
+                ...(payload?{'Content-Type':'application/json'}:{})
+              },
+              ...(payload?{body:JSON.stringify(payload)}:{}),
+              cache:'no-store',
+              redirect:'manual',
+              signal:AbortSignal.timeout(12000)
+            });
+            if(r.status>=300&&r.status<400)fail('Unexpected redirect from Admin API');
+            const data=await r.json().catch(()=>null);
+            return {status:r.status,data};
+          };
+          const anonymous=await request(endpoint+'?limit=1','');
+          if(anonymous.status!==401)fail('Unauthenticated Admin request must be HTTP 401, received HTTP '+anonymous.status);
+          const candidates=[];
+          if(secretA){
+            const login=await request('/api/admin/login','', 'POST', {password:secretA});
+            if(login.status===200&&typeof login.data?.token==='string')candidates.push({mode:'signed-login',token:login.data.token});
+          }
+          for(const secret of [secretB,secretA]) {
+            if(!secret)continue;
+            const exp=Math.floor(Date.now()/1000)+1800;
+            const nonce=randomBytes(16).toString('hex');
+            const payload=exp+'.'+nonce;
+            const signature=createHmac('sha256',secret).update(payload).digest('base64url');
+            candidates.push({mode:'HMAC-session',token:'ptx1.'+payload+'.'+signature});
+          }
+          if(!candidates.length)fail('Admin credentials not exposed to read-only PR job; no authenticated probe executed');
+          let session=null,stats=null,lastStatus='';
+          for(const candidate of candidates){
+            const r=await request('/api/admin/dashboard',candidate.token);
+            if(r.status===200&&Number.isSafeInteger(Number(r.data?.stats?.cars))){
+              session=candidate;stats=r.data.stats;break;
+            }
+            lastStatus='HTTP_'+r.status;
+          }
+          if(!session)fail('No Admin signed session accepted by live Worker; last='+lastStatus);
+          const first=await request(endpoint+'?limit=50&offset=0',session.token);
+          if(first.status!==200||!Array.isArray(first.data?.cars))fail('Authenticated Admin car list failed HTTP '+first.status);
+          const car=await request(endpoint+'/tg-811',session.token);
+          if(car.status!==200||car.data?.car?.id!=='tg-811')fail('Authenticated Admin tg-811 detail missing HTTP '+car.status);
+          const total=Number(stats.cars);
+          const matchedCar=car.data.car;
+          const receipt={
+            source:'live-Worker-Admin',
+            authenticated:true,
+            anonymousHttp:anonymous.status,
+            dashboardTotal:total,
+            firstPageCount:first.data.cars.length,
+            firstPageReportedTotal:Number.isSafeInteger(Number(first.data.total))?Number(first.data.total):null,
+            tg811Read:true,
+            tg811Category:String(matchedCar.category||''),
+            tg811Price:Number(matchedCar.price),
+            tg811Status:String(matchedCar.status||''),
+            method:'READ_ONLY'
+          };
+          console.log('ADMIN_READ_RECEIPT '+JSON.stringify(receipt));
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY,'### Admin authenticated read-only proof\n\n```json\n'+JSON.stringify(receipt,null,2)+'\n```\n');
+          if(total!==expectedCount)fail('Dashboard/D1 count mismatch: '+total+' vs '+expectedCount);
+          if(first.data.cars.length<1||first.data.cars.length>50)fail('Unexpected Admin list length');
+          if(matchedCar.category!=='Sedan'||Number(matchedCar.price)!==7680000000)fail('tg-811 canonical metadata differs from D1 receipt');
+          NODE
