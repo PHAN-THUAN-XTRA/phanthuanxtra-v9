@@ -24,6 +24,8 @@ jobs:
           QA_ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           QA_TELEGRAM_BOT: ${{ secrets.TELEGRAM_AUTO_BOT_TOKEN }}
           QA_TELEGRAM_OWNER_IDS: ${{ secrets.TELEGRAM_AUTO_PUBLISH_CHAT_IDS }}
+          QA_TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          QA_TELEGRAM_CRM_CHAT_ID: ${{ secrets.TELEGRAM_CRM_CHAT_ID }}
         run: |
           node --input-type=module <<'NODE'
           import { createHmac, randomBytes } from 'node:crypto';
@@ -103,16 +105,16 @@ jobs:
           // Synthetic signed Telegram initData proves real endpoint authorization/DB view.
           // Never log the token, signed initData or hidden car records.
           const botToken=process.env.QA_TELEGRAM_BOT||'';
-          const ownerIds=String(process.env.QA_TELEGRAM_OWNER_IDS||'').split(/[\\s,]+/).filter(Boolean);
+          const ownerIds=[process.env.QA_TELEGRAM_OWNER_IDS,process.env.QA_TELEGRAM_CHAT_ID,process.env.QA_TELEGRAM_CRM_CHAT_ID].filter(Boolean).flatMap(v=>String(v).split(/[\s,]+/).filter(Boolean));
           if(!botToken||!ownerIds.length)fail('Telegram bot/allowlist secrets unavailable in this PR job');
-          const ownerId=ownerIds.find(x=>/^\\d+$/.test(x));
+          const ownerId=ownerIds.find(x=>/^\d+$/.test(x));
           if(!ownerId)fail('Owner identity is not a numeric Telegram user ID');
           const tgParams=new URLSearchParams({
             auth_date:String(Math.floor(Date.now()/1000)),
             query_id:'AA-pr905-readonly',
             user:JSON.stringify({id:Number(ownerId),first_name:'QA'})
           });
-          const toSign=[...tgParams.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\\n');
+          const toSign=[...tgParams.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\n');
           const signingKey=createHmac('sha256','WebAppData').update(botToken).digest();
           tgParams.set('hash',createHmac('sha256',signingKey).update(toSign).digest('hex'));
           const tgResponse=await fetch(origin+'/api/telegram/mini/v1/cars',{
