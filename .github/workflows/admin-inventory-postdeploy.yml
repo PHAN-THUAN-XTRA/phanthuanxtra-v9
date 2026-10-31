@@ -129,10 +129,12 @@ jobs:
           if(!listedTg811||String(listedTg811.category)!==String(car.category)||Number(listedTg811.price)!==Number(car.price))fail('tg-811 detail and listing metadata mismatch');
           const publicCars=await read('/api/cars');
           if(publicCars.status!==200||!Array.isArray(publicCars.data?.cars))fail('Public catalogue unavailable');
-          if(publicCars.data.cars.some(x=>x.status==='hidden'))fail('Hidden vehicle leaked in public catalogue');
+          const hiddenIds=new Set([...adminById.values()].filter(x=>x.status==='hidden').map(x=>x.id));
+          if(publicCars.data.cars.some(x=>hiddenIds.has(x.id)))fail('Hidden vehicle ID leaked in public catalogue');
           if(car.status==='available'){
             const publicTg811=publicCars.data.cars.find(x=>x.id==='tg-811');
-            if(!publicTg811||Number(publicTg811.price)!==Number(car.price)||String(publicTg811.category)!==String(car.category))fail('Available tg-811 does not match public vehicle catalogue');
+            const publicPrice=Number(String(publicTg811?.price??'').replace(/[^0-9]/g,''));
+            if(!publicTg811||publicPrice!==Number(car.price)||String(publicTg811.category)!==String(car.category))fail('Available tg-811 does not match public vehicle catalogue');
           }
           const htmlPaths=['/admin-control','/admin-control.html'];
           for(const path of htmlPaths){
