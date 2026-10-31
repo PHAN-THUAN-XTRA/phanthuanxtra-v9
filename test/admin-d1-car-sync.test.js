@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { webcrypto } from "node:crypto";
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
 import { handleAppAdmin } from "../src/app-admin.js";
 import { issueAdminToken } from "../src/admin-auth.js";
 import { handleTelegramMiniAppApi } from "../src/telegram-mini-app.js";
@@ -162,4 +163,48 @@ test("Admin never claims 194 vehicles when D1 contains only one fixture row", as
   const payload = await response.json();
   assert.equal(payload.total, 1);
   assert.equal(payload.cars.length, 1);
+});
+
+
+test("Actual Admin loadCars function hydrates 194 rows without losing hidden vehicles", async () => {
+  for (const file of ["public/admin-control", "public/admin-control.html"]) {
+    const html = readFileSync(new URL("../" + file, import.meta.url), "utf8");
+    const start = html.indexOf("let carsLoading=false;");
+    const end = html.indexOf("function renderCars()", start);
+    assert.ok(start >= 0 && end > start, "loadCars source must be present");
+    const source = html.slice(start, end);
+    const records = Array.from({length: 194}, (_, i) => ({
+      id: i === 193 ? "tg-811" : "tg-" + String(i + 1).padStart(3, "0"),
+      status: i < 7 || i === 193 ? "available" : "hidden",
+      price: i === 193 ? 7680000000 : 1
+    }));
+    const calls = [];
+    const sync = {textContent: ""};
+    const table = {replaceChildren() {}, innerHTML: ""};
+    const context = {
+      cars: [],
+      api: async url => {
+        const u = new URL(url, base);
+        const offset = Number(u.searchParams.get("offset"));
+        const limit = Number(u.searchParams.get("limit"));
+        calls.push({offset, limit});
+        return {cars: records.slice(offset, offset + limit), total: records.length, limit, offset};
+      },
+      $: selector => selector === "#carTable" ? table : null,
+      document: {
+        getElementById: id => id === "carSync" ? sync : null,
+        createElement: () => ({className:"", textContent:""})
+      },
+      renderCars: () => {context.renderedCars = context.cars.length; }
+    };
+    vm.runInNewContext(source + "\nglobalThis.__loadCars=loadCars;", context);
+    await context.__loadCars();
+    assert.equal(context.cars.length, 194);
+    assert.equal(context.renderedCars, 194);
+    assert.equal(context.cars.filter(car => car.status === "hidden").length, 186);
+    assert.equal(context.cars.find(car => car.id === "tg-811").price, 7680000000);
+    assert.equal(sync.textContent, "D1: 194/194 xe đã đối chiếu");
+    assert.deepEqual(calls.map(x => x.offset), [0, 50, 100, 150]);
+    assert.ok(calls.every(x => x.limit === 50));
+  }
 });
