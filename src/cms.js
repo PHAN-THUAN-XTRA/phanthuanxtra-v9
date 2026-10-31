@@ -60,7 +60,23 @@ async function listCars(db, url) {
   const total = Number(await db.prepare("SELECT COUNT(*) n FROM cars" + where).bind(...filters).first("n") || 0);
   const q = await db.prepare("SELECT * FROM cars" + where + " ORDER BY featured DESC, created_at DESC, id DESC LIMIT ? OFFSET ?")
     .bind(...filters, limit, offset).all();
-  const cars = await Promise.all((q.results || []).map(async car => ({ ...car, images: await imagesFor(db, car.id) })));
+  const rows = q.results || [];
+  // One bulk read preserves canonical gallery order without an N+1 D1 query per vehicle.
+  const gallery = new Map(rows.map(car => [car.id, []]));
+  if (rows.length) {
+    const placeholders = rows.map(() => "?").join(",");
+    const images = await db.prepare(
+      "SELECT car_id,id,url,sort_order,is_cover FROM car_images WHERE car_id IN (" + placeholders + ") ORDER BY car_id,sort_order,id"
+    ).bind(...rows.map(car => car.id)).all();
+    for (const image of images.results || []) {
+      const target = gallery.get(image.car_id);
+      if (target) {
+        const { car_id, ...canonicalImage } = image;
+        target.push(canonicalImage);
+      }
+    }
+  }
+  const cars = rows.map(car => ({ ...car, images: gallery.get(car.id) || [] }));
   return { cars, total, limit, offset };
 }
 
