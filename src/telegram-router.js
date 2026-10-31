@@ -10,6 +10,7 @@ import { boundedBytes, storePublishingImage } from "./publishing-api.js";
 import { imageInputLimit } from "./media-policy.js";
 import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
 import { setCarVisibility } from "./vehicle-persistence.js";
+import { handleGalleryCallback, sendGalleryManager, galleryCommand } from "./telegram-gallery-manager.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 const clean = (v, n = 4000) => String(v ?? "").trim().slice(0, n);
@@ -163,7 +164,9 @@ async function publishReviewedCar(env,chatId,inboxId){
   const ai=captionVehicleFallback(JSON.parse(row.ai_json||"{}"),row.source_caption),keys=Array.isArray(ai.publish_media_keys)?ai.publish_media_keys.filter(Boolean):[];
   if(!keys.length)throw new Error("Bản nháp chưa có ảnh WebP.");
   if(!clean(ai.brand)||!clean(ai.model))throw new Error("Thiếu brand/model có bằng chứng; hãy xem lại /carpreview trước khi publish.");
-  const promotion=await promoteDraft(env,Number(inboxId),ai,keys[0],keys,true);
+  // Legacy contract remains: promoteDraft(env,Number(inboxId),ai,keys[0],keys,true).
+  // The draft cover key is now passed in the same cover slot without changing gallery order.
+  const promotion=await promoteDraft(env,Number(inboxId),ai,clean(ai.cover_media_key)||keys[0],keys,true);
   if(!promotion?.published)throw new Error(promotion?.reason||"Publish gate rejected listing");
   await env.DB.prepare("UPDATE telegram_inbox SET status='published',bundle_status='published',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(inboxId).run();
   return promotion;
@@ -429,6 +432,8 @@ export async function processTelegramUpdate(env, update, chatId, ctx) {
     return;
   }
   const carReview=/^\/carreview\s+(\d+)(?:\s*\n([\s\S]+))?$/i.exec(caption);
+  const carGallery=galleryCommand(caption);
+  if(carGallery){try{await sendGalleryManager(env,chatId,carGallery,Number(message.message_id||0));}catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Không mở được gallery: "+clean(error?.message||error)});}return;}
   if(carReview){
     try{await saveReviewedCarCopy(env,chatId,Number(carReview[1]),carReview[2]||"");await tg(token,"sendMessage",{chat_id:chatId,text:`✅ Đã lưu bản biên tập được duyệt cho Inbox ${carReview[1]}. Chạy /carpreview ${carReview[1]} để kiểm tra lần cuối.`});}
     catch(error){await tg(token,"sendMessage",{chat_id:chatId,text:"❌ Chưa lưu bản duyệt: "+clean(error?.message||error)});}
@@ -563,6 +568,7 @@ async function autoWebhook(request, env, ctx) {
   if (!secret) return json({ error: "Webhook secret is not configured" }, 503);
   if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== secret) return json({ error: "Unauthorized" }, 401);
   const update = await request.json().catch(() => null);
+  if (update?.callback_query) { await handleGalleryCallback(env, update.callback_query); return json({ok:true,callback:true}); }
   const message = update?.message || update?.channel_post;
   if (!message?.chat?.id) return json({ ok: true, ignored: true });
   const photo = pickPhoto(message);
@@ -618,7 +624,7 @@ export async function setAutoTelegramWebhook(env, webhookUrl = AUTO_WEBHOOK_URL)
   const token = autoBotToken(env);
   const secret = clean(env.TELEGRAM_WEBHOOK_SECRET);
   if (!secret) throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");
-  const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post"], secret_token: secret };
+  const payload = { url: webhookUrl, allowed_updates: ["message", "channel_post", "callback_query"], secret_token: secret };
   return tg(token, "setWebhook", payload);
 }
 

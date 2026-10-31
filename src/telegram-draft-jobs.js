@@ -2,6 +2,7 @@ import { boundedBytes } from "./publishing-api.js";
 import { imageInputLimit } from "./media-policy.js";
 import { storeTelegramVehicleVariants } from "./telegram-media-variants.js";
 import { analyzeVehicleImage } from "./vehicle-ai.js";
+import { sendGalleryManager } from "./telegram-gallery-manager.js";
 
 const clean=(v,n=10000)=>String(v??"").trim().slice(0,n);
 const tokenOf=env=>env.TELEGRAM_AUTO_BOT_TOKEN||env.TELEGRAM_BOT_TOKEN;
@@ -74,6 +75,7 @@ export async function processTelegramVehicleDraftBatch(env,bundleKey,chatId){
     await env.DB.prepare("INSERT INTO vehicle_ai_drafts (inbox_id,status,ai_json,confidence,missing_fields_json,source_caption,source_file_path,created_at,updated_at) VALUES (?, 'awaiting_review', ?, 0, '[]', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT(inbox_id) DO UPDATE SET ai_json=excluded.ai_json,source_caption=excluded.source_caption,source_file_path=excluded.source_file_path,error=NULL,status='awaiting_review',updated_at=CURRENT_TIMESTAMP").bind(inboxId,JSON.stringify(payload),text,clean(first.file_path)).run();
     await env.DB.prepare("UPDATE telegram_inbox SET bundle_status='done',caption=?,error=NULL,updated_at=CURRENT_TIMESTAMP WHERE bundle_key=?").bind(text,bundleKey).run();
     await tg(tokenOf(env),"sendMessage",{chat_id:chatId,reply_to_message_id:Number(first.message_id||0),text:"📝 BẢN NHÁP XE — CHỜ DUYỆT\n📦 Inbox: "+inboxId+"\n🖼 Gallery: "+webp.length+" cặp AVIF + WebP trên R2\n🟢 Cloudflare Queue + D1 checkpoint đã hoàn tất.\n⛔ Chưa đăng website. Dùng /carpreview "+inboxId+" để xem trước, sau đó /carpublish "+inboxId+" khi đã duyệt."});
+    await sendGalleryManager(env,chatId,inboxId,Number(first.message_id||0));
     return {claimed:true,complete:true,processed:done.length,total:all.length,inbox_id:inboxId};
   }catch(error){
     const message=clean(error?.message||error,1000);
