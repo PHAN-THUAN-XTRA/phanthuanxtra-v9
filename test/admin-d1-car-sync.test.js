@@ -229,3 +229,48 @@ test("Production deploy purges both Admin Control routes so repaired gallery is 
   assert.match(source, /https:\/\/phanthuanxtra\.com\/admin-control"/);
   assert.match(source, /https:\/\/phanthuanxtra\.com\/admin-control\.html"/);
 });
+
+
+test("Native Admin HTML renders all 194 Telegram-truth cars without querySelector.forEach crash", () => {
+  const html=readFileSync(new URL("../public/admin-control.html",import.meta.url),"utf8");
+  const start=html.indexOf("function renderCars(){");
+  const end=html.indexOf("async function setVisibility(",start);
+  assert.ok(start>=0&&end>start);
+  const renderer=html.slice(start,end);
+  assert.doesNotMatch(renderer, /querySelector\([^)]*\)\.forEach\s*\(/);
+  assert.doesNotMatch(renderer, /\$\('#carTable \[data-edit\]'\)\.forEach/);
+  assert.doesNotMatch(renderer, /renderCarsBase/);
+  const createNode=(tag)=>({
+    tagName:tag,children:[],dataset:{},textContent:"",value:"",
+    append(...items){this.children.push(...items)},
+    replaceChildren(...items){this.children=[...items]}
+  });
+  const root=createNode("div"),search={value:""},statusFilter={value:""};
+  const records=Array.from({length:194},(_,i)=>({
+    id:i===193?"tg-811":"tg-"+String(i+1).padStart(3,"0"),
+    brand:"ROLLS-ROYCE",model:"PHANTOM",year:2009,mileage:1,
+    status:i<7||i===193?"available":"hidden",price:7680000000
+  }));
+  const context={
+    cars:records,
+    $:selector=>({"#carTable":root,"#carQ":search,"#carFilter":statusFilter}[selector]||null),
+    document:{
+      createElement:createNode,
+      createTextNode:text=>({textContent:String(text)})
+    },
+    editCar(){},publishTelegram(){},removeCar(){},setVisibility(){}
+  };
+  vm.runInNewContext(renderer+";globalThis.testRenderCars=renderCars;",context);
+  context.testRenderCars();
+  let table=root.children[0];
+  assert.equal(table.tagName,"table");
+  assert.equal(table.children[1].children.length,194);
+  const actions=table.children[1].children[193].children[4].children;
+  assert.equal(actions.filter(x=>x.tagName==="button").length,4);
+  assert.equal(actions.find(x=>x.dataset?.visibility==="tg-811")?.textContent,"Ẩn xe");
+  statusFilter.value="hidden";
+  context.testRenderCars();
+  table=root.children[0];
+  assert.equal(table.children[1].children.length,186);
+  assert.equal(table.children[1].children[0].children[4].children.find(x=>x.dataset?.visibility)?.textContent,"Hiện lại");
+});
