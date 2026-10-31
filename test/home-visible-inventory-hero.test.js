@@ -62,6 +62,11 @@ test("Porsche 718 Boxster 2024 is preferred over another active car",async()=>{
   assert.equal(x.requests[0].url,"/api/cars");
   assert.equal(x.requests[0].options.cache,"no-store");
 });
+test("owner-selected tg-811 is preferred over the Porsche fallback",()=>{
+  assert.match(hero,/isOwnerFeatured/);
+  assert.match(hero,/cars\.find\(isOwnerFeatured\) \|\| cars\.find\(isPorsche\)/);
+  assert.match(hero,/ROLLS-ROYCE PHANTOM 2009/);
+});
 test("hidden Porsche and sold Lexus are never promoted",async()=>{
   const x=await run([
     car("porsche","PORSCHE","718 BOXSTER 2024","HIDDEN"),
