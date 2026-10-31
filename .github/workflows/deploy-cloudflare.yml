@@ -1,6 +1,6 @@
 name: Deploy Cloudflare Worker
 
-# Production deployment is GitHub Actions -> Cloudflare API/SDK.
+# Production deployment is GitHub Actions -> Cloudflare API/SDK.\n# display-only-tg811-sedan: scoped cache-purge deployment marker.
 # Wrangler must not be used as a production deployment mechanism.
 
 on:
