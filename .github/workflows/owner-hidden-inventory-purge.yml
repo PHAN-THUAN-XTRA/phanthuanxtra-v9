@@ -65,4 +65,4 @@ jobs:
           retention-days: 90
           if-no-files-found: error
 
-# Re-arm marker: execute only after merge commit owner-purge-hidden-189.
+# Trigger marker: owner-purge-hidden-189; this comment-only commit is the authorized one-shot re-arm.
