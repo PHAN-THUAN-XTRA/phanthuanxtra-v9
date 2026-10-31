@@ -40,15 +40,19 @@ export function buildGuardedDelete(hiddenIds) {
   assert(new Set(hiddenIds).size === EXPECTED.hidden, 'hidden ID list contains duplicate');
   assert(hiddenIds.every(id => typeof id === 'string' && /^[a-z0-9_-]{3,81}$/i.test(id)), 'invalid hidden ID');
   assert(!hiddenIds.includes('tg-811'), 'protected vehicle in delete set');
-  const slots = hiddenIds.map(() => '?').join(',');
+  // D1 supports at most 100 bound variables per statement. The prior 378
+  // placeholders failed HTTP 400 without deleting a row (run 41186103228).
+  // json_each(?1) expands the exact, already verified ID snapshot atomically.
+  const idsAsJson = JSON.stringify(hiddenIds);
+  const selected = "SELECT value FROM json_each(?1)";
   return {
-    sql: "DELETE FROM cars WHERE status='hidden' AND id IN (" + slots + ")" +
+    sql: "DELETE FROM cars WHERE status='hidden' AND id IN (" + selected + ")" +
       " AND (SELECT COUNT(*) FROM cars)=197" +
       " AND (SELECT COUNT(*) FROM cars WHERE status='available')=8" +
       " AND (SELECT COUNT(*) FROM cars WHERE status='hidden')=189" +
-      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden' AND id IN (" + slots + "))=189" +
+      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden' AND id IN (" + selected + "))=189" +
       " AND (SELECT COUNT(*) FROM cars WHERE id='tg-811' AND status='available' AND category='Sedan' AND price=7680000000)=1",
-    params: [...hiddenIds, ...hiddenIds]
+    params: [idsAsJson]
   };
 }
 
