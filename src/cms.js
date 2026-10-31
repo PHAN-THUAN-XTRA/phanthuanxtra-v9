@@ -48,14 +48,20 @@ async function listCars(db, url) {
   const offset = Math.max(integer(url.searchParams.get("offset"), 0), 0);
   const status = text(url.searchParams.get("status"), 30).toLowerCase();
   const search = text(url.searchParams.get("q"), 120);
-  let sql = "SELECT * FROM cars WHERE 1=1";
-  const params = [];
-  if (status) { sql += " AND status=?"; params.push(status); }
-  if (search) { sql += " AND (brand LIKE ? OR model LIKE ? OR id LIKE ?)"; const s = `%${search}%`; params.push(s, s, s); }
-  sql += " ORDER BY featured DESC, created_at DESC LIMIT ? OFFSET ?";
-  params.push(limit, offset);
-  const q = await db.prepare(sql).bind(...params).all();
-  return Promise.all((q.results || []).map(async car => ({ ...car, images: await imagesFor(db, car.id) })));
+  let where = " WHERE 1=1";
+  const filters = [];
+  if (status) { where += " AND status=?"; filters.push(status); }
+  if (search) {
+    where += " AND (brand LIKE ? OR model LIKE ? OR id LIKE ?)";
+    const value = `%${search}%`;
+    filters.push(value, value, value);
+  }
+  // Same D1 table and filters as the dashboard. Metadata detects incomplete UI paging.
+  const total = Number(await db.prepare("SELECT COUNT(*) n FROM cars" + where).bind(...filters).first("n") || 0);
+  const q = await db.prepare("SELECT * FROM cars" + where + " ORDER BY featured DESC, created_at DESC, id DESC LIMIT ? OFFSET ?")
+    .bind(...filters, limit, offset).all();
+  const cars = await Promise.all((q.results || []).map(async car => ({ ...car, images: await imagesFor(db, car.id) })));
+  return { cars, total, limit, offset };
 }
 
 export async function handleAdminCars(request, env) {
@@ -89,7 +95,7 @@ export async function handleAdminCars(request, env) {
       if (!car) return response({ error: "Không tìm thấy xe" }, 404);
       return response({ car: { ...car, images: await imagesFor(env.DB, id) } });
     }
-    return response({ cars: await listCars(env.DB, url) });
+    return response(await listCars(env.DB, url));
   }
   if (request.method === "DELETE") {
     if (!id || !safeId(id)) return response({ error: "ID không hợp lệ" }, 400);
