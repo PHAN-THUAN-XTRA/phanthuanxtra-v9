@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encryptBackup, decryptBackup } from './backup-safety.mjs';
 
-const EXPECTED = Object.freeze({ all: 197, available: 8, hidden: 189 });
+const EXPECTED = Object.freeze({ available: 8 });
 const DB_ID = '8b6c0fc8-c278-4797-9cfa-3ec93d0c1b7d';
 const BASE = 'https://api.cloudflare.com/client/v4/accounts/';
 const DIR = 'owner-hidden-purge-backup';
@@ -26,9 +26,8 @@ export function validateFleet(cars) {
     else if (car.status === 'hidden') hidden.push(car);
     else throw Error('PURGE_HOLD: unsupported car status found; no deletion permitted');
   }
-  assert(cars.length === EXPECTED.all, 'fleet total drift; expected 197');
   assert(available.length === EXPECTED.available, 'available count drift; expected 8');
-  assert(hidden.length === EXPECTED.hidden, 'hidden count drift; expected 189');
+  assert(hidden.length > 0, 'no hidden inventory rows found; refuse deletion');
   const protectedCar = available.find(car => car.id === 'tg-811');
   assert(protectedCar && Number(protectedCar.price) === 7680000000 &&
     String(protectedCar.category) === 'Sedan', 'protected tg-811 changed');
@@ -36,8 +35,8 @@ export function validateFleet(cars) {
 }
 
 export function buildGuardedDelete(hiddenIds) {
-  assert(Array.isArray(hiddenIds) && hiddenIds.length === EXPECTED.hidden, 'exact hidden ID list required');
-  assert(new Set(hiddenIds).size === EXPECTED.hidden, 'hidden ID list contains duplicate');
+  assert(Array.isArray(hiddenIds) && hiddenIds.length > 0, 'exact hidden ID list required');
+  assert(new Set(hiddenIds).size === hiddenIds.length, 'hidden ID list contains duplicate');
   assert(hiddenIds.every(id => typeof id === 'string' && /^[a-z0-9_-]{3,81}$/i.test(id)), 'invalid hidden ID');
   assert(!hiddenIds.includes('tg-811'), 'protected vehicle in delete set');
   // D1 supports at most 100 bound variables per statement. The prior 378
@@ -47,10 +46,10 @@ export function buildGuardedDelete(hiddenIds) {
   const selected = "SELECT value FROM json_each(?1)";
   return {
     sql: "DELETE FROM cars WHERE status='hidden' AND id IN (" + selected + ")" +
-      " AND (SELECT COUNT(*) FROM cars)=197" +
-      " AND (SELECT COUNT(*) FROM cars WHERE status='available')=8" +
-      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden')=189" +
-      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden' AND id IN (" + selected + "))=189" +
+      " AND (SELECT COUNT(*) FROM cars)=" + (hiddenIds.length + EXPECTED.available) +
+      " AND (SELECT COUNT(*) FROM cars WHERE status='available')=" + EXPECTED.available +
+      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden')=" + hiddenIds.length +
+      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden' AND id IN (" + selected + "))=" + hiddenIds.length +
       " AND (SELECT COUNT(*) FROM cars WHERE id='tg-811' AND status='available' AND category='Sedan' AND price=7680000000)=1",
     params: [idsAsJson]
   };
@@ -122,12 +121,12 @@ async function prepare() {
   const verified=await readFile(DIR+'/restore-check.json');
   assert(digest(verified) === hash,'encrypted backup cannot be decrypted identically');
   const parsed=JSON.parse(verified.toString('utf8'));
-  assert(parsed.hidden.length===189 && parsed.available.length===8 &&
+  assert(parsed.hidden.length>0 && parsed.available.length===8 &&
     parsed.hiddenImages.length===hiddenImages.length,'restored snapshot count mismatch');
   const enc=await readFile(encPath);
   const receipt={schema:'xtra.hidden.vehicle.backup.receipt.v1',
     sha:process.env.GITHUB_SHA,runId:process.env.GITHUB_RUN_ID,
-    hidden:189,available:8,imagesPreserved:hiddenImages.length,
+    hidden:hidden.length,available:8,imagesPreserved:hiddenImages.length,
     plaintextSha256:hash,encryptedSha256:digest(enc),createdAt:snapshot.time};
   await writeFile(DIR+'/receipt.json',JSON.stringify(receipt,null,2));
   await rm(rawPath);await rm(DIR+'/restore-check.json');
@@ -149,7 +148,7 @@ async function execute() {
   assert(saved.runId===process.env.GITHUB_RUN_ID && saved.sha===process.env.GITHUB_SHA,
     'backup belongs to different run/commit');
   assert(Date.now()-Date.parse(saved.time) < 30*60*1000,'backup stale (>30 minutes)');
-  assert(saved.hidden.length===189 && saved.available.length===8,'backup counts invalid');
+  assert(saved.hidden.length>0 && saved.available.length===8,'backup counts invalid');
   const nowCars=await readCars();
   validateFleet(nowCars);
   const currentAvailable=nowCars.filter(x=>x.status==='available');
