@@ -16,7 +16,7 @@ function mockD1(amount = 194) {
     model: "PHANTOM",
     year: 2009,
     price: 7680000000,
-    status: "available",
+    status: i < 7 || i === amount - 1 ? "available" : "hidden",
     featured: 0,
     created_at: "2026-10-31"
   }));
@@ -141,6 +141,9 @@ test("Admin and Telegram signed Mini App read exactly the same D1 vehicles inclu
   const telegramCars = (await telegramResponse.json()).cars;
   assert.equal(adminCars.length, 194);
   assert.equal(telegramCars.length, 194);
+  assert.equal(adminCars.filter(c => c.status === "available").length, 8);
+  assert.equal(adminCars.filter(c => c.status === "hidden").length, 186);
+  assert.equal(telegramCars.filter(c => c.status === "hidden").length, 186);
   assert.deepEqual(adminCars.map(x => x.id).sort(), telegramCars.map(x => x.id).sort());
   const phantom = adminCars.find(x => x.id === "tg-811");
   assert.ok(phantom);
