@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { validateFleet, buildGuardedDelete } from '../scripts/owner-hidden-inventory-delete.mjs';
 
@@ -44,9 +45,9 @@ test('single guarded SQL statement can remove only the exact hidden list',()=>{
   assert.match(result.sql,/status='available'\)=8/);
   assert.match(result.sql,/status='hidden'\)=189/);
   assert.match(result.sql,/id='tg-811'/);
-  assert.equal(result.params.length,378);
-  assert.deepEqual(result.params.slice(0,189),ids);
-  assert.deepEqual(result.params.slice(189),ids);
+  assert.equal(result.params.length,1,'Cloudflare D1 allows at most 100 parameters');
+  assert.deepEqual(JSON.parse(result.params[0]),ids);
+  assert.equal((result.sql.match(/json_each\(\?1\)/g)||[]).length,2);
   assert.doesNotMatch(result.sql,/DELETE FROM car_images|DROP TABLE|DELETE FROM telegram_posts/i);
   assert.throws(()=>buildGuardedDelete([...ids.slice(0,188),'tg-811']),/PURGE_HOLD/);
 });
@@ -68,4 +69,42 @@ test('workflow is one-shot main push with verified encrypted GitHub artifact bef
   assert.match(script,/stable\(after\)===stable\(saved.available\)/);
   assert.doesNotMatch(yaml,/\bwrangler\b/i);
   assert.doesNotMatch(script,/DELETE FROM car_images|DELETE FROM telegram_posts|DELETE FROM leads/);
+});
+
+
+test('execute actual atomic JSON_each D1-compatible SQL on disposable SQLite clone',()=>{
+  function local() {
+    const db=new DatabaseSync(':memory:');
+    db.exec('CREATE TABLE cars (id TEXT PRIMARY KEY, status TEXT, price INTEGER, category TEXT)');
+    const stmt=db.prepare('INSERT INTO cars (id,status,price,category) VALUES (?,?,?,?)');
+    for(const row of fixture())stmt.run(row.id,row.status,row.price,row.category||null);
+    return db;
+  }
+  const ids=validateFleet(fixture()).hidden.map(x=>x.id);
+  const {sql,params}=buildGuardedDelete(ids);
+  const db=local();
+  try {
+    const before=db.prepare("SELECT COUNT(*) AS n FROM cars").get();
+    assert.equal(before.n,197);
+    const changes=db.prepare(sql).run(...params);
+    assert.equal(changes.changes,189,'one atomic statement removes all expected hidden rows');
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM cars WHERE status='hidden'").get().n,0);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM cars WHERE status='available'").get().n,8);
+    assert.equal(db.prepare("SELECT price FROM cars WHERE id='tg-811'").get().price,7680000000);
+  } finally { db.close(); }
+
+  const driftDb=local();
+  try {
+    driftDb.prepare("UPDATE cars SET status='reserved' WHERE id=?").run(ids[0]);
+    const changes=driftDb.prepare(sql).run(...params);
+    assert.equal(changes.changes,0,'different source data must result in no rows removed');
+    assert.equal(driftDb.prepare('SELECT COUNT(*) AS n FROM cars').get().n,197);
+  } finally { driftDb.close(); }
+
+  const mismatchDb=local();
+  try {
+    const mismatched=buildGuardedDelete(ids.map((id,i)=>i===0?'hidden-999':id));
+    assert.equal(mismatchDb.prepare(mismatched.sql).run(...mismatched.params).changes,0);
+    assert.equal(mismatchDb.prepare('SELECT COUNT(*) AS n FROM cars').get().n,197);
+  } finally { mismatchDb.close(); }
 });
