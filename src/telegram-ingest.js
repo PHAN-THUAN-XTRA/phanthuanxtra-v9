@@ -181,6 +181,6 @@ export async function handleTelegramIngest(request,env,ctx){
   return json({ok:true,received:true,source_hash:sourceHash,inbox_id:inbox?.id||null,queued:Boolean(photo&&ctx)});
 }
 
-export async function setTelegramWebhook(env,webhookUrl){const secret=clean(env.TELEGRAM_WEBHOOK_SECRET);if(!secret)throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");const payload={url:webhookUrl,allowed_updates:["message","channel_post"],secret_token:secret};return tg(env,"setWebhook",payload,webhookBotToken(env));}
+export async function setTelegramWebhook(env,webhookUrl){const secret=clean(env.TELEGRAM_WEBHOOK_SECRET);if(!secret)throw new Error("TELEGRAM_WEBHOOK_SECRET is not configured");const payload={url:webhookUrl,allowed_updates:["message","channel_post","callback_query"],secret_token:secret};return tg(env,"setWebhook",payload,webhookBotToken(env));}
 
 export { canAutoPublish, promoteDraft };
