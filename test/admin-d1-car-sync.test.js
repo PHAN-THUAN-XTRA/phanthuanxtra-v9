@@ -10,7 +10,7 @@ import { handleTelegramMiniAppApi } from "../src/telegram-mini-app.js";
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 // Read-only D1 mock: fail immediately on any SQL that is not SELECT.
-function mockD1(amount = 194) {
+function mockD1(amount = 194, galleryRows = []) {
   const rows = Array.from({ length: amount }, (_, i) => ({
     id: i === amount - 1 ? "tg-811" : "tg-" + String(i + 1).padStart(3, "0"),
     brand: "ROLLS-ROYCE",
@@ -37,7 +37,7 @@ function mockD1(amount = 194) {
             },
             async all() {
               reads++;
-              if (sql.includes("FROM car_images")) return { results: [] };
+              if (sql.includes("FROM car_images")) return { results: galleryRows.filter(row => args.includes(row.car_id)) };
               if (sql.startsWith("SELECT * FROM cars ORDER BY")) return { results: rows.slice(0, 300) };
               assert.match(sql, /^SELECT \* FROM cars WHERE/);
               const limit = args[args.length - 2];
@@ -273,4 +273,25 @@ test("Native Admin HTML renders all 194 Telegram-truth cars without querySelecto
   table=root.children[0];
   assert.equal(table.children[1].children.length,186);
   assert.equal(table.children[1].children[0].children[4].children.find(x=>x.dataset?.visibility)?.textContent,"Hiện lại");
+});
+
+
+test("Telegram canonical gallery survives Admin list pagination with original photo order and cover flags", async () => {
+  const galleryRows = [
+    {car_id:"tg-811",id:7,url:"https://images.example.test/car/cover.webp",sort_order:0,is_cover:1},
+    {car_id:"tg-811",id:8,url:"https://images.example.test/car/rear.webp",sort_order:1,is_cover:0}
+  ];
+  const db=mockD1(194,galleryRows);
+  const env={DB:db,ADMIN_TOKEN:webcrypto.randomUUID()};
+  const token=await issueAdminToken(env);
+  const response=await handleAppAdmin(new Request(base+"/api/admin/cars?limit=50&offset=150",{
+    headers:{Authorization:"Bearer "+token}
+  }),env);
+  assert.equal(response.status,200);
+  const payload=await response.json();
+  const phantom=payload.cars.find(car=>car.id==="tg-811");
+  assert.ok(phantom,"Telegram vehicle is in the final Admin page");
+  assert.deepEqual(phantom.images, galleryRows.map(({car_id,...image})=>image));
+  assert.equal(phantom.images[0].is_cover,1);
+  assert.equal(db.reads,3,"Count, cars, and bulk gallery; no N+1");
 });
