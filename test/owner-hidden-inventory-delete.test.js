@@ -27,7 +27,7 @@ test('exact owner request: retain eight available while targeting 189 hidden',()
 test('fail closed on all count, status, duplicated ID or protected car drift',()=>{
   const rows=fixture();
   assert.throws(()=>validateFleet(rows.slice(0,196)),/PURGE_HOLD/);
-  const drift=structuredClone(rows);drift[0].status='available';
+  const drift=structuredClone(rows);drift.find(car=>car.status==='hidden').status='available';
   assert.throws(()=>validateFleet(drift),/PURGE_HOLD/);
   const duplicate=structuredClone(rows);duplicate[0].id=duplicate[1].id;
   assert.throws(()=>validateFleet(duplicate),/PURGE_HOLD/);
