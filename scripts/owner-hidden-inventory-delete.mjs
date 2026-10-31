@@ -46,10 +46,10 @@ export function buildGuardedDelete(hiddenIds) {
   const selected = "SELECT value FROM json_each(?1)";
   return {
     sql: "DELETE FROM cars WHERE status='hidden' AND id IN (" + selected + ")" +
-      " AND (SELECT COUNT(*) FROM cars)=197" +
-      " AND (SELECT COUNT(*) FROM cars WHERE status='available')=8" +
-      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden')=189" +
-      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden' AND id IN (" + selected + "))=189" +
+      " AND (SELECT COUNT(*) FROM cars)=" + (hiddenIds.length + EXPECTED.available) +
+      " AND (SELECT COUNT(*) FROM cars WHERE status='available')=" + EXPECTED.available +
+      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden')=" + hiddenIds.length +
+      " AND (SELECT COUNT(*) FROM cars WHERE status='hidden' AND id IN (" + selected + "))=" + hiddenIds.length +
       " AND (SELECT COUNT(*) FROM cars WHERE id='tg-811' AND status='available' AND category='Sedan' AND price=7680000000)=1",
     params: [idsAsJson]
   };
