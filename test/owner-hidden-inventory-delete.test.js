@@ -122,6 +122,6 @@ test('accepts current production-sized hidden inventory while preserving eight a
   assert.equal(result.hidden.length,195);
   assert.equal(result.available.length,8);
   const guarded=buildGuardedDelete(result.hidden.map(car=>car.id));
-  assert.match(guarded.sql,/COUNT\\(\\*\\) FROM cars\\)=203/);
-  assert.match(guarded.sql,/status='hidden'\\)=195/);
+  assert.match(guarded.sql,/COUNT\(\*\) FROM cars\)=203/);
+  assert.match(guarded.sql,/status='hidden'\)=195/);
 });
