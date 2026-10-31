@@ -23,9 +23,14 @@ jobs:
         shell: bash
         env:
           QA_ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          QA_TELEGRAM_BOT: ${{ secrets.TELEGRAM_AUTO_BOT_TOKEN }}
+          QA_TELEGRAM_OWNER_IDS: ${{ secrets.TELEGRAM_AUTO_PUBLISH_CHAT_IDS }}
+          QA_TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          QA_TELEGRAM_CRM_CHAT_ID: ${{ secrets.TELEGRAM_CRM_CHAT_ID }}
         run: |
           node --input-type=module <<'NODE'
           import { appendFileSync } from 'node:fs';
+          import { createHmac } from 'node:crypto';
           const origin = 'https://phanthuanxtra.com';
           const fail = why => { console.error('ADMIN_INVENTORY_VERIFY_FAILED: ' + why); process.exit(1); };
           if (!process.env.QA_ADMIN_PASSWORD) fail('Admin credential unavailable; no authenticated request sent');
@@ -54,7 +59,7 @@ jobs:
           if(dashboard.status!==200)fail('Admin dashboard unavailable');
           const total=Number(dashboard.data?.stats?.cars);
           if(!Number.isSafeInteger(total)||total<1||total>10000)fail('Invalid or oversized dashboard count');
-          const seen=new Set(), statuses={};
+          const seen=new Set(), statuses={},adminById=new Map();
           let listedTg811=null;
           let count=0;
           for(let offset=0;offset<total;offset+=50){
@@ -65,6 +70,7 @@ jobs:
             for(const car of data.cars){
               if(typeof car.id!=='string'||!car.id||seen.has(car.id))fail('Duplicate/invalid car ID');
               seen.add(car.id);
+              adminById.set(car.id,car);
               if(car.id==='tg-811')listedTg811=car;
               const status=String(car.status||'unknown');
               statuses[status]=(statuses[status]||0)+1;
@@ -72,6 +78,50 @@ jobs:
             }
           }
           if(count!==total||seen.size!==total)fail('Incomplete signed Admin listing');
+          // Telegram signed owner Mini App is the reference view. No data is modified or exported.
+          const bot=process.env.QA_TELEGRAM_BOT||'';
+          const owners=[process.env.QA_TELEGRAM_OWNER_IDS,process.env.QA_TELEGRAM_CHAT_ID,process.env.QA_TELEGRAM_CRM_CHAT_ID]
+            .filter(Boolean).flatMap(v=>String(v).split(/[\s,]+/).filter(Boolean));
+          const ownerId=owners.find(v=>/^\d+$/.test(v));
+          if(!bot||!ownerId)fail('Signed Telegram read credentials unavailable');
+          const init=new URLSearchParams({
+            auth_date:String(Math.floor(Date.now()/1000)),
+            query_id:'AA-postdeploy-inventory',
+            user:JSON.stringify({id:Number(ownerId),first_name:'QA'})
+          });
+          const checkData=[...init.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('\n');
+          const key=createHmac('sha256','WebAppData').update(bot).digest();
+          init.set('hash',createHmac('sha256',key).update(checkData).digest('hex'));
+          const tgResponse=await fetch(origin+'/api/telegram/mini/v1/cars',{
+            headers:{'X-Telegram-Init-Data':init.toString(),Accept:'application/json'},
+            cache:'no-store',redirect:'manual',signal:AbortSignal.timeout(20000)
+          });
+          if(tgResponse.status!==200)fail('Signed Telegram list unavailable: HTTP '+tgResponse.status);
+          const tgPayload=await tgResponse.json().catch(()=>null);
+          if(!tgPayload?.ok||!Array.isArray(tgPayload.cars))fail('Telegram list shape invalid');
+          if(tgPayload.cars.length!==total)fail('Telegram/Admin fleet count mismatch');
+          const telegramById=new Map();
+          for(const tg of tgPayload.cars){
+            if(!tg?.id||telegramById.has(tg.id))fail('Telegram ID missing/duplicate');
+            telegramById.set(tg.id,tg);
+          }
+          if(telegramById.size!==adminById.size)fail('Telegram/Admin unique ID counts differ');
+          const fields=['id','brand','model','year','mileage','price','category','status','cover_image','featured'];
+          let compared=0,comparedPhotos=0;
+          for(const [id,tg] of telegramById){
+            const admin=adminById.get(id);
+            if(!admin)fail('Telegram ID absent from Admin inventory');
+            for(const field of fields){
+              if(String(tg[field]??'')!==String(admin[field]??''))fail('Telegram/Admin vehicle field drift (redacted)');
+            }
+            const normalized = xs=>Array.isArray(xs)?xs.map((im)=>[
+              String(im.id??''),String(im.url??''),String(im.sort_order??''),String(im.is_cover??'')
+            ]):[];
+            if(JSON.stringify(normalized(tg.images))!==JSON.stringify(normalized(admin.images)))fail('Telegram/Admin album cover/order drift (redacted)');
+            comparedPhotos+=(tg.images||[]).length;
+            compared++;
+          }
+
           const phantom=await read('/api/admin/cars/tg-811',token);
           if(phantom.status!==200||phantom.data?.car?.id!=='tg-811')fail('tg-811 unavailable to authenticated Admin');
           const car=phantom.data.car;
@@ -104,6 +154,8 @@ jobs:
             tg811:{present:true,category:car.category,price:Number(car.price),status:car.status},
             publicHidden:0,
             htmlVariantsVerified:htmlPaths.length,
+            telegramIdsMatched:compared,
+            telegramPhotosMatched:comparedPhotos,
             method:'GET/SELECT-only'
           };
           console.log('ADMIN_INVENTORY_POSTDEPLOY '+JSON.stringify(receipt));
