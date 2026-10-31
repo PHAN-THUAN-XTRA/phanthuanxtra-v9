@@ -1,3 +1,13 @@
+# EXECUTION RECEIPT — OWNER HIDDEN INVENTORY PURGE — PARTIAL/BLOCKED — 2026-10-31 (UTC+7)
+
+- **Phạm vi:** Chủ sở hữu phê duyệt giữ lại đúng 8 xe `available`, xóa vật lý các hàng `hidden` khỏi D1 `cars`; không xóa R2, `car_images`, Telegram history, customers hoặc orders.
+- **PR / commit:** PR #908 merged `239a7d9098f372c8e6ff40dc8a3f6f783b0c5de4` (JSON `json_each(?1)` fix); PR #911 merged `332eb15d21a2730c1c06925a9b1b27c544273b00` (current-inventory guard + regression); PR #912 merged `fb56f0ecf0d18f344eaffc28763d5498117c5b2f` (marker-only re-arm).
+- **Workflow:** `41187377865` — backup phase SUCCESS, encrypted artifact uploaded/downloaded/decrypted/SHA-256 verified; artifact ID `13037257253`; execution phase reached guarded DELETE but failed at the stale hard-coded deletion-count receipt assertion. No success receipt was published.
+- **Inventory evidence:** read-only Admin/Telegram run `41186940782` observed 203 total, 8 available, 195 hidden before the purge attempt. The purge snapshot itself verified 8 available and 189 hidden immediately before backup. Current D1/Admin/Telegram exact post-delete count is **NOT CERTIFIED** because the postdeploy verifier was skipped after the unrelated deploy gate `tg-652` failed on canonical count.
+- **Protected vehicle:** `tg-811` remained present in the public response with category Sedan and price 7.680.000.000 VNĐ; its description and 17-image ordered gallery were observed. This is not a substitute for the required authenticated Admin/Telegram post-delete verification.
+- **Current status:** **PARTIAL / BLOCKED — DO NOT LABEL DONE.** Public `/api/cars` currently returned 7 IDs, so website verification of all 8 is still open. No further deletion attempt is authorized by this receipt.
+- **Required next step:** repair or separately bypass only the unrelated `tg-652` deployment gate through a reviewed PR, then run the existing read-only Admin↔Telegram verifier against the post-delete D1; if it proves exactly 8 unchanged available rows and public 8/8, publish a separate evidence-only MASTER update. Preserve artifact `13037257253` for recovery.
+
 # PHAN THUẦN XTRA — MASTER PROJECT STATUS
 
 ## OWNER REQUEST — REMOVE 189 HIDDEN VEHICLES, PRESERVE 8 AVAILABLE — 2026-10-31 (UTC+7)
