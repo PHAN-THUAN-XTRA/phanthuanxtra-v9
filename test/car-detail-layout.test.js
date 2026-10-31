@@ -33,3 +33,9 @@ test("car detail has responsive desktop and mobile layout contracts",()=>{
   assert.match(html,/@media\(max-width:760px\)[\s\S]*?\.vehicle-gallery-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:8px\}/);
   assert.match(html,/@media\(max-width:420px\)\{\.vehicle-gallery-grid\{grid-template-columns:1fr\}\}/);
 });
+
+
+test("tg-811 uses the evidence-backed Phantom VII Sedan title",()=>{
+  assert.match(html,/displayName=String\(c\.id\)==='tg-811'\?'PHANTOM VII 2009 \| STANDARD WHEELBASE \| V12 6\.75L \| SEDAN SIÊU SANG'/);
+  assert.match(html,/el\('h1','',displayName\)/);
+});
