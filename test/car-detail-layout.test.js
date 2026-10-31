@@ -39,3 +39,10 @@ test("tg-811 uses the evidence-backed Phantom VII Sedan title",()=>{
   assert.match(html,/displayName=String\(c\.id\)==='tg-811'\?'PHANTOM VII 2009 \| STANDARD WHEELBASE \| V12 6\.75L \| SEDAN SIÊU SANG'/);
   assert.match(html,/el\('h1','',displayName\)/);
 });
+
+
+test("tg-811 title propagates to document metadata, booking context, and gallery alt text",()=>{
+  assert.match(html,/document\.title=\(c\.brand\+' '\+displayName\)/);
+  assert.match(html,/name:\(\(c\.brand\|\|''\)\+' '\+displayName\)\.trim\(\)/);
+  assert.match(html,/img\.alt=\(c\.brand\|\|''\)\+' '\+displayName\+' — ảnh '/);
+});
