@@ -1,0 +1,49 @@
+name: Owner Keep Seven — Encrypted Backup Then Atomic Purge
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/owner-keep-seven-purge.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: owner-keep-seven-purge
+  cancel-in-progress: false
+jobs:
+  purge:
+    if: ${{ contains(github.event.head_commit.message, 'owner-keep-seven-purge') }}
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_BACKUP_API_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
+      TELEGRAM_BACKUP_BOT_TOKEN: ${{ secrets.TELEGRAM_BACKUP_BOT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v5
+        with: {node-version: 24}
+      - run: node scripts/owner-keep-seven-purge.mjs prepare
+      - id: backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-keep-seven-restore-${{ github.run_id }}
+          path: |
+            owner-keep-seven-backup/cars.enc
+            owner-keep-seven-backup/receipt.json
+          retention-days: 90
+      - uses: actions/download-artifact@v4
+        with:
+          name: owner-keep-seven-restore-${{ github.run_id }}
+          path: verified-upload
+      - if: ${{ steps.backup.outputs.artifact-id != '' }}
+        run: node scripts/owner-keep-seven-purge.mjs execute
+      - if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-keep-seven-execution-${{ github.run_id }}
+          path: owner-keep-seven-backup/execution-receipt.json
+          retention-days: 90
