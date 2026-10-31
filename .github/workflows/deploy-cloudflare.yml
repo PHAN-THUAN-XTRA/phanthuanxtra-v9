@@ -111,6 +111,7 @@ jobs:
       - name: Resolve Cloudflare API credentials
         shell: bash
         env:
+      DISPLAY_ONLY_DEPLOY: ${{ contains(github.event.head_commit.message, 'display-only-tg811-sedan') && '1' || '0' }}
           CF_PRIMARY_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_BACKUP_TOKEN: ${{ secrets.CLOUDFLARE_BACKUP_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
