@@ -9,6 +9,9 @@ const safeImage = value => {
 };
 const jsonScript = data => JSON.stringify(data).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 const statusText = status => ({available:'Đang bán', reserved:'Đã đặt cọc', sold:'Đã bán'}[status]);
+const vehicleName = vehicle => String(vehicle.id || '') === 'tg-811'
+  ? 'Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L'
+  : `${vehicle.brand} ${vehicle.name}`.trim();
 
 function response(body, type = 'text/html', status = 200, method = 'GET') {
   return new Response(method === 'HEAD' ? null : body, {status, headers:{
@@ -21,7 +24,7 @@ function response(body, type = 'text/html', status = 200, method = 'GET') {
 export function vehicleSchema(row, vehicle) {
   const images = [vehicle.cover_image, ...vehicle.images.map(x => typeof x === 'string' ? x : x.url)].map(safeImage).filter(Boolean);
   const result = {'@context':'https://schema.org', '@type':'Car', '@id':carUrl(row.id)+'#vehicle',
-    name:`${vehicle.brand} ${vehicle.name}`.trim(), url:carUrl(row.id),
+    name:vehicleName(vehicle), url:carUrl(row.id),
     brand:{'@type':'Brand',name:vehicle.brand}, model:vehicle.name,
     description:vehicle.description, image:[...new Set(images)]};
   if (Number(row.year) > 1900) result.vehicleModelDate = String(row.year);
@@ -35,14 +38,14 @@ export function vehicleSchema(row, vehicle) {
 }
 
 export function vehicleBody(row, c) {
-  const name = `${c.brand} ${c.name}`.trim();
+  const name = vehicleName(c);
   const images = c.images.map(x => typeof x === 'string' ? x : x.url).map(safeImage).filter(Boolean);
   const cover = safeImage(c.cover_image) || images[0];
   return `<div class="detail-grid"><div>${cover ? `<img src="${esc(cover)}" alt="${esc(name)}" style="width:100%;height:auto;border-radius:12px">` : ''}</div><div class="detail-info"><p class="eyebrow">${esc(c.brand)}</p><h1>${esc(name)}</h1><p class="lead">${esc([c.year,c.engine,c.odo].filter(Boolean).join(' • '))}</p><p>${esc(statusText(row.status))}</p><div class="price big">${esc(c.price)}</div><div class="vehicle-description">${esc(c.description)}</div>${c.features.length ? `<h2>Trang bị nổi bật</h2><ul class="options">${c.features.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>` : ''}<div class="actions"><a class="btn primary" href="tel:+84866997891">Gọi tư vấn</a><a class="btn zalo" href="https://zalo.me/0866997891" rel="noopener noreferrer">Nhắn Zalo</a></div></div></div>${images.length ? `<section class="vehicle-gallery"><h2>Hình ảnh chi tiết (${images.length} ảnh)</h2><div class="vehicle-gallery-grid">${images.map((src,i)=>`<a href="${esc(src)}" target="_blank" rel="noopener noreferrer"><img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(name)} — ảnh ${i+1}"></a>`).join('')}</div></section>` : ''}`;
 }
 
 export function renderVehicle(template, row, c) {
-  const name = `${c.brand} ${c.name}`.trim();
+  const name = vehicleName(c);
   const summary = [name, c.year, c.price, statusText(row.status), c.description].filter(Boolean).join(' — ').replace(/\s+/g,' ').slice(0,260);
   const cover = safeImage(c.cover_image) || c.images.map(x => typeof x === 'string' ? x : x.url).map(safeImage).find(Boolean);
   const head = '<meta name="description" content="'+esc(summary)+'">'
