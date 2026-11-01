@@ -47,4 +47,3 @@ test("tg-811 title propagates to document metadata, booking context, and gallery
   assert.match(html,/name:displayTitle\.trim\(\)/);
   assert.match(html,/img\.alt=displayTitle\+' — ảnh '/);
 });
-

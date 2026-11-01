@@ -123,4 +123,3 @@ if (carousel) {
   reducedMotion.addEventListener('change', start);
   start();
 }
-

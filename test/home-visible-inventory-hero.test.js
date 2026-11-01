@@ -106,4 +106,3 @@ test("catalog cards also refuse hidden or unpublished records",()=>{
   assert.match(listing,/\$\$\('\.filter'\)\.forEach\(button=>/);
   assert.doesNotMatch(listing,/(?<!\$)\$\('\.filter'\)\.forEach/);
 });
-
