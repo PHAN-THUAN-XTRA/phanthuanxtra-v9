@@ -21,6 +21,28 @@ test('detail is UTF-8 SSR for both users and crawlers, with canonical facts and 
   }
   sqlite.close();
 });
+test('tg-811 SSR uses the owner-approved public title without changing stored facts or gallery',async()=>{
+  const {env,sqlite}=fixture();
+  try {
+    sqlite.exec("UPDATE cars SET id='tg-811',brand='ROLLS-ROYCE',model='PHANTOM 2009',year=2009,price=7680000000 WHERE id='tg-test'; UPDATE car_images SET car_id='tg-811' WHERE car_id='tg-test';");
+    const before=JSON.stringify(sqlite.prepare("SELECT * FROM cars WHERE id='tg-811'").get());
+    const beforeImages=JSON.stringify(sqlite.prepare("SELECT * FROM car_images WHERE car_id='tg-811' ORDER BY sort_order,id").all());
+    const r=await handleAiDiscovery(new Request('https://phanthuanxtra.com/car.html?id=tg-811'),env);
+    const html=await r.text(),title='Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L';
+    assert.equal(r.status,200);
+    assert.ok(html.includes('<h1>'+title+'</h1>'));
+    assert.ok(html.includes('<title>'+title+' | PHAN THUẦN XTRA</title>'));
+    assert.ok(html.includes('<meta property="og:title" content="'+title+'">'));
+    assert.ok(html.includes('<meta name="twitter:title" content="'+title+'">'));
+    const schema=JSON.parse(html.match(/application\/ld\+json">([^<]+)</)[1]);
+    assert.equal(schema.name,title);assert.equal(schema.model,'PHANTOM 2009');
+    assert.equal(schema.offers.price,7680000000);
+    assert.match(html,/7\.680\.000\.000 đ/);assert.match(html,/Đang bán/);assert.match(html,/Xe thật\nGiá owner/);
+    assert.ok(html.indexOf('ảnh 1')<html.indexOf('ảnh 2'));
+    assert.equal(JSON.stringify(sqlite.prepare("SELECT * FROM cars WHERE id='tg-811'").get()),before);
+    assert.equal(JSON.stringify(sqlite.prepare("SELECT * FROM car_images WHERE car_id='tg-811' ORDER BY sort_order,id").all()),beforeImages);
+  } finally {sqlite.close();}
+});
 test('hidden/draft/missing details fail closed; outages never resurrect static records',async()=>{
   const {env,sqlite}=fixture();
   for(const id of ['tg-hidden','tg-draft','missing','<script>']) {
