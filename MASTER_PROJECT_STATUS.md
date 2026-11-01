@@ -1,5 +1,50 @@
 # TG-811 — HERO BADGE AND PUBLIC TITLE — LIVE VERIFIED — 2026-11-01 (UTC+7)
 
+## Quy trình xử lý nhanh — nhãn, kiểu dáng và tiêu đề xe
+
+**Phạm vi:** dùng khi Admin/Telegram, banner trang chủ, thẻ xe hoặc trang chi tiết hiển thị khác nhau. Đọc mục này cùng trạng thái MASTER mới nhất trước khi sửa; tiếp tục đúng phạm vi chủ sở hữu đã cho phép, không yêu cầu xác nhận lại cùng một thao tác đã được chấp thuận. Mọi ghi nhận tiếp theo cập nhật trong chính file này, không tạo báo cáo Markdown thứ hai.
+
+### 1. Chọn đúng nơi cần sửa
+
+| Dấu hiệu đã đối chiếu | Nơi kiểm tra trước | Cách xử lý nhỏ nhất |
+| --- | --- | --- |
+| Kiểu dáng trong dữ liệu quản trị sai | Admin hoặc Telegram Mini App `/carapp`; bản ghi đúng ID; `src/vehicle-persistence.js` | Cập nhật duy nhất trường được phép, ví dụ `category: sedan`. Giữ nguyên các trường khác và không gửi lại `images` trong cập nhật từng phần. |
+| Dữ liệu quản trị đúng nhưng nhãn banner sai | `public/hero-carousel.js`: `isOwnerFeatured`, `preferred`, `category`, `type`, `[data-catalog-brand]` | Sửa nhánh tạo nhãn của đúng xe. Khi đổi xe ưu tiên, rà cả nhãn kế thừa và tiêu đề; không sửa dữ liệu đúng để bù cho nhãn ghi cứng. |
+| Tiêu đề trang xe không đổi sau khi sửa mẫu giao diện | `src/entry.js` → `handleAiDiscovery` trong `src/ai-discovery.js` | Kiểm tra đường dựng HTML tại máy chủ trước. Hiện `vehicleName` cấp tên cho `vehicleBody`, `renderVehicle` và tên hiển thị trong `vehicleSchema`. |
+| Thẻ xe khác với banner hoặc trang chi tiết | `public/script.js`, `/api/cars`, `norm` trong `src/index.js` | So sánh đúng ID và từng trường nguồn. Phân biệt tên hiển thị công khai với model lưu trong Admin; chỉ mở rộng nơi cập nhật khi thuộc yêu cầu. |
+| Mã đã phát hành nhưng trang còn cũ | SHA đã triển khai, phản hồi từ URL công khai gốc, phiên bản tệp JS, nhật ký purge | Xác minh bản phát hành và đúng nguồn HTML trước; sau đó làm mới/purge đúng URL, gồm query ID khi cần. Không lặp xóa cache để chữa sai mã. |
+
+**Điểm dễ bỏ sót:** trang `/car.html?id=...` hiện được `handleAiDiscovery` dựng trước đường phục vụ tài nguyên thông thường. `renderVehicle` loại bỏ script inline của `public/car.html`; vì vậy thêm `displayName` trong script của mẫu chưa chứng minh tiêu đề công khai đã đổi. Cần kiểm tra H1, document title, Open Graph/Twitter title và tên hiển thị trong dữ liệu cấu trúc từ phản hồi thật.
+
+### 2. Trình tự thực hiện
+
+1. **Chốt phạm vi:** đúng xe, ID, URL, chuỗi trước/sau và những giá trị phải giữ. Với tg-811, yêu cầu đã nghiệm thu là badge `ROLLS-ROYCE • Sedan hạng sang F` và tiêu đề `Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L`.
+2. **Đọc và lưu đối chiếu trước sửa:** trang chủ, URL chi tiết gốc, bản ghi Admin/Telegram khi có quyền; ghi giá, mô tả, trạng thái, ảnh bìa và toàn bộ thứ tự URL/ID ảnh. So sánh với snapshot hiện tại, không khóa số lượng kho xe theo một báo cáo cũ.
+3. **Truy đúng luồng hiển thị:** đối chiếu bảng trên và đường xử lý request. Nếu dữ liệu đã đúng, tìm mã ghi cứng hoặc nguồn tiêu đề khác trước khi ghi D1. Khi bằng chứng đã xác định được lớp lỗi, xử lý ngay lớp đó; không mở rộng nghiên cứu hay sửa xe khác.
+4. **Sửa tối thiểu:** giữ ảnh, mô tả, giá và trạng thái ngoài phạm vi. Nếu yêu cầu chỉ đổi tên hiển thị, không tự sửa model quản trị. Nếu chỉ cần cập nhật dữ liệu thì dùng đường quản trị hiện có; chỉ sửa mã và phát hành khi mã hiển thị là nguyên nhân.
+5. **Kiểm tra có ý nghĩa:** chạy đúng đường tạo kết quả, không chỉ tìm chuỗi trong file. Kiểm tra xe mục tiêu cùng ít nhất một xe đối chứng; với trang SSR phải gọi handler/render thật và đối chiếu H1/metadata, giá, mô tả, trạng thái và gallery. Giữ kiểm tra escape, xe ẩn và phương thức HTTP liên quan. Không mở rộng hoặc chạy lại kiểm thử khi không có thay đổi, lỗi hay vấn đề mới cần giải quyết.
+6. **Kiểm tra và phát hành theo quy trình sẵn có:** PR → các check bắt buộc đạt trên đúng head SHA → merge có kiểm tra head SHA → GitHub Actions/Cloudflare API hoặc SDK khi cần. Không dùng Wrangler, force-push hay bỏ qua quy tắc bảo vệ nhánh. Xem trước tác dụng phụ thực tế của pipeline; chỉ xin xác nhận cụ thể nếu bước mới vượt phạm vi chưa được cho phép. Chấp thuận cho lần tg-811 này không phải quyền xóa kho xe hoặc quyền thực hiện mọi thay đổi dữ liệu trong tương lai.
+7. **Nghiệm thu trên trang thật:** tải lại trang chủ và URL chi tiết gốc; chờ dữ liệu/ảnh hoàn tất tải thay vì coi placeholder hoặc danh sách tạm trống là kết quả. Chọn đúng tab ô tô đầu tiên khi kiểm tra banner. Đối chiếu nhãn, tiêu đề, giá, trạng thái, mô tả, ảnh bìa và từng ảnh theo thứ tự; kiểm tra xe khác bằng snapshot trước sửa. Ảnh chứng minh phải thực sự chụp đúng tab đang cần xác nhận.
+8. **Ghi kết quả ngay trong MASTER:** giá trị trước/sau, phần dữ liệu hay phần hiển thị đã sửa, file/PR, head và merge SHA, workflow triển khai, Worker/version nếu có bằng chứng, hai URL đã kiểm tra, kết quả bảo toàn dữ liệu và mọi bước bị chặn. Báo ngắn gọn cho chủ sở hữu sau khi hoàn tất.
+
+### 3. Điều kiện được báo hoàn thành
+
+- Chuỗi yêu cầu đã hiện đúng trên cả hai trang liên quan; H1 và metadata đồng bộ nếu tiêu đề thuộc phạm vi.
+- Giá, trạng thái, mô tả, ảnh bìa và thứ tự ảnh ngoài phạm vi khớp dữ liệu trước sửa; xe khác giữ nguyên.
+- Nếu có sửa mã, đúng SHA đã được phát hành và đã xác minh kết quả công khai. CI xanh hoặc deploy xanh riêng lẻ chưa đủ để nghiệm thu giao diện.
+- Nếu bị chặn bởi quyền truy cập, thiếu nguồn dữ liệu hoặc một gate khác: ghi đúng bước và bằng chứng; không báo DONE và không tự đổi dữ liệu khác để vượt gate.
+- Hoàn thành phần nhãn/tiêu đề không đồng nghĩa hoàn thành các sự cố kho xe hoặc toàn bộ hệ thống.
+
+### 4. Bài học đã xác minh từ lần 31/10–01/11/2026
+
+- [Thay đổi banner #904](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/commit/aef48f8e55a1ef9f723e4628348ecd14b2c42b40) đổi `preferred` từ Porsche sang tg-811 nhưng giữ nhánh `preferred ? 'Convertible' : type`. Đây là nguồn nhãn sai dù category đã là Sedan.
+- [Bản sửa tiêu đề ngày 31/10](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/commit/c50b6da1a7385598edd7d7f64d97925936269cff) sửa script của `public/car.html`, trong khi handler máy chủ vẫn tạo tên từ brand/model và loại bỏ script inline. Kiểm tra cũ chỉ xác nhận các chuỗi mã tồn tại nên bỏ sót đường xử lý thật.
+- [Lượt triển khai 41190812296](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/41190812296) bị chặn bởi `tg-652 HIDE BLOCKED: canonical car count is not one`. [Lượt 41191140370](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/actions/runs/41191140370) đã triển khai thành công và purge đạt khoảng 17:03 ngày 31/10 (UTC+7), nhưng phần tên do máy chủ tạo vẫn chưa được sửa. Không quy nguyên nhân tồn đọng chỉ cho cache hay triển khai.
+- [#926](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/926) sửa banner và mẫu công khai; việc tải lại hai trang phát hiện tiếp phần SSR còn sót. [#927](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/927) sửa tên hiển thị tại máy chủ và thêm kiểm thử handler thật; [#928](https://github.com/PHAN-THUAN-XTRA/phanthuanxtra-v9/pull/928) lưu nghiệm thu. Đây cũng là thiếu sót của lượt sửa đầu ngày 01/11, đã được sửa trước khi báo hoàn thành.
+- Sau sửa đã đối chiếu nhãn/tiêu đề công khai, giá 7.680.000.000 VNĐ, trạng thái đang bán, mô tả và 17 ảnh giữ nguyên thứ tự. Các số liệu này là bằng chứng của lần nghiệm thu đó, không phải giá trị mặc định cho các xe hoặc lần cập nhật sau.
+
+## Biên bản nghiệm thu tg-811 đã xác minh
+
 - **Requested display:** first automotive hero badge `ROLLS-ROYCE • Sedan hạng sang F`; hero and public tg-811 detail heading/document title `Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L`.
 - **Root cause:** `public/hero-carousel.js` forced `Convertible` for owner-featured tg-811 regardless of its existing `sedan` category. Replace only that badge branch for a sedan, preserve other vehicles' category labels and selection rules, and version the homepage script URL for refreshed mobile clients.
 - **Scope:** presentation-only changes to the hero, public detail template and server-rendered tg-811 display title. No D1/API write, description/price/status/gallery reorder, R2 edit, Telegram message, database schema, credential or billing change. Canonical Admin/Telegram model text remains unchanged; public metadata and Car structured-data display name use the approved title.
