@@ -6,18 +6,19 @@ if(id===['tg','786'].join('-')){document.title='Xe không còn hiển thị | PH
 const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=String(text);return n};
 fetch('/api/cars',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('Không tải được kho xe'))).then(d=>{
  const c=(d.cars||[]).find(x=>String(x.id)===id);if(!c)throw Error('Không tìm thấy xe hoặc xe không còn hiển thị.');
- const displayName=String(c.id)==='tg-811'?'PHANTOM VII 2009 | STANDARD WHEELBASE | V12 6.75L | SEDAN SIÊU SANG':(c.name||c.model||'');
- document.title=(c.brand+' '+displayName)+' | PHAN THUẦN XTRA';
+ const displayName=String(c.id)==='tg-811'?'Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L':(c.name||c.model||'');
+ const displayTitle=String(c.id)==='tg-811'?displayName:((c.brand||'')+' '+displayName);
+ document.title=displayTitle+' | PHAN THUẦN XTRA';
  const imgs=Array.isArray(c.images)?c.images.map(x=>typeof x==='string'?x:x.url).filter(Boolean):[];
  const gallery=imgs;
  const cover=c.cover_image||gallery[0]||'',
        features=Array.isArray(c.features)?c.features:[];
  root.replaceChildren();const grid=el('div','detail-grid'),visual=el('div'),info=el('div','detail-info');
- if(cover){const a=el('a','vehicle-cover-zoom'),img=el('img');a.href=cover;a.setAttribute('data-ptx-image-viewer','');a.setAttribute('aria-label','Xem ảnh bìa phóng to');img.src=cover;img.alt=(c.brand||'')+' '+displayName;img.style.cssText='width:100%;height:auto;border-radius:12px';a.append(img);visual.append(a)}else visual.append(el('div','detail-image '+(c.imageClass||'')));
+ if(cover){const a=el('a','vehicle-cover-zoom'),img=el('img');a.href=cover;a.setAttribute('data-ptx-image-viewer','');a.setAttribute('aria-label','Xem ảnh bìa phóng to');img.src=cover;img.alt=displayTitle;img.style.cssText='width:100%;height:auto;border-radius:12px';a.append(img);visual.append(a)}else visual.append(el('div','detail-image '+(c.imageClass||'')));
  info.append(el('p','eyebrow',c.brand||'PHAN THUẦN XTRA'),el('h1','',displayName),el('p','lead',[c.year,c.engine,c.odo].filter(Boolean).join(' • ')),el('div','price big',c.price||'Liên hệ'));
  if(c.description)info.append(el('div','vehicle-description',c.description));
  if(features.length){info.append(el('h2','', 'Trang bị nổi bật'));const ul=el('ul','options');features.forEach(x=>ul.append(el('li','',x)));info.append(ul)}
- const actions=el('div','actions'),call=el('a','btn primary','Gọi tư vấn'),zalo=el('a','btn zalo','Nhắn Zalo');call.href='tel:+84866997891';zalo.href='https://zalo.me/0866997891';zalo.rel='noopener noreferrer';const booking=el('a','btn ghost','Đặt lịch xem xe');booking.href='/#test-drive';booking.addEventListener('click',()=>{try{sessionStorage.setItem('ptx:inquiry_car',JSON.stringify({id:String(c.id||''),name:((c.brand||'')+' '+displayName).trim()}))}catch{}});actions.append(call,zalo,booking);info.append(actions);grid.append(visual,info);root.append(grid);
- if(gallery.length){const section=el('section','vehicle-gallery'),g=el('div','vehicle-gallery-grid');section.append(el('h2','',`Hình ảnh chi tiết (${gallery.length} ảnh)`));gallery.forEach((src,i)=>{const a=el('a'),img=el('img');a.href=src;a.target='_blank';a.rel='noopener noreferrer';a.setAttribute('data-ptx-image-viewer','');a.setAttribute('aria-label','Xem phóng to ảnh '+(i+1)+' trong '+gallery.length+' ảnh');img.loading='lazy';img.decoding='async';img.src=src;img.alt=(c.brand||'')+' '+displayName+' — ảnh '+(i+1);a.append(img);g.append(a)});section.append(g);root.append(section)}
+ const actions=el('div','actions'),call=el('a','btn primary','Gọi tư vấn'),zalo=el('a','btn zalo','Nhắn Zalo');call.href='tel:+84866997891';zalo.href='https://zalo.me/0866997891';zalo.rel='noopener noreferrer';const booking=el('a','btn ghost','Đặt lịch xem xe');booking.href='/#test-drive';booking.addEventListener('click',()=>{try{sessionStorage.setItem('ptx:inquiry_car',JSON.stringify({id:String(c.id||''),name:displayTitle.trim()}))}catch{}});actions.append(call,zalo,booking);info.append(actions);grid.append(visual,info);root.append(grid);
+ if(gallery.length){const section=el('section','vehicle-gallery'),g=el('div','vehicle-gallery-grid');section.append(el('h2','',`Hình ảnh chi tiết (${gallery.length} ảnh)`));gallery.forEach((src,i)=>{const a=el('a'),img=el('img');a.href=src;a.target='_blank';a.rel='noopener noreferrer';a.setAttribute('data-ptx-image-viewer','');a.setAttribute('aria-label','Xem phóng to ảnh '+(i+1)+' trong '+gallery.length+' ảnh');img.loading='lazy';img.decoding='async';img.src=src;img.alt=displayTitle+' — ảnh '+(i+1);a.append(img);g.append(a)});section.append(g);root.append(section)}
 }).catch(e=>{root.replaceChildren();const box=el('div','notice');box.append(el('h1','', 'Không thể hiển thị xe'),el('p','',e.message));const a=el('a','btn primary','Về kho xe');a.href='/#cars-section';box.append(a);root.append(box)});
 </script></body></html>
