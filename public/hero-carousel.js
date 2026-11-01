@@ -38,13 +38,13 @@ if (catalogHero) {
       const category = String(car.category || '').toLowerCase();
       const type = ({convertible:'Convertible',suv:'SUV',sedan:'Sedan',coupe:'Coupe',mpv:'MPV',sport:'Thể thao'})[category] || 'Xe cao cấp';
       const title = isOwnerFeatured(car)
-        ? 'ROLLS-ROYCE PHANTOM 2009'
+        ? 'Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L'
         : isPorsche(car)
           ? '718 BOXSTER 2024 | RACING YELLOW | MÂM ĐEN CỰC CHẤT'
           : String(car.name ?? car.model ?? '').trim();
-      catalogHero.alt = brand + ' ' + title + ' đang bán tại PHAN THUẦN XTRA';
+      catalogHero.alt = (preferred ? title : brand + ' ' + title) + ' đang bán tại PHAN THUẦN XTRA';
       catalogHero.hidden = false;
-      if (badge) {badge.textContent = brand + ' • ' + (preferred ? 'Convertible' : type); badge.hidden = false;}
+      if (badge) {badge.textContent = brand + ' • ' + (preferred && category === 'sedan' ? 'Sedan hạng sang F' : type); badge.hidden = false;}
       if (model) {model.textContent = title; model.hidden = false;}
       slide?.classList.remove('hero-catalog-image-unavailable');
     };
@@ -123,3 +123,4 @@ if (carousel) {
   reducedMotion.addEventListener('change', start);
   start();
 }
+

@@ -1,3 +1,11 @@
+# TG-811 — OWNER-APPROVED HERO BADGE AND PUBLIC TITLE — 2026-11-01 (UTC+7)
+
+- **Requested display:** first automotive hero badge `ROLLS-ROYCE • Sedan hạng sang F`; hero and public tg-811 detail heading/document title `Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L`.
+- **Root cause:** `public/hero-carousel.js` forced `Convertible` for owner-featured tg-811 regardless of its existing `sedan` category. Replace only that badge branch for a sedan, preserve other vehicles' category labels and selection rules, and version the homepage script URL for refreshed mobile clients.
+- **Scope:** presentation-only changes to `public/hero-carousel.js`, `public/index.html`, and the existing tg-811 display-name override in `public/car.html`. No D1/API write, description/price/status/gallery reorder, R2 edit, Telegram message, schema, credential or billing change. Canonical Admin/Telegram model text is not changed by this public display update.
+- **Local verification:** 20/20 existing targeted hero/homepage/detail tests PASS after updating the affected title expectations and executing the owner-featured hero fixture. Hero and detail inline JavaScript syntax PASS. Porsche still displays Convertible and hidden/sold inventory remains excluded in these tests.
+- **Release status at preparation:** SOURCE VERIFIED / NOT YET DEPLOYED. Default `Deploy Cloudflare Worker` completion triggers production CRUD workflows which create hidden car fixtures; this conflicts with the owner's data-preservation scope and the instruction below to avoid further unguarded production E2E writes. Do not claim the public labels changed or run a broader mutation path without a safe publication route and runtime verification.
+
 # EXECUTION RECEIPT — OWNER HIDDEN INVENTORY PURGE — PARTIAL/BLOCKED — 2026-10-31 (UTC+7)
 
 - **Phạm vi:** Chủ sở hữu phê duyệt giữ lại đúng 8 xe `available`, xóa vật lý các hàng `hidden` khỏi D1 `cars`; không xóa R2, `car_images`, Telegram history, customers hoặc orders.

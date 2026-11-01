@@ -62,10 +62,13 @@ test("Porsche 718 Boxster 2024 is preferred over another active car",async()=>{
   assert.equal(x.requests[0].url,"/api/cars");
   assert.equal(x.requests[0].options.cache,"no-store");
 });
-test("owner-selected tg-811 is preferred over the Porsche fallback",()=>{
-  assert.match(hero,/isOwnerFeatured/);
-  assert.match(hero,/cars\.find\(isOwnerFeatured\) \|\| cars\.find\(isPorsche\)/);
-  assert.match(hero,/ROLLS-ROYCE PHANTOM 2009/);
+test("owner-selected tg-811 keeps its sedan label and owner-approved title over the Porsche fallback",async()=>{
+  const phantom={...car("tg-811","ROLLS-ROYCE","PHANTOM 2009"),category:"sedan"};
+  const x=await run([car("porsche","PORSCHE","718 BOXSTER 2024"),phantom]);
+  assert.equal(x.image.src,"/media/vehicles/tg-811.webp");
+  assert.equal(x.badge.textContent,"ROLLS-ROYCE • Sedan hạng sang F");
+  assert.equal(x.model.textContent,"Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L");
+  assert.equal(x.image.alt,"Rolls-Royce Phantom VII 2009 – Sedan Siêu Sang V12 6.75L đang bán tại PHAN THUẦN XTRA");
 });
 test("hidden Porsche and sold Lexus are never promoted",async()=>{
   const x=await run([
@@ -103,3 +106,4 @@ test("catalog cards also refuse hidden or unpublished records",()=>{
   assert.match(listing,/\$\$\('\.filter'\)\.forEach\(button=>/);
   assert.doesNotMatch(listing,/(?<!\$)\$\('\.filter'\)\.forEach/);
 });
+
