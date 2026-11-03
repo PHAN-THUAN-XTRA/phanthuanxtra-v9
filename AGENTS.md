@@ -6,4 +6,4 @@ Read .specify/memory/constitution.md before using Spec Kit. No production mutati
 - Preserve public vehicle listing identities, published content, image order, prices and live inventory semantics until a specifically approved spec permits a bounded change.
 - Do not mutate Cloudflare production, Workers, the live Admin/Telegram database or vehicle records while creating specs or testing; require review and rollback for runtime changes.
 - Use staged and isolated fixtures with exact expected behavior, especially for Admin/Telegram parity and vehicle-content workflows.
-- Never copy code, confidential receipts or device data from private Lyly, Vertu or NECC repositories.
+- Never copy code, confidential receipts or device data from any private repositories.
