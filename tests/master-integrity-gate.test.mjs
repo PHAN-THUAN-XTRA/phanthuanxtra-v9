@@ -20,3 +20,31 @@ test('only the canonical Markdown path is allowed', () => {
   assert.match(auditMarkdownPaths(['nested/MASTER_PROJECT_STATUS.md']).join(' '), /Canonical Markdown path missing/);
   assert.match(auditMarkdownPaths([]).join(' '), /Canonical Markdown path missing/);
 });
+
+// Spec Kit is non-status tooling; explicit scoped additions must not bypass MASTER protection.
+test('approved Spec Kit core does not compete with canonical MASTER', () => {
+  const commands = ['analyze', 'checklist', 'clarify', 'constitution', 'converge', 'implement', 'plan', 'specify', 'tasks', 'taskstoissues'];
+  const approved = [
+    'MASTER_PROJECT_STATUS.md', 'AGENTS.md', 'specs/README.md',
+    '.specify/README.md', '.specify/memory/constitution.md',
+    ...['checklist', 'constitution', 'plan', 'spec', 'tasks'].map(name => `.specify/templates/${name}-template.md`),
+    ...commands.map(name => `.specify/templates/commands/${name}.md`),
+    ...commands.map(name => `.agents/skills/speckit-${name}/SKILL.md`)
+  ];
+  assert.deepEqual(auditMarkdownPaths(approved), []);
+});
+
+test('bounded feature documents are allowed without enabling extra status', () => {
+  assert.deepEqual(auditMarkdownPaths(['MASTER_PROJECT_STATUS.md', 'specs/001-admin-ui/spec.md', 'specs/001-admin-ui/plan.md', 'specs/001-admin-ui/tasks.md']), []);
+  assert.deepEqual(auditMarkdownPaths(['MASTER_PROJECT_STATUS.md', 'specs/20261103-150000-gallery/checklists/requirements.md', 'specs/20261103-150000-gallery/contracts/api.md']), []);
+});
+
+test('guard rejects arbitrary Markdown, lookalikes, traversal, and missing canonical', () => {
+  const blocked = [
+    'docs/status.md', 'specs/001-test/MASTER_PROJECT_STATUS.md',
+    '.agents/skills/untrusted/SKILL.md', '.specify/extra.md',
+    'specs/unapproved/spec.md', 'specs/001-test/contracts/../../dump.md', 'AGENTS.MD'
+  ];
+  for (const path of blocked) assert.match(auditMarkdownPaths(['MASTER_PROJECT_STATUS.md', path]).join(' '), /Extra Markdown/);
+  assert.match(auditMarkdownPaths(['AGENTS.md']).join(' '), /Canonical Markdown path missing/);
+});

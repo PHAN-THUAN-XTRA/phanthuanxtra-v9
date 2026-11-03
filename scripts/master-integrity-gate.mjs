@@ -30,11 +30,24 @@ export function auditMaster(content, previous = null) {
   return errors;
 }
 
+// Explicit non-status documentation allowance for reviewed github/spec-kit.
+// This does not permit a second canonical project status document.
+const APPROVED_SPECKIT_MARKDOWN = new Set([
+  'AGENTS.md',
+  'specs/README.md',
+  '.specify/README.md',
+  '.specify/memory/constitution.md',
+  ...['checklist', 'constitution', 'plan', 'spec', 'tasks'].map(name => `.specify/templates/${name}-template.md`),
+  ...['analyze', 'checklist', 'clarify', 'constitution', 'converge', 'implement', 'plan', 'specify', 'tasks', 'taskstoissues'].map(name => `.specify/templates/commands/${name}.md`),
+  ...['analyze', 'checklist', 'clarify', 'constitution', 'converge', 'implement', 'plan', 'specify', 'tasks', 'taskstoissues'].map(name => `.agents/skills/speckit-${name}/SKILL.md`)
+]);
+const ALLOWED_FEATURE_DOCUMENT = /^specs\/(?:\d{3}|\d{8}-\d{6})-[a-z0-9]+(?:-[a-z0-9]+)*\/(?:(?:spec|plan|tasks|research|data-model|quickstart)\.md|(?:checklists|contracts)\/[a-z0-9]+(?:[-._][a-z0-9]+)*\.md)$/;
+
 export function auditMarkdownPaths(paths) {
   const markdown = paths.filter(path => /\.md$/i.test(path));
   const errors = [];
   if (!markdown.includes('MASTER_PROJECT_STATUS.md')) errors.push('Canonical Markdown path missing');
-  const extra = markdown.filter(path => path !== 'MASTER_PROJECT_STATUS.md');
+  const extra = markdown.filter(path => path !== 'MASTER_PROJECT_STATUS.md' && !APPROVED_SPECKIT_MARKDOWN.has(path) && !ALLOWED_FEATURE_DOCUMENT.test(path));
   if (extra.length) errors.push(`Extra Markdown paths forbidden: ${extra.join(', ')}`);
   return errors;
 }
