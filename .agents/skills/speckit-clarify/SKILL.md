@@ -227,7 +227,7 @@ Behavior rules:
 - If no questions asked due to full coverage, output a compact coverage summary (all categories Clear) then suggest advancing.
 - If quota reached with unresolved high-impact categories remaining, explicitly flag them under Deferred with rationale.
 
-Context for prioritization: {ARGS}
+Context for prioritization: $ARGUMENTS
 
 ## Mandatory Post-Execution Hooks
 
