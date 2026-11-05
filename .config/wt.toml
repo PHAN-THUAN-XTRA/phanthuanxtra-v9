@@ -1,0 +1,12 @@
+# Worktrunk shared project configuration for PHAN-THUAN-XTRA/phanthuanxtra-v9.
+# Local Git worktrees only. Team configuration: https://worktrunk.dev/config/
+# No pre/post hooks: creation, switching, merging, and removal must not
+# automatically run installs, tests, servers, deployments, or hardware I/O.
+# Public website: never run Cloudflare deploy, D1 migrations, Admin/Telegram mutations, or inventory operations through a worktree.
+# Installing the Worktrunk CLI is a separate Windows host operation.
+
+[aliases]
+# Explicit, read-only inspection; invoked as: git-wt xtra-status
+xtra-status = "git status --short --branch"
+# Explicit local whitespace/conflict-marker inspection; does not merge or deploy.
+xtra-check = "git diff --check"
