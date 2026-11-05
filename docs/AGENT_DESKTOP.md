@@ -1,6 +1,6 @@
 # agent-desktop — optional local developer integration
 
-Project: **Website Phan Thuần Xtra**  
+Project: **Website Phan Thuần Xtra**
 Upstream: https://github.com/vercel-labs/agent-desktop (Apache-2.0; CLI + MCP over local stdio)
 
 **Current scope:** repository skill + configuration EXAMPLE only. No upstream code fork, runtime dependency, Windows installation, active MCP server, production rollout or successful desktop QA is claimed. The template does not grant remote-control access.
