@@ -7,3 +7,8 @@ Read .specify/memory/constitution.md before using Spec Kit. No production mutati
 - Do not mutate Cloudflare production, Workers, the live Admin/Telegram database or vehicle records while creating specs or testing; require review and rollback for runtime changes.
 - Use staged and isolated fixtures with exact expected behavior, especially for Admin/Telegram parity and vehicle-content workflows.
 - Never copy code, confidential receipts or device data from any private repositories.
+
+## Optional local desktop agent tool (2026-11-05)
+
+- [agent-desktop skill](.agents/skills/agent-desktop/SKILL.md) and [Windows/MCP setup](docs/AGENT_DESKTOP.md) are opt-in **development-only** guidance; they do not install, activate or authorize desktop control, and must not run in CI or production.
+- Public website: do not inspect real customer/Admin/Telegram data or touch Cloudflare production. Actions require explicit per-session consent, narrow scope, independent review and verified post-state; no private desktop snapshots or credentials in Git.
