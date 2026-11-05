@@ -34,6 +34,9 @@ export function auditMaster(content, previous = null) {
 // This does not permit a second canonical project status document.
 const APPROVED_SPECKIT_MARKDOWN = new Set([
   'AGENTS.md',
+  // Reviewed optional development tooling only. Exact paths preserve MASTER exclusivity.
+  '.agents/skills/agent-desktop/SKILL.md',
+  'docs/AGENT_DESKTOP.md',
   'specs/README.md',
   '.specify/README.md',
   '.specify/memory/constitution.md',
