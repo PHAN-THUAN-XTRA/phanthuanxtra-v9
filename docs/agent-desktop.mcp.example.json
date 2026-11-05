@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "agent-desktop": {
+      "command": "agent-desktop",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}
