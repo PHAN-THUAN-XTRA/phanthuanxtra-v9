@@ -1,0 +1,25 @@
+# Worktrunk shared project configuration for PHAN-THUAN-XTRA/phanthuanxtra-v9.
+# See https://worktrunk.dev/config/ for the project config format.
+#
+# Windows 11 developer setup (manual, on owner's PC only):
+#   winget install --id max-sixty.worktrunk --exact
+#   git-wt config shell install
+#   (restart PowerShell)
+#   git-wt config show
+#   git-wt list
+#   git-wt switch --create docs/example-isolated-task
+#   git-wt xtra-status
+#   git-wt xtra-check
+#
+# The 'git-wt' command avoids Windows Terminal's existing 'wt' alias.
+# No hooks: never auto-install dependencies, launch servers, run Cloudflare
+# deploy, D1 migrations, Admin/Telegram actions, or mutate vehicle inventory.
+# No secrets, customer data, production environment or private files in PRs.
+# Every Codex/Work task should use its own worktree and a reviewed PR.
+# Do not merge/remove worktrees automatically. This config does not install
+# Worktrunk, activate Work/Codex, or deploy production.
+
+[aliases]
+# Manual, read-only Git inspection commands.
+xtra-status = "git status --short --branch"
+xtra-check = "git diff --check"
