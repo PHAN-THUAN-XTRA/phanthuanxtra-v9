@@ -34,6 +34,24 @@ test('approved Spec Kit core does not compete with canonical MASTER', () => {
   assert.deepEqual(auditMarkdownPaths(approved), []);
 });
 
+test('only exact approved agent-desktop docs pass the canonical guard', () => {
+  assert.deepEqual(auditMarkdownPaths([
+    'MASTER_PROJECT_STATUS.md',
+    '.agents/skills/agent-desktop/SKILL.md',
+    'docs/AGENT_DESKTOP.md'
+  ]), []);
+  for (const path of [
+    '.agents/skills/agent-desktop/STATUS.md',
+    '.agents/skills/agent-desktop/README.md',
+    'docs/AGENT_DESKTOP_STATUS.md',
+    'docs/agent_desktop.md',
+    '.agents/skills/agent-desktop/../evil/SKILL.md',
+    'docs/AGENT_DESKTOP.md/../../status.md'
+  ]) {
+    assert.match(auditMarkdownPaths(['MASTER_PROJECT_STATUS.md', path]).join(' '), /Extra Markdown/);
+  }
+});
+
 test('bounded feature documents are allowed without enabling extra status', () => {
   assert.deepEqual(auditMarkdownPaths(['MASTER_PROJECT_STATUS.md', 'specs/001-admin-ui/spec.md', 'specs/001-admin-ui/plan.md', 'specs/001-admin-ui/tasks.md']), []);
   assert.deepEqual(auditMarkdownPaths(['MASTER_PROJECT_STATUS.md', 'specs/20261103-150000-gallery/checklists/requirements.md', 'specs/20261103-150000-gallery/contracts/api.md']), []);
